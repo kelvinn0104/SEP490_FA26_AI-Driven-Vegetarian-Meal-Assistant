@@ -337,7 +337,7 @@ export default function HomePage({ onNavigate }) {
       </section>
 
       {/* VEGAN RESTAURANTS MAP SHOWCASE */}
-      <section style={{ marginBottom: '3.5rem' }}>
+      <section id="restaurants-section" style={{ marginBottom: '3.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span className="badge badge-ai">BẢN ĐỒ ĐỊA ĐIỂM CHAY</span>

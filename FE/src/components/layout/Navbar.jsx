@@ -1,37 +1,42 @@
 import React from 'react';
-import { Search, User, Sparkles } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { Search, Sparkles, User } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab }) {
-  const { user } = useAuth();
-
   const navLinks = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'planner', label: 'Thực đơn AI' },
-    { id: 'vision', label: 'Quét nguyên liệu' },
-    { id: 'community', label: 'Video & Tóm tắt' },
-    { id: 'chatbot', label: 'Dinh dưỡng AI' },
-    { id: 'community', label: 'Cộng đồng' },
-    { id: 'admin', label: 'Admin' },
-    { id: 'moderation', label: 'Mod Duyệt bài' }
+    { id: 'vision', label: 'Quét tủ lạnh' },
+    { id: 'community', label: 'Video & Công thức' },
+    { id: 'restaurants', label: 'Quán chay gần bạn' },
+    { id: 'community', label: 'Cộng đồng' }
   ];
 
   return (
-    <header className="top-navbar">
-      <div className="navbar-container">
+    <header className="main-header">
+      <div className="header-inner">
         {/* LOGO */}
-        <div className="navbar-logo" onClick={() => setActiveTab('home')}>
-          <span className="logo-icon">🌱</span>
-          <span className="logo-text">Veggie<span className="logo-highlight">AI</span></span>
+        <div className="brand-logo" onClick={() => setActiveTab('home')}>
+          <span className="brand-icon">🌱</span>
+          <span className="brand-name">VeggieAI</span>
         </div>
 
-        {/* NAV LINKS */}
-        <nav className="navbar-links">
+        {/* NAVIGATION LINKS */}
+        <nav className="header-nav">
           {navLinks.map((link, idx) => (
             <button
               key={idx}
-              className={`nav-link-btn ${activeTab === link.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(link.id)}
+              className={`header-nav-item ${activeTab === link.id ? 'active' : ''}`}
+              onClick={() => {
+                if (link.id === 'restaurants') {
+                  setActiveTab('home');
+                  setTimeout(() => {
+                    const el = document.getElementById('restaurants-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                } else {
+                  setActiveTab(link.id);
+                }
+              }}
             >
               {link.label}
             </button>
@@ -39,21 +44,42 @@ export default function Navbar({ activeTab, setActiveTab }) {
         </nav>
 
         {/* SEARCH BAR */}
-        <div className="navbar-search">
-          <Search size={16} color="#94a3b8" />
-          <input type="text" placeholder="Tìm kiếm món ăn, bài viết, nhà hàng..." />
-          <span className="search-shortcut">Ctrl K</span>
+        <div className="header-search-box">
+          <Search size={15} className="search-icon" />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm món chay, hỏi AI..." 
+          />
+          <span className="ctrl-k-badge">Ctrl+K</span>
         </div>
 
-        {/* USER PROFILE & CTA */}
-        <div className="navbar-actions">
-          <div className="user-profile-badge">
-            <User size={16} />
-            <span>{user?.name || 'Phan Văn A'}</span>
-          </div>
+        {/* RIGHT ACTIONS */}
+        <div className="header-right-actions">
+          {/* HỎI AI BUTTON */}
+          <button 
+            className="btn-hoi-ai" 
+            onClick={() => setActiveTab('chatbot')}
+            title="Hỏi AI Dinh dưỡng"
+          >
+            <Sparkles size={16} className="sparkle-icon" />
+            <span>Hỏi AI</span>
+          </button>
 
-          <button className="btn-cta-green" onClick={() => setActiveTab('planner')}>
-            Bắt đầu ngay ➜
+          {/* BẮT ĐẦU THỬ BUTTON */}
+          <button 
+            className="btn-bat-dau-thu" 
+            onClick={() => setActiveTab('planner')}
+          >
+            Bắt đầu thử
+          </button>
+
+          {/* USER AVATAR CIRCLE */}
+          <button 
+            className="user-avatar-circle"
+            onClick={() => setActiveTab(activeTab === 'admin' ? 'home' : 'admin')}
+            title="Chuyển đến Quản trị (Admin/Mod)"
+          >
+            <User size={18} color="white" />
           </button>
         </div>
       </div>
