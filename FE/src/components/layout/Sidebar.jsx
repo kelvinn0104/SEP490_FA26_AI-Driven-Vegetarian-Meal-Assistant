@@ -1,8 +1,9 @@
 import React from 'react';
-import { Utensils, Camera, Bot, Users, ShieldCheck, Clock } from 'lucide-react';
+import { Home, Utensils, Camera, Bot, Users, ShieldCheck, Clock } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const navItems = [
+    { id: 'home', label: 'Trang chủ', icon: <Home size={18} /> },
     { id: 'planner', label: 'AI Meal Planner', icon: <Utensils size={18} /> },
     { id: 'vision', label: 'Quét Nguyên liệu (Vision)', icon: <Camera size={18} /> },
     { id: 'chatbot', label: 'AI Nutrition Chatbot', icon: <Bot size={18} /> },
@@ -13,7 +14,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
   return (
     <aside className="sidebar">
-      <div className="logo-section">
+      <div className="logo-section" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
         <span>🥦</span> VeggieAI
       </div>
 
