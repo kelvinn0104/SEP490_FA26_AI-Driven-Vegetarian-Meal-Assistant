@@ -1,0 +1,44 @@
+# ==========================================
+# Root .gitignore for VeggieAI (.NET + ReactJS)
+# ==========================================
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET / C#
+bin/
+obj/
+out/
+[Dd]ebug/
+[Rr]elease/
+appsettings.Development.json
+appsettings.Local.json
+
+# Node.js / ReactJS
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+dist-ssr/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# AI Models / Heavy Binaries (Store on S3/Cloud)
+*.onnx
+*.pt
+*.bin
