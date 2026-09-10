@@ -402,50 +402,6 @@ export default function HomePage({ onNavigate }) {
           </Button>
         </div>
       </section>
-
-      {/* FOOTER */}
-      <footer className="footer">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem', marginBottom: '2.5rem' }}>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', marginBottom: '0.75rem' }}>🌱 VeggieAI</div>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: '1.65' }}>
-              Trợ lý ăn chay thông minh hàng đầu Việt Nam, giúp tối ưu hóa dinh dưỡng và tiết kiệm thời gian chế biến bằng Trí tuệ Nhân tạo.
-            </p>
-          </div>
-
-          <div>
-            <h4 style={{ color: '#0f172a', marginBottom: '0.85rem' }}>KHÁM PHÁ</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', color: '#64748b', fontSize: '0.88rem' }}>
-              <span>Thực đơn AI tuần</span>
-              <span>Quét tủ lạnh YOLO</span>
-              <span>Chatbot dinh dưỡng RAG</span>
-              <span>Bản đồ quán chay</span>
-            </div>
-          </div>
-
-          <div>
-            <h4 style={{ color: '#0f172a', marginBottom: '0.85rem' }}>DÀNH CHO CỘNG ĐỒNG</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', color: '#64748b', fontSize: '0.88rem' }}>
-              <span>Đăng bài viết & Video</span>
-              <span>Kiểm duyệt viên (Mod)</span>
-              <span>Hướng dẫn sử dụng</span>
-            </div>
-          </div>
-
-          <div>
-            <h4 style={{ color: '#0f172a', marginBottom: '0.85rem' }}>TẢI ỨNG DỤNG</h4>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginBottom: '0.85rem' }}>Trải nghiệm ứng dụng di động trên iOS & Android</p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <span className="badge badge-ai">📱 App Store</span>
-              <span className="badge badge-ai">🤖 Google Play</span>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-          © 2026 VeggieAI. Đồ án Tốt nghiệp SEP490 - Trường Đại học FPT HCM.
-        </div>
-      </footer>
     </div>
   );
 }

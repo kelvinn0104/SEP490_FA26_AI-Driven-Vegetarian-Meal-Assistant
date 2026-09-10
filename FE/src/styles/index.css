@@ -532,11 +532,174 @@ body {
   margin-bottom: 1rem;
 }
 
-/* FOOTER */
-.footer {
-  background: white;
-  border-top: 1px solid #e2e8f0;
+/* FULL-WIDTH SITE FOOTER (100% EDGE-TO-EDGE) */
+.site-footer {
+  width: 100%;
+  background: #ffffff;
+  border-top: 1px solid #eef2f6;
+  margin-top: 3.5rem;
+}
+
+.footer-inner {
+  max-width: 1360px;
+  margin: 0 auto;
   padding: 3.5rem 2rem 2rem 2rem;
-  border-radius: 24px 24px 0 0;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.footer-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.footer-desc {
+  color: #64748b;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+  max-width: 380px;
+}
+
+.footer-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-badge {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+}
+
+.footer-col-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.footer-links li a {
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footer-links li a:hover {
+  color: #059669;
+}
+
+.footer-mobile-text {
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.footer-app-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.app-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: #f0f4f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+  min-width: 170px;
+}
+
+.app-download-btn:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.app-btn-icon {
+  color: #059669;
+}
+
+.google-play-icon {
+  font-size: 1.1rem;
+  color: #059669;
+}
+
+.app-btn-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.app-btn-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.app-btn-main {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* FOOTER BOTTOM BAR */
+.footer-bottom-bar {
+  border-top: 1px solid #f1f5f9;
   margin-top: 3rem;
+  padding-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.copyright-text {
+  color: #94a3b8;
+  font-size: 0.84rem;
+}
+
+.footer-legal-links {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.footer-legal-links a {
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.84rem;
+  transition: color 0.2s;
+}
+
+.footer-legal-links a:hover {
+  color: #059669;
 }

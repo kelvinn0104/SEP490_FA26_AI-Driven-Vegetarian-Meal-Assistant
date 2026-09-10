@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
 import MealPlannerPage from './pages/MealPlannerPage';
 import VisionPage from './pages/VisionPage';
@@ -24,6 +25,8 @@ export default function App() {
         {activeTab === 'admin' && <AdminDashboard />}
         {activeTab === 'moderation' && <ModerationQueue />}
       </main>
+
+      <Footer />
     </div>
   );
 }
