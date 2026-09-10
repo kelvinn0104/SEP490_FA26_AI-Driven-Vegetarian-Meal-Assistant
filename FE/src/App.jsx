@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
+import Navbar from './components/layout/Navbar';
 import HomePage from './pages/HomePage';
 import MealPlannerPage from './pages/MealPlannerPage';
 import VisionPage from './pages/VisionPage';
@@ -13,12 +12,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
   return (
-    <div className="app-container">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="app-container-full">
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <main className="main-content">
-        <Header />
-
+      <main className="main-content-full">
         {activeTab === 'home' && <HomePage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'planner' && <MealPlannerPage />}
         {activeTab === 'vision' && <VisionPage />}
