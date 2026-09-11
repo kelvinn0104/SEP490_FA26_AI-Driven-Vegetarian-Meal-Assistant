@@ -394,7 +394,7 @@ export default function HomePage({ onNavigate }) {
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button style={{ background: 'white', color: '#047857', fontSize: '1rem', padding: '0.85rem 1.75rem' }} onClick={() => onNavigate && onNavigate('planner')}>
+          <Button style={{ background: 'white', color: '#047857', fontSize: '1rem', padding: '0.85rem 1.75rem' }} onClick={() => onNavigate && onNavigate('register')}>
             🚀 Đăng ký tài khoản miễn phí ngay
           </Button>
           <Button variant="secondary" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', fontSize: '1rem' }} onClick={() => onNavigate && onNavigate('community')}>

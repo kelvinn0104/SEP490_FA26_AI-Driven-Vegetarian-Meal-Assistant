@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
+import RegisterPage from './pages/RegisterPage';
 import MealPlannerPage from './pages/MealPlannerPage';
 import VisionPage from './pages/VisionPage';
 import ChatbotPage from './pages/ChatbotPage';
@@ -18,6 +19,7 @@ export default function App() {
 
       <main className="main-content-full">
         {activeTab === 'home' && <HomePage onNavigate={(tab) => setActiveTab(tab)} />}
+        {activeTab === 'register' && <RegisterPage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'planner' && <MealPlannerPage />}
         {activeTab === 'vision' && <VisionPage />}
         {activeTab === 'chatbot' && <ChatbotPage />}

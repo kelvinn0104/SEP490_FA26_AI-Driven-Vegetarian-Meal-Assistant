@@ -68,7 +68,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
           {/* BẮT ĐẦU THỬ BUTTON */}
           <button 
             className="btn-bat-dau-thu" 
-            onClick={() => setActiveTab('planner')}
+            onClick={() => setActiveTab('register')}
           >
             Bắt đầu thử
           </button>
