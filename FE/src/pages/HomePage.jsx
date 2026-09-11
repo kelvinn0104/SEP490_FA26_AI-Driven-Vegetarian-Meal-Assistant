@@ -117,31 +117,6 @@ export default function HomePage({ onNavigate }) {
       ]
     }
   ];
-
-  const restaurants = [
-    {
-      name: 'Quán Chay An Duyên - Vị Hoa',
-      rating: '4.8 ★ (320+)',
-      distance: '📍 1.2 km • Quận 5, TP.HCM',
-      desc: 'Không gian ấm cúng, chuyên các món chay chuẩn vị Triều Châu và lẩu nấm dưỡng sinh.',
-      tag: '🔥 Địa điểm nổi bật'
-    },
-    {
-      name: 'Lẩu Nấm Chay Bách Hỷ',
-      rating: '4.9 ★ (450+)',
-      distance: '📍 2.5 km • Quận 3, TP.HCM',
-      desc: 'Nổi tiếng với 12 loại nấm quý tươi nguyên cây và nước dùng thảo mộc thuần chay.',
-      tag: '🌱 100% Thuần Chay'
-    },
-    {
-      name: 'Mộc Nhiên Vegan Hub & Cafe',
-      rating: '4.7 ★ (210+)',
-      distance: '📍 3.1 km • Quận 1, TP.HCM',
-      desc: 'Mô hình Cafe & Nhà hàng chay hiện đại, bánh ngọt thuần chay & smoothie giàu protein.',
-      tag: '☕ Cafe & Bakery'
-    }
-  ];
-
   // WF06: TÌM KIẾM CÔNG KHAI (Lọc video và công thức)
   const filteredVideos = videoRecipes.filter(v => 
     v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -424,38 +399,6 @@ export default function HomePage({ onNavigate }) {
           <Button onClick={() => onNavigate && onNavigate('register')}>
             <Camera size={18} /> Đăng ký để mở khóa tính năng Quét tủ lạnh (WF01)
           </Button>
-        </div>
-      </section>
-
-      {/* QUÁN CHAY GẦN BẠN (CÔNG KHAI CHO GUEST) */}
-      <section id="restaurants-section" style={{ marginBottom: '3.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <span className="badge badge-ai">BẢN ĐỒ ĐỊA ĐIỂM CHAY CÔNG KHAI</span>
-            <h2 style={{ fontSize: '1.75rem', color: '#0f172a', marginTop: '0.35rem' }}>Quán Chay Được Đánh Giá Cao Gần Bạn</h2>
-          </div>
-          <span style={{ fontSize: '0.9rem', background: 'white', padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <MapPin size={16} color="#059669" /> Đang hiển thị ở: <strong>Quận 1, TP. Hồ Chí Minh</strong>
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem' }}>
-          {restaurants.map((res, idx) => (
-            <Card key={idx} style={{ padding: '1.35rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span className="badge badge-success">{res.tag}</span>
-                <span style={{ color: '#d97706', fontWeight: 800, fontSize: '0.85rem' }}>{res.rating}</span>
-              </div>
-
-              <h3 style={{ color: '#0f172a', margin: '0.75rem 0 0.35rem 0', fontSize: '1.1rem' }}>{res.name}</h3>
-              <p style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 600, marginBottom: '0.5rem' }}>{res.distance}</p>
-              <p style={{ fontSize: '0.88rem', color: '#64748b', marginBottom: '1.15rem', lineHeight: '1.5' }}>{res.desc}</p>
-
-              <Button variant="secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => alert(`Xem thông tin quán: ${res.name} - ${res.distance}`)}>
-                Xem thông tin quán & chỉ đường →
-              </Button>
-            </Card>
-          ))}
         </div>
       </section>
 

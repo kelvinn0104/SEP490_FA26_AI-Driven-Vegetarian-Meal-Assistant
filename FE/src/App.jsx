@@ -10,7 +10,7 @@ import CommunityPage from './pages/CommunityPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ModerationQueue from './pages/ModerationQueue';
 import { useAuth } from './context/AuthContext';
-import { ShieldAlert, LogIn, Lock } from 'lucide-react';
+import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
 import Card from './components/ui/Card';
 
@@ -25,8 +25,47 @@ export default function App() {
       <main className="main-content-full">
         {activeTab === 'home' && <HomePage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'register' && <RegisterPage onNavigate={(tab) => setActiveTab(tab)} />}
-        {activeTab === 'planner' && <MealPlannerPage />}
-        {activeTab === 'vision' && <VisionPage />}
+        
+        {/* BẢO VỆ CHỨC NĂNG THỰC ĐƠN AI: YÊU CẦU HOÀN TẤT ĐĂNG KÝ / HỒ SƠ DINH DƯỠNG (WF01) */}
+        {activeTab === 'planner' && (
+          user ? (
+            <MealPlannerPage />
+          ) : (
+            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Sparkles size={32} color="#059669" />
+              </div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Thiết Lập Hồ Sơ Dinh Dưỡng (WF01)</h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Tính năng Lập Thực Đơn AI 7 ngày được cá nhân hóa tự động theo thể trạng và nhu cầu dinh dưỡng. Khách vãng lai (Guest) cần hoàn tất đăng ký để khởi tạo thực đơn riêng.
+              </p>
+              <Button variant="primary" onClick={() => setActiveTab('register')}>
+                🚀 Bắt đầu quy trình đăng ký & khảo sát dinh dưỡng (WF01)
+              </Button>
+            </Card>
+          )
+        )}
+
+        {/* BẢO VỆ CHỨC NĂNG QUÉT TỦ LẠNH: YÊU CẦU ĐĂNG KÝ (WF01) */}
+        {activeTab === 'vision' && (
+          user ? (
+            <VisionPage />
+          ) : (
+            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Camera size={32} color="#059669" />
+              </div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Ký Tài Khoản (WF01)</h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Tính năng Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi bằng Computer Vision (YOLO) chỉ dành riêng cho thành viên đã đăng nhập.
+              </p>
+              <Button variant="primary" onClick={() => setActiveTab('register')}>
+                🚀 Bắt đầu quy trình đăng ký tài khoản (WF01)
+              </Button>
+            </Card>
+          )
+        )}
+
         {activeTab === 'chatbot' && <ChatbotPage />}
         {activeTab === 'community' && <CommunityPage />}
 
