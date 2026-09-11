@@ -65,7 +65,7 @@ export default function ChatbotPage({ onNavigate }) {
             border: `1px solid ${hasReachedLimit ? '#fca5a5' : '#a7f3d0'}`
           }}>
             <Sparkles size={14} />
-            <span>Chế độ Khách (WF05): Còn {remainingQuestions}/{GUEST_LIMIT} lượt hỏi</span>
+            <span>Dùng thử: Còn {remainingQuestions}/{GUEST_LIMIT} lượt hỏi</span>
           </div>
         ) : (
           <div style={{ background: '#ecfdf5', color: '#047857', padding: '0.35rem 0.85rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700 }}>
@@ -107,7 +107,7 @@ export default function ChatbotPage({ onNavigate }) {
             <Lock size={28} color="#ea580c" style={{ margin: '0 auto 0.5rem auto' }} />
             <h4 style={{ color: '#9a3412', marginBottom: '0.35rem' }}>Bạn đã dùng hết {GUEST_LIMIT} lượt hỏi thử nghiệm miễn phí!</h4>
             <p style={{ color: '#7c2d12', fontSize: '0.88rem', maxWidth: '500px', margin: '0 auto 1rem auto' }}>
-              Theo quy định phân quyền, Khách vãng lai được trải nghiệm tối đa {GUEST_LIMIT} câu hỏi. Hãy bắt đầu quy trình đăng ký (WF01) để trò chuyện không giới hạn và lưu lịch sử dinh dưỡng.
+              Khách vãng lai được trải nghiệm tối đa {GUEST_LIMIT} câu hỏi. Hãy đăng ký tài khoản để trò chuyện không giới hạn và lưu trữ lịch sử tư vấn dinh dưỡng.
             </p>
             <Button onClick={() => onNavigate && onNavigate('register')} style={{ background: '#046a47', margin: '0 auto' }}>
               <Sparkles size={16} /> Đăng ký miễn phí để tiếp tục hỏi AI <ArrowRight size={16} />

@@ -26,7 +26,7 @@ export default function App() {
         {activeTab === 'home' && <HomePage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'register' && <RegisterPage onNavigate={(tab) => setActiveTab(tab)} />}
         
-        {/* BẢO VỆ CHỨC NĂNG THỰC ĐƠN AI: YÊU CẦU HOÀN TẤT ĐĂNG KÝ / HỒ SƠ DINH DƯỠNG (WF01) */}
+        {/* BẢO VỆ CHỨC NĂNG THỰC ĐƠN AI: YÊU CẦU HOÀN TẤT ĐĂNG KÝ / HỒ SƠ DINH DƯỠNG */}
         {activeTab === 'planner' && (
           user ? (
             <MealPlannerPage />
@@ -35,18 +35,18 @@ export default function App() {
               <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                 <Sparkles size={32} color="#059669" />
               </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Thiết Lập Hồ Sơ Dinh Dưỡng (WF01)</h2>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Thiết Lập Hồ Sơ Dinh Dưỡng</h2>
               <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Tính năng Lập Thực Đơn AI 7 ngày được cá nhân hóa tự động theo thể trạng và nhu cầu dinh dưỡng. Khách vãng lai (Guest) cần hoàn tất đăng ký để khởi tạo thực đơn riêng.
+                Tính năng Lập Thực Đơn AI 7 ngày được cá nhân hóa tự động theo thể trạng và nhu cầu dinh dưỡng. Khách vãng lai cần hoàn tất đăng ký để khởi tạo thực đơn riêng.
               </p>
               <Button variant="primary" onClick={() => setActiveTab('register')}>
-                🚀 Bắt đầu quy trình đăng ký & khảo sát dinh dưỡng (WF01)
+                🚀 Bắt đầu quy trình đăng ký & khảo sát dinh dưỡng
               </Button>
             </Card>
           )
         )}
 
-        {/* BẢO VỆ CHỨC NĂNG QUÉT TỦ LẠNH: YÊU CẦU ĐĂNG KÝ (WF01) */}
+        {/* BẢO VỆ CHỨC NĂNG QUÉT TỦ LẠNH: YÊU CẦU ĐĂNG KÝ */}
         {activeTab === 'vision' && (
           user ? (
             <VisionPage />
@@ -55,12 +55,12 @@ export default function App() {
               <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                 <Camera size={32} color="#059669" />
               </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Ký Tài Khoản (WF01)</h2>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Ký Tài Khoản</h2>
               <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
                 Tính năng Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi bằng Computer Vision (YOLO) chỉ dành riêng cho thành viên đã đăng nhập.
               </p>
               <Button variant="primary" onClick={() => setActiveTab('register')}>
-                🚀 Bắt đầu quy trình đăng ký tài khoản (WF01)
+                🚀 Bắt đầu quy trình đăng ký tài khoản
               </Button>
             </Card>
           )

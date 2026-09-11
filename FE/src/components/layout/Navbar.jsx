@@ -16,7 +16,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
   
   const guestNavLinks = [
     { id: 'home', label: 'Trang chủ' },
-    { id: 'community', label: 'Video & Công thức (WF06)' }
+    { id: 'community', label: 'Video & Công thức' }
   ];
 
   const memberNavLinks = [
@@ -60,12 +60,12 @@ export default function Navbar({ activeTab, setActiveTab }) {
           ))}
         </nav>
 
-        {/* SEARCH BAR (WF06: Tìm kiếm blog, video, công thức công khai) */}
+        {/* SEARCH BAR */}
         <div className="header-search-box">
           <Search size={15} className="search-icon" />
           <input 
             type="text" 
-            placeholder="Tìm kiếm công thức, blog, video (WF06)..." 
+            placeholder="Tìm kiếm công thức, bài viết, video nấu chay..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={handleSearchSubmit}
@@ -75,18 +75,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
         {/* RIGHT ACTIONS */}
         <div className="header-right-actions" style={{ position: 'relative' }}>
-          {/* HỎI AI BUTTON (WF05: Hỏi đáp AI Nutrition Chatbot) */}
+          {/* HỎI AI BUTTON */}
           <button 
             className="btn-hoi-ai" 
             onClick={() => setActiveTab('chatbot')}
-            title="Hỏi AI Dinh dưỡng (Giới hạn 3 câu hỏi đối với Guest)"
+            title="Trò chuyện với AI Dinh dưỡng"
           >
             <Sparkles size={16} className="sparkle-icon" />
             <span>Hỏi AI</span>
           </button>
 
           {!user ? (
-            /* KHI CHƯA ĐĂNG NHẬP (GUEST): HIỂN THỊ ĐĂNG NHẬP & BẮT ĐẦU THỬ (WF01), LOẠI BỎ AVATAR TRÒN */
+            /* KHI CHƯA ĐĂNG NHẬP (GUEST): HIỂN THỊ ĐĂNG NHẬP & BẮT ĐẦU THỬ, LOẠI BỎ AVATAR TRÒN */
             <>
               <button 
                 className="btn-header-login"
@@ -97,7 +97,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
               <button 
                 className="btn-bat-dau-thu" 
                 onClick={() => setActiveTab('register')}
-                title="Bắt đầu quy trình đăng ký / thiết lập hồ sơ dinh dưỡng (WF01)"
+                title="Bắt đầu thiết lập hồ sơ dinh dưỡng cá nhân"
               >
                 Bắt đầu thử
               </button>
