@@ -1,7 +1,11 @@
-import React from 'react';
-import { Search, Sparkles, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Sparkles, User, ShieldCheck, LogOut, LogIn, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ activeTab, setActiveTab }) {
+  const { user, logout, loginAsAdmin } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const navLinks = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'planner', label: 'Thực đơn AI' },
@@ -10,6 +14,15 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'restaurants', label: 'Quán chay gần bạn' },
     { id: 'community', label: 'Cộng đồng' }
   ];
+
+  const handleAvatarClick = () => {
+    if (!user) {
+      // Khi chưa đăng nhập -> bấm vào Avatar sẽ dẫn ngay đến trang Đăng ký / Đăng nhập!
+      setActiveTab('register');
+    } else {
+      setShowDropdown(!showDropdown);
+    }
+  };
 
   return (
     <header className="main-header">
@@ -54,7 +67,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
         </div>
 
         {/* RIGHT ACTIONS */}
-        <div className="header-right-actions">
+        <div className="header-right-actions" style={{ position: 'relative' }}>
           {/* HỎI AI BUTTON */}
           <button 
             className="btn-hoi-ai" 
@@ -76,11 +89,40 @@ export default function Navbar({ activeTab, setActiveTab }) {
           {/* USER AVATAR CIRCLE */}
           <button 
             className="user-avatar-circle"
-            onClick={() => setActiveTab(activeTab === 'admin' ? 'home' : 'admin')}
-            title="Chuyển đến Quản trị (Admin/Mod)"
+            onClick={handleAvatarClick}
+            title={user ? `${user.name} (${user.role})` : "Đăng ký / Đăng nhập tài khoản"}
           >
             <User size={18} color="white" />
           </button>
+
+          {/* AUTH DROPDOWN (Chỉ xuất hiện khi ĐÃ ĐĂNG NHẬP) */}
+          {user && showDropdown && (
+            <div className="user-dropdown-menu">
+              <div className="dropdown-user-info">
+                <strong>{user.name}</strong>
+                <span className="dropdown-user-role">{user.role}</span>
+                <small style={{ color: '#64748b' }}>{user.email}</small>
+              </div>
+
+              <div className="dropdown-divider"></div>
+
+              {user.role === 'Admin' && (
+                <button 
+                  className="dropdown-item"
+                  onClick={() => { setActiveTab('admin'); setShowDropdown(false); }}
+                >
+                  <ShieldCheck size={16} /> Bảng điều khiển Admin
+                </button>
+              )}
+
+              <button 
+                className="dropdown-item dropdown-logout"
+                onClick={() => { logout(); setShowDropdown(false); setActiveTab('home'); }}
+              >
+                <LogOut size={16} /> Đăng xuất
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
