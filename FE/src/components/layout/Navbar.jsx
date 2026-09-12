@@ -92,7 +92,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
             <>
               <button 
                 className="btn-header-login"
-                onClick={() => setActiveTab('register')}
+                onClick={() => setActiveTab('login')}
               >
                 Đăng nhập
               </button>

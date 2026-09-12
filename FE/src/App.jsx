@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MealPlannerPage from './pages/MealPlannerPage';
 import VisionPage from './pages/VisionPage';
@@ -26,6 +27,7 @@ export default function App() {
 
       <main className="main-content-full">
         {activeTab === 'home' && <HomePage onNavigate={(tab) => setActiveTab(tab)} />}
+        {activeTab === 'login' && <LoginPage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'register' && <RegisterPage onNavigate={(tab) => setActiveTab(tab)} />}
         
         {/* BẢO VỆ CHỨC NĂNG THỰC ĐƠN AI: YÊU CẦU HOÀN TẤT ĐĂNG KÝ / HỒ SƠ DINH DƯỠNG */}
@@ -87,7 +89,7 @@ export default function App() {
                 Bạn chưa đăng nhập hoặc tài khoản không có quyền Admin. Trang này chỉ dành riêng cho Quản trị viên hệ thống quản lý dữ liệu và AI.
               </p>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button variant="primary" onClick={() => setActiveTab('register')}>
+                <Button variant="primary" onClick={() => setActiveTab('login')}>
                   <LogIn size={18} /> Đăng nhập / Đăng ký
                 </Button>
                 <Button variant="secondary" onClick={() => { loginAsAdmin(); }}>
@@ -111,7 +113,7 @@ export default function App() {
               <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
                 Trang này dành cho Moderator phê duyệt các bài viết blog & video nấu chay của cộng đồng.
               </p>
-              <Button variant="primary" onClick={() => setActiveTab('register')}>
+              <Button variant="primary" onClick={() => setActiveTab('login')}>
                 <LogIn size={18} /> Đăng nhập
               </Button>
             </Card>

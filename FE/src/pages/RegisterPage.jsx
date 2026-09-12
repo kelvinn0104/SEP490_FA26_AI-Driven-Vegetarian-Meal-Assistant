@@ -41,16 +41,16 @@ export default function RegisterPage({ onNavigate }) {
         {/* LEFT COLUMN: VALUE PROPOSITIONS & DOCTOR ENDORSEMENT */}
         <div className="register-left-col">
           <div className="trust-top-pill">
-            <ShieldCheck size={16} className="pill-icon" />
-            <span>GIA NHẬP HƠN 50.000+ NGƯỜI ĂN CHAY KHỎE MẠNH</span>
+            <span style={{ color: '#047857', fontSize: '1rem' }}>🌿</span>
+            <span>Hệ sinh thái ẩm thực chay 4.0 • Hơn 85.000+ bữa ăn được cá nhân hóa</span>
           </div>
 
           <h1 className="register-heading">
-            Khởi đầu lối sống thuần chay chuẩn y khoa cùng <span className="highlight-text">Trí tuệ Nhân tạo</span>
+            Bắt đầu hành trình <span style={{ color: '#047857' }}>ăn chay khoa học</span> & tràn đầy năng lượng cùng VeggieAI
           </h1>
 
           <p className="register-subheading">
-            Tạm biệt nỗi lo thiếu chất hay bí món mỗi ngày. VeggieAI đồng hành thiết lập chế độ thực dưỡng cân bằng, bảo toàn năng lượng và tối ưu hóa vi chất tự nhiên.
+            Khám phá thực đơn thực dưỡng chuẩn xác, thấu hiểu cơ thể bằng thuật toán AI và tận hưởng hương vị nguyên bản từ nông trại xanh.
           </p>
 
           {/* 3 VALUE CARDS */}
@@ -62,12 +62,16 @@ export default function RegisterPage({ onNavigate }) {
               </div>
               <div className="reg-feature-content">
                 <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">1. Đo lường chỉ số sinh học & Calo miễn phí</h3>
-                  <span className="mini-badge-green">Free AI</span>
+                  <h3 className="reg-feature-title">AI Meal Planner</h3>
+                  <span className="auth-pill-blue">Cá nhân hoá 100%</span>
                 </div>
                 <p className="reg-feature-desc">
-                  Tự động tính toán lượng Calo, TDEE và tỷ lệ Macro (Đạm - Béo - Tinh bột) tối ưu riêng theo thể trạng và mức độ vận động.
+                  Tự động tính toán theo chỉ số BMI, phân bổ tối ưu hàm lượng Protein thực vật, Sắt hữu cơ và bổ sung Vitamin B12 thiết yếu.
                 </p>
+                <div className="auth-metric-row">
+                  <span>• 24g Protein/bữa</span>
+                  <span>• Bù 100% B12</span>
+                </div>
               </div>
             </div>
 
@@ -78,12 +82,16 @@ export default function RegisterPage({ onNavigate }) {
               </div>
               <div className="reg-feature-content">
                 <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">2. Bù đắp 3 vi chất vàng cho người ăn chay</h3>
-                  <span className="mini-badge-peach">Y khoa</span>
+                  <h3 className="reg-feature-title">AI Fridge Vision</h3>
+                  <span className="auth-pill-peach">Tốc độ ~ 3 giây</span>
                 </div>
                 <p className="reg-feature-desc">
-                  Kiểm soát chính xác hàm lượng Protein thực vật hoàn chỉnh, Sắt sinh học (Iron) và Vitamin B12 qua từng bữa ăn đề xuất.
+                  Quét ảnh nguyên liệu còn thừa trong ngăn lạnh, nhận diện tức thì và đề xuất món chay thơm lành, triệt tiêu lãng phí thực phẩm.
                 </p>
+                <div className="auth-metric-row">
+                  <span>Độ chuẩn xác 98.4%</span>
+                  <span>• Giảm 35% rác hữu cơ gia đình</span>
+                </div>
               </div>
             </div>
 
@@ -94,38 +102,53 @@ export default function RegisterPage({ onNavigate }) {
               </div>
               <div className="reg-feature-content">
                 <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">3. Quà tặng chào mừng thành viên mới</h3>
-                  <span className="mini-badge-green">7 ngày VIP</span>
+                  <h3 className="reg-feature-title">Video Recipe AI</h3>
+                  <span className="auth-pill-blue">Speech-to-Text</span>
                 </div>
                 <p className="reg-feature-desc">
-                  Mở khóa miễn phí 7 ngày tính năng <strong>AI Vision Quét tủ lạnh</strong> và trò chuyện cùng Chuyên gia AI Dinh dưỡng không giới hạn.
+                  Bóc tách công thức nấu ăn trực quan từ YouTube & TikTok: phân đoạn thời gian, định lượng gia vị và danh mục chuẩn bị.
                 </p>
               </div>
             </div>
           </div>
 
           {/* DOCTOR ENDORSEMENT CARD */}
-          <div className="doctor-endorsement-card">
-            <div className="doctor-avatar-wrapper">
-              <img 
-                src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=200&q=80" 
-                alt="BS. CKI Nguyễn Lan Hương" 
-                className="doctor-avatar"
-              />
-            </div>
-            <div className="doctor-review-content">
-              <div className="stars-row">
-                <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                <Star size={14} fill="#f59e0b" color="#f59e0b" />
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '18px',
+            padding: '1.25rem 1.4rem',
+            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.02)',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem' }}>
+              <div style={{ display: 'flex', color: '#f59e0b', fontSize: '0.9rem' }}>
+                <Star size={15} fill="#f59e0b" />
+                <Star size={15} fill="#f59e0b" />
+                <Star size={15} fill="#f59e0b" />
+                <Star size={15} fill="#f59e0b" />
+                <Star size={15} fill="#f59e0b" />
               </div>
-              <p className="doctor-quote">
-                "VeggieAI giải quyết bài toán lớn nhất của người ăn chay Việt: thiếu đạm hoàn chỉnh và mất cân đối vi chất đường..."
-              </p>
-              <div className="doctor-name">
-                BS. CKI Nguyễn Lan Hương • Viện Dinh dưỡng Lâm sàng
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginLeft: '0.25rem' }}>
+                5.0 / 5.0
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.55, margin: '0 0 0.85rem 0' }}>
+              “VeggieAI đã giải quyết được nút thắt lớn nhất của người bắt đầu ăn chay: nỗi lo thiếu vi chất và cảm giác đơn điệu trong bữa ăn hằng ngày.”
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
+                  BS.CKI Nguyễn Lan Anh
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  Chuyên gia Dinh dưỡng Lâm sàng Viện Dinh Dưỡng Tự Nhiên
+                </div>
+              </div>
+              <div style={{ color: '#047857' }} title="Đã xác thực chuyên gia dinh dưỡng">
+                <ShieldCheck size={24} />
               </div>
             </div>
           </div>
@@ -148,27 +171,25 @@ export default function RegisterPage({ onNavigate }) {
           <div className="register-card">
             
             {/* TOP TAB SWITCHER */}
-            <div className="form-top-tabs">
-              <div className="tabs-pill-box">
-                <button 
-                  type="button"
-                  className={`tab-switch-btn ${activeTab === 'login' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('login')}
-                >
-                  Đăng nhập
-                </button>
-                <button 
-                  type="button"
-                  className={`tab-switch-btn ${activeTab === 'register' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('register')}
-                >
-                  Đăng ký tài khoản
-                </button>
-              </div>
+            <div className="auth-tabs-segmented">
+              <button 
+                type="button"
+                className="auth-tab-btn"
+                onClick={() => onNavigate ? onNavigate('login') : setActiveTab('login')}
+              >
+                Đăng nhập
+              </button>
+              <button 
+                type="button"
+                className="auth-tab-btn active"
+                onClick={() => setActiveTab('register')}
+              >
+                Đăng ký tài khoản mới
+              </button>
+            </div>
 
-              <div className="already-have-account">
-                Đã có tài khoản? <a href="#login" onClick={(e) => { e.preventDefault(); setActiveTab('login'); }}>Đăng nhập</a>
-              </div>
+            <div className="already-have-account" style={{ marginBottom: '1.25rem', textAlign: 'right' }}>
+              Đã có tài khoản? <a href="#login" onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate('login'); else setActiveTab('login'); }}>Đăng nhập</a>
             </div>
 
             {/* SOCIAL SIGNUP */}
