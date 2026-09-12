@@ -1,292 +1,521 @@
 import React, { useState } from 'react';
-import { BookOpen, Search, Clock, Eye, Sparkles, X, Heart, Share2, Tag } from 'lucide-react';
-import Card from '../components/ui/Card';
+import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout } from 'lucide-react';
 import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
 
 export default function BlogPage({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Tất cả');
+  const [sortOrder, setSortOrder] = useState('Mới nhất');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
 
-  const categories = ['Tất cả', 'Kiến thức Dinh dưỡng', 'Công thức món chính', 'Mẹo nhà bếp'];
+  // CATEGORIES ACCORDING TO DESIGN
+  const row1Categories = ['Tất cả', 'Dinh dưỡng & Vi chất', 'Bí quyết nấu ăn', 'Ăn chay theo mùa'];
+  const row2Categories = ['Khoa học thể hình', 'Sống tỉnh thức'];
 
-  const articles = [
-    {
-      id: 'b1',
-      category: 'Công thức món chính',
-      title: 'Cà Rốt Nấu Nước Cốt Dừa & Nấm Hương Thơm Lừng',
-      desc: 'Món ngon thuần chay béo thanh, giàu Vitamin A, sắt thực vật & chất xơ hòa tan hỗ trợ tiêu hóa vượt trội.',
-      author: 'Chuyên gia Dinh dưỡng An Nhiên',
-      date: '10 Tháng 9, 2026',
-      readTime: '5 phút đọc',
-      likes: 342,
-      img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
-      content: `
-        Cà rốt và nấm hương là sự kết hợp hoàn hảo giữa vị ngọt tự nhiên và hương thơm thảo mộc sâu lắng. Nước cốt dừa nguyên chất cung cấp chất béo lành mạnh dạng MCT, giúp cơ thể hấp thu tối đa Beta-carotene từ cà rốt.
+  // FEATURED HERO ARTICLE (TIÊU ĐIỂM TUẦN)
+  const featuredArticle = {
+    id: 'featured-1',
+    category: 'Dinh dưỡng & Vi chất',
+    date: '12 Tháng 10, 2026',
+    readTime: '9 phút đọc',
+    title: 'Giải Mã Vi Chất B12, Kẽm & Sắt Trong Chế Độ Thuần Chay : Phác Đồ Bổ Sung Chuẩn Khoa Học',
+    desc: 'Đập tan nỗi lo thiếu máu và suy nhược khi kiêng đạm động vật. Khảo cứu lâm sàng mới nhất chỉ ra phương pháp hấp thụ Non-Heme Iron hiệu quả nhờ vitamin C bản địa cùng chiến lược tối ưu nồng độ kẽm từ các loại hạt mầm hữu cơ.',
+    author: 'Bác sĩ Minh Đức',
+    authorRole: 'Chuyên gia Dinh dưỡng Chay',
+    authorAvatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=150&q=80',
+    img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=900&q=80',
+    fullContent: `
+      Nhiều người bắt đầu ăn thuần chay thường lo lắng về tình trạng thiếu hụt vi chất dinh dưỡng, đặc biệt là Vitamin B12, Kẽm và Sắt Non-Heme. 
+      Tuy nhiên, các nghiên cứu y khoa hiện đại đã chứng minh: với một phác đồ phối hợp thực phẩm chuẩn khoa học, bạn hoàn toàn có thể duy trì chỉ số máu tối ưu mà không cần đến nguồn gốc động vật.
 
-        🥕 **Giá trị dinh dưỡng trên 1 khẩu phần:**
-        - Calo: 420 kcal
-        - Protein thực vật: 21g
-        - Sắt: 9.2mg (đáp ứng 60% nhu cầu ngày)
-        - Độ cân bằng vi chất: 84%
-      `,
-      ingredients: ['2 củ cà rốt hữu cơ', '150g nấm hương tươi', '100ml nước cốt dừa nguyên chất', 'Hành baro, tiêu đen, muối biển'],
-      steps: [
-        'Cà rốt gọt vỏ, tỉa hoa hoặc thái khoanh vừa ăn. Nấm hương ngâm nước muối loãng 5 phút, cắt bớt chân già.',
-        'Phi thơm hành baro với 1 muỗng dầu mè, cho nấm hương vào xào săn trên lửa vừa trong 3 phút.',
-        'Thêm cà rốt và 200ml nước dùng củ quả, đậy nắp rim nhỏ lửa 12 phút cho cà rốt chín mềm dịu ngọt.',
-        'Rót nước cốt dừa vào khuấy đều tay, nêm muối biển và tiêu. Đun sôi liu riu thêm 2 phút là hoàn thành.'
-      ]
-    },
+      ### 1. Giải mã hấp thu Sắt Non-Heme
+      Sắt từ thực vật (Non-Heme Iron) có tỷ lệ hấp thu dao động từ 5% đến 12%. Để tăng hiệu suất hấp thu lên gấp 3-4 lần:
+      - Luôn kết hợp thực phẩm giàu sắt (rau bina, đậu lăng, mè đen) cùng nguồn Vitamin C dồi dào (ớt chuông, chanh, kiwi).
+      - Tránh uống trà đặc, cà phê trong vòng 2 giờ sau bữa ăn chính vì polyphenol và tannin sẽ tạo phức ngăn cản hấp thu sắt.
+
+      ### 2. Chiến lược bổ sung Kẽm từ hạt mầm
+      Axit Phytic trong ngũ cốc và các loại hạt là rào cản lớn nhất của kẽm. Bằng cách:
+      - Ngâm hạt từ 6 - 8 tiếng trước khi chế biến hoặc cho nảy mầm (Sprouting), hàm lượng phytate giảm tới 70%.
+      - Bổ sung hạt bí ngô, hạt gai dầu (hemp seeds) và đậu nành lên men (Tempeh) mỗi ngày.
+
+      ### 3. Vitamin B12: Nguyên tắc bất di bất dịch
+      Vitamin B12 được tổng hợp bởi vi sinh vật trong đất. Trong chế độ ăn hiện đại đã được làm sạch tiệt trùng, người ăn thuần chay bắt buộc nên bổ sung B12 dạng ngậm (Methylcobalamin) hoặc men dinh dưỡng (Nutritional Yeast) đều đặn hàng tuần.
+    `
+  };
+
+  // 6 LATEST ARTICLES EXACTLY MATCHING THE USER SCREENSHOT
+  const latestArticles = [
     {
-      id: 'b2',
-      category: 'Công thức món chính',
-      title: 'Poke Quinoa Tempeh Sốt Teriyaki Dưỡng Sinh',
-      desc: 'Tô cơm trộn giàu đạm thực vật từ hạt Diêm Mạch (Quinoa) và đậu nành lên men (Tempeh) giòn bùi.',
-      author: 'Chef Minh Tú',
-      date: '08 Tháng 9, 2026',
+      id: 'art-1',
+      category: 'Bí quyết nấu ăn',
+      date: '14 Tháng 10, 2026',
       readTime: '6 phút đọc',
-      likes: 512,
-      img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-      content: `
-        Tempeh là nguyên liệu vàng cho người ăn thuần chay nhờ quá trình lên men đậu nành tự nhiên giúp phân giải phytate, tăng tỉ lệ hấp thu protein lên đến 90%. Kết hợp cùng Quinoa đầy đủ 9 axit amin thiết yếu.
-
-        🥗 **Giá trị dinh dưỡng trên 1 khẩu phần:**
-        - Calo: 510 kcal
-        - Protein thực vật: 25g
-        - Sắt: 7.8mg
-        - Độ cân bằng vi chất: 92%
-      `,
-      ingredients: ['1 chén Quinoa nấu chín', '100g Tempeh thái hạt lựu', '1/2 quả bơ sáp, bắp cải tím, dưa leo', 'Sốt Teriyaki thuần chay ít đường'],
-      steps: [
-        'Ướp Tempeh với sốt Teriyaki trong 10 phút, sau đó áp chảo vàng giòn các mặt trên chảo chống dính.',
-        'Cho Quinoa vào tô làm nền, xếp các loại rau củ tươi thái mỏng và Tempeh xung quanh một cách đẹp mắt.',
-        'Rưới một lớp sốt Teriyaki mè rang lên trên và dùng ngay để cảm nhận độ giòn tươi.'
-      ]
+      title: 'Hướng dẫn tự ủ Tempeh đậu nành truyền thống tại nhà chuẩn vị Indonesia',
+      desc: 'Bí quyết kiểm soát nhiệt độ 31°C và độ ẩm hoàn hảo giúp mầm nấm Rhizopus phát triển mịn màng và nhã...',
+      author: 'Chef Tuệ Tâm',
+      authorAvatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=150&q=80',
+      img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+      fullContent: `
+        Tempeh là món ăn lên men truyền thống từ đậu nành của người Indonesia. Khác với đậu hũ, tempeh giữ nguyên toàn bộ hạt đậu nành nên giữ trọn vẹn chất xơ, vitamin và khoáng chất.
+        
+        Quy trình ủ tại nhà:
+        1. Ngâm tách vỏ đậu nành kỹ càng trong 12 tiếng.
+        2. Luộc đậu chín tới cùng 1 thìa canh giấm táo để tạo môi trường axit nhẹ ưa thích cho nấm men.
+        3. Làm ráo nước thật khô ráo, trộn đều men Rhizopus Oligosporus.
+        4. Cho vào túi zip đục lỗ kim thoáng khí, ủ ở nhiệt độ ấm 30-32°C trong 36-48 giờ cho đến khi sợi nấm trắng bao phủ kín đặc hạt đậu.
+      `
     },
     {
-      id: 'b3',
-      category: 'Kiến thức Dinh dưỡng',
-      title: 'Top 5 Nguồn Protein Thuần Chay Giúp Tăng Cơ Khỏe Mạnh',
-      desc: 'Giải mã nỗi lo thiếu đạm khi ăn chay: Khám phá các nguồn Protein hoàn chỉnh từ Tempeh, Đậu nành non, Đậu gà và Hạt diêm mạch.',
-      author: 'BS. Lê Thị Mai (Chuyên khoa Dinh dưỡng)',
-      date: '05 Tháng 9, 2026',
-      readTime: '7 phút đọc',
-      likes: 890,
-      img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-      content: `
-        Nhiều người e ngại ăn chay sẽ dẫn đến suy nhược cơ bắp. Thực tế, nếu biết cách phối hợp ngũ cốc và họ đậu (ví dụ: Gạo lứt + Đậu gà, Quinoa + Tempeh), bạn hoàn toàn đạt được lượng Leucine và đạm tương đương với ức gà hoặc thịt bò.
-
-        1. **Tempeh (20g đạm/100g):** Đậu nành lên men giàu probiotic, cực kỳ dễ tiêu hóa.
-        2. **Đậu gà & Đậu lăng (18g đạm/100g chín):** Giàu chất xơ và kali, hỗ trợ kiểm soát đường huyết.
-        3. **Hạt Diêm mạch (Quinoa - 8g đạm/100g chín):** Một trong số ít thực vật chứa trọn vẹn 9 amino acid thiết yếu.
-        4. **Hạt gai dầu (Hemp Seeds):** Tỉ lệ vàng Omega-3 và Omega-6.
-        5. **Tảo xoắn Spirulina:** Bổ sung vi chất và chất chống oxy hóa mạnh mẽ.
-      `,
-      ingredients: ['Khuyến nghị bổ sung phối hợp đa dạng 3 nguồn protein khác nhau trong ngày'],
-      steps: [
-        'Bữa sáng: Bổ sung sinh tố yến mạch cùng hạt gai dầu hoặc bơ đậu phộng.',
-        'Bữa trưa: Dùng cơm gạo lứt cùng đậu hũ sốt nấm hoặc tempeh xào rau củ.',
-        'Bữa tối: Salad đậu gà sốt mè kết hợp súp bí đỏ hạt sen.'
-      ]
+      id: 'art-2',
+      category: 'Khoa học thể hình',
+      date: '13 Tháng 10, 2026',
+      readTime: '8 phút đọc',
+      title: 'Thực đơn thuần chay 7 ngày cho dân tập gym & yoga đạt phong độ đỉnh cao',
+      desc: 'Bảng phân bổ Macro cân bằng đạt 120g protein thuần chay mỗi ngày, tối ưu khả năng phục hồi mỏ c...',
+      author: 'HLV Hoàng Nam',
+      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
+      fullContent: `
+        Xây dựng cơ bắp không mỡ với chế độ thuần thực vật hoàn toàn khả thi nếu bạn làm chủ công thức phối hợp axit amin.
+        
+        Chiến lược phân bổ Macro:
+        - Tỷ lệ: 50% Carb phức hợp (Khoai lang, Yến mạch, Gạo lứt), 25% Protein (Tempeh, Đậu gà, Seitan), 25% Chất béo tốt (Bơ, Dầu ô liu, Hạt chia).
+        - Đảm bảo 1.6g - 2.0g Protein/kg trọng lượng cơ thể mỗi ngày.
+        - Uống đủ 2.5 - 3 lít nước và bổ sung điện giải từ nước dừa tự nhiên sau các buổi tập cường độ cao.
+      `
     },
     {
-      id: 'b4',
-      category: 'Mẹo nhà bếp',
-      title: 'Bí Quyết Bảo Quản Nấm & Rau Củ Tươi Giữ Trọn Dinh Dưỡng',
-      desc: 'Hướng dẫn chuẩn khoa học giúp nấm không bị đen ủng, rau lá xanh tươi giòn suốt 7 ngày mà không dùng chất bảo quản.',
-      author: 'VeggieAI Kitchen Team',
-      date: '02 Tháng 9, 2026',
+      id: 'art-3',
+      category: 'Dinh dưỡng & Vi chất',
+      date: '11 Tháng 10, 2026',
       readTime: '4 phút đọc',
-      likes: 275,
-      img: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80',
-      content: `
-        Nấm hương và nấm đùi gà rất nhạy cảm với độ ẩm. Nếu bọc túi nilon kín, nấm sẽ nhanh chóng thối rữa và sinh mùi chua. 
-
-        💡 **Quy tắc vàng khi bảo quản:**
-        - Nấm tươi: Không rửa trước khi cất. Bọc trong túi giấy xi-măng hoặc hộp lót khăn giấy khô.
-        - Rau thơm & rau lá: Cắt tỉa gốc úa, dùng khăn giấy thấm bớt sương rồi cất ngăn mát tủ lạnh (4-6°C).
-        - Củ quả (Cà rốt, khoai lang): Để nơi thoáng khí hoặc ngâm ngập nước sạch thay nước 2 ngày/lần.
-      `,
-      ingredients: ['Khăn giấy sạch thực phẩm', 'Túi giấy kraft thoáng khí', 'Hộp thủy tinh đậy kín'],
-      steps: [
-        'Bước 1: Phân loại ngay nguyên liệu khi mua về từ chợ hoặc siêu thị.',
-        'Bước 2: Dùng khăn giấy lau khô bề mặt nấm nếu bị đọng nước sương.',
-        'Bước 3: Đặt vào túi giấy và bảo quản ở ngăn rau củ tủ lạnh.'
-      ]
+      title: 'Vì sao hạt mè nguyên cám là vua canxi của giới thực vật?',
+      desc: 'Khám phá hàm lượng canxi dồi dào trong hạt mè đen nguyên vỏ và cách chế biến bơ Tahini để cơ thể sấp...',
+      author: 'DS. An Nhiên',
+      authorAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
+      img: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=600&q=80',
+      fullContent: `
+        Trong 100g hạt mè đen nguyên vỏ chứa tới 975mg canxi, cao gấp gần 8 lần so với sữa bò thông thường (khoảng 120mg/100g).
+        
+        Cách tối ưu khả năng hấp thu:
+        - Hạt mè nếu để nguyên hạt nhai qua loa sẽ rất khó tiêu. Hãy rang thơm và xay nhuyễn thành bơ Tahini hoặc muối mè rang.
+        - Kết hợp Tahini cùng nước cốt chanh để làm nước sốt salad thơm ngon vừa kích thích vị giác vừa tăng cường chuyển hóa canxi.
+      `
+    },
+    {
+      id: 'art-4',
+      category: 'Ăn chay theo mùa',
+      date: '09 Tháng 10, 2026',
+      readTime: '5 phút đọc',
+      title: 'Canh dưỡng sinh Lập Đông: Cân bằng âm dương, dưỡng ấm tỳ vị trong gió lạnh',
+      desc: 'Sự phối hợp hoàn hảo của ngưu bàng, củ sen, nấm đông cô ninh chậm là chìa khóa ngừa cúm tự nhiê...',
+      author: 'Lương y Thu Thảo',
+      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+      img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80',
+      fullContent: `
+        Thời khắc giao mùa Lập Đông nhiệt độ giảm mạnh, hàn khí dễ xâm nhập tỳ vị gây suy giảm miễn dịch và mệt mỏi.
+        
+        Bài canh ngũ hành dưỡng sinh:
+        - Củ cải trắng (Hành Kim), Cà rốt (Hành Hỏa), Nấm đông cô (Hành Thủy), Ngưu bàng (Hành Mộc), Củ sen (Hành Thổ).
+        - Hầm nhỏ lửa trong nồi đất 45 phút, không nêm đường hay bột ngọt, chỉ dùng một chút muối biển hầm thô để giữ trọn vẹn khí vị thanh khiết của đất trời.
+      `
+    },
+    {
+      id: 'art-5',
+      category: 'Sống tỉnh thức',
+      date: '06 Tháng 10, 2026',
+      readTime: '8 phút đọc',
+      title: 'Cách phân biệt và thay thế ngũ vị tân trong ẩm thực chay dưỡng tâm',
+      desc: 'Nghệ thuật sử dụng boaro, kiệu và hạt mùi để món ăn giữ trọn tầng vị thanh dịu mà vẫn giữ cho tâm trí thư...',
+      author: 'Thầy Quảng Tuệ',
+      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+      img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80',
+      fullContent: `
+        Ngũ vị tân (Hành, Tỏi, Kiệu, Hẹ, Nén) theo quan niệm dưỡng sinh cổ truyền chứa nhiều hoạt chất kích thích hệ thần kinh giao cảm.
+        
+        Nghệ thuật tạo hương thay thế:
+        - Sử dụng gốc ngò rí, lá chúc, tiêu sọ đập dập để tạo hương cay nồng ấm áp.
+        - Dùng dầu hạt điều màu và gốc sả băm nhuyễn phi thơm làm nền màu cho các món kho, xào thay vì tỏi ớt thông thường.
+      `
+    },
+    {
+      id: 'art-6',
+      category: 'Sống tỉnh thức',
+      date: '03 Tháng 10, 2026',
+      readTime: '7 phút đọc',
+      title: 'Kinh nghiệm 5 năm ăn chay trường: Tràn đầy sinh lực và tâm trí an yên',
+      desc: 'Hành trình điều chỉnh nhịp sinh học và cảm nhận sự chuyển biến tích cực của cơ thể, lột xác và nguồn năn...',
+      author: 'Mai Lan (Blogger)',
+      authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+      img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600&q=80',
+      fullContent: `
+        Bước sang năm thứ 5 ăn thuần thực vật, điều lớn nhất tôi nhận được không chỉ là các chỉ số xét nghiệm máu hoàn hảo, mà là một tâm thế nhẹ nhàng, thảnh thơi mỗi sáng thức dậy.
+        
+        3 đúc kết quan trọng:
+        1. Ăn chay không phải là kiêng khem khổ hạnh, mà là một bữa tiệc sắc màu của nông sản tự nhiên.
+        2. Lắng nghe cơ thể: Nếu cảm thấy thèm ngọt hay mệt, hãy bổ sung tinh bột chuyển hóa chậm và chất béo lành mạnh thay vì đồ chế biến sẵn.
+        3. Kết hợp hơi thở và sự tĩnh lặng trong mỗi bữa ăn để nuôi dưỡng trọn vẹn cả thân lẫn tâm.
+      `
     }
   ];
 
-  const filteredArticles = articles.filter(a => {
-    const matchesCategory = activeCategory === 'Tất cả' || a.category === activeCategory;
-    const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          a.desc.toLowerCase().includes(searchQuery.toLowerCase());
+  // FILTERING LOGIC
+  const filteredArticles = latestArticles.filter(art => {
+    const matchesCategory = activeCategory === 'Tất cả' || art.category === activeCategory;
+    const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          art.desc.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem 3.5rem 1.5rem' }}>
-      {/* HEADER HERO */}
-      <div style={{ textAlign: 'center', marginBottom: '2.5rem', paddingTop: '1rem' }}>
-        <span className="badge badge-ai" style={{ marginBottom: '0.75rem' }}>
-          <BookOpen size={15} /> BÀI VIẾT & BLOG CÔNG THỨC
-        </span>
-        <h1 style={{ fontSize: '2.5rem', color: '#0f172a', fontWeight: 800, margin: '0.5rem 0' }}>
-          Góc Sống Chay & Cẩm Nang Dinh Dưỡng
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '680px', margin: '0 auto 1.75rem auto', lineHeight: '1.6' }}>
-          Tổng hợp các bài viết chuyên sâu về cân bằng vi chất thực dưỡng, công thức nấu ăn chuẩn hóa và mẹo bếp khoa học từ chuyên gia VeggieAI.
-        </p>
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (newsletterEmail) {
+      setSubscribed(true);
+      setTimeout(() => setSubscribed(false), 4000);
+      setNewsletterEmail('');
+    }
+  };
 
-        {/* SEARCH BAR */}
-        <div style={{ maxWidth: '560px', margin: '0 auto', position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'white', border: '1.5px solid #cbd5e1', borderRadius: '30px', padding: '0.5rem 1rem', boxShadow: '0 4px 15px rgba(0,0,0,0.04)' }}>
-            <Search size={18} color="#64748b" style={{ marginRight: '0.75rem' }} />
-            <input 
-              type="text" 
-              placeholder="Tìm bài viết, công thức hoặc kiến thức dinh dưỡng..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.95rem', color: '#1e293b' }}
-            />
-          </div>
+  return (
+    <div className="blog-container">
+      {/* 1. HERO HEADER SECTION */}
+      <section className="blog-hero">
+        <div className="blog-kienthuc-badge">
+          <Sprout size={14} /> KIẾN THỨC SỐNG XANH
         </div>
 
-        {/* CATEGORY FILTER TABS */}
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.5rem' }}>
-          {categories.map((cat) => (
+        <h1 className="blog-main-title">Blog Kiến Thức & Ẩm Thực Chay</h1>
+        
+        <p className="blog-subtitle">
+          Khám phá dinh dưỡng khoa học, mẹo bếp tinh tế và cảm hứng sống thuần thực vật bền vững từ các chuyên gia dinh dưỡng hàng đầu.
+        </p>
+
+        {/* SEARCH BOX */}
+        <div className="blog-search-box-wrapper">
+          <Search size={18} color="#9ca3af" style={{ flexShrink: 0, marginRight: '0.65rem' }} />
+          <input
+            type="text"
+            className="blog-search-input"
+            placeholder="Tìm kiếm bài viết, món ăn..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(e.target.value)}
+          />
+          <button className="blog-search-btn" onClick={() => {}}>
+            Tìm kiếm
+          </button>
+        </div>
+
+        {/* FILTER PILLS */}
+        <div className="blog-filter-pills-row">
+          {row1Categories.map(cat => (
             <button
               key={cat}
+              className={`blog-pill-btn ${activeCategory === cat ? 'active' : ''}`}
               onClick={() => setActiveCategory(cat)}
-              style={{
-                padding: '0.45rem 1.15rem',
-                borderRadius: '20px',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: activeCategory === cat ? 'none' : '1px solid #e2e8f0',
-                background: activeCategory === cat ? '#046a47' : '#ffffff',
-                color: activeCategory === cat ? '#ffffff' : '#475569',
-                transition: 'all 0.2s ease'
-              }}
             >
               {cat}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* ARTICLES GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem' }}>
-        {filteredArticles.map((article) => (
-          <Card 
-            key={article.id} 
-            style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '100%', transition: 'transform 0.2s, box-shadow 0.2s' }}
-            onClick={() => setSelectedArticle(article)}
-          >
-            <div style={{ height: '210px', backgroundImage: `url('${article.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-              <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.92)', color: '#047857', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                {article.category}
-              </span>
-            </div>
-
-            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.6rem' }}>
-                <span>{article.date}</span>
-                <span>•</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Clock size={13} /> {article.readTime}
-                </span>
-              </div>
-
-              <h3 style={{ color: '#0f172a', fontSize: '1.2rem', lineHeight: '1.4', marginBottom: '0.65rem' }}>
-                {article.title}
-              </h3>
-
-              <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1.25rem', flex: 1 }}>
-                {article.desc}
-              </p>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
-                  {article.author}
-                </span>
-                <span style={{ color: '#059669', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Eye size={15} /> Đọc tiếp →
-                </span>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {filteredArticles.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
-          <p>Không tìm thấy bài viết nào phù hợp với từ khóa "{searchQuery}".</p>
-          <Button variant="secondary" onClick={() => { setSearchQuery(''); setActiveCategory('Tất cả'); }}>
-            Xem tất cả bài viết
-          </Button>
+        <div className="blog-filter-pills-row">
+          {row2Categories.map(cat => (
+            <button
+              key={cat}
+              className={`blog-pill-btn ${activeCategory === cat ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
+      </section>
+
+      {/* 2. FEATURED ARTICLE BANNER (TIÊU ĐIỂM TUẦN) */}
+      {activeCategory === 'Tất cả' && !searchQuery && (
+        <section 
+          className="blog-featured-card"
+          onClick={() => setSelectedArticle(featuredArticle)}
+          style={{ cursor: 'pointer' }}
+        >
+          {/* Left image */}
+          <div 
+            className="blog-featured-img-container"
+            style={{ backgroundImage: `url('${featuredArticle.img}')` }}
+          >
+            <div className="blog-featured-img-tag">
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+              Ẩm Thực Chay - VeggieAI • TIÊU ĐIỂM TUẦN
+            </div>
+          </div>
+
+          {/* Right Content */}
+          <div className="blog-featured-content">
+            <div>
+              <div className="blog-featured-meta-row">
+                <span className="blog-featured-cat-tag">{featuredArticle.category}</span>
+                <span className="blog-featured-dot">•</span>
+                <span>{featuredArticle.date}</span>
+                <span className="blog-featured-dot">•</span>
+                <span className="blog-featured-readtime">{featuredArticle.readTime}</span>
+              </div>
+
+              <h2 className="blog-featured-title">
+                {featuredArticle.title}
+              </h2>
+
+              <p className="blog-featured-desc">
+                {featuredArticle.desc}
+              </p>
+            </div>
+
+            <div className="blog-featured-footer">
+              <div className="blog-author-box">
+                <img 
+                  src={featuredArticle.authorAvatar} 
+                  alt={featuredArticle.author} 
+                  className="blog-author-avatar"
+                />
+                <div>
+                  <div className="blog-author-name">{featuredArticle.author}</div>
+                  <div className="blog-author-role">{featuredArticle.authorRole}</div>
+                </div>
+              </div>
+
+              <button 
+                className="blog-btn-readmore"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedArticle(featuredArticle);
+                }}
+              >
+                Đọc tiếp <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+        </section>
       )}
 
-      {/* ARTICLE DETAIL MODAL */}
+      {/* 3. LATEST ARTICLES SECTION */}
+      <section style={{ marginBottom: '4rem' }}>
+        <div className="blog-latest-header">
+          <div>
+            <h2 className="blog-latest-title">Bài Viết Mới Nhất</h2>
+            <p className="blog-latest-subtitle">Cập nhật những nghiên cứu dinh dưỡng và công thức sáng tạo</p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.88rem', color: '#6b7280' }}>Sắp xếp:</span>
+            <select 
+              className="blog-sort-select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+            >
+              <option value="Mới nhất">Mới nhất</option>
+              <option value="Đọc nhiều nhất">Đọc nhiều nhất</option>
+              <option value="Đánh giá cao">Đánh giá cao</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ARTICLES 3-COLUMN GRID */}
+        <div className="blog-cards-grid">
+          {filteredArticles.map((art) => (
+            <div 
+              key={art.id} 
+              className="blog-item-card"
+              onClick={() => setSelectedArticle(art)}
+            >
+              <div 
+                className="blog-item-img-box"
+                style={{ backgroundImage: `url('${art.img}')` }}
+              >
+                <span className="blog-item-category-tag">
+                  {art.category}
+                </span>
+              </div>
+
+              <div className="blog-item-body">
+                <div className="blog-item-meta">
+                  {art.date} • {art.readTime}
+                </div>
+
+                <h3 className="blog-item-title">
+                  {art.title}
+                </h3>
+
+                <p className="blog-item-desc">
+                  {art.desc}
+                </p>
+
+                <div className="blog-item-footer">
+                  <div className="blog-item-author">
+                    <img 
+                      src={art.authorAvatar} 
+                      alt={art.author} 
+                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                    <span>{art.author}</span>
+                  </div>
+
+                  <span className="blog-item-read-link">
+                    Đọc bài <ArrowRight size={14} />
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredArticles.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
+            <p style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>Không tìm thấy bài viết nào phù hợp với bộ lọc hiện tại.</p>
+            <Button variant="secondary" onClick={() => { setSearchQuery(''); setActiveCategory('Tất cả'); }}>
+              Xem tất cả bài viết
+            </Button>
+          </div>
+        )}
+
+        {/* 4. PAGINATION */}
+        <div className="blog-pagination-wrapper">
+          <button 
+            className="blog-page-nav-btn"
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <button 
+            className={`blog-page-nav-btn ${currentPage === 1 ? 'active' : ''}`}
+            onClick={() => setCurrentPage(1)}
+          >
+            1
+          </button>
+
+          <button 
+            className={`blog-page-nav-btn ${currentPage === 2 ? 'active' : ''}`}
+            onClick={() => setCurrentPage(2)}
+          >
+            2
+          </button>
+
+          <button 
+            className={`blog-page-nav-btn ${currentPage === 3 ? 'active' : ''}`}
+            onClick={() => setCurrentPage(3)}
+          >
+            3
+          </button>
+
+          <span style={{ color: '#9ca3af', padding: '0 0.35rem' }}>...</span>
+
+          <button 
+            className={`blog-page-nav-btn ${currentPage === 12 ? 'active' : ''}`}
+            onClick={() => setCurrentPage(12)}
+          >
+            12
+          </button>
+
+          <button 
+            className="blog-page-nav-btn"
+            onClick={() => setCurrentPage(Math.min(12, currentPage + 1))}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </section>
+
+      {/* 5. NEWSLETTER CTA BOX (NUÔI DƯỠNG CƠ THỂ KHOA HỌC TỪNG NGÀY) */}
+      <section className="blog-newsletter-card">
+        <div className="blog-newsletter-icon">
+          <Mail size={22} color="#047857" />
+        </div>
+
+        <h2 className="blog-newsletter-title">
+          Nuôi Dưỡng Cơ Thể Khoa Học Từng Ngày
+        </h2>
+
+        <p className="blog-newsletter-sub">
+          Nhận thực đơn chay mẫu, công thức chất lượng cao và bài viết chuyên sâu từ bác sĩ dinh dưỡng vào mỗi sáng thứ Hai.
+        </p>
+
+        <form className="blog-newsletter-form" onSubmit={handleSubscribe}>
+          <input
+            type="email"
+            className="blog-newsletter-input"
+            placeholder="Nhập email của bạn..."
+            value={newsletterEmail}
+            onChange={(e) => setNewsletterEmail(e.target.value)}
+            required
+          />
+          <button type="submit" className="blog-newsletter-btn">
+            Đăng ký ngay
+          </button>
+        </form>
+
+        {subscribed && (
+          <p style={{ color: '#047857', fontWeight: 700, fontSize: '0.88rem', margin: '0.5rem 0' }}>
+            🎉 Cảm ơn bạn đã đăng ký nhận bản tin dinh dưỡng!
+          </p>
+        )}
+
+        <p className="blog-newsletter-note">
+          Miễn phí 100%. Bạn có thể hủy nhận tin bất kỳ lúc nào.
+        </p>
+      </section>
+
+      {/* ARTICLE FULL DETAIL MODAL */}
       {selectedArticle && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
         }}>
           <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '720px', width: '100%', maxHeight: '90vh',
-            overflowY: 'auto', padding: '2.25rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+            background: 'white', borderRadius: '24px', maxWidth: '740px', width: '100%', maxHeight: '90vh',
+            overflowY: 'auto', padding: '2.5rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.2)'
           }}>
             <button 
               onClick={() => setSelectedArticle(null)}
-              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <X size={20} />
             </button>
 
-            <span className="badge badge-success">{selectedArticle.category}</span>
-            <h2 style={{ color: '#0f172a', margin: '0.75rem 0 0.5rem 0', fontSize: '1.75rem', lineHeight: '1.35' }}>
+            <span className="badge badge-success" style={{ marginBottom: '0.65rem' }}>
+              {selectedArticle.category}
+            </span>
+
+            <h2 style={{ color: '#111827', margin: '0.5rem 0 0.85rem 0', fontSize: '1.85rem', lineHeight: '1.35', fontWeight: 800 }}>
               {selectedArticle.title}
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              Tác giả: <strong>{selectedArticle.author}</strong> • {selectedArticle.date} • {selectedArticle.readTime}
-            </p>
 
-            <div style={{ height: '260px', backgroundImage: `url('${selectedArticle.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '16px', marginBottom: '1.5rem' }}></div>
-
-            <div style={{ color: '#334155', lineHeight: '1.7', whiteSpace: 'pre-line', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-              {selectedArticle.content}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <img 
+                src={selectedArticle.authorAvatar} 
+                alt={selectedArticle.author} 
+                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+              />
+              <div>
+                <div style={{ fontWeight: 700, color: '#111827', fontSize: '0.92rem' }}>{selectedArticle.author}</div>
+                <div style={{ color: '#6b7280', fontSize: '0.8rem' }}>{selectedArticle.date} • {selectedArticle.readTime}</div>
+              </div>
             </div>
 
-            {selectedArticle.ingredients && (
-              <>
-                <h4 style={{ color: '#059669', marginBottom: '0.5rem' }}>🥕 Nguyên liệu chuẩn bị:</h4>
-                <ul style={{ paddingLeft: '1.25rem', color: '#334155', marginBottom: '1.25rem', lineHeight: '1.6' }}>
-                  {selectedArticle.ingredients.map((ing, idx) => (
-                    <li key={idx}>{ing}</li>
-                  ))}
-                </ul>
-              </>
-            )}
+            <div style={{ height: '280px', backgroundImage: `url('${selectedArticle.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '16px', marginBottom: '1.75rem' }}></div>
 
-            {selectedArticle.steps && (
-              <>
-                <h4 style={{ color: '#059669', marginBottom: '0.5rem' }}>👨‍🍳 Các bước thực hiện:</h4>
-                <ol style={{ paddingLeft: '1.25rem', color: '#334155', marginBottom: '1.5rem', lineHeight: '1.6' }}>
-                  {selectedArticle.steps.map((st, idx) => (
-                    <li key={idx} style={{ marginBottom: '0.5rem' }}>{st}</li>
-                  ))}
-                </ol>
-              </>
-            )}
+            <div style={{ color: '#374151', lineHeight: '1.75', whiteSpace: 'pre-line', fontSize: '1rem', marginBottom: '2rem' }}>
+              {selectedArticle.fullContent}
+            </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
-              <Button variant="secondary" onClick={() => setSelectedArticle(null)}>Đóng</Button>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem' }}>
+              <Button variant="secondary" onClick={() => setSelectedArticle(null)}>
+                Đóng
+              </Button>
               <Button onClick={() => { setSelectedArticle(null); onNavigate && onNavigate('register'); }}>
-                Đăng ký để lưu bài viết & công thức
+                Đăng ký để lưu bài viết
               </Button>
             </div>
           </div>
