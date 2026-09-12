@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Play } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="footer-inner">
         {/* MAIN COLUMNS */}
         <div className="footer-grid">
-          {/* COL 1: BRAND INFO */}
+          {/* CỘT 1: VeggieAI */}
           <div className="footer-col-brand">
             <div className="footer-brand-logo">
               <span className="brand-icon">🌱</span>
@@ -22,33 +22,45 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* COL 2: KHÁM PHÁ */}
+          {/* CỘT 2: KHÁM PHÁ */}
           <div className="footer-col">
             <h4 className="footer-col-title">KHÁM PHÁ</h4>
             <ul className="footer-links">
               <li><a href="#planner">Kế hoạch thực đơn AI</a></li>
-              <li><a href="#vision">Quét tủ lạnh thông minh</a></li>
-              <li><a href="#video">Kho video nấu nướng</a></li>
-              <li><a href="#restaurants">Bản đồ quán chay ẩm thực</a></li>
+              <li><a href="#video">Kho video nấu ăn</a></li>
+              <li><a href="#community">Cộng đồng thuần chay</a></li>
+              <li>
+                <a href="#restaurants">
+                  Tìm quán chay gần bạn <span className="footer-app-tag">(chỉ trên App)</span>
+                </a>
+              </li>
             </ul>
           </div>
 
-          {/* COL 3: CÔNG CỤ & TRỢ LÝ */}
+          {/* CỘT 3: CÔNG CỤ & TRỢ LÝ */}
           <div className="footer-col">
             <h4 className="footer-col-title">CÔNG CỤ & TRỢ LÝ</h4>
             <ul className="footer-links">
               <li><a href="#chatbot">Trò chuyện cùng AI Chef</a></li>
               <li><a href="#planner">Tính toán Macro & Calo</a></li>
-              <li><a href="#community">Cộng đồng thuần chay</a></li>
-              <li><a href="#market">Sổ tay đi chợ tự động</a></li>
+              <li>
+                <a href="#vision">
+                  Quét nguyên liệu <span className="footer-app-tag">(chỉ trên App)</span>
+                </a>
+              </li>
+              <li>
+                <a href="#market">
+                  Sổ tay đi chợ (tạo từ thực đơn)
+                </a>
+              </li>
             </ul>
           </div>
 
-          {/* COL 4: ỨNG DỤNG DI ĐỘNG */}
+          {/* CỘT 4: ỨNG DỤNG DI ĐỘNG */}
           <div className="footer-col">
             <h4 className="footer-col-title">ỨNG DỤNG DI ĐỘNG</h4>
             <p className="footer-mobile-text">
-              Trải nghiệm nấu nướng trực quan trên iOS và Android.
+              Trải nghiệm đầy đủ trên di động
             </p>
             <div className="footer-app-buttons">
               <button className="app-download-btn">
