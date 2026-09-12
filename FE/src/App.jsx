@@ -68,7 +68,7 @@ export default function App() {
           )
         )}
 
-        {activeTab === 'chatbot' && <ChatbotPage />}
+        {activeTab === 'chatbot' && <ChatbotPage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'blog' && <BlogPage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'videos' && <VideosPage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'community' && <CommunityPage />}
@@ -119,7 +119,7 @@ export default function App() {
         )}
       </main>
 
-      <Footer />
+      <Footer onNavigate={(tab) => setActiveTab(tab)} />
     </div>
   );
 }

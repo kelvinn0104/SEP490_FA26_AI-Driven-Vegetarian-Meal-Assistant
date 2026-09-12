@@ -6,7 +6,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'home', label: 'Trang chủ', icon: <Home size={18} /> },
     { id: 'planner', label: 'AI Meal Planner', icon: <Utensils size={18} /> },
     { id: 'vision', label: 'Quét Nguyên liệu (Vision)', icon: <Camera size={18} /> },
-    { id: 'chatbot', label: 'AI Nutrition Chatbot', icon: <Bot size={18} /> },
+    { id: 'chatbot', label: 'Hỏi AI', icon: <Bot size={18} /> },
     { id: 'community', label: 'Cộng đồng & Bản đồ', icon: <Users size={18} /> },
     { id: 'admin', label: 'Admin Dashboard', icon: <ShieldCheck size={18} /> },
     { id: 'moderation', label: 'Duyệt bài (Mod)', icon: <Clock size={18} /> }

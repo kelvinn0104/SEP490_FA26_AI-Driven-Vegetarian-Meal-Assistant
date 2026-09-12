@@ -470,7 +470,7 @@ export default function HomePage({ onNavigate }) {
       <section className="cta-banner">
         <h2>Sẵn Sàng Cho Lối Sống Ăn Chay Khoa Học Và Tràn Đầy Sinh Khí?</h2>
         <p style={{ opacity: 0.9, maxWidth: '640px', margin: '0 auto 2rem auto', fontSize: '1.05rem', lineHeight: '1.65' }}>
-          Gia nhập VeggieAI ngay hôm nay để thiết lập hồ sơ dinh dưỡng cá nhân, nhận thực đơn cân bằng và trò chuyện không giới hạn với AI Chef.
+          Gia nhập VeggieAI ngay hôm nay để thiết lập hồ sơ dinh dưỡng cá nhân, nhận thực đơn cân bằng và hỏi đáp không giới hạn cùng Hỏi AI.
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>

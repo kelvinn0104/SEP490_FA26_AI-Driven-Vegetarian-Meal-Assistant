@@ -10,7 +10,7 @@ export default function ChatbotPage({ onNavigate }) {
   const [messages, setMessages] = useState([
     { 
       sender: 'bot', 
-      text: 'Xin chào! Tôi là Chuyên gia Dinh dưỡng VeggieAI (RAG Chatbot). Bạn có thắc mắc gì về chế độ ăn chay, vi chất B12, Sắt hay cách thay thế nguyên liệu thực dưỡng không?' 
+      text: 'Xin chào! Tôi là Trợ lý Hỏi AI của VeggieAI. Bạn có thắc mắc gì về chế độ ăn chay, vi chất B12, Sắt hay cách thay thế nguyên liệu thực dưỡng không?' 
     }
   ]);
   const [input, setInput] = useState('');
@@ -47,7 +47,7 @@ export default function ChatbotPage({ onNavigate }) {
     <Card style={{ height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', margin: 0 }}>
-          <Bot /> AI Nutrition Chatbot (RAG Semantic Search)
+          <Sparkles size={22} /> Hỏi AI - Trợ Lý Dinh Dưỡng Thực Dưỡng
         </h2>
 
         {/* WORKFLOW WF05: GIỚI HẠN SỐ LƯỢT HỎI CHO GUEST */}
@@ -105,12 +105,12 @@ export default function ChatbotPage({ onNavigate }) {
             marginTop: '1rem' 
           }}>
             <Lock size={28} color="#ea580c" style={{ margin: '0 auto 0.5rem auto' }} />
-            <h4 style={{ color: '#9a3412', marginBottom: '0.35rem' }}>Bạn đã dùng hết {GUEST_LIMIT} lượt hỏi thử nghiệm miễn phí!</h4>
+            <h4 style={{ color: '#9a3412', marginBottom: '0.35rem' }}>Bạn đã dùng hết {GUEST_LIMIT} lượt hỏi thử nghiệm miễn phí cùng Hỏi AI!</h4>
             <p style={{ color: '#7c2d12', fontSize: '0.88rem', maxWidth: '500px', margin: '0 auto 1rem auto' }}>
-              Khách vãng lai được trải nghiệm tối đa {GUEST_LIMIT} câu hỏi. Hãy đăng ký tài khoản để trò chuyện không giới hạn và lưu trữ lịch sử tư vấn dinh dưỡng.
+              Khách vãng lai được trải nghiệm tối đa {GUEST_LIMIT} câu hỏi. Hãy đăng ký tài khoản để sử dụng Hỏi AI không giới hạn và lưu trữ lịch sử tư vấn dinh dưỡng.
             </p>
             <Button onClick={() => onNavigate && onNavigate('register')} style={{ background: '#046a47', margin: '0 auto' }}>
-              <Sparkles size={16} /> Đăng ký miễn phí để tiếp tục hỏi AI <ArrowRight size={16} />
+              <Sparkles size={16} /> Đăng ký miễn phí để tiếp tục sử dụng Hỏi AI <ArrowRight size={16} />
             </Button>
           </div>
         )}
@@ -124,7 +124,7 @@ export default function ChatbotPage({ onNavigate }) {
           disabled={hasReachedLimit}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder={hasReachedLimit ? "Vui lòng đăng ký tài khoản để tiếp tục hỏi..." : "Hỏi về dinh dưỡng chay, thiếu máu, vi chất B12..."}
+          placeholder={hasReachedLimit ? "Vui lòng đăng ký tài khoản để tiếp tục hỏi..." : "Đặt câu hỏi cùng Hỏi AI về dinh dưỡng chay, thiếu máu, vi chất B12..."}
           style={{ 
             flex: 1, 
             padding: '0.75rem', 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Smartphone } from 'lucide-react';
 
-export default function Footer() {
+export default function Footer({ onNavigate }) {
   return (
     <footer className="site-footer">
       <div className="footer-inner">
@@ -26,9 +26,9 @@ export default function Footer() {
           <div className="footer-col">
             <h4 className="footer-col-title">KHÁM PHÁ</h4>
             <ul className="footer-links">
-              <li><a href="#planner">Kế hoạch thực đơn AI</a></li>
-              <li><a href="#blog">Blog & Bài viết dinh dưỡng</a></li>
-              <li><a href="#videos">Kho video nấu ăn</a></li>
+              <li><a href="#planner" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('planner'); }}>Kế hoạch thực đơn AI</a></li>
+              <li><a href="#blog" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('blog'); }}>Blog & Bài viết dinh dưỡng</a></li>
+              <li><a href="#videos" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('videos'); }}>Kho video nấu ăn</a></li>
               <li>
                 <a href="#restaurants">
                   Tìm quán chay gần bạn <span className="footer-app-tag">(chỉ trên App)</span>
@@ -41,8 +41,8 @@ export default function Footer() {
           <div className="footer-col">
             <h4 className="footer-col-title">CÔNG CỤ & TRỢ LÝ</h4>
             <ul className="footer-links">
-              <li><a href="#chatbot">Trò chuyện cùng AI Chef</a></li>
-              <li><a href="#planner">Tính toán Macro & Calo</a></li>
+              <li><a href="#chatbot" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chatbot'); }}>Hỏi AI</a></li>
+              <li><a href="#planner" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('planner'); }}>Tính toán Macro & Calo</a></li>
               <li>
                 <a href="#vision">
                   Quét nguyên liệu <span className="footer-app-tag">(chỉ trên App)</span>
