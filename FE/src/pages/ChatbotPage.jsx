@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, Bot, Sparkles, Lock, ArrowRight } from 'lucide-react';
 import { askChatbot } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,13 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 
 export default function ChatbotPage({ onNavigate }) {
+  // Luôn đảm bảo khi mở trang Chatbot Hỏi AI thì vị trí cuộn ở đỉnh trang (0, 0)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const { user } = useAuth();
   const [messages, setMessages] = useState([
     { 

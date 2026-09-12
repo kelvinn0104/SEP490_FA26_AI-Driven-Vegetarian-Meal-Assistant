@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Eye, EyeOff, Lock, Mail, User, ArrowRight, ShieldCheck, 
   Camera, Utensils, Video, Star, Compass, Check
@@ -6,6 +6,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage({ onNavigate }) {
+  // Luôn đảm bảo khi mở trang Đăng nhập thì vị trí cuộn ở đỉnh trang (0, 0)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');

@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 export default function BlogPage({ onNavigate }) {
+  // Luôn đảm bảo khi mở trang Blog thì vị trí cuộn ở đỉnh trang (0, 0)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Tất cả');
   const [sortOrder, setSortOrder] = useState('Mới nhất');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Camera, Utensils, Video, MapPin, 
   Search, ArrowRight, CheckCircle2, Star, Play, Heart, Share2, 
@@ -10,6 +10,13 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 
 export default function HomePage({ onNavigate }) {
+  // Luôn đảm bảo khi mở Trang chủ thì vị trí cuộn ở đỉnh trang (0, 0)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const [selectedDay, setSelectedDay] = useState('T2');
   const [searchQuery, setSearchQuery] = useState('');
   

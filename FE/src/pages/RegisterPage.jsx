@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, HeartPulse, Gift, Scale, Check, Eye, EyeOff, 
   Lock, Mail, Phone, User, Sparkles, ArrowRight, Shield, Star
 } from 'lucide-react';
 
 export default function RegisterPage({ onNavigate }) {
+  // Luôn đảm bảo khi mở trang Đăng ký thì vị trí cuộn ở đỉnh trang (0, 0)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const [activeTab, setActiveTab] = useState('register'); // 'login' | 'register'
   const [dietGoal, setDietGoal] = useState('flexitarian'); // 'vegan' | 'flexitarian' | 'weight_loss'
   const [showPassword, setShowPassword] = useState(false);

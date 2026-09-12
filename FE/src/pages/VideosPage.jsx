@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, Play, Clock, Sparkles, X, Heart, Eye, Bookmark, 
   Share2, CheckCircle2, ChevronRight, Youtube, Flame, Check,
@@ -9,6 +9,13 @@ import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 
 export default function VideosPage({ onNavigate }) {
+  // Luôn đảm bảo khi mở trang Videos thì vị trí cuộn ở đỉnh trang (0, 0)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const { user } = useAuth();
   const isGuest = !user;
   const GUEST_EXTRACT_LIMIT = 2;

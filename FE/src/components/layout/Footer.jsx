@@ -2,6 +2,16 @@ import React from 'react';
 import { Smartphone } from 'lucide-react';
 
 export default function Footer({ onNavigate }) {
+  const handleFooterNav = (e, tab) => {
+    e.preventDefault();
+    if (onNavigate) {
+      onNavigate(tab);
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+
   return (
     <footer className="site-footer">
       <div className="footer-inner">
@@ -9,7 +19,11 @@ export default function Footer({ onNavigate }) {
         <div className="footer-grid">
           {/* CỘT 1: VeggieAI */}
           <div className="footer-col-brand">
-            <div className="footer-brand-logo">
+            <div 
+              className="footer-brand-logo" 
+              onClick={(e) => handleFooterNav(e, 'home')}
+              style={{ cursor: 'pointer' }}
+            >
               <span className="brand-icon">🌱</span>
               <span className="brand-name">VeggieAI</span>
             </div>
@@ -26,9 +40,9 @@ export default function Footer({ onNavigate }) {
           <div className="footer-col">
             <h4 className="footer-col-title">KHÁM PHÁ</h4>
             <ul className="footer-links">
-              <li><a href="#planner" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('planner'); }}>Kế hoạch thực đơn AI</a></li>
-              <li><a href="#blog" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('blog'); }}>Blog & Bài viết dinh dưỡng</a></li>
-              <li><a href="#videos" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('videos'); }}>Kho video nấu ăn</a></li>
+              <li><a href="#planner" onClick={(e) => handleFooterNav(e, 'planner')}>Kế hoạch thực đơn AI</a></li>
+              <li><a href="#blog" onClick={(e) => handleFooterNav(e, 'blog')}>Blog & Bài viết dinh dưỡng</a></li>
+              <li><a href="#videos" onClick={(e) => handleFooterNav(e, 'videos')}>Kho video nấu ăn</a></li>
               <li>
                 <a href="#restaurants">
                   Tìm quán chay gần bạn <span className="footer-app-tag">(chỉ trên App)</span>
@@ -41,8 +55,8 @@ export default function Footer({ onNavigate }) {
           <div className="footer-col">
             <h4 className="footer-col-title">CÔNG CỤ & TRỢ LÝ</h4>
             <ul className="footer-links">
-              <li><a href="#chatbot" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('chatbot'); }}>Hỏi AI</a></li>
-              <li><a href="#planner" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('planner'); }}>Tính toán Macro & Calo</a></li>
+              <li><a href="#chatbot" onClick={(e) => handleFooterNav(e, 'chatbot')}>Hỏi AI</a></li>
+              <li><a href="#planner" onClick={(e) => handleFooterNav(e, 'planner')}>Tính toán Macro & Calo</a></li>
               <li>
                 <a href="#vision">
                   Quét nguyên liệu <span className="footer-app-tag">(chỉ trên App)</span>

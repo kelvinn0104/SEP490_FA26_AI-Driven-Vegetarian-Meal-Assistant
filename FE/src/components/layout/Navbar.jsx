@@ -30,9 +30,16 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
   const currentNavLinks = user ? memberNavLinks : guestNavLinks;
 
+  const handleNavClick = (tab) => {
+    if (setActiveTab) setActiveTab(tab);
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+
   const handleSearchSubmit = (e) => {
     if (e.key === 'Enter') {
-      setActiveTab('home');
+      handleNavClick('home');
       setTimeout(() => {
         const el = document.getElementById('search-anchor');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -44,7 +51,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     <header className="main-header">
       <div className="header-inner">
         {/* LOGO */}
-        <div className="brand-logo" onClick={() => setActiveTab('home')}>
+        <div className="brand-logo" onClick={() => handleNavClick('home')}>
           <span className="brand-icon">🌱</span>
           <span className="brand-name">VeggieAI</span>
         </div>
@@ -55,7 +62,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
             <button
               key={idx}
               className={`header-nav-item ${activeTab === link.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(link.id)}
+              onClick={() => handleNavClick(link.id)}
             >
               {link.label}
             </button>
@@ -80,7 +87,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
           {/* HỎI AI BUTTON */}
           <button 
             className="btn-hoi-ai" 
-            onClick={() => setActiveTab('chatbot')}
+            onClick={() => handleNavClick('chatbot')}
             title="Trò chuyện với AI Dinh dưỡng"
           >
             <Sparkles size={16} className="sparkle-icon" />
@@ -92,13 +99,13 @@ export default function Navbar({ activeTab, setActiveTab }) {
             <>
               <button 
                 className="btn-header-login"
-                onClick={() => setActiveTab('login')}
+                onClick={() => handleNavClick('login')}
               >
                 Đăng nhập
               </button>
               <button 
                 className="btn-bat-dau-thu" 
-                onClick={() => setActiveTab('register')}
+                onClick={() => handleNavClick('register')}
                 title="Bắt đầu thiết lập hồ sơ dinh dưỡng cá nhân"
               >
                 Bắt đầu thử
@@ -128,7 +135,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                   {user.role === 'Admin' && (
                     <button 
                       className="dropdown-item"
-                      onClick={() => { setActiveTab('admin'); setShowDropdown(false); }}
+                      onClick={() => { handleNavClick('admin'); setShowDropdown(false); }}
                     >
                       <ShieldCheck size={16} /> Bảng điều khiển Admin
                     </button>
@@ -136,7 +143,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
                   <button 
                     className="dropdown-item dropdown-logout"
-                    onClick={() => { logout(); setShowDropdown(false); setActiveTab('home'); }}
+                    onClick={() => { logout(); setShowDropdown(false); handleNavClick('home'); }}
                   >
                     <LogOut size={16} /> Đăng xuất
                   </button>
