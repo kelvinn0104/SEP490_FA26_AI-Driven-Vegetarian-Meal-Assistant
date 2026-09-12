@@ -7,6 +7,8 @@ import MealPlannerPage from './pages/MealPlannerPage';
 import VisionPage from './pages/VisionPage';
 import ChatbotPage from './pages/ChatbotPage';
 import CommunityPage from './pages/CommunityPage';
+import BlogPage from './pages/BlogPage';
+import VideosPage from './pages/VideosPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ModerationQueue from './pages/ModerationQueue';
 import { useAuth } from './context/AuthContext';
@@ -67,6 +69,8 @@ export default function App() {
         )}
 
         {activeTab === 'chatbot' && <ChatbotPage />}
+        {activeTab === 'blog' && <BlogPage onNavigate={(tab) => setActiveTab(tab)} />}
+        {activeTab === 'videos' && <VideosPage onNavigate={(tab) => setActiveTab(tab)} />}
         {activeTab === 'community' && <CommunityPage />}
 
         {/* BẢO VỆ TRANG ADMIN: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP với quyền ADMIN */}

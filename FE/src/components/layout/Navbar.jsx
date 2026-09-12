@@ -16,14 +16,16 @@ export default function Navbar({ activeTab, setActiveTab }) {
   
   const guestNavLinks = [
     { id: 'home', label: 'Trang chủ' },
-    { id: 'community', label: 'Video & Công thức' }
+    { id: 'blog', label: 'Blog' },
+    { id: 'videos', label: 'Video nấu ăn' }
   ];
 
   const memberNavLinks = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'planner', label: 'Thực đơn AI' },
     { id: 'vision', label: 'Quét tủ lạnh' },
-    { id: 'community', label: 'Video & Công thức' }
+    { id: 'blog', label: 'Blog' },
+    { id: 'videos', label: 'Video nấu ăn' }
   ];
 
   const currentNavLinks = user ? memberNavLinks : guestNavLinks;

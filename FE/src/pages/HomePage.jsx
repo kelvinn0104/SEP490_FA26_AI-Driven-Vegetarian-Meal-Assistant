@@ -61,6 +61,23 @@ export default function HomePage({ onNavigate }) {
         'Xếp cơm Quinoa dưới đáy tô, xếp lần lượt Tempeh, bơ lát, bắp cải tím thái mỏng xung quanh.',
         'Rưới nước sốt Teriyaki lên trên và thưởng thức ngay khi còn ấm.'
       ]
+    },
+    {
+      id: 'r3',
+      title: 'Top 5 Nguồn Protein Thuần Chay Giúp Tăng Cơ Khỏe Mạnh',
+      desc: 'Khám phá các nguồn đạm thực vật hoàn chỉnh từ Tempeh, Đậu gà, Quinoa & Hạt gai dầu giúp xây dựng cơ bắp săn chắc.',
+      protein: '28g Protein/ngày',
+      calories: 'Chuyên gia dinh dưỡng',
+      iron: 'Giàu vi chất',
+      balance: '95% Khoa học',
+      time: '6 phút đọc',
+      img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+      ingredients: ['Tempeh đậu nành lên men', 'Đậu gà ngâm nở', 'Hạt Quinoa hữu cơ', 'Hạt gai dầu (Hemp Seeds)'],
+      steps: [
+        'Bước 1: Hiểu về amino acid thiết yếu và cách kết hợp họ đậu cùng ngũ cốc nguyên cám.',
+        'Bước 2: Phân bổ 20-25g protein cho mỗi bữa ăn chính để cơ bắp phục hồi đều đặn.',
+        'Bước 3: Bổ sung hạt béo và rau lá xanh đậm để tăng khả năng tổng hợp vi chất.'
+      ]
     }
   ];
 
@@ -218,18 +235,23 @@ export default function HomePage({ onNavigate }) {
               <BookOpen size={26} />
             </div>
             <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 700 }}>TÍNH NĂNG 1</span>
-            <h3 style={{ margin: '0.5rem 0', color: '#0f172a' }}>Kho Công Thức & Video Nấu Ăn</h3>
+            <h3 style={{ margin: '0.5rem 0', color: '#0f172a' }}>Blog & Video Nấu Ăn AI</h3>
             <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.6' }}>
-              Duyệt hàng trăm công thức và video nấu chay được AI tóm tắt ngắn gọn thành các bước dễ làm, hoàn toàn miễn phí cho mọi người.
+              Khám phá các bài viết dinh dưỡng chuyên sâu và video nấu chay được AI tóm tắt ngắn gọn thành các bước dễ làm, hoàn toàn miễn phí.
             </p>
-            <div 
-              style={{ marginTop: '1.25rem', color: '#059669', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }} 
-              onClick={() => {
-                const el = document.getElementById('public-recipes-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              Xem video nấu ăn ngay →
+            <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem' }}>
+              <span 
+                style={{ color: '#059669', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }} 
+                onClick={() => onNavigate && onNavigate('blog')}
+              >
+                Đọc Blog →
+              </span>
+              <span 
+                style={{ color: '#059669', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }} 
+                onClick={() => onNavigate && onNavigate('videos')}
+              >
+                Xem Video →
+              </span>
             </div>
           </div>
 
@@ -269,12 +291,54 @@ export default function HomePage({ onNavigate }) {
         </div>
       </section>
 
-      {/* VIDEO NẤU ĂN CÔNG KHAI & TÓM TẮT AI 30 GIÂY */}
-      <section id="public-recipes-section" style={{ marginBottom: '3.5rem' }}>
-        <div className="section-title-box">
-          <span className="badge badge-ai">KHO VIDEO CÔNG KHAI</span>
-          <h2>Video Nấu Ăn Tích Hợp AI Tóm Tắt Trong 30 Giây</h2>
-          <p>Xem video hướng dẫn nấu ăn chi tiết công khai kèm các bước dạng văn bản đã được AI tóm tắt ngắn gọn.</p>
+      {/* MỤC 1: BÀI VIẾT & BLOG CÔNG THỨC */}
+      <section id="blog-section" style={{ marginBottom: '3.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <span className="badge badge-ai" style={{ marginBottom: '0.4rem' }}>BÀI VIẾT & BLOG</span>
+            <h2 style={{ fontSize: '1.75rem', color: '#0f172a', margin: '0.35rem 0 0 0' }}>Blog Dinh Dưỡng & Công Thức Nấu Ăn</h2>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>Đọc các bài viết khoa học và công thức món chay chi tiết hoàn toàn công khai.</p>
+          </div>
+          <Button variant="secondary" onClick={() => onNavigate && onNavigate('blog')}>
+            Xem tất cả bài viết Blog →
+          </Button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem' }}>
+          {publicRecipes.map((recipe) => (
+            <Card key={recipe.id} style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }} onClick={() => setSelectedRecipeDetail(recipe)}>
+              <div style={{ height: '200px', backgroundImage: `url('${recipe.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.92)', color: '#047857', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  {recipe.time}
+                </span>
+              </div>
+              <div style={{ padding: '1.35rem' }}>
+                <h4 style={{ color: '#0f172a', marginBottom: '0.4rem', fontSize: '1.1rem', lineHeight: '1.4' }}>{recipe.title}</h4>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', lineHeight: '1.5' }}>{recipe.desc}</p>
+                <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <span className="nutrition-pill" style={{ background: '#ecfdf5', color: '#047857' }}>{recipe.protein}</span>
+                  <span className="nutrition-pill" style={{ background: '#eff6ff', color: '#1d4ed8' }}>{recipe.balance}</span>
+                </div>
+                <div style={{ color: '#059669', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Eye size={16} /> Đọc bài viết & xem cách nấu →
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* MỤC 2: VIDEO NẤU ĂN CÔNG KHAI & TÓM TẮT AI 30 GIÂY */}
+      <section id="videos-section" style={{ marginBottom: '3.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <span className="badge badge-ai" style={{ marginBottom: '0.4rem' }}>VIDEO NẤU ĂN</span>
+            <h2 style={{ fontSize: '1.75rem', color: '#0f172a', margin: '0.35rem 0 0 0' }}>Video Hướng Dẫn Nấu Ăn Tích Hợp AI Tóm Tắt</h2>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>Xem video trực quan cùng các bước tóm tắt tự động bởi AI trong 30 giây.</p>
+          </div>
+          <Button variant="secondary" onClick={() => onNavigate && onNavigate('videos')}>
+            Xem tất cả video nấu ăn →
+          </Button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem' }}>

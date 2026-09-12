@@ -27,8 +27,8 @@ export default function Footer() {
             <h4 className="footer-col-title">KHÁM PHÁ</h4>
             <ul className="footer-links">
               <li><a href="#planner">Kế hoạch thực đơn AI</a></li>
-              <li><a href="#video">Kho video nấu ăn</a></li>
-              <li><a href="#community">Cộng đồng thuần chay</a></li>
+              <li><a href="#blog">Blog & Bài viết dinh dưỡng</a></li>
+              <li><a href="#videos">Kho video nấu ăn</a></li>
               <li>
                 <a href="#restaurants">
                   Tìm quán chay gần bạn <span className="footer-app-tag">(chỉ trên App)</span>
