@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   Sparkles, Camera, Utensils, Video, MapPin, 
   Search, ArrowRight, CheckCircle2, Star, Play, Heart, Share2, 
-  Flame, Leaf, Award, ShieldCheck, ChevronRight, X, Clock, Eye, BookOpen
+  Flame, Leaf, Award, ShieldCheck, ChevronRight, X, Clock, Eye, BookOpen,
+  Smartphone
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -277,15 +278,18 @@ export default function HomePage({ onNavigate }) {
               <Camera size={26} />
             </div>
             <span style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 700 }}>TÍNH NĂNG 3</span>
-            <h3 style={{ margin: '0.5rem 0', color: '#0f172a' }}>Quét Tủ Lạnh Nhận Diện Nguyên Liệu</h3>
+            <h3 style={{ margin: '0.5rem 0', color: '#0f172a' }}>Quét Tủ Lạnh Nhận Diện Nguyên Liệu (Trên App)</h3>
             <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.6' }}>
-              Mô hình Computer Vision YOLOv8 nhận diện rau củ qua ảnh chụp tủ lạnh, đánh giá độ tươi và gợi ý món ăn chống lãng phí.
+              Mô hình Computer Vision YOLOv8 nhận diện rau củ qua ảnh chụp tủ lạnh, đánh giá độ tươi và gợi ý món ăn chống lãng phí ngay trên ứng dụng di động.
             </p>
             <div 
               style={{ marginTop: '1.25rem', color: '#d97706', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }} 
-              onClick={() => onNavigate && onNavigate('register')}
+              onClick={() => {
+                const el = document.getElementById('vision-showcase-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
-              Đăng ký để quét tủ lạnh →
+              Tải App để trải nghiệm →
             </div>
           </div>
         </div>
@@ -422,8 +426,8 @@ export default function HomePage({ onNavigate }) {
         </Card>
       </section>
 
-      {/* MÔ PHỎNG COMPUTER VISION (SHOWCASE - ĐỊNH HƯỚNG ĐĂNG KÝ) */}
-      <section className="vision-showcase">
+      {/* MÔ PHỎNG COMPUTER VISION (SHOWCASE - CHỈ CÓ TRÊN ỨNG DỤNG DI ĐỘNG) */}
+      <section className="vision-showcase" id="vision-showcase-section">
         <div>
           <div 
             className="fridge-camera-box"
@@ -439,10 +443,12 @@ export default function HomePage({ onNavigate }) {
         </div>
 
         <div>
-          <span className="badge badge-ai">MÔ PHỎNG TÍNH NĂNG AI</span>
+          <span className="badge badge-ai" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700 }}>
+            CHỈ CÓ TRÊN ỨNG DỤNG DI ĐỘNG
+          </span>
           <h2 style={{ fontSize: '2rem', color: '#0f172a', margin: '0.5rem 0' }}>Quét Tủ Lạnh, Nấu Ngon Liền Tay</h2>
           <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.65', marginBottom: '1.5rem' }}>
-            AI sẽ tự động nhận diện nguyên liệu trong tủ lạnh và đề xuất công thức nấu ăn thích hợp. Tính năng này yêu cầu người dùng thiết lập tài khoản để lưu trữ thực phẩm.
+            AI sẽ tự động nhận diện nguyên liệu trong tủ lạnh và đề xuất công thức nấu ăn thích hợp. Tính năng này được tích hợp độc quyền trên ứng dụng di động để bạn dễ dàng chụp ảnh và cập nhật tủ lạnh mọi lúc mọi nơi.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.75rem' }}>
@@ -460,9 +466,37 @@ export default function HomePage({ onNavigate }) {
             </div>
           </div>
 
-          <Button onClick={() => onNavigate && onNavigate('register')}>
-            <Camera size={18} /> Đăng ký để mở khóa tính năng Quét tủ lạnh
-          </Button>
+          <div style={{ marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <Smartphone size={18} color="#059669" />
+              <span>Tải App ngay:</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
+              <button 
+                type="button" 
+                className="app-download-btn"
+                onClick={() => alert('Ứng dụng VeggieAI trên App Store (iOS) đang chuẩn bị phát hành. Vui lòng đón chờ!')}
+              >
+                <Smartphone size={20} className="app-btn-icon" />
+                <div className="app-btn-text">
+                  <span className="app-btn-sub">Tải trên</span>
+                  <span className="app-btn-main">App Store</span>
+                </div>
+              </button>
+
+              <button 
+                type="button" 
+                className="app-download-btn"
+                onClick={() => alert('Ứng dụng VeggieAI trên Google Play (Android) đang chuẩn bị phát hành. Vui lòng đón chờ!')}
+              >
+                <span className="google-play-icon">▶</span>
+                <div className="app-btn-text">
+                  <span className="app-btn-sub">Có sẵn trên</span>
+                  <span className="app-btn-main">Google Play</span>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
