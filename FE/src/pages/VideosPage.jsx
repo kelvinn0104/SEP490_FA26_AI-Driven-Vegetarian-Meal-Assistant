@@ -1,12 +1,31 @@
 import React, { useState } from 'react';
 import { 
   Search, Play, Clock, Sparkles, X, Heart, Eye, Bookmark, 
-  Share2, CheckCircle2, ChevronRight, Youtube, Flame, Check
+  Share2, CheckCircle2, ChevronRight, Youtube, Flame, Check,
+  Lock, ArrowRight
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { useAuth } from '../context/AuthContext';
 
 export default function VideosPage({ onNavigate }) {
+  const { user } = useAuth();
+  const isGuest = !user;
+  const GUEST_EXTRACT_LIMIT = 2;
+
+  const [guestExtractionsUsed, setGuestExtractionsUsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('veggieai_guest_extractions_used');
+      return saved ? parseInt(saved, 10) || 0 : 0;
+    } catch (e) {
+      return 0;
+    }
+  });
+
+  const [showRegisterPopup, setShowRegisterPopup] = useState(false);
+  const remainingExtractions = Math.max(0, GUEST_EXTRACT_LIMIT - guestExtractionsUsed);
+  const hasReachedExtractLimit = isGuest && remainingExtractions === 0;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Tất cả');
   const [activeTimeFilter, setActiveTimeFilter] = useState('Tất cả');
@@ -279,11 +298,29 @@ export default function VideosPage({ onNavigate }) {
     return matchesCategory && matchesTime && matchesSearch;
   });
 
-  // Handle YouTube Extraction Simulation
+  // Handle YouTube Extraction Simulation with Guest Limit
   const handleExtractRecipe = (e) => {
     e.preventDefault();
+
+    // Nếu đã hết lượt dùng thử cho khách vãng lai -> Hiện popup mời đăng ký
+    if (hasReachedExtractLimit) {
+      setShowRegisterPopup(true);
+      return;
+    }
+
     const url = extractUrl.trim() || 'https://www.youtube.com/watch?v=veggie-pho-demo';
     setIsExtracting(true);
+
+    // Ghi nhận lượt sử dụng của Guest
+    if (isGuest) {
+      setGuestExtractionsUsed(prev => {
+        const next = prev + 1;
+        try {
+          localStorage.setItem('veggieai_guest_extractions_used', next.toString());
+        } catch (err) {}
+        return next;
+      });
+    }
 
     setTimeout(() => {
       setIsExtracting(false);
@@ -595,10 +632,56 @@ export default function VideosPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* 5. BOTTOM YOUTUBE EXTRACTOR BANNER */}
+      {/* 5. BOTTOM YOUTUBE EXTRACTOR BANNER (CÓ GIỚI HẠN DÙNG THỬ DÀNH CHO GUEST) */}
       <section className="video-extractor-card">
         <div className="video-extractor-icon">
           <Play fill="#047857" size={24} color="#047857" />
+        </div>
+
+        {/* CHỈ BÁO DẠNG "CÒN X LƯỢT DÙNG THỬ MIỄN PHÍ" (FREEMIUM HOOK - GUEST LIMIT) */}
+        <div style={{ marginBottom: '1.1rem' }}>
+          {isGuest ? (
+            <div 
+              onClick={() => hasReachedExtractLimit && setShowRegisterPopup(true)}
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '0.45rem', 
+                background: hasReachedExtractLimit ? '#fee2e2' : '#ecfdf5', 
+                color: hasReachedExtractLimit ? '#b91c1c' : '#047857',
+                padding: '0.4rem 1.05rem',
+                borderRadius: '20px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                border: `1px solid ${hasReachedExtractLimit ? '#fca5a5' : '#a7f3d0'}`,
+                cursor: hasReachedExtractLimit ? 'pointer' : 'default',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              }}
+            >
+              {hasReachedExtractLimit ? <Lock size={14} /> : <Sparkles size={14} />}
+              <span>
+                {hasReachedExtractLimit 
+                  ? `Đã hết lượt dùng thử miễn phí (0/${GUEST_EXTRACT_LIMIT}) • Nhấn để đăng ký` 
+                  : `Dùng thử: Còn ${remainingExtractions}/${GUEST_EXTRACT_LIMIT} lượt trích xuất AI miễn phí`}
+              </span>
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.45rem', 
+              background: '#ecfdf5', 
+              color: '#047857', 
+              padding: '0.4rem 1.05rem', 
+              borderRadius: '20px', 
+              fontSize: '0.82rem', 
+              fontWeight: 700, 
+              border: '1px solid #a7f3d0' 
+            }}>
+              <Sparkles size={14} />
+              <span>Tài khoản chính thức • Trích xuất không giới hạn</span>
+            </div>
+          )}
         </div>
 
         <h2 className="video-extractor-title">
@@ -613,14 +696,28 @@ export default function VideosPage({ onNavigate }) {
           <input
             type="text"
             className="video-extractor-input"
-            placeholder="🔗 Dán liên kết YouTube, TikTok..."
+            placeholder={
+              hasReachedExtractLimit 
+                ? "Bạn đã hết lượt dùng thử miễn phí. Vui lòng đăng ký tài khoản..." 
+                : "🔗 Dán liên kết YouTube, TikTok..."
+            }
             value={extractUrl}
             onChange={(e) => setExtractUrl(e.target.value)}
+            onClick={() => hasReachedExtractLimit && setShowRegisterPopup(true)}
           />
-          <button type="submit" className="video-extractor-btn" disabled={isExtracting}>
+          <button 
+            type="submit" 
+            className="video-extractor-btn" 
+            disabled={isExtracting}
+            style={hasReachedExtractLimit ? { background: '#ea580c' } : {}}
+          >
             {isExtracting ? (
               <>
-                <Sparkles size={16} className="animate-spin" /> Đang lắng nghe Speech-to-Recipe...
+                <Sparkles size={16} className="animate-spin" /> Đang phân tích Speech-to-Recipe...
+              </>
+            ) : hasReachedExtractLimit ? (
+              <>
+                <Lock size={16} /> Hết lượt • Đăng ký ngay
               </>
             ) : (
               <>
@@ -631,7 +728,15 @@ export default function VideosPage({ onNavigate }) {
         </form>
 
         <p className="video-extractor-note">
-          Miễn phí • Tương thích mọi nguồn video có phụ đề hoặc giọng đọc chuẩn
+          {isGuest ? (
+            <span>
+              Khách vãng lai: Còn <strong>{remainingExtractions}/{GUEST_EXTRACT_LIMIT}</strong> lượt dùng thử miễn phí • Đăng ký tài khoản để trích xuất không giới hạn
+            </span>
+          ) : (
+            <span>
+              Miễn phí cho tài khoản thành viên • Tương thích mọi nguồn video có phụ đề hoặc giọng đọc chuẩn
+            </span>
+          )}
         </p>
       </section>
 
@@ -852,6 +957,155 @@ export default function VideosPage({ onNavigate }) {
                 }}
               >
                 Đăng ký tài khoản để tải công thức PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. POPUP MỜI ĐĂNG KÝ KHI HẾT LƯỢT DÙNG THỬ (FREEMIUM HOOK) */}
+      {showRegisterPopup && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3500,
+            padding: '1.25rem'
+          }}
+          onClick={() => setShowRegisterPopup(false)}
+        >
+          <div 
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '2.25rem 2rem',
+              position: 'relative',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25)',
+              textAlign: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowRegisterPopup(false)}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#475569'
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: '#fff7ed',
+              border: '2px solid #fed7aa',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem auto'
+            }}>
+              <Lock size={32} color="#ea580c" />
+            </div>
+
+            <span style={{
+              display: 'inline-block',
+              background: '#fee2e2',
+              color: '#b91c1c',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              padding: '0.25rem 0.75rem',
+              borderRadius: '12px',
+              marginBottom: '0.75rem',
+              letterSpacing: '0.5px'
+            }}>
+              GIỚI HẠN DÙNG THỬ (FREEMIUM)
+            </span>
+
+            <h3 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#111827', margin: '0 0 0.75rem 0', lineHeight: 1.3 }}>
+              Bạn Đã Dùng Hết {GUEST_EXTRACT_LIMIT} Lượt Trích Xuất AI Miễn Phí!
+            </h3>
+
+            <p style={{ color: '#4b5563', fontSize: '0.92rem', lineHeight: 1.6, margin: '0 0 1.5rem 0' }}>
+              Tính năng <strong>Speech-to-Recipe</strong> ứng dụng mô hình AI xử lý giọng nói, định lượng nguyên liệu và tính toán Macro theo thời gian thực từ video. Khách vãng lai được trải nghiệm tối đa <strong>{GUEST_EXTRACT_LIMIT} lượt dùng thử</strong>.
+            </p>
+
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '16px',
+              padding: '1rem 1.25rem',
+              textAlign: 'left',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#047857', marginBottom: '0.5rem' }}>
+                Đăng ký tài khoản miễn phí để nhận ngay quyền lợi:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#166534', fontSize: '0.84rem', lineHeight: 1.6 }}>
+                <li>Trích xuất không giới hạn mọi video nấu ăn YouTube & TikTok</li>
+                <li>Tự động định lượng Macro và thêm vào thực đơn cá nhân</li>
+                <li>Tải công thức chi tiết dạng thẻ PDF tiện lợi</li>
+              </ul>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <button
+                onClick={() => {
+                  setShowRegisterPopup(false);
+                  if (onNavigate) onNavigate('register');
+                }}
+                style={{
+                  background: '#047857',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '30px',
+                  padding: '0.85rem 1.5rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 15px rgba(4, 120, 87, 0.25)',
+                  transition: 'background 0.2s'
+                }}
+              >
+                <Sparkles size={18} /> Đăng Ký Tài Khoản Miễn Phí Ngay <ArrowRight size={16} />
+              </button>
+
+              <button
+                onClick={() => setShowRegisterPopup(false)}
+                style={{
+                  background: 'transparent',
+                  color: '#64748b',
+                  border: 'none',
+                  padding: '0.5rem',
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                Để sau, tôi muốn xem video khác
               </button>
             </div>
           </div>
