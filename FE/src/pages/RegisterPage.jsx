@@ -89,7 +89,9 @@ export default function RegisterPage({ onNavigate }) {
               </div>
               <div className="reg-feature-content">
                 <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">AI Fridge Vision</h3>
+                  <h3 className="reg-feature-title">
+                    AI Fridge Vision <span style={{ color: '#059669', fontSize: '0.85rem', fontWeight: 600 }}>(Trên App)</span>
+                  </h3>
                   <span className="auth-pill-peach">Tốc độ ~ 3 giây</span>
                 </div>
                 <p className="reg-feature-desc">
@@ -98,6 +100,9 @@ export default function RegisterPage({ onNavigate }) {
                 <div className="auth-metric-row">
                   <span>Độ chuẩn xác 98.4%</span>
                   <span>• Giảm 35% rác hữu cơ gia đình</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span>📱 Chỉ khả dụng trên ứng dụng di động</span>
                 </div>
               </div>
             </div>
