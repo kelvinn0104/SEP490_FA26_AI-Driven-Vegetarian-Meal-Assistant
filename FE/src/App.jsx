@@ -67,6 +67,11 @@ export default function App() {
     };
   }, [activeTab]);
 
+  // NẾU ADMIN ĐANG XEM ADMIN DASHBOARD: HIỂN THỊ TRỌN VẸN GIAO DIỆN OPS PORTAL CHUYÊN NGHIỆP
+  if (activeTab === 'admin' && user && user.role === 'Admin') {
+    return <AdminDashboard onNavigate={handleNavigate} />;
+  }
+
   return (
     <div className="app-container-full">
       <Navbar activeTab={activeTab} setActiveTab={handleNavigate} />
