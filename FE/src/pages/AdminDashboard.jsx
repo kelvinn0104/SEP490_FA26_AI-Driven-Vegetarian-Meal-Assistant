@@ -4,201 +4,380 @@ import {
   MessageSquare, LogOut, Search, Bell, Download, Sliders, Sparkles, 
   Zap, Clock, Flag, TrendingUp, CheckCircle2, AlertTriangle, 
   XCircle, Eye, RefreshCw, FileText, Plus, Database, Activity, 
-  Check, ArrowRight, ExternalLink, ShieldCheck, ChevronRight, X, Trash2, Edit3
+  Check, ArrowRight, ExternalLink, ShieldCheck, ChevronRight, X, 
+  Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard({ onNavigate }) {
   const { user, logout } = useAuth();
-  const [activeMenu, setActiveMenu] = useState('overview');
-  const [searchQuery, setSearchQuery] = useState('');
   
-  // MODAL STATES
-  const [showThresholdModal, setShowThresholdModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showLogsModal, setShowLogsModal] = useState(false);
-  const [showInterventionModal, setShowInterventionModal] = useState(false);
-  const [selectedModelLog, setSelectedModelLog] = useState(null);
+  // 8 MÀN HÌNH CHUẨN CỦA ADMIN THEO QUY ĐỊNH:
+  // 1: 'users' - Quản lý người dùng
+  // 2: 'content' - Quản lý blog & video
+  // 3: 'content-detail' - Chi tiết bài viết/video
+  // 4: 'comments' - Quản lý bình luận
+  // 5: 'categories' - Quản lý category
+  // 6: 'ai-monitoring' - Giám sát mô hình AI (AI Monitoring)
+  // 7: 'ai-override' - Can thiệp thủ công AI
+  // 8: 'ai-flagged' - Nội dung bị AI gắn cờ (Flagged Content Review)
+  const [activeMenu, setActiveMenu] = useState('users');
+  const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
-  // THRESHOLD SETTINGS STATE
-  const [thresholds, setThresholds] = useState({
-    yoloConfidence: 75,
-    llmFactuality: 90,
-    nonVeganDetect: 85,
-    spamFilter: 95,
-    lpNutrientSlack: 98
-  });
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
-  // CAN THIỆP THỦ CÔNG AI (MANUAL INTERVENTION OVERRIDE) STATE
-  const [manualOverrideData, setManualOverrideData] = useState({
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 1: QUẢN LÝ NGƯỜI DÙNG (USERS)
+  // =========================================================================
+  const [usersList, setUsersList] = useState([
+    { id: 'USR-001', name: 'Nguyễn Văn An', email: 'an.nguyen@gmail.com', role: 'User', diet: 'Thuần chay (Vegan)', status: 'active', joined: '12/08/2026', reports: 0 },
+    { id: 'USR-002', name: 'Trần Thị Bích', email: 'bich.tran@gmail.com', role: 'Moderator', diet: 'Ăn chay linh hoạt (Flexi)', status: 'active', joined: '05/06/2026', reports: 0 },
+    { id: 'USR-003', name: 'Lê Hoàng Long', email: 'long.le@spamdiet.com', role: 'User', diet: 'Chay thực dưỡng', status: 'locked', joined: '01/09/2026', reports: 5 },
+    { id: 'USR-004', name: 'Phạm Thu Thảo', email: 'thao.pham@health.vn', role: 'User', diet: 'Thuần chay (Lacto-ovo)', status: 'active', joined: '20/07/2026', reports: 0 },
+    { id: 'USR-005', name: 'Vũ Minh Đức', email: 'duc.vu@modcommunity.vn', role: 'Moderator', diet: 'Thuần chay (Vegan)', status: 'active', joined: '15/05/2026', reports: 0 },
+    { id: 'USR-006', name: 'Đặng Quốc Huy', email: 'huy.dang@fakead.net', role: 'User', diet: 'Chưa cập nhật', status: 'locked', joined: '02/09/2026', reports: 8 }
+  ]);
+  const [userFilter, setUserFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
+
+  const handleToggleUserLock = (userId) => {
+    setUsersList(prev => prev.map(u => {
+      if (u.id === userId) {
+        const nextStatus = u.status === 'active' ? 'locked' : 'active';
+        showToast(nextStatus === 'locked' ? `🔒 Đã khóa tài khoản ${u.name} do vi phạm tiêu chuẩn!` : `🔓 Đã mở khóa tài khoản ${u.name}!`);
+        return { ...u, status: nextStatus };
+      }
+      return u;
+    }));
+  };
+
+  const handleToggleUserRole = (userId) => {
+    setUsersList(prev => prev.map(u => {
+      if (u.id === userId) {
+        const nextRole = u.role === 'User' ? 'Moderator' : 'User';
+        showToast(`👑 Đã cập nhật vai trò của ${u.name} thành: ${nextRole}`);
+        return { ...u, role: nextRole };
+      }
+      return u;
+    }));
+  };
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 2 & 3: QUẢN LÝ BLOG & VIDEO + CHI TIẾT
+  // =========================================================================
+  const [contentList, setContentList] = useState([
+    { 
+      id: 'C-01', 
+      title: 'Top 5 Nguồn Protein Thuần Chay Tăng Cơ Vượt Trội Cho Người Tập Gym', 
+      type: 'Blog',
+      typeLabel: 'Blog Dinh Dưỡng', 
+      author: 'BS. Lê Minh Tuấn', 
+      views: '24,510', 
+      status: 'Đã xuất bản', 
+      date: '10/09/2026',
+      mediaUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
+      content: 'Chế độ ăn thuần chay hoàn toàn có thể đáp ứng từ 1.6g - 2.2g protein/kg thể trọng cho vận động viên nhờ sự kết hợp giữa đậu nành lên men (tempeh), hạt diêm mạch (quinoa), đậu lăng đỏ và tảo xoắn spirulina. Các axit amin chuỗi nhánh (BCAA) có trong thực vật giúp tổng hợp cơ bắp tương đương đạm động vật mà không gây áp lực lên thận.',
+      ingredients: ['Tempeh hữu cơ: 200g', 'Hạt diêm mạch (Quinoa): 100g', 'Đậu gà ngâm nở: 150g', 'Bột tảo Spirulina: 1 muỗng cà phê'],
+      tags: ['Protein Thực Vật', 'Tập Gym', 'Thuần Chay', 'BCAA']
+    },
+    { 
+      id: 'C-02', 
+      title: 'Video: Hướng Dẫn Nấu Đậu Hũ Sốt Cà Chua & Nấm Đông Cô Chuẩn Vị Nhà Hàng', 
+      type: 'Video',
+      typeLabel: 'Video Nấu Ăn', 
+      author: 'Chef Mai Anh', 
+      views: '18,920', 
+      status: 'Đã xuất bản', 
+      date: '08/09/2026',
+      mediaUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+      content: 'Bí quyết chiên đậu hũ vàng giòn không bị khô và sốt cà chua nấm đông cô đậm đà không cần bột ngọt. Dùng dầu hạt cải và nước tương tamari lên men tự nhiên giúp món ăn thanh mát, thơm ngon bổ dưỡng.',
+      ingredients: ['Đậu hũ mơ: 3 bìa', 'Nấm đông cô tươi: 100g', 'Cà chua chín mọng: 4 quả', 'Hành baro: 1 nhánh', 'Nước tương Tamari: 2 thìa'],
+      tags: ['Món Xào', 'Nấm Đông Cô', 'Dễ Làm', 'Cơm Gia Đình']
+    },
+    { 
+      id: 'C-03', 
+      title: 'Video: Tự Làm Sữa Hạt Sen & Hạt Điều Béo Mịn Không Bị Tách Nước', 
+      type: 'Video',
+      typeLabel: 'Video Nấu Ăn', 
+      author: 'Trần Bích Thảo', 
+      views: '12,300', 
+      status: 'Đã xuất bản', 
+      date: '06/09/2026',
+      mediaUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800',
+      content: 'Công thức sữa hạt giàu Magie, Sắt và Vitamin nhóm B. Hướng dẫn nhiệt độ xay nấu lý tưởng ở 80 độ C để bảo toàn dinh dưỡng và tạo độ sánh mịn tự nhiên từ chất béo lành mạnh trong hạt điều.',
+      ingredients: ['Hạt sen tươi: 120g', 'Hạt điều rang mộc: 80g', 'Quả chà là tạo ngọt: 3 quả', 'Nước tinh khiết: 1.2 lít'],
+      tags: ['Sữa Hạt', 'Giàu Magie', 'Thuần Thực Vật', 'Không Đường Tinh Luyện']
+    },
+    { 
+      id: 'C-04', 
+      title: 'Công Thức Cà Rốt Hầm Nước Cốt Dừa & Nấm Đùi Gà Thơm Nức Mũi', 
+      type: 'Recipe',
+      typeLabel: 'Công Thức Món Chay', 
+      author: 'VeggieAI Kitchen Team', 
+      views: '35,120', 
+      status: 'Đã xuất bản', 
+      date: '02/09/2026',
+      mediaUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
+      content: 'Món hầm sánh đậm kết hợp beta-carotene từ cà rốt tươi và axit béo chuỗi trung bình (MCT) từ nước cốt dừa hữu cơ. Nấm đùi gà dai ngọt tự nhiên tạo cảm giác ngon miệng như món hầm truyền thống.',
+      ingredients: ['Cà rốt Đà Lạt: 2 củ lớn', 'Nấm đùi gà tươi: 200g', 'Nước cốt dừa ép tươi: 150ml', 'Khoai tây: 1 củ', 'Tiêu xanh: 2 nhánh'],
+      tags: ['Món Hầm', 'Beta-Carotene', 'MCT Oil', 'Ấm Bụng']
+    }
+  ]);
+  const [contentTab, setContentTab] = useState('all');
+  const [contentSearch, setContentSearch] = useState('');
+  
+  // Chi tiết bài viết đang xem/chỉnh sửa (Màn hình 3)
+  const [currentEditingContent, setCurrentEditingContent] = useState(contentList[0]);
+
+  const handleEditContent = (contentItem) => {
+    setCurrentEditingContent(contentItem);
+    setActiveMenu('content-detail');
+  };
+
+  const handleSaveContentDetail = () => {
+    setContentList(prev => prev.map(c => c.id === currentEditingContent.id ? currentEditingContent : c));
+    showToast(`✅ Đã lưu thay đổi nội dung bài viết #${currentEditingContent.id} thành công!`);
+  };
+
+  const handleDeleteContent = (contentId) => {
+    setContentList(prev => prev.filter(c => c.id !== contentId));
+    showToast(`🗑️ Đã xóa nội dung #${contentId} khỏi hệ thống.`);
+    if (currentEditingContent.id === contentId) {
+      setCurrentEditingContent(contentList[0]);
+      setActiveMenu('content');
+    }
+  };
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 4: QUẢN LÝ BÌNH LUẬN (COMMENTS)
+  // =========================================================================
+  const [commentsList, setCommentsList] = useState([
+    { id: 'CMT-101', author: 'LeVanCuong', avatar: 'LC', content: 'Bài viết chia sẻ rất khoa học! Tôi áp dụng bổ sung đậu gà ngâm nở thấy không còn bị đầy hơi nữa.', target: 'Blog: Top 5 Nguồn Protein', time: '10 phút trước', status: 'approved', flagged: false },
+    { id: 'CMT-102', author: 'BotQuangCao99', avatar: 'BQ', content: 'Cần gì ăn đậu hũ cho mệt, inbox Zalo 0909xxx mua thuốc tăng cơ giảm mỡ cấp tốc 3 ngày cam kết!', target: 'Video: Đậu Hũ Sốt Cà', time: '25 phút trước', status: 'hidden', flagged: true, flagReason: 'Spam bán hàng & lừa đảo (NLP Confidence 98%)' },
+    { id: 'CMT-103', author: 'HoangYenPham', avatar: 'HY', content: 'Sữa hạt sen điều béo ngậy uống vào buổi tối ngủ rất ngon giấc, cảm ơn VeggieAI đã gợi ý!', target: 'Video: Sữa Hạt Sen Điều', time: '1 giờ trước', status: 'approved', flagged: false },
+    { id: 'CMT-104', author: 'NguyenMinhTri', avatar: 'MT', content: 'Uống nước ép cần tây sống chữa khỏi 100% ung thư dạ dày nha mọi người, đừng đi bệnh viện uổng tiền.', target: 'Blog: Nước Ép & Giải Độc', time: '2 giờ trước', status: 'hidden', flagged: true, flagReason: 'Sai lệch kiến thức y tế nghiêm trọng (NLP Confidence 94%)' }
+  ]);
+  const [commentsFilter, setCommentsFilter] = useState('all');
+  const [commentsSearch, setCommentsSearch] = useState('');
+
+  const handleToggleHideComment = (id) => {
+    setCommentsList(prev => prev.map(c => {
+      if (c.id === id) {
+        const next = c.status === 'approved' ? 'hidden' : 'approved';
+        showToast(next === 'hidden' ? `Đã ẩn bình luận #${id} khỏi giao diện công khai.` : `Đã cho phép hiển thị bình luận #${id}.`);
+        return { ...c, status: next };
+      }
+      return c;
+    }));
+  };
+
+  const handleDeleteComment = (id) => {
+    setCommentsList(prev => prev.filter(c => c.id !== id));
+    showToast(`🗑️ Đã xóa vĩnh viễn bình luận #${id} khỏi cơ sở dữ liệu.`);
+  };
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 5: QUẢN LÝ CATEGORY (DANH MỤC)
+  // =========================================================================
+  const [categoriesList, setCategoriesList] = useState([
+    { id: 'CAT-01', name: 'Món Chính Thuần Chay', slug: 'mon-chinh-thuan-chay', count: 420, icon: '🍲', desc: 'Các món xào, kho, hấp giàu protein từ đậu hũ, tempeh, nấm', status: 'active' },
+    { id: 'CAT-02', name: 'Canh & Súp Thanh Đạm', slug: 'canh-sup-thanh-dam', count: 185, icon: '🥣', desc: 'Canh rong biển, súp bí đỏ, canh củ sen bổ dưỡng thanh lọc cơ thể', status: 'active' },
+    { id: 'CAT-03', name: 'Sữa Hạt & Nước Ép Tươi', slug: 'sua-hat-nuoc-ep', count: 124, icon: '🥛', desc: 'Sữa hạnh nhân, sữa hạt sen, sinh tố xanh giàu chất chống oxy hóa', status: 'active' },
+    { id: 'CAT-04', name: 'Salad & Khai Vị Thanh Mát', slug: 'salad-khai-vi', count: 96, icon: '🥗', desc: 'Salad rau củ hữu cơ trộn sốt chanh leo, dầu ô liu và hạt chia', status: 'active' },
+    { id: 'CAT-05', name: 'Thực Đơn Tăng Cơ & Giảm Mỡ', slug: 'thuc-don-gym-fitness', count: 140, icon: '💪', desc: 'Thực đơn giàu đạm thực vật trên 65g/ngày cho người tập luyện', status: 'active' },
+    { id: 'CAT-06', name: 'Bánh Ngọt & Tráng Miệng Chay', slug: 'trang-mieng-thuan-chay', count: 78, icon: '🧁', desc: 'Bánh chuối nướng yến mạch, pudding hạt chia không trứng sữa', status: 'active' }
+  ]);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatDesc, setNewCatDesc] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('🥗');
+  const [showAddCatModal, setShowAddCatModal] = useState(false);
+
+  const handleAddCategory = () => {
+    if (!newCatName.trim()) return;
+    const newCat = {
+      id: `CAT-0${categoriesList.length + 1}`,
+      name: newCatName,
+      slug: newCatName.toLowerCase().replace(/\s+/g, '-'),
+      count: 0,
+      icon: newCatIcon || '🌱',
+      desc: newCatDesc || 'Danh mục món ăn chay mới khởi tạo.',
+      status: 'active'
+    };
+    setCategoriesList([newCat, ...categoriesList]);
+    setNewCatName('');
+    setNewCatDesc('');
+    setShowAddCatModal(false);
+    showToast(`✅ Đã tạo thành công danh mục mới: ${newCat.name}`);
+  };
+
+  const handleDeleteCategory = (id) => {
+    setCategoriesList(prev => prev.filter(c => c.id !== id));
+    showToast(`🗑️ Đã xóa danh mục #${id}.`);
+  };
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 6: GIÁM SÁT MÔ HÌNH AI (AI MONITORING)
+  // =========================================================================
+  const aiModels = [
+    {
+      id: 'vision',
+      name: 'Computer Vision YOLOv8',
+      type: 'Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi',
+      accuracy: '94.2%',
+      latency: '342ms',
+      throughput: '1,420 req/phút',
+      status: 'Operational',
+      trend: '+1.8% tuần qua'
+    },
+    {
+      id: 'recommender',
+      name: 'Hybrid Recommender Engine',
+      type: 'Collaborative Filtering + Content-Based',
+      accuracy: '91.8%',
+      latency: '118ms',
+      throughput: '3,890 req/phút',
+      status: 'Operational',
+      trend: '+0.5% tuần qua'
+    },
+    {
+      id: 'chatbot',
+      name: 'Nutrition Chatbot (RAG)',
+      type: 'LangChain + ChromaDB + Viện Dinh Dưỡng',
+      accuracy: '96.5%',
+      latency: '820ms',
+      throughput: '980 req/phút',
+      status: 'Operational',
+      trend: '+2.1% tuần qua'
+    },
+    {
+      id: 'summarizer',
+      name: 'Video Step Summarizer',
+      type: 'Tóm tắt công đoạn video & trích xuất nguyên liệu',
+      accuracy: '89.2%',
+      latency: '1,450ms',
+      throughput: '320 req/phút',
+      status: 'Operational',
+      trend: '+3.4% tuần qua'
+    },
+    {
+      id: 'planner',
+      name: 'AI Meal Planner (PuLP + GenAI)',
+      type: 'Quy hoạch tuyến tính (LP Solver) & Cân bằng vi chất',
+      accuracy: '98.6%',
+      latency: '1,850ms',
+      throughput: '890 req/phút',
+      status: 'Operational',
+      trend: 'SLA NFR ≤10s (ĐẠT)'
+    }
+  ];
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 7: CAN THIỆP THỦ CÔNG AI (MANUAL OVERRIDE)
+  // =========================================================================
+  const [overrideData, setOverrideData] = useState({
     recipeName: 'Cà Rốt Nấu Nước Cốt Dừa & Nấm Hương',
     originalProtein: '12g (AI tính thiếu)',
     overrideProtein: '21g',
     originalCalories: '510 kcal',
     overrideCalories: '420 kcal',
-    reason: 'Bổ sung hàm lượng protein từ 150g nấm hương tươi hữu cơ'
+    originalB12: '0.2 mcg (AI nhận nhầm)',
+    overrideB12: '1.8 mcg',
+    reason: 'Bổ sung hàm lượng protein và vi chất từ 150g nấm hương tươi hữu cơ'
   });
 
-  // HÀNG ĐỢI KIỂM DUYỆT TIER 2 (ADMIN ESCALATION QUEUE)
-  const [moderationItems, setModerationItems] = useState([
+  const [overrideHistory, setOverrideHistory] = useState([
+    { id: 'OVR-89', target: 'Thực đơn 7 ngày cho người tiểu đường', field: 'Lượng Đường Tự Nhiên', oldVal: '48g/ngày', newVal: '22g/ngày', admin: 'Admin', time: 'Hôm nay 14:20', status: 'Đã áp dụng' },
+    { id: 'OVR-88', target: 'Món: Đậu Hũ Sốt Nấm Đông Cô', field: 'Hàm lượng Sắt Thực Vật', oldVal: '2.1 mg', newVal: '4.8 mg', admin: 'Admin', time: 'Hôm qua 09:15', status: 'Đã áp dụng' },
+    { id: 'OVR-87', target: 'Nhận diện ảnh: Củ Dền Tươi', field: 'Nhãn YOLOv8', oldVal: 'Khoai lang tím (82%)', newVal: 'Củ dền đỏ (100%)', admin: 'Admin', time: '10/09/2026', status: 'Đã áp dụng' }
+  ]);
+
+  const handleApplyOverride = (e) => {
+    e.preventDefault();
+    const newRecord = {
+      id: `OVR-${overrideHistory.length + 90}`,
+      target: overrideData.recipeName,
+      field: `Protein (${overrideData.overrideProtein}) & Calories (${overrideData.overrideCalories})`,
+      oldVal: `${overrideData.originalProtein}, ${overrideData.originalCalories}`,
+      newVal: `${overrideData.overrideProtein}, ${overrideData.overrideCalories}`,
+      admin: 'Admin',
+      time: 'Vừa xong',
+      status: 'Đã áp dụng'
+    };
+    setOverrideHistory([newRecord, ...overrideHistory]);
+    showToast('🚀 Đã lưu và kích hoạt Ghi đè kết quả AI thành công vào Cơ sở Dữ liệu!');
+  };
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 8: NỘI DUNG BỊ AI GẮN CỜ (FLAGGED CONTENT REVIEW)
+  // =========================================================================
+  const [flaggedItems, setFlaggedItems] = useState([
     {
-      id: 'MOD-101',
-      category: 'Sai lệch Dinh dưỡng',
-      categoryColor: '#dc2626',
-      categoryBg: '#fee2e2',
-      confidence: 'Độ tin cậy AI: 94%',
-      author: '@minh_triet',
-      title: 'Bài viết: "Cách ăn chay kiêng khem cực đoan 0 Calo giải độc tế bào"',
-      snippet: 'Khuyến khích nhịn ăn liên tục 14 ngày chỉ uống nước ép giấm táo và nước lọc... Nguy cơ toan chuyển hóa cấp tính.',
-      type: 'article',
-      status: 'pending' // 'pending' | 'approved' | 'removed'
-    },
-    {
-      id: 'MOD-102',
-      category: 'Vi phạm Thuần Chay (Vision)',
-      categoryColor: '#d97706',
-      categoryBg: '#fef3c7',
-      confidence: 'Độ tin cậy AI: 89%',
-      author: '@chef_an_nhien',
-      title: 'Video: "Món chiên giòn sốt nấm hương"',
-      snippet: 'AI phát hiện bao bì mỡ động vật công nghiệp xuất hiện tại giây 01:24 trong khung hình góc chế biến của video.',
-      thumb: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
-      type: 'video',
+      id: 'FLG-401',
+      title: 'Công thức Lẩu Thái Chay sử dụng Mật Ong Rừng & Dầu Hào Đậm Vị',
+      author: 'NguyenThiL',
+      type: 'Công thức nấu ăn',
+      aiFlagReason: 'Chứa thành phần không thuần chay (Mật ong rừng & Dầu hào động vật)',
+      confidence: '96.4%',
+      riskLevel: 'high',
+      snippet: 'Để nước lẩu thơm ngọt tự nhiên, các bạn nêm 2 muỗng dầu hào Maggi và 3 muỗng mật ong rừng nguyên chất thay cho đường cát...',
       status: 'pending'
     },
     {
-      id: 'MOD-103',
-      category: 'Spam/Thương mại Trái phép',
-      categoryColor: '#2563eb',
-      categoryBg: '#eff6ff',
-      confidence: 'NLP Classifier: 98%',
-      author: 'Bình luận tại: Canh Rong Biển Đậu Hũ',
-      title: 'Bình luận chèn link bán TPCN không rõ nguồn gốc',
-      snippet: '"Bấm vào link zalo 09xx để mua thuốc giảm cân ăn chay thần tốc hiệu quả 100% không cần tập luyện..."',
-      type: 'comment',
-      status: 'pending' // Đồng bộ pending
-    }
-  ]);
-
-  // SỐ LIỆU ĐỒNG BỘ GIỮA SIDEBAR VÀ NỘI DUNG CHÍNH (ĐỒNG BỘ 100%)
-  const pendingModerationCount = moderationItems.filter(i => i.status === 'pending').length;
-
-  // QUẢN LÝ BÌNH LUẬN (COMMENTS MANAGEMENT) STATE
-  const [commentsFilter, setCommentsFilter] = useState('all'); // 'all' | 'flagged' | 'safe'
-  const [commentsSearch, setCommentsSearch] = useState('');
-  const [commentsList, setCommentsList] = useState([
-    {
-      id: 'CMT-801',
-      author: 'Lê Minh Tuấn',
-      avatar: 'LM',
-      content: 'Bấm vào link zalo 09xx để mua thuốc giảm cân ăn chay thần tốc hiệu quả 100% không cần tập...',
-      target: 'Video: Canh Rong Biển Đậu Hũ',
-      time: '14:20 Hôm nay',
-      flagged: true,
-      flagReason: 'Spam bán hàng & Link ngoài',
-      status: 'hidden'
-    },
-    {
-      id: 'CMT-802',
-      author: 'Bích Phương',
-      avatar: 'BP',
-      content: 'Công thức này thay thế nấm hương bằng nấm đùi gà được không ạ? Mình sợ mùi nấm hương nồng.',
-      target: 'Bài viết: Cà Rốt Nấu Nước Cốt Dừa',
-      time: '13:45 Hôm nay',
-      flagged: false,
-      flagReason: null,
-      status: 'approved'
-    },
-    {
-      id: 'CMT-803',
-      author: 'Trần Đăng',
-      avatar: 'TD',
-      content: 'Món này dùng thêm chút dầu hào truyền thống cho dậy mùi được không bếp ơi?',
-      target: 'Bài viết: Poke Quinoa Tempeh',
-      time: '12:10 Hôm nay',
-      flagged: true,
-      flagReason: 'Nghi vấn nguyên liệu không thuần chay (Dầu hào mặn)',
+      id: 'FLG-402',
+      title: 'Tuyệt chiêu nhịn ăn 21 ngày chỉ uống nước lọc để chữa lành ung thư',
+      author: 'DoctorThaoDuoc',
+      type: 'Blog dinh dưỡng',
+      aiFlagReason: 'Tuyên bố y khoa sai lệch nguy hiểm, thiếu kiểm chứng khoa học',
+      confidence: '94.8%',
+      riskLevel: 'critical',
+      snippet: 'Tế bào ung thư sẽ chết đói nếu bạn hoàn toàn không ăn bất kỳ chất đạm hay tinh bột nào trong 21 ngày liên tiếp...',
       status: 'pending'
     },
     {
-      id: 'CMT-804',
-      author: 'Ngọc Lan',
-      avatar: 'NL',
-      content: 'Thực đơn AI tuần này gợi ý bữa sáng yến mạch chuối rất vừa miệng, mình giảm được 1.2kg rồi!',
-      target: 'Cộng đồng: Nhật ký ăn chay 21 ngày',
-      time: '10:30 Hôm nay',
-      flagged: false,
-      flagReason: null,
-      status: 'approved'
+      id: 'FLG-403',
+      title: 'Hướng dẫn làm Gelatin từ da heo để làm thạch dừa chay',
+      author: 'HoangGiaCooking',
+      type: 'Video hướng dẫn',
+      aiFlagReason: 'Vi phạm nghiêm trọng định nghĩa món chay (Sử dụng da heo)',
+      confidence: '99.1%',
+      riskLevel: 'critical',
+      snippet: 'Gelatin mua ngoài tiệm không rõ nguồn gốc, các bạn cứ ninh da heo lấy nước cốt để làm thạch rau câu chay cho thanh mát...',
+      status: 'pending'
+    },
+    {
+      id: 'FLG-404',
+      title: 'Bổ sung Whey Protein cô đặc từ sữa bò cho người ăn thuần chay',
+      author: 'GymVeganPro',
+      type: 'Blog dinh dưỡng',
+      aiFlagReason: 'Nhầm lẫn khái niệm Vegan (Thuần thực vật) với sản phẩm từ sữa bò',
+      confidence: '88.5%',
+      riskLevel: 'medium',
+      snippet: 'Whey Protein Isolate chiết xuất từ sữa bò tươi nguyên chất là nguồn đạm tốt nhất cho anh em ăn chay trường muốn nở cơ...',
+      status: 'pending'
     }
   ]);
 
-  // QUẢN LÝ BLOG, VIDEO & CÔNG THỨC (CONTENT MANAGEMENT) STATE
-  const [contentTab, setContentTab] = useState('all');
-  const [contentSearch, setContentSearch] = useState('');
-  const [contentList, setContentList] = useState([
-    { id: 'REC-01', title: 'Cà Rốt Nấu Nước Cốt Dừa & Nấm Hương', type: 'Công thức', author: 'Chef Tuệ Tâm', views: '14.2K', status: 'Đã xuất bản' },
-    { id: 'REC-02', title: 'Poke Quinoa Tempeh Sốt Teriyaki', type: 'Công thức', author: 'Chef Tuệ Tâm', views: '18.9K', status: 'Đã xuất bản' },
-    { id: 'BLG-01', title: 'Giải Mã Vi Chất B12, Kẽm & Sắt Trong Chế Độ Thuần Chay', type: 'Blog Dinh Dưỡng', author: 'BS. Minh Đức', views: '45.1K', status: 'Đã xuất bản' },
-    { id: 'BLG-02', title: '5 Cạm Bẫy Dinh Dưỡng Thường Gặp Khi Mới Ăn Chay', type: 'Blog Dinh Dưỡng', author: 'Chuyên gia Thu Hằng', views: '22.8K', status: 'Đã xuất bản' },
-    { id: 'VID-01', title: 'Bí Quyết Kho Nấm Đùi Gà Thấm Vị Đậm Đà Cơm Nhà', type: 'Video Nấu Ăn', author: 'Chef Minh Tú', views: '120K', status: 'Đã xuất bản' },
-    { id: 'VID-02', title: 'Cách Nấu Canh Rong Biển Đậu Hũ Non Thanh Mát Chuẩn Hàn', type: 'Video Nấu Ăn', author: 'Chef Minh Tú', views: '98K', status: 'Đã xuất bản' }
-  ]);
-
-  // AUDIT LOGS STATE (ĐÃ LOẠI BỎ TÍNH NĂNG VIP / BILLING GATEWAY NGOÀI PHẠM VI)
-  const [auditLogs, setAuditLogs] = useState([
-    { time: '14:32:08', actor: 'Admin_01 (Operations)', action: "Cập nhật phân loại dinh dưỡng: 'Đậu nành lên men hữu cơ'", module: 'Category DB', status: 'Thành công', statusBg: '#ecfdf5', statusColor: '#047857' },
-    { time: '14:30:45', actor: 'YOLO-Vision Engine', action: 'Phát hiện 12 nguyên liệu mới từ 16 ảnh quét tủ lạnh', module: 'Computer Vision', status: 'Auto-Logged', statusBg: '#eff6ff', statusColor: '#1d4ed8' },
-    { time: '14:28:12', actor: 'PuLP-LP Engine', action: 'Tối ưu hóa ma trận vi chất B12 & Sắt cho 350 thực đơn cá nhân', module: 'Meal Planner', status: 'Tối ưu 100%', statusBg: '#ecfdf5', statusColor: '#047857' },
-    { time: '14:25:01', actor: 'Auto-Moderator Bot', action: 'Tự động gắn cờ vi phạm: Video nghi vấn có mỡ động vật (#VID-8921)', module: 'Moderation Queue', status: 'Chờ duyệt', statusBg: '#fff7ed', statusColor: '#c2410c' }
-  ]);
-
-  // Luôn bắt đầu ở đỉnh trang khi truy cập Admin Dashboard
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+  const handleFlagAction = (id, action) => {
+    setFlaggedItems(prev => prev.filter(item => item.id !== id));
+    if (action === 'dismiss') {
+      showToast(`✅ Đã phê duyệt và bỏ cờ AI cho mục #${id} (Nhận diện nhầm - False Positive).`);
+    } else if (action === 'remove') {
+      showToast(`🚫 Đã xác nhận vi phạm và xóa vĩnh viễn nội dung #${id}.`);
+    } else if (action === 'ban') {
+      showToast(`🔒 Đã xóa nội dung #${id} và khóa tài khoản tác giả vi phạm nghiêm trọng!`);
+    }
   };
 
-  const handleModAction = (id, action) => {
-    setModerationItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, status: action };
-      }
-      return item;
-    }));
-    showToast(`Đã cập nhật xử lý cho mục ${id}: ${action === 'approved' ? 'Phê duyệt giữ lại' : action === 'removed' ? 'Gỡ & Cảnh cáo' : 'Đã thực hiện'}`);
-  };
-
-  const handleDeleteComment = (id) => {
-    setCommentsList(prev => prev.filter(c => c.id !== id));
-    showToast(`Đã xóa thủ công bình luận ${id} khỏi hệ thống.`);
-  };
-
-  const handleToggleHideComment = (id) => {
-    setCommentsList(prev => prev.map(c => {
-      if (c.id === id) {
-        const newStatus = c.status === 'hidden' ? 'approved' : 'hidden';
-        return { ...c, status: newStatus };
-      }
-      return c;
-    }));
-    showToast(`Đã thay đổi trạng thái hiển thị của bình luận.`);
-  };
-
-  const handleRetrainBatch = () => {
-    showToast('🚀 Đã gửi lệnh kích hoạt Tái huấn luyện Batch (YOLOv8 + PuLP Solver + RAG)!');
-  };
+  const pendingModerationCount = flaggedItems.length;
 
   return (
     <div className="admin-portal-wrapper">
-      {/* TOAST ALERT */}
+      {/* TOAST NOTIFICATION */}
       {toastMessage && (
         <div style={{
           position: 'fixed',
@@ -222,108 +401,137 @@ export default function AdminDashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* LEFT SIDEBAR (DARK OPS PORTAL) */}
+      {/* =========================================================================
+          LEFT SIDEBAR (DARK OPS PORTAL) - 8 MÀN HÌNH CHUẨN CỦA ADMIN
+          ========================================================================= */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar-top">
           {/* BRAND LOGO */}
-          <div className="admin-brand-header" onClick={() => onNavigate && onNavigate('home')}>
+          <div className="admin-brand-header" onClick={() => onNavigate && onNavigate('home')} title="Về trang chủ">
             <span className="admin-brand-icon">🌱</span>
             <div>
               <div className="admin-brand-title">VeggieAI</div>
-              <div className="admin-brand-sub">OPS & AI PORTAL</div>
+              <div className="admin-brand-sub">ADMIN PORTAL</div>
             </div>
           </div>
 
-          {/* SIDEBAR NAVIGATION GROUPS */}
+          {/* SIDEBAR NAVIGATION: 8 MÀN HÌNH RIÊNG BIỆT */}
           <div className="admin-sidebar-menu">
-            {/* GROUP 1: ĐIỀU HÀNH & AI HUB */}
+            {/* NHÓM 1: HỆ THỐNG & NỘI DUNG (MỤC 1 -> 5) */}
             <div className="admin-sidebar-group">
-              <div className="admin-group-label">ĐIỀU HÀNH & AI HUB</div>
-              
+              <div className="admin-group-label">HỆ THỐNG & NỘI DUNG</div>
+
+              {/* 1. Quản lý người dùng */}
               <button 
-                className={`admin-menu-link ${activeMenu === 'overview' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('overview')}
+                className={`admin-menu-link ${activeMenu === 'users' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('users')}
               >
                 <div className="admin-menu-link-inner">
-                  <LayoutDashboard size={17} />
-                  <span>Tổng quan Dashboard</span>
+                  <span className="admin-menu-num">1</span>
+                  <Users size={16} />
+                  <span>Quản lý người dùng</span>
                 </div>
               </button>
 
-              <button 
-                className={`admin-menu-link ${activeMenu === 'modelops' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('modelops')}
-              >
-                <div className="admin-menu-link-inner">
-                  <Cpu size={17} />
-                  <span>Giám sát AI & Model Ops</span>
-                </div>
-              </button>
-
-              <button 
-                className={`admin-menu-link ${activeMenu === 'moderation' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('moderation')}
-              >
-                <div className="admin-menu-link-inner">
-                  <ShieldAlert size={17} />
-                  <span>Kiểm duyệt & Can thiệp AI</span>
-                </div>
-                <span className="admin-menu-badge">{pendingModerationCount}</span>
-              </button>
-            </div>
-
-            {/* GROUP 2: QUẢN LÝ NỘI DUNG & NGƯỜI DÙNG */}
-            <div className="admin-sidebar-group">
-              <div className="admin-group-label">QUẢN LÝ NỘI DUNG & NGƯỜI DÙNG</div>
-
+              {/* 2. Quản lý blog & video */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'content' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('content')}
               >
                 <div className="admin-menu-link-inner">
-                  <Utensils size={17} />
-                  <span>Quản lý Blog, Video & Công thức</span>
+                  <span className="admin-menu-num">2</span>
+                  <FileText size={16} />
+                  <span>Quản lý blog & video</span>
                 </div>
               </button>
 
-              {/* MỤC MỚI: QUẢN LÝ BÌNH LUẬN (COMMENTS MANAGEMENT) */}
+              {/* 3. Chi tiết bài viết/video */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'content-detail' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('content-detail')}
+              >
+                <div className="admin-menu-link-inner">
+                  <span className="admin-menu-num">3</span>
+                  <Edit3 size={16} />
+                  <span>Chi tiết bài viết/video</span>
+                </div>
+              </button>
+
+              {/* 4. Quản lý bình luận */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'comments' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('comments')}
               >
                 <div className="admin-menu-link-inner">
-                  <MessageSquare size={17} />
-                  <span>Quản lý Bình luận</span>
+                  <span className="admin-menu-num">4</span>
+                  <MessageSquare size={16} />
+                  <span>Quản lý bình luận</span>
                 </div>
                 <span style={{ fontSize: '0.68rem', background: '#334155', color: '#f1f5f9', padding: '0.1rem 0.45rem', borderRadius: '10px' }}>
                   {commentsList.length}
                 </span>
               </button>
 
-              <button 
-                className={`admin-menu-link ${activeMenu === 'users' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('users')}
-              >
-                <div className="admin-menu-link-inner">
-                  <Users size={17} />
-                  <span>Quản trị thành viên</span>
-                </div>
-              </button>
-
+              {/* 5. Quản lý category */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'categories' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('categories')}
               >
                 <div className="admin-menu-link-inner">
-                  <Layers size={17} />
-                  <span>Danh mục thực phẩm chay</span>
+                  <span className="admin-menu-num">5</span>
+                  <Layers size={16} />
+                  <span>Quản lý category</span>
                 </div>
+              </button>
+            </div>
+
+            {/* NHÓM 2: TRÍ TUỆ NHÂN TẠO (AI) (MỤC 6 -> 8) */}
+            <div className="admin-sidebar-group">
+              <div className="admin-group-label">GIÁM SÁT & VẬN HÀNH AI</div>
+
+              {/* 6. Giám sát mô hình AI */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'ai-monitoring' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('ai-monitoring')}
+              >
+                <div className="admin-menu-link-inner">
+                  <span className="admin-menu-num">6</span>
+                  <Cpu size={16} />
+                  <span>Giám sát mô hình AI</span>
+                </div>
+              </button>
+
+              {/* 7. Can thiệp thủ công AI */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'ai-override' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('ai-override')}
+              >
+                <div className="admin-menu-link-inner">
+                  <span className="admin-menu-num">7</span>
+                  <Sliders size={16} />
+                  <span>Can thiệp thủ công AI</span>
+                </div>
+              </button>
+
+              {/* 8. Nội dung bị AI gắn cờ */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'ai-flagged' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('ai-flagged')}
+              >
+                <div className="admin-menu-link-inner">
+                  <span className="admin-menu-num">8</span>
+                  <ShieldAlert size={16} />
+                  <span>Nội dung bị AI gắn cờ</span>
+                </div>
+                {pendingModerationCount > 0 && (
+                  <span className="admin-menu-badge">{pendingModerationCount}</span>
+                )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* SIDEBAR FOOTER (USER STATUS & LOGOUT) */}
+        {/* SIDEBAR FOOTER (ADMIN PROFILE & LOGOUT) */}
         <div className="admin-sidebar-footer">
           <div className="admin-sidebar-user">
             <div className="admin-user-avatar">AD</div>
@@ -351,21 +559,23 @@ export default function AdminDashboard({ onNavigate }) {
         </div>
       </aside>
 
-      {/* MAIN CONTAINER */}
+      {/* =========================================================================
+          MAIN CONTAINER & TOPBAR
+          ========================================================================= */}
       <div className="admin-main-container">
-        {/* TOPBAR */}
         <header className="admin-topbar">
           <div className="admin-breadcrumb">
-            <span>Admin Portal</span>
+            <span>Admin</span>
             <ChevronRight size={14} />
             <span className="admin-breadcrumb-active">
-              {activeMenu === 'overview' && 'Operations Center'}
-              {activeMenu === 'modelops' && 'Giám sát AI & Model Ops'}
-              {activeMenu === 'moderation' && 'Kiểm duyệt & Can thiệp AI (Tier 2 Escalation)'}
-              {activeMenu === 'content' && 'Quản lý Blog, Video & Công thức'}
-              {activeMenu === 'comments' && 'Quản lý Bình luận & Tương tác Cộng đồng'}
-              {activeMenu === 'users' && 'Quản trị Thành viên'}
-              {activeMenu === 'categories' && 'Danh mục Thực phẩm Chay'}
+              {activeMenu === 'users' && '1. Quản lý người dùng'}
+              {activeMenu === 'content' && '2. Quản lý blog & video'}
+              {activeMenu === 'content-detail' && '3. Chi tiết bài viết/video'}
+              {activeMenu === 'comments' && '4. Quản lý bình luận'}
+              {activeMenu === 'categories' && '5. Quản lý category'}
+              {activeMenu === 'ai-monitoring' && '6. Giám sát mô hình AI (AI Monitoring)'}
+              {activeMenu === 'ai-override' && '7. Can thiệp thủ công AI'}
+              {activeMenu === 'ai-flagged' && '8. Nội dung bị AI gắn cờ (Flagged Content Review)'}
             </span>
           </div>
 
@@ -374,26 +584,26 @@ export default function AdminDashboard({ onNavigate }) {
             <input 
               type="text" 
               className="admin-search-input"
-              placeholder="Tìm kiếm chỉ số, mô hình, dữ liệu người dùng..." 
+              placeholder="Tìm kiếm tài nguyên, mô hình AI, bài viết..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <span className="admin-ctrl-k">Ctrl K</span>
+            <span className="admin-ctrl-k">⌘K</span>
           </div>
 
           <div className="admin-topbar-right">
             <div className="admin-status-pill">
               <span className="admin-status-dot"></span>
-              <span>AI Status: 99.8% Online</span>
+              <span>Cluster Live</span>
             </div>
 
             <button 
               className="admin-topbar-btn" 
-              title="Thông báo hệ thống (3 cảnh báo mới)"
-              onClick={() => showToast('🔔 3 thông báo mới: 2 nội dung chờ duyệt, 1 cảnh báo vi chất.')}
+              title="Thông báo hệ thống"
+              onClick={() => showToast(`🔔 Thông báo: Có ${pendingModerationCount} nội dung bị AI gắn cờ chờ xử lý.`)}
             >
               <Bell size={17} />
-              <span className="admin-bell-badge"></span>
+              {pendingModerationCount > 0 && <span className="admin-bell-badge"></span>}
             </button>
 
             <div className="admin-profile-pill" onClick={() => showToast('Đang đăng nhập với quyền: Admin')}>
@@ -403,672 +613,519 @@ export default function AdminDashboard({ onNavigate }) {
           </div>
         </header>
 
-        {/* CONTENT BODY */}
+        {/* =========================================================================
+            CONTENT BODY: 8 MÀN HÌNH CHI TIẾT
+            ========================================================================= */}
         <main className="admin-content-body">
-          {/* =========================================================================
-              VIEW 1: TỔNG QUAN DASHBOARD (OVERVIEW) & MODEL OPS
-              ========================================================================= */}
-          {(activeMenu === 'overview' || activeMenu === 'modelops') && (
-            <>
-              {/* HERO BANNER SECTION */}
-              <section className="admin-hero-banner">
+
+          {/* =====================================================================
+              MÀN HÌNH 1: QUẢN LÝ NGƯỜI DÙNG
+              ===================================================================== */}
+          {activeMenu === 'users' && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <div className="admin-capstone-tag">
-                    <Sparkles size={13} />
-                    <span>CAPSTONE ENGINEERING PORTAL • Cluster HCM-DC01: Operational</span>
-                  </div>
-                  <h1 className="admin-hero-title">Trung tâm Điều hành VeggieAI & Giám sát Suy luận</h1>
-                  <p className="admin-hero-desc">
-                    Báo cáo thời gian thực về thông lượng mô hình AI, hiệu năng phi chức năng (NFR SLA) và luồng can thiệp kiểm duyệt tự động.
+                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+                    1. Quản lý Người Dùng
+                  </h1>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                    Danh sách tài khoản, hồ sơ dinh dưỡng, cấp quyền Moderator và khóa/mở khóa tài khoản vi phạm.
                   </p>
                 </div>
+                <button className="admin-btn-primary" onClick={() => showToast('Đã xuất danh sách 52,840 người dùng dạng CSV.')}>
+                  <Download size={15} /> Xuất Dữ Liệu User (CSV)
+                </button>
+              </div>
 
-                <div className="admin-hero-actions">
-                  <button 
-                    className="admin-btn-outline"
-                    onClick={() => setShowExportModal(true)}
-                  >
-                    <Download size={16} />
-                    <span>Xuất Báo Cáo Capstone</span>
+              {/* STAT CARDS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>TỔNG THÀNH VIÊN</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a' }}>52,840</div>
+                  <div style={{ fontSize: '0.75rem', color: '#059669', marginTop: '0.25rem' }}>+120 thành viên tuần này</div>
+                </div>
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>ĐANG HOẠT ĐỘNG</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#059669' }}>51,210</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>Tỷ lệ hoạt động 96.9%</div>
+                </div>
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>KIỂM DUYỆT VIÊN (MOD)</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#d97706' }}>15</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>Hỗ trợ kiểm duyệt tuyến đầu</div>
+                </div>
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>TÀI KHOẢN BỊ KHÓA</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444' }}>120</div>
+                  <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>Vi phạm spam / sai dinh dưỡng</div>
+                </div>
+              </div>
+
+              {/* FILTER BAR */}
+              <div className="admin-filter-bar">
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button className={`admin-subtab-btn ${userFilter === 'all' ? 'active' : ''}`} onClick={() => setUserFilter('all')}>
+                    Tất cả ({usersList.length})
                   </button>
-
-                  <button 
-                    className="admin-btn-primary"
-                    onClick={() => setShowThresholdModal(true)}
-                  >
-                    <Sliders size={16} />
-                    <span>Ngưỡng Nhạy AI</span>
+                  <button className={`admin-subtab-btn ${userFilter === 'active' ? 'active' : ''}`} onClick={() => setUserFilter('active')}>
+                    Đang hoạt động ({usersList.filter(u => u.status === 'active').length})
+                  </button>
+                  <button className={`admin-subtab-btn ${userFilter === 'locked' ? 'active' : ''}`} onClick={() => setUserFilter('locked')}>
+                    Bị khóa ({usersList.filter(u => u.status === 'locked').length})
+                  </button>
+                  <button className={`admin-subtab-btn ${userFilter === 'moderator' ? 'active' : ''}`} onClick={() => setUserFilter('moderator')}>
+                    Moderator ({usersList.filter(u => u.role === 'Moderator').length})
                   </button>
                 </div>
-              </section>
 
-              {/* 4 KPI METRIC CARDS (LOẠI BỎ VIP/BILLING THEO YÊU CẦU ĐỀ TÀI) */}
-              <section className="admin-kpi-grid">
-                {/* Card 1: Thành viên hoạt động */}
-                <div className="admin-kpi-card">
-                  <div className="admin-kpi-header">
-                    <span className="admin-kpi-title">THÀNH VIÊN HOẠT ĐỘNG</span>
-                    <div className="admin-kpi-icon-box" style={{ background: '#ecfdf5', color: '#059669' }}>
-                      <Users size={18} />
-                    </div>
-                  </div>
-                  <div className="admin-kpi-val-row">
-                    <span className="admin-kpi-val">52,840</span>
-                    <span className="admin-kpi-trend">↑ 12.5%</span>
-                  </div>
-                  <div className="admin-kpi-footer">
-                    <span style={{ color: '#059669', fontWeight: 700 }}>Hồ sơ dinh dưỡng cá nhân hóa:</span> 41,250 hồ sơ
-                  </div>
-                </div>
+                <input 
+                  type="text" 
+                  className="admin-filter-input"
+                  placeholder="Tìm theo tên, email, ID..." 
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
+              </div>
 
-                {/* Card 2: Lưu lượng suy luận AI */}
-                <div className="admin-kpi-card">
-                  <div className="admin-kpi-header">
-                    <span className="admin-kpi-title">LƯU LƯỢNG SUY LUẬN AI</span>
-                    <div className="admin-kpi-icon-box" style={{ background: '#ecfdf5', color: '#059669' }}>
-                      <Zap size={18} />
-                    </div>
-                  </div>
-                  <div className="admin-kpi-val-row">
-                    <span className="admin-kpi-val">184.2K</span>
-                    <span className="admin-kpi-unit">lượt/ngày</span>
-                  </div>
-                  <div className="admin-kpi-footer" style={{ display: 'flex', gap: '0.65rem' }}>
-                    <span>• Vision: <strong>46%</strong></span>
-                    <span>• LLM: <strong>38%</strong></span>
-                    <span>• STT: <strong>16%</strong></span>
-                  </div>
-                </div>
-
-                {/* Card 3: Thời gian phản hồi TB (SLA) */}
-                <div className="admin-kpi-card">
-                  <div className="admin-kpi-header">
-                    <span className="admin-kpi-title">THỜI GIAN PHẢN HỒI TB (SLA)</span>
-                    <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '12px' }}>
-                      PASS 100%
-                    </span>
-                  </div>
-                  <div className="admin-kpi-val-row">
-                    <span className="admin-kpi-val">1.42s</span>
-                    <span className="admin-kpi-unit">NFR Benchmark</span>
-                  </div>
-                  <div className="admin-kpi-footer">
-                    <span>Vision &lt;1.5s <em>(Hiện tại: 2.1s)</em></span> • <span>Meal Planner &lt;10s <em>(1.85s)</em></span>
-                  </div>
-                </div>
-
-                {/* Card 4: Hàng đợi AI gắn cờ (Đồng bộ số liệu) */}
-                <div className="admin-kpi-card">
-                  <div className="admin-kpi-header">
-                    <span className="admin-kpi-title">HÀNG ĐỢI AI GẮN CỜ</span>
-                    <div className="admin-kpi-icon-box" style={{ background: '#ffedd5', color: '#c2410c' }}>
-                      <Flag size={18} />
-                    </div>
-                  </div>
-                  <div className="admin-kpi-val-row">
-                    <span className="admin-kpi-val" style={{ color: '#ea580c' }}>{pendingModerationCount}</span>
-                    <span className="admin-kpi-unit" style={{ color: '#c2410c', fontWeight: 700 }}>Cần Admin can thiệp</span>
-                  </div>
-                  <div className="admin-kpi-footer" style={{ display: 'flex', gap: '0.85rem' }}>
-                    <span>Tự động tạm ẩn: <strong>{pendingModerationCount}</strong></span>
-                    <span style={{ color: '#dc2626' }}>Nguy cơ cao: <strong>2</strong></span>
-                  </div>
-                </div>
-              </section>
-
-              {/* SECTION: GIÁM SÁT 5 MÔ HÌNH AI (ĐÃ BỔ SUNG AI MEAL PLANNER PULP + GENAI) */}
-              <section style={{ marginBottom: '2rem' }}>
-                <div className="admin-sec-header">
-                  <div className="admin-sec-title-box">
-                    <span className="admin-sec-bar"></span>
-                    <h2 className="admin-sec-title">Giám sát & Quản trị Mô hình AI (Model Ops)</h2>
-                    <span className="admin-sec-desc">Chỉ số suy luận, độ trễ và độ tin cậy 5 động cơ trí tuệ nhân tạo nòng cốt.</span>
-                  </div>
-
-                  <div className="admin-sec-actions">
-                    <button className="admin-btn-sm" onClick={handleRetrainBatch}>
-                      <RefreshCw size={14} />
-                      <span>Tái huấn luyện theo batch</span>
-                    </button>
-                    <button className="admin-btn-sm" onClick={() => { setSelectedModelLog('All Engines'); setShowLogsModal(true); }}>
-                      <FileText size={14} />
-                      <span>Xem Logs chi tiết</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 5 MODEL CARDS */}
-                <div className="admin-models-grid">
-                  {/* Model 1: Computer Vision */}
-                  <div className="admin-model-card">
-                    <div className="admin-model-header">
-                      <div className="admin-model-icon-title">
-                        <div className="admin-model-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
-                          <Activity size={18} />
-                        </div>
-                        <span className="admin-model-name">Computer Vision</span>
-                      </div>
-                      <span className="admin-model-badge" style={{ background: '#dcfce7', color: '#15803d' }}>
-                        Ổn định
-                      </span>
-                    </div>
-                    <p className="admin-model-desc">Nhận diện rau củ &amp; độ tươi trong tủ lạnh</p>
-                    <div className="admin-model-metrics">
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Độ chính xác:</span>
-                        <span className="admin-metric-val">96.4%</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Độ trễ TB:</span>
-                        <span className="admin-metric-val">2.1s</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Đã quét hôm nay:</span>
-                        <span className="admin-metric-val">24,150 ảnh</span>
-                      </div>
-                    </div>
-                    <div className="admin-model-footer">
-                      <span>v3.4 - YOLOv8-Custom</span>
-                      <button className="admin-model-log-link" onClick={() => { setSelectedModelLog('YOLOv8 Vision'); setShowLogsModal(true); }}>
-                        Logs &gt;
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Model 2: Recommendation Engine */}
-                  <div className="admin-model-card">
-                    <div className="admin-model-header">
-                      <div className="admin-model-icon-title">
-                        <div className="admin-model-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                          <Sparkles size={18} />
-                        </div>
-                        <span className="admin-model-name">Recommendation</span>
-                      </div>
-                      <span className="admin-model-badge" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
-                        Mới
-                      </span>
-                    </div>
-                    <p className="admin-model-desc">Đề xuất thực đơn Macro &amp; định vị ẩm thực</p>
-                    <div className="admin-model-metrics">
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Độ khớp dinh dưỡng:</span>
-                        <span className="admin-metric-val">96.2%</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Tỷ lệ CTR gợi ý:</span>
-                        <span className="admin-metric-val">41.8%</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Quy đổi bữa ăn:</span>
-                        <span className="admin-metric-val">19,840 món</span>
-                      </div>
-                    </div>
-                    <div className="admin-model-footer">
-                      <span>Graph-Collab-Filter</span>
-                      <button className="admin-model-log-link" onClick={() => { setSelectedModelLog('Recommendation Filter'); setShowLogsModal(true); }}>
-                        Logs &gt;
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Model 3: AI Meal Planner (MỤC MỚI BỔ SUNG: PULP LINEAR PROGRAMMING + GENAI) */}
-                  <div className="admin-model-card" style={{ borderColor: '#a7f3d0', boxShadow: '0 4px 12px rgba(5,150,105,0.08)' }}>
-                    <div className="admin-model-header">
-                      <div className="admin-model-icon-title">
-                        <div className="admin-model-icon" style={{ background: '#ecfdf5', color: '#047857' }}>
-                          <Utensils size={18} />
-                        </div>
-                        <span className="admin-model-name" style={{ color: '#047857' }}>AI Meal Planner</span>
-                      </div>
-                      <span className="admin-model-badge" style={{ background: '#047857', color: '#ffffff' }}>
-                        Cốt lõi
-                      </span>
-                    </div>
-                    <p className="admin-model-desc">Tối ưu hóa thực đơn 7 ngày PuLP LP + GenAI</p>
-                    <div className="admin-model-metrics">
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Cân bằng Macro/Micro:</span>
-                        <span className="admin-metric-val" style={{ color: '#047857' }}>98.6%</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Thực đơn tạo/ngày:</span>
-                        <span className="admin-metric-val">14,210</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Tỷ lệ sửa đổi:</span>
-                        <span className="admin-metric-val">12.3% <em style={{ fontSize: '0.68rem', color: '#059669', fontStyle: 'normal' }}>(87.7% hài lòng)</em></span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Độ trễ TB (NFR ≤10s):</span>
-                        <span className="admin-metric-val" style={{ color: '#16a34a' }}>1.85s (PASS)</span>
-                      </div>
-                    </div>
-                    <div className="admin-model-footer">
-                      <span>PuLP Solver + GenAI</span>
-                      <button className="admin-model-log-link" onClick={() => { setSelectedModelLog('PuLP Linear Solver'); setShowLogsModal(true); }}>
-                        Logs &gt;
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Model 4: Nutrition Chatbot */}
-                  <div className="admin-model-card">
-                    <div className="admin-model-header">
-                      <div className="admin-model-icon-title">
-                        <div className="admin-model-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
-                          <Cpu size={18} />
-                        </div>
-                        <span className="admin-model-name">Nutrition Chatbot</span>
-                      </div>
-                      <span className="admin-model-badge" style={{ background: '#dcfce7', color: '#15803d' }}>
-                        Tốt
-                      </span>
-                    </div>
-                    <p className="admin-model-desc">Trợ lý cố vấn dinh dưỡng thuần chay tự nhiên</p>
-                    <div className="admin-model-metrics">
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Hài lòng người dùng:</span>
-                        <span className="admin-metric-val">4.8 / 5.0</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Tổng phiên đối thoại:</span>
-                        <span className="admin-metric-val">8,920</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Can thiệp chuyên gia:</span>
-                        <span className="admin-metric-val">Chỉ 0.4%</span>
-                      </div>
-                    </div>
-                    <div className="admin-model-footer">
-                      <span>Fine-tuned LLM 8B</span>
-                      <button className="admin-model-log-link" onClick={() => { setSelectedModelLog('Nutrition LLM'); setShowLogsModal(true); }}>
-                        Logs &gt;
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Model 5: Video Summarizer */}
-                  <div className="admin-model-card">
-                    <div className="admin-model-header">
-                      <div className="admin-model-icon-title">
-                        <div className="admin-model-icon" style={{ background: '#ecfdf5', color: '#047857' }}>
-                          <Zap size={18} />
-                        </div>
-                        <span className="admin-model-name">Video Summarizer</span>
-                      </div>
-                      <span className="admin-model-badge" style={{ background: '#d1fae5', color: '#065f46' }}>
-                        Bình thường
-                      </span>
-                    </div>
-                    <p className="admin-model-desc">Trích xuất định lượng công thức từ video ẩm thực</p>
-                    <div className="admin-model-metrics">
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Độ chuẩn trích xuất:</span>
-                        <span className="admin-metric-val">95.0%</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Tốc độ xử lý TB:</span>
-                        <span className="admin-metric-val">0.3s / video</span>
-                      </div>
-                      <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Số video nạp ngày:</span>
-                        <span className="admin-metric-val">312 video</span>
-                      </div>
-                    </div>
-                    <div className="admin-model-footer">
-                      <span>Whisper + Extractor</span>
-                      <button className="admin-model-log-link" onClick={() => { setSelectedModelLog('Whisper Video Extractor'); setShowLogsModal(true); }}>
-                        Logs &gt;
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* SECTION: 2-COLUMN WORKFLOW (MODERATION ON LEFT, CHARTS ON RIGHT) */}
-              <section className="admin-workflow-grid">
-                {/* LEFT COLUMN: HÀNG ĐỢI KIỂM DUYỆT TIER 2 (ADMIN ESCALATION OVERRIDE) */}
-                <div className="admin-mod-panel">
-                  <div className="admin-sec-header" style={{ marginBottom: '0.4rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ color: '#dc2626', fontSize: '1.2rem' }}>•</span>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                        Hàng Đợi Kiểm Duyệt AI (Can Thiệp &amp; Quyết Định Cấp Cao)
-                      </h3>
-                    </div>
-                    <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
-                      {pendingModerationCount} Yêu Cầu Chờ Quyết Định
-                    </span>
-                  </div>
-
-                  {/* LÀM RÕ RANH GIỚI ADMIN VS MODERATOR THEO YÊU CẦU MỤC 4 */}
-                  <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '0.65rem 0.85rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.75rem', color: '#92400e', lineHeight: '1.45', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div>
-                      <strong>🛡️ Cổng Giám Sát Cấp Cao (Tier 2 Escalation):</strong> Tiếp nhận các vi phạm nghiêm trọng do Moderator (Tier 1) chuyển tiếp. Quyền hạn Admin: Quyết định tối cao (Override), gỡ nội dung và khóa tài khoản vi phạm.
-                    </div>
-                    <button 
-                      style={{ background: 'white', border: '1px solid #fde68a', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', cursor: 'pointer' }}
-                      onClick={() => onNavigate && onNavigate('moderation')}
-                    >
-                      Mở Hàng đợi Mod Tuyến 1 &gt;
-                    </button>
-                  </div>
-
-                  {/* LIST OF MODERATION ITEMS */}
-                  <div className="admin-mod-card-list">
-                    {moderationItems.map((item) => (
-                      <div key={item.id} className={`admin-mod-item ${item.categoryColor === '#dc2626' ? 'danger-border' : item.categoryColor === '#d97706' ? 'warning-border' : 'info-border'}`}>
-                        <div className="admin-mod-meta-row">
-                          <div className="admin-mod-badge-row">
-                            <span className="admin-mod-type-badge" style={{ background: item.categoryBg, color: item.categoryColor }}>
-                              {item.category}
-                            </span>
-                            <span className="admin-mod-confidence" style={{ color: item.categoryColor }}>{item.confidence}</span>
-                          </div>
-                          <span className="admin-mod-author">Gửi bởi: {item.author}</span>
-                        </div>
-
-                        <div className="admin-mod-content-box">
-                          {item.thumb ? (
-                            <img src={item.thumb} alt="Thumbnail" className="admin-mod-thumb" />
-                          ) : (
-                            <div style={{ width: '40px', height: '40px', background: item.categoryBg, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.categoryColor, flexShrink: 0 }}>
-                              <AlertTriangle size={20} />
+              {/* USER TABLE */}
+              <div className="admin-table-container">
+                <table className="admin-data-table">
+                  <thead>
+                    <tr>
+                      <th>THÀNH VIÊN</th>
+                      <th>VAI TRÒ</th>
+                      <th>CHẾ ĐỘ ĂN CHAY</th>
+                      <th>NGÀY GIA NHẬP</th>
+                      <th>TRẠNG THÁI</th>
+                      <th style={{ textAlign: 'center' }}>THAO TÁC QUẢN TRỊ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersList
+                      .filter(u => {
+                        if (userFilter === 'active') return u.status === 'active';
+                        if (userFilter === 'locked') return u.status === 'locked';
+                        if (userFilter === 'moderator') return u.role === 'Moderator';
+                        return true;
+                      })
+                      .filter(u => {
+                        if (!userSearch) return true;
+                        const q = userSearch.toLowerCase();
+                        return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.id.toLowerCase().includes(q);
+                      })
+                      .map(u => (
+                        <tr key={u.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#ecfdf5', color: '#047857', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
+                                {u.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <strong style={{ color: '#0f172a', display: 'block' }}>{u.name}</strong>
+                                <small style={{ color: '#64748b' }}>{u.email}</small>
+                              </div>
                             </div>
-                          )}
-                          <div>
-                            <div className="admin-mod-title">{item.title}</div>
-                            <div className="admin-mod-snippet">{item.snippet}</div>
-                          </div>
-                        </div>
-
-                        <div className="admin-mod-actions">
-                          <button className="admin-mod-view-btn" onClick={() => showToast(`Đang mở chi tiết nội dung vi phạm ${item.id}`)}>
-                            <Eye size={14} /> Xem chi tiết báo cáo
-                          </button>
-                          <div className="admin-mod-action-group">
-                            <button className="admin-btn-mod-pass" onClick={() => handleModAction(item.id, 'approved')}>
-                              Phê duyệt giữ lại
-                            </button>
-                            <button className="admin-btn-mod-danger" onClick={() => handleModAction(item.id, 'removed')}>
-                              Gỡ &amp; Cảnh cáo
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN: ANALYTICS & INSIGHT CARDS */}
-                <div className="admin-side-cards">
-                  {/* Card 1: Phân bổ Chế độ Ăn Chay */}
-                  <div className="admin-chart-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                        Phân bổ Chế độ Ăn Chay
-                      </h3>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>12,450 công thức</span>
-                    </div>
-
-                    <div className="admin-donut-wrapper">
-                      {/* SVG Donut Chart */}
-                      <div style={{ position: 'relative', width: '130px', height: '130px' }}>
-                        <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#f1f5f9" strokeWidth="4" />
-                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#059669" strokeWidth="4" strokeDasharray="56.2 87.9" strokeDashoffset="0" />
-                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#34d399" strokeWidth="4" strokeDasharray="21.1 87.9" strokeDashoffset="-56.2" />
-                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#f59e0b" strokeWidth="4" strokeDasharray="10.5 87.9" strokeDashoffset="-77.3" />
-                        </svg>
-                        <div style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          textAlign: 'center'
-                        }}>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>64%</div>
-                          <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700 }}>Thuần chay</div>
-                        </div>
-                      </div>
-
-                      {/* Legend */}
-                      <div className="admin-donut-legend">
-                        <div className="admin-legend-item">
-                          <span className="admin-legend-dot" style={{ background: '#059669' }}></span>
-                          <span>Thuần chay (Vegan) <strong>64%</strong></span>
-                        </div>
-                        <div className="admin-legend-item">
-                          <span className="admin-legend-dot" style={{ background: '#34d399' }}></span>
-                          <span>Ăn chay linh hoạt (Flexi) <strong>24%</strong></span>
-                        </div>
-                        <div className="admin-legend-item">
-                          <span className="admin-legend-dot" style={{ background: '#f59e0b' }}></span>
-                          <span>Chay thực dưỡng <strong>12%</strong></span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="admin-insight-box">
-                      💡 <strong>Tỷ lệ người dùng chuyển đổi</strong> từ Flexitarian sang Vegan tăng <strong>18.4%</strong> sau khi dùng Trợ lý AI thực đơn 21 ngày.
-                    </div>
-                  </div>
-
-                  {/* Card 2: Tần suất Thiếu hụt Vi chất */}
-                  <div className="admin-chart-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                          Tần suất Thiếu hụt Vi chất
-                        </h3>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
-                          Dữ liệu từ 8,920 phiên tư vấn Chatbot &amp; Nhật ký ăn uống
-                        </div>
-                      </div>
-                      <div style={{ background: '#eff6ff', color: '#2563eb', padding: '0.35rem', borderRadius: '8px' }}>
-                        <Activity size={16} />
-                      </div>
-                    </div>
-
-                    <div className="admin-nutr-bar-group">
-                      <div>
-                        <div className="admin-nutr-item-head">
-                          <span>Thiếu hụt Vitamin B12</span>
-                          <span style={{ color: '#ea580c' }}>42% người dùng</span>
-                        </div>
-                        <div className="admin-progress-track">
-                          <div className="admin-progress-fill" style={{ width: '42%', background: '#f97316' }}></div>
-                        </div>
-                        <div className="admin-nutr-subtext">
-                          Đề xuất: Tăng cường công thức Nấm men dinh dưỡng &amp; Rong biển
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="admin-nutr-item-head">
-                          <span>Thiếu Protein Hoàn Chỉnh</span>
-                          <span style={{ color: '#059669' }}>35% người dùng</span>
-                        </div>
-                        <div className="admin-progress-track">
-                          <div className="admin-progress-fill" style={{ width: '35%', background: '#10b981' }}></div>
-                        </div>
-                        <div className="admin-nutr-subtext">
-                          Đề xuất: Khuyến khích kết hợp Đậu lăng + Gạo lứt &amp; Tempeh
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="admin-nutr-item-head">
-                          <span>Thiếu Sắt sinh học (Non-heme Iron)</span>
-                          <span style={{ color: '#0284c7' }}>23% người dùng</span>
-                        </div>
-                        <div className="admin-progress-track">
-                          <div className="admin-progress-fill" style={{ width: '23%', background: '#0ea5e9' }}></div>
-                        </div>
-                        <div className="admin-nutr-subtext">
-                          Đề xuất: Bổ sung công thức Cải bó xôi kết hợp Vitamin C tự nhiên
-                        </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      style={{
-                        width: '100%',
-                        marginTop: '1.15rem',
-                        background: '#f8fafc',
-                        border: '1px dashed #cbd5e1',
-                        borderRadius: '8px',
-                        padding: '0.6rem',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        color: '#047857',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.4rem'
-                      }}
-                      onClick={() => showToast('Đã gửi đề xuất công thức vi chất bổ sung đến ban chuyên gia dinh dưỡng.')}
-                    >
-                      <Sparkles size={14} /> Tạo Đề Xuất Công Thức Chuyên gia
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              {/* SECTION: ROW 4 - AUDIT LOG & QUICK ACTIONS */}
-              <section className="admin-bottom-grid">
-                {/* LEFT: NHẬT KÝ VẬN HÀNH HỆ THỐNG (AUDIT LOG - ĐÃ BỎ VIP BILLING) */}
-                <div className="admin-audit-card">
-                  <div className="admin-sec-header" style={{ marginBottom: '0.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                        Nhật ký Vận hành Hệ thống Thời Gian Thực (Audit Log)
-                      </h3>
-                    </div>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Cập nhật mỗi 5 giây</span>
-                  </div>
-
-                  <table className="admin-audit-table">
-                    <thead>
-                      <tr>
-                        <th>THỜI GIAN</th>
-                        <th>TÁC NHÂN</th>
-                        <th>HÀNH VI &amp; SỰ KIỆN</th>
-                        <th>MÔ-ĐUN</th>
-                        <th>TRẠNG THÁI</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditLogs.map((log, idx) => (
-                        <tr key={idx}>
-                          <td style={{ fontWeight: 600, color: '#64748b' }}>{log.time}</td>
-                          <td style={{ fontWeight: 700, color: log.actor.includes('Admin') ? '#047857' : log.actor.includes('YOLO') ? '#2563eb' : '#0f172a' }}>
-                            {log.actor}
                           </td>
-                          <td style={{ lineHeight: '1.4' }}>{log.action}</td>
                           <td>
-                            <span style={{ background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.7rem' }}>
-                              {log.module}
+                            <span style={{
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: u.role === 'Moderator' ? '#fef3c7' : '#f1f5f9',
+                              color: u.role === 'Moderator' ? '#b45309' : '#475569'
+                            }}>
+                              {u.role === 'Moderator' ? '🛡️ Moderator' : '🌱 Thành viên'}
                             </span>
                           </td>
                           <td>
-                            <span className="admin-audit-status-tag" style={{ background: log.statusBg, color: log.statusColor }}>
-                              {log.status}
+                            <span style={{ fontSize: '0.82rem', color: '#334155' }}>{u.diet}</span>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{u.joined}</span>
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '12px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              background: u.status === 'active' ? '#ecfdf5' : '#fee2e2',
+                              color: u.status === 'active' ? '#047857' : '#b91c1c'
+                            }}>
+                              {u.status === 'active' ? '● Đang hoạt động' : '🔒 Đã khóa'}
                             </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                              <button
+                                style={{
+                                  background: u.status === 'active' ? '#fee2e2' : '#ecfdf5',
+                                  border: '1px solid',
+                                  borderColor: u.status === 'active' ? '#fca5a5' : '#a7f3d0',
+                                  color: u.status === 'active' ? '#b91c1c' : '#047857',
+                                  padding: '0.35rem 0.7rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem'
+                                }}
+                                onClick={() => handleToggleUserLock(u.id)}
+                              >
+                                {u.status === 'active' ? <><Lock size={13} /> Khóa</> : <><Unlock size={13} /> Mở khóa</>}
+                              </button>
+
+                              <button
+                                style={{
+                                  background: '#f8fafc',
+                                  border: '1px solid #cbd5e1',
+                                  color: '#334155',
+                                  padding: '0.35rem 0.65rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.75rem',
+                                  cursor: 'pointer',
+                                  fontWeight: 600
+                                }}
+                                onClick={() => handleToggleUserRole(u.id)}
+                                title="Thay đổi vai trò User <-> Mod"
+                              >
+                                {u.role === 'User' ? '+ Quyền Mod' : '- Hạ quyền'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* RIGHT: TÁC VỤ NHANH QUẢN TRỊ */}
-                <div className="admin-quick-card">
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                      Tác vụ Nhanh Quản trị
-                    </h3>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>
-                      Lối tắt cho các quy trình điều hành hàng ngày của Administrator.
-                    </div>
-                  </div>
-
-                  <div className="admin-quick-item" onClick={() => setActiveMenu('content')}>
-                    <div className="admin-quick-item-left">
-                      <div className="admin-quick-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
-                        <Utensils size={17} />
-                      </div>
-                      <div>
-                        <div className="admin-quick-name">Quản lý Blog, Video &amp; Công thức</div>
-                        <div className="admin-quick-sub">Xem và duyệt 12,450 nội dung</div>
-                      </div>
-                    </div>
-                    <ArrowRight size={16} color="#64748b" />
-                  </div>
-
-                  <div className="admin-quick-item" onClick={() => setActiveMenu('comments')}>
-                    <div className="admin-quick-item-left">
-                      <div className="admin-quick-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                        <MessageSquare size={17} />
-                      </div>
-                      <div>
-                        <div className="admin-quick-name">Quản lý Bình luận Cộng đồng</div>
-                        <div className="admin-quick-sub">Kiểm soát tương tác &amp; spam</div>
-                      </div>
-                    </div>
-                    <ArrowRight size={16} color="#64748b" />
-                  </div>
-
-                  <div className="admin-quick-item" onClick={() => setShowInterventionModal(true)}>
-                    <div className="admin-quick-item-left">
-                      <div className="admin-quick-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                        <Sliders size={17} />
-                      </div>
-                      <div>
-                        <div className="admin-quick-name">Can thiệp &amp; Ghi đè AI (Manual Override)</div>
-                        <div className="admin-quick-sub">Sửa khẩu phần, Macro &amp; nhãn AI tính sai</div>
-                      </div>
-                    </div>
-                    <Edit3 size={16} color="#64748b" />
-                  </div>
-
-                  {/* CORE ENGINE PRODUCTION STATUS */}
-                  <div className="admin-system-ver-card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CheckCircle2 size={18} color="#059669" />
-                      <div>
-                        <strong style={{ color: '#047857', display: 'block' }}>VeggieAI Core Engine</strong>
-                        <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Version 2.4.0-Production</span>
-                      </div>
-                    </div>
-                    <span style={{ color: '#059669', fontWeight: 800, fontSize: '0.75rem' }}>100% NFR Met</span>
-                  </div>
-                </div>
-              </section>
-            </>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
-          {/* =========================================================================
-              VIEW 2: MÀN HÌNH QUẢN LÝ BÌNH LUẬN (COMMENTS MANAGEMENT - MỤC 1)
-              ========================================================================= */}
+          {/* =====================================================================
+              MÀN HÌNH 2: QUẢN LÝ BLOG & VIDEO
+              ===================================================================== */}
+          {activeMenu === 'content' && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+                    2. Quản lý Blog &amp; Video
+                  </h1>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                    Danh sách toàn bộ bài viết dinh dưỡng, video nấu ăn và công thức ẩm thực trên hệ thống.
+                  </p>
+                </div>
+                <button 
+                  className="admin-btn-primary"
+                  onClick={() => {
+                    const newBlank = {
+                      id: `C-0${contentList.length + 1}`,
+                      title: 'Bài viết dinh dưỡng mới chưa đặt tên',
+                      type: 'Blog',
+                      typeLabel: 'Blog Dinh Dưỡng',
+                      author: 'Admin',
+                      views: '0',
+                      status: 'Bản nháp',
+                      date: 'Hôm nay',
+                      mediaUrl: '',
+                      content: 'Nhập nội dung bài viết chia sẻ kiến thức dinh dưỡng chay tại đây...',
+                      ingredients: ['Nguyên liệu 1'],
+                      tags: ['Mới']
+                    };
+                    setContentList([newBlank, ...contentList]);
+                    handleEditContent(newBlank);
+                  }}
+                >
+                  <Plus size={16} /> Thêm Bài Viết / Video Mới
+                </button>
+              </div>
+
+              {/* TABS & SEARCH */}
+              <div className="admin-filter-bar">
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button className={`admin-subtab-btn ${contentTab === 'all' ? 'active' : ''}`} onClick={() => setContentTab('all')}>
+                    Tất cả ({contentList.length})
+                  </button>
+                  <button className={`admin-subtab-btn ${contentTab === 'Blog' ? 'active' : ''}`} onClick={() => setContentTab('Blog')}>
+                    Blog Dinh Dưỡng ({contentList.filter(c => c.type === 'Blog').length})
+                  </button>
+                  <button className={`admin-subtab-btn ${contentTab === 'Video' ? 'active' : ''}`} onClick={() => setContentTab('Video')}>
+                    Video Nấu Ăn ({contentList.filter(c => c.type === 'Video').length})
+                  </button>
+                  <button className={`admin-subtab-btn ${contentTab === 'Recipe' ? 'active' : ''}`} onClick={() => setContentTab('Recipe')}>
+                    Công thức Món Chay ({contentList.filter(c => c.type === 'Recipe').length})
+                  </button>
+                </div>
+
+                <input 
+                  type="text" 
+                  className="admin-filter-input"
+                  placeholder="Tìm bài viết, tác giả..." 
+                  value={contentSearch}
+                  onChange={(e) => setContentSearch(e.target.value)}
+                />
+              </div>
+
+              {/* TABLE */}
+              <div className="admin-table-container">
+                <table className="admin-data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40%' }}>TIÊU ĐỀ BÀI VIẾT / VIDEO</th>
+                      <th style={{ width: '15%' }}>PHÂN LOẠI</th>
+                      <th style={{ width: '15%' }}>TÁC GIẢ</th>
+                      <th style={{ width: '10%' }}>LƯỢT XEM</th>
+                      <th style={{ width: '10%' }}>TRẠNG THÁI</th>
+                      <th style={{ width: '10%', textAlign: 'center' }}>THAO TÁC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contentList
+                      .filter(c => contentTab === 'all' ? true : c.type === contentTab)
+                      .filter(c => !contentSearch ? true : c.title.toLowerCase().includes(contentSearch.toLowerCase()) || c.author.toLowerCase().includes(contentSearch.toLowerCase()))
+                      .map(item => (
+                        <tr key={item.id}>
+                          <td>
+                            <strong style={{ color: '#0f172a', display: 'block', marginBottom: '0.2rem' }}>{item.title}</strong>
+                            <small style={{ color: '#94a3b8' }}>Mã bài: {item.id} • Đăng ngày {item.date}</small>
+                          </td>
+                          <td>
+                            <span style={{ 
+                              background: item.type === 'Blog' ? '#eff6ff' : item.type === 'Video' ? '#fef3c7' : '#ecfdf5', 
+                              color: item.type === 'Blog' ? '#2563eb' : item.type === 'Video' ? '#d97706' : '#059669', 
+                              padding: '0.2rem 0.5rem', 
+                              borderRadius: '6px', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 700 
+                            }}>
+                              {item.typeLabel}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.85rem', color: '#334155' }}>{item.author}</span>
+                          </td>
+                          <td>
+                            <strong>{item.views}</strong>
+                          </td>
+                          <td>
+                            <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.75rem' }}>● {item.status}</span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                              <button 
+                                style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
+                                onClick={() => handleEditContent(item)}
+                                title="Xem và chỉnh sửa chi tiết (Màn hình 3)"
+                              >
+                                Xem &amp; Sửa
+                              </button>
+                              <button 
+                                style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer' }}
+                                onClick={() => handleDeleteContent(item.id)}
+                                title="Xóa nội dung"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {/* =====================================================================
+              MÀN HÌNH 3: CHI TIẾT BÀI VIẾT/VIDEO
+              ===================================================================== */}
+          {activeMenu === 'content-detail' && currentEditingContent && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => setActiveMenu('content')}
+                    style={{ background: '#f1f5f9', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.82rem', color: '#475569' }}
+                  >
+                    <ArrowLeft size={16} /> Quay lại danh sách
+                  </button>
+                  <div>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      3. Chi tiết &amp; Chỉnh sửa Nội Dung (#{currentEditingContent.id})
+                    </h1>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.55rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    onClick={() => handleDeleteContent(currentEditingContent.id)}
+                  >
+                    <Trash2 size={16} /> Xóa Bài Này
+                  </button>
+                  <button 
+                    className="admin-btn-primary"
+                    onClick={handleSaveContentDetail}
+                  >
+                    <Check size={16} /> Lưu Thay Đổi
+                  </button>
+                </div>
+              </div>
+
+              {/* EDIT FORM CONTAINER */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+                {/* LEFT: MAIN FORM */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem' }}>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                      Tiêu đề bài viết / video:
+                    </label>
+                    <input 
+                      type="text"
+                      value={currentEditingContent.title}
+                      onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, title: e.target.value })}
+                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                        Phân loại nội dung:
+                      </label>
+                      <select
+                        value={currentEditingContent.type}
+                        onChange={(e) => setCurrentEditingContent({ 
+                          ...currentEditingContent, 
+                          type: e.target.value,
+                          typeLabel: e.target.value === 'Blog' ? 'Blog Dinh Dưỡng' : e.target.value === 'Video' ? 'Video Nấu Ăn' : 'Công Thức Món Chay'
+                        })}
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
+                      >
+                        <option value="Blog">Blog Dinh Dưỡng</option>
+                        <option value="Video">Video Nấu Ăn</option>
+                        <option value="Recipe">Công Thức Món Chay</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                        Tác giả / Chuyên gia:
+                      </label>
+                      <input 
+                        type="text"
+                        value={currentEditingContent.author}
+                        onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, author: e.target.value })}
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                      Nội dung bài viết / Mô tả video:
+                    </label>
+                    <textarea 
+                      rows={8}
+                      value={currentEditingContent.content}
+                      onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, content: e.target.value })}
+                      style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', lineHeight: '1.6', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                      Danh sách nguyên liệu &amp; định lượng:
+                    </label>
+                    {currentEditingContent.ingredients.map((ing, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                        <input 
+                          type="text"
+                          value={ing}
+                          onChange={(e) => {
+                            const next = [...currentEditingContent.ingredients];
+                            next[idx] = e.target.value;
+                            setCurrentEditingContent({ ...currentEditingContent, ingredients: next });
+                          }}
+                          style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
+                        />
+                        <button
+                          style={{ background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '0.35rem 0.6rem', color: '#ef4444', cursor: 'pointer' }}
+                          onClick={() => {
+                            const next = currentEditingContent.ingredients.filter((_, i) => i !== idx);
+                            setCurrentEditingContent({ ...currentEditingContent, ingredients: next });
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      style={{ background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '0.4rem 0.8rem', fontSize: '0.8rem', fontWeight: 600, color: '#047857', cursor: 'pointer', marginTop: '0.4rem' }}
+                      onClick={() => setCurrentEditingContent({ ...currentEditingContent, ingredients: [...currentEditingContent.ingredients, 'Nguyên liệu mới: 50g'] })}
+                    >
+                      + Thêm nguyên liệu
+                    </button>
+                  </div>
+                </div>
+
+                {/* RIGHT: MEDIA & METADATA PREVIEW */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', color: '#0f172a' }}>Ảnh đại diện / Video URL:</h4>
+                    {currentEditingContent.mediaUrl && (
+                      <img 
+                        src={currentEditingContent.mediaUrl} 
+                        alt="Preview" 
+                        style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.75rem' }}
+                      />
+                    )}
+                    <input 
+                      type="text"
+                      placeholder="Dán link ảnh hoặc video YouTube..."
+                      value={currentEditingContent.mediaUrl}
+                      onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, mediaUrl: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', color: '#0f172a' }}>Thẻ phân loại dinh dưỡng:</h4>
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      {currentEditingContent.tags.map((tag, i) => (
+                        <span key={i} style={{ background: '#ecfdf5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* =====================================================================
+              MÀN HÌNH 4: QUẢN LÝ BÌNH LUẬN
+              ===================================================================== */}
           {activeMenu === 'comments' && (
             <section style={{ animation: 'fadeIn 0.2s ease' }}>
               <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                    Quản lý Bình luận &amp; Tương tác Cộng đồng
+                    4. Quản lý Bình luận
                   </h1>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Theo dõi toàn bộ bình luận dưới bài viết Blog, Video nấu ăn và Món chay. Cho phép xóa thủ công hoặc ẩn bình luận vi phạm.
+                    Danh sách toàn bộ tương tác người dùng, phát hiện từ khóa thô tục và xóa bình luận vi phạm tiêu chuẩn.
                   </p>
                 </div>
                 <button 
                   className="admin-btn-primary" 
-                  onClick={() => showToast('Đang quét tự động bằng mô hình NLP Toxicity Classifier...')}
+                  onClick={() => showToast('Mô hình NLP Toxicity vừa quét xong: Không phát hiện vi phạm mới.')}
                 >
-                  <RefreshCw size={15} /> Quét Spam Tự Động (NLP)
+                  <RefreshCw size={15} /> Quét Tự Động NLP
                 </button>
               </div>
 
@@ -1079,7 +1136,7 @@ export default function AdminDashboard({ onNavigate }) {
                     className={`admin-subtab-btn ${commentsFilter === 'all' ? 'active' : ''}`}
                     onClick={() => setCommentsFilter('all')}
                   >
-                    Tất cả bình luận ({commentsList.length})
+                    Tất cả ({commentsList.length})
                   </button>
                   <button 
                     className={`admin-subtab-btn ${commentsFilter === 'flagged' ? 'active' : ''}`}
@@ -1091,7 +1148,7 @@ export default function AdminDashboard({ onNavigate }) {
                     className={`admin-subtab-btn ${commentsFilter === 'safe' ? 'active' : ''}`}
                     onClick={() => setCommentsFilter('safe')}
                   >
-                    Bình luận an toàn ({commentsList.filter(c => !c.flagged).length})
+                    An toàn ({commentsList.filter(c => !c.flagged).length})
                   </button>
                 </div>
 
@@ -1104,14 +1161,14 @@ export default function AdminDashboard({ onNavigate }) {
                 />
               </div>
 
-              {/* COMMENTS DATA TABLE */}
+              {/* COMMENTS TABLE */}
               <div className="admin-table-container">
                 <table className="admin-data-table">
                   <thead>
                     <tr>
                       <th style={{ width: '18%' }}>TÁC GIẢ</th>
-                      <th style={{ width: '38%' }}>NỘI DUNG BÌNH LUẬN</th>
-                      <th style={{ width: '22%' }}>VỊ TRÍ BÀI ĐĂNG</th>
+                      <th style={{ width: '40%' }}>NỘI DUNG BÌNH LUẬN</th>
+                      <th style={{ width: '20%' }}>VỊ TRÍ BÀI VIẾT</th>
                       <th style={{ width: '10%' }}>TRẠNG THÁI</th>
                       <th style={{ width: '12%', textAlign: 'center' }}>THAO TÁC</th>
                     </tr>
@@ -1159,27 +1216,26 @@ export default function AdminDashboard({ onNavigate }) {
                               fontWeight: 700,
                               padding: '0.2rem 0.55rem',
                               borderRadius: '12px',
-                              background: comment.status === 'approved' ? '#ecfdf5' : comment.status === 'hidden' ? '#fee2e2' : '#fef3c7',
-                              color: comment.status === 'approved' ? '#047857' : comment.status === 'hidden' ? '#b91c1c' : '#b45309'
+                              background: comment.status === 'approved' ? '#ecfdf5' : '#fee2e2',
+                              color: comment.status === 'approved' ? '#047857' : '#b91c1c'
                             }}>
-                              {comment.status === 'approved' ? 'Hiển thị' : comment.status === 'hidden' ? 'Đã ẩn' : 'Chờ duyệt'}
+                              {comment.status === 'approved' ? 'Hiển thị' : 'Đã ẩn'}
                             </span>
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                               <button 
-                                style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                                style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                                 onClick={() => handleToggleHideComment(comment.id)}
-                                title="Ẩn hoặc hiện lại bình luận"
                               >
-                                {comment.status === 'hidden' ? 'Bỏ ẩn' : 'Ẩn'}
+                                {comment.status === 'hidden' ? 'Hiện' : 'Ẩn'}
                               </button>
                               <button 
                                 style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer' }}
                                 onClick={() => handleDeleteComment(comment.id)}
-                                title="Xóa thủ công vĩnh viễn"
+                                title="Xóa vĩnh viễn"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </td>
@@ -1191,571 +1247,483 @@ export default function AdminDashboard({ onNavigate }) {
             </section>
           )}
 
-          {/* =========================================================================
-              VIEW 3: QUẢN LÝ BLOG, VIDEO & CÔNG THỨC (MỤC 5)
-              ========================================================================= */}
-          {activeMenu === 'content' && (
+          {/* =====================================================================
+              MÀN HÌNH 5: QUẢN LÝ CATEGORY
+              ===================================================================== */}
+          {activeMenu === 'categories' && (
             <section style={{ animation: 'fadeIn 0.2s ease' }}>
               <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                    Quản lý Blog, Video &amp; Công thức
+                    5. Quản lý Category (Danh Mục)
                   </h1>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Kiểm soát toàn bộ kho nội dung kiến thức dinh dưỡng, video nấu ăn và công thức ẩm thực thuần chay.
+                    Tạo mới, chỉnh sửa thông tin và xóa danh mục phân loại món ăn, công thức ẩm thực thuần chay.
                   </p>
                 </div>
                 <button 
                   className="admin-btn-primary"
-                  onClick={() => showToast('Mở trình thêm bài viết/video/công thức mới.')}
+                  onClick={() => setShowAddCatModal(true)}
                 >
-                  <Plus size={16} /> Thêm Nội Dung Mới
+                  <Plus size={16} /> Thêm Danh Mục Mới
                 </button>
               </div>
 
-              {/* TABS */}
-              <div className="admin-tab-bar">
-                <button 
-                  className={`admin-subtab-btn ${contentTab === 'all' ? 'active' : ''}`}
-                  onClick={() => setContentTab('all')}
-                >
-                  Tất cả ({contentList.length})
-                </button>
-                <button 
-                  className={`admin-subtab-btn ${contentTab === 'blog' ? 'active' : ''}`}
-                  onClick={() => setContentTab('blog')}
-                >
-                  Blog Dinh Dưỡng ({contentList.filter(c => c.type.includes('Blog')).length})
-                </button>
-                <button 
-                  className={`admin-subtab-btn ${contentTab === 'video' ? 'active' : ''}`}
-                  onClick={() => setContentTab('video')}
-                >
-                  Video Nấu Ăn ({contentList.filter(c => c.type.includes('Video')).length})
-                </button>
-                <button 
-                  className={`admin-subtab-btn ${contentTab === 'recipe' ? 'active' : ''}`}
-                  onClick={() => setContentTab('recipe')}
-                >
-                  Công thức Món Chay ({contentList.filter(c => c.type.includes('Công thức')).length})
-                </button>
-              </div>
-
-              {/* TABLE */}
-              <div className="admin-table-container">
-                <table className="admin-data-table">
-                  <thead>
-                    <tr>
-                      <th>TIÊU ĐỀ NỘI DUNG</th>
-                      <th>PHÂN LOẠI</th>
-                      <th>TÁC GIẢ / CHUYÊN GIA</th>
-                      <th>LƯỢT XEM</th>
-                      <th>TRẠNG THÁI</th>
-                      <th style={{ textAlign: 'center' }}>THAO TÁC</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contentList
-                      .filter(c => {
-                        if (contentTab === 'blog') return c.type.includes('Blog');
-                        if (contentTab === 'video') return c.type.includes('Video');
-                        if (contentTab === 'recipe') return c.type.includes('Công thức');
-                        return true;
-                      })
-                      .map(item => (
-                        <tr key={item.id}>
-                          <td><strong>{item.title}</strong></td>
-                          <td>
-                            <span style={{ background: item.type.includes('Blog') ? '#eff6ff' : item.type.includes('Video') ? '#fef3c7' : '#ecfdf5', color: item.type.includes('Blog') ? '#2563eb' : item.type.includes('Video') ? '#d97706' : '#059669', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700 }}>
-                              {item.type}
-                            </span>
-                          </td>
-                          <td>{item.author}</td>
-                          <td><strong>{item.views}</strong></td>
-                          <td>
-                            <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.75rem' }}>● {item.status}</span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button 
-                              style={{ background: '#f1f5f9', border: 'none', padding: '0.3rem 0.7rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
-                              onClick={() => showToast(`Mở chỉnh sửa cho ${item.title}`)}
-                            >
-                              Chỉnh sửa
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          {/* =========================================================================
-              VIEW 4: KIỂM DUYỆT & CAN THIỆP AI (MODERATION & MANUAL INTERVENTION)
-              ========================================================================= */}
-          {activeMenu === 'moderation' && (
-            <section style={{ animation: 'fadeIn 0.2s ease' }}>
-              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                    Kiểm duyệt Nội dung &amp; Can thiệp Thủ công AI
-                  </h1>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Quyền hạn cấp cao (Tier 2): Quyết định các trường hợp nghi vấn phức tạp và cho phép Admin ghi đè trực tiếp kết quả suy luận AI.
-                  </p>
-                </div>
-                <button 
-                  className="admin-btn-primary"
-                  onClick={() => setShowInterventionModal(true)}
-                >
-                  <Sliders size={16} /> Can thiệp &amp; Ghi đè AI (Override)
-                </button>
-              </div>
-
-              {/* MODERATION CARDS LIST */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
-                {moderationItems.map((item) => (
-                  <div key={item.id} className="admin-mod-panel" style={{ padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{ background: item.categoryBg, color: item.categoryColor, fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
-                        {item.category}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: item.categoryColor }}>
-                        {item.confidence}
-                      </span>
+              {/* GRID DANH MỤC */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                {categoriesList.map(cat => (
+                  <div key={cat.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '2rem' }}>{cat.icon}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.6rem', borderRadius: '6px' }}>
+                          {cat.count} Món ăn
+                        </span>
+                      </div>
+                      <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{cat.name}</h3>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.75rem' }}>Slug: /{cat.slug}</div>
+                      <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5', margin: '0 0 1rem 0' }}>{cat.desc}</p>
                     </div>
 
-                    <h4 style={{ fontSize: '0.95rem', color: '#0f172a', margin: '0 0 0.4rem 0' }}>{item.title}</h4>
-                    <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.45', marginBottom: '1rem' }}>{item.snippet}</p>
-
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Gửi bởi: {item.author}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>● Đang hoạt động</span>
                       <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button className="admin-btn-mod-pass" onClick={() => handleModAction(item.id, 'approved')}>
-                          Phê duyệt
+                        <button 
+                          style={{ background: '#f1f5f9', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                          onClick={() => showToast(`Chỉnh sửa danh mục ${cat.name}`)}
+                        >
+                          Chỉnh sửa
                         </button>
-                        <button className="admin-btn-mod-danger" onClick={() => handleModAction(item.id, 'removed')}>
-                          Gỡ bài &amp; Phạt
+                        <button 
+                          style={{ background: '#fee2e2', border: 'none', padding: '0.35rem 0.55rem', borderRadius: '6px', color: '#b91c1c', cursor: 'pointer' }}
+                          onClick={() => handleDeleteCategory(cat.id)}
+                          title="Xóa danh mục"
+                        >
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
+
+              {/* MODAL THÊM CATEGORY MỚI */}
+              {showAddCatModal && (
+                <div style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '1rem'
+                }}>
+                  <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.75rem', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Tạo Danh Mục Món Ăn Mới</h3>
+                      <button style={{ background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => setShowAddCatModal(false)}>
+                        <X size={20} color="#64748b" />
+                      </button>
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem' }}>Tên danh mục:</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ví dụ: Món Cuốn &amp; Bánh Chay Dân Gian"
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem' }}>Biểu tượng Emoji:</label>
+                      <input 
+                        type="text" 
+                        value={newCatIcon}
+                        onChange={(e) => setNewCatIcon(e.target.value)}
+                        style={{ width: '80px', padding: '0.5rem', textAlign: 'center', fontSize: '1.2rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem' }}>Mô tả dinh dưỡng:</label>
+                      <textarea 
+                        rows={3}
+                        placeholder="Mô tả nhóm món ăn và giá trị dinh dưỡng thuần thực vật..."
+                        value={newCatDesc}
+                        onChange={(e) => setNewCatDesc(e.target.value)}
+                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                      <button style={{ background: '#f1f5f9', border: 'none', padding: '0.55rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }} onClick={() => setShowAddCatModal(false)}>
+                        Hủy
+                      </button>
+                      <button className="admin-btn-primary" onClick={handleAddCategory}>
+                        Tạo Danh Mục
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
-          {/* =========================================================================
-              VIEW 5: QUẢN TRỊ THÀNH VIÊN & DANH MỤC THỰC PHẨM CHAY
-              ========================================================================= */}
-          {(activeMenu === 'users' || activeMenu === 'categories') && (
-            <section style={{ animation: 'fadeIn 0.2s ease', background: '#ffffff', padding: '2rem', borderRadius: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <div style={{ width: '56px', height: '56px', background: '#ecfdf5', borderRadius: '50%', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                {activeMenu === 'users' ? <Users size={28} /> : <Layers size={28} />}
+          {/* =====================================================================
+              MÀN HÌNH 6: GIÁM SÁT MÔ HÌNH AI (AI MONITORING)
+              ===================================================================== */}
+          {activeMenu === 'ai-monitoring' && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+                    6. Giám sát Mô hình AI (AI Monitoring)
+                  </h1>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                    Theo dõi thời gian thực độ chính xác, SLA độ trễ (NFR ≤10s) và nhật ký suy luận của 5 mô hình cốt lõi.
+                  </p>
+                </div>
+                <button 
+                  className="admin-btn-primary"
+                  onClick={() => showToast('🚀 Đã gửi lệnh kích hoạt Tái huấn luyện Batch (YOLOv8 + PuLP Solver + RAG)!')}
+                >
+                  <RefreshCw size={15} /> Kích hoạt Batch Retrain
+                </button>
               </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.5rem' }}>
-                {activeMenu === 'users' ? 'Quản Trị Thành Viên & Phân Quyền' : 'Danh Mục Thực Phẩm Chay & Vi Chất'}
-              </h2>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '580px', margin: '0 auto 1.5rem auto', lineHeight: '1.5' }}>
-                {activeMenu === 'users' 
-                  ? 'Quản lý 52,840 thành viên đã đăng ký, hỗ trợ cấp quyền Moderator hoặc khóa các tài khoản vi phạm tiêu chuẩn cộng đồng.' 
-                  : 'Ontology cơ sở dữ liệu thực phẩm thuần chay: 1,240 nguyên liệu rau củ, ngũ cốc, hạt mầm được gán chỉ số dinh dưỡng chuẩn USDA & Viện Dinh Dưỡng Quốc Gia.'}
-              </p>
-              <button className="admin-btn-primary" style={{ margin: '0 auto' }} onClick={() => showToast('Dữ liệu đã được đồng bộ với Postgres DB.')}>
-                <Check size={16} /> Đồng bộ Cơ sở dữ liệu
-              </button>
+
+              {/* 5 AI MODEL CARDS */}
+              <div className="admin-models-grid">
+                {aiModels.map(model => (
+                  <div key={model.id} className="admin-model-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                        ● {model.status}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{model.trend}</span>
+                    </div>
+
+                    <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1.02rem', fontWeight: 800, color: '#0f172a' }}>{model.name}</h4>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4', margin: '0 0 1rem 0', minHeight: '32px' }}>{model.type}</p>
+
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>ĐỘ CHÍNH XÁC</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#059669' }}>{model.accuracy}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>ĐỘ TRỄ (LATENCY)</div>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{model.latency}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* LOGS TABLE */}
+              <div className="admin-table-container">
+                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>Nhật ký Suy luận Mô hình AI (Inference Logs)</strong>
+                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>Cluster HCM-DC01 • 100% SLA PASS</span>
+                </div>
+                <table className="admin-data-table">
+                  <thead>
+                    <tr>
+                      <th>TIMESTAMP</th>
+                      <th>MÔ HÌNH AI</th>
+                      <th>LOẠI TÁC VỤ</th>
+                      <th>THỜI GIAN XỬ LÝ</th>
+                      <th>ĐỘ TỰ TIN</th>
+                      <th>TRẠNG THÁI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>18:14:02</td>
+                      <td><strong>AI Meal Planner</strong></td>
+                      <td>Quy hoạch tuyến tính PuLP (Tối ưu B12 + Sắt)</td>
+                      <td>1.82s (NFR ≤10s)</td>
+                      <td>98.9%</td>
+                      <td><span style={{ color: '#059669', fontWeight: 700 }}>200 OK</span></td>
+                    </tr>
+                    <tr>
+                      <td>18:12:45</td>
+                      <td><strong>YOLOv8 Vision</strong></td>
+                      <td>Phát hiện cà rốt, nấm hương, bí đỏ</td>
+                      <td>320ms</td>
+                      <td>95.4%</td>
+                      <td><span style={{ color: '#059669', fontWeight: 700 }}>200 OK</span></td>
+                    </tr>
+                    <tr>
+                      <td>18:09:12</td>
+                      <td><strong>Nutrition Chatbot</strong></td>
+                      <td>RAG Query: &quot;Bổ sung kẽm cho bé ăn chay&quot;</td>
+                      <td>810ms</td>
+                      <td>96.8%</td>
+                      <td><span style={{ color: '#059669', fontWeight: 700 }}>200 OK</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
+
+          {/* =====================================================================
+              MÀN HÌNH 7: CAN THIỆP THỦ CÔNG AI (AI OVERRIDE)
+              ===================================================================== */}
+          {activeMenu === 'ai-override' && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+                  7. Can thiệp Thủ công AI (Manual Intervention)
+                </h1>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                  Cho phép Admin ghi đè trực tiếp kết quả vi chất, khẩu phần hoặc nhãn AI khi phát hiện sai lệch trước khi người dùng nhìn thấy.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                {/* FORM GHI ĐÈ TRỰC TIẾP */}
+                <form onSubmit={handleApplyOverride} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Sliders size={18} color="#059669" /> Biểu Mẫu Ghi Đè Chỉ Số AI
+                  </h3>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                      Đối tượng / Món ăn cần can thiệp:
+                    </label>
+                    <input 
+                      type="text" 
+                      value={overrideData.recipeName}
+                      onChange={(e) => setOverrideData({ ...overrideData, recipeName: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.25rem' }}>
+                        Hàm lượng Protein Gốc (AI):
+                      </label>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={overrideData.originalProtein}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#64748b', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#047857', marginBottom: '0.25rem' }}>
+                        Ghi đè Protein Đúng (Admin):
+                      </label>
+                      <input 
+                        type="text" 
+                        value={overrideData.overrideProtein}
+                        onChange={(e) => setOverrideData({ ...overrideData, overrideProtein: e.target.value })}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#ffffff', border: '1px solid #059669', fontSize: '0.82rem', fontWeight: 700, color: '#047857', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.25rem' }}>
+                        Calories Gốc (AI):
+                      </label>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={overrideData.originalCalories}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#64748b', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#047857', marginBottom: '0.25rem' }}>
+                        Ghi đè Calories Đúng (Admin):
+                      </label>
+                      <input 
+                        type="text" 
+                        value={overrideData.overrideCalories}
+                        onChange={(e) => setOverrideData({ ...overrideData, overrideCalories: e.target.value })}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#ffffff', border: '1px solid #059669', fontSize: '0.82rem', fontWeight: 700, color: '#047857', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                      Lý do can thiệp (Bắt buộc cho Audit Trail):
+                    </label>
+                    <textarea 
+                      rows={3}
+                      value={overrideData.reason}
+                      onChange={(e) => setOverrideData({ ...overrideData, reason: e.target.value })}
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <button type="submit" className="admin-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                    <Check size={16} /> Lưu &amp; Áp Dụng Ghi Đè Vào Hệ Thống
+                  </button>
+                </form>
+
+                {/* THÔNG TIN NGUYÊN TẮC CAN THIỆP */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                      Nguyên Tắc Can Thiệp &amp; Ghi Đè (Override Policy)
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.6', margin: '0 0 1rem 0' }}>
+                      Theo đặc tả yêu cầu Functional Requirements (FR), Admin chỉ được phép can thiệp khi:
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#334155', lineHeight: '1.8' }}>
+                      <li>Mô hình Computer Vision YOLOv8 nhận diện nhầm loại hạt/nguyên liệu (sai lệch &gt; 15%).</li>
+                      <li>Thuật toán quy hoạch tuyến tính PuLP tính dư hoặc thiếu vi chất B12, Kẽm, Canxi so với chuẩn RNI Việt Nam.</li>
+                      <li>Người dùng gửi khiếu nại về công thức tính Calo không chính xác.</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '1rem', marginTop: '1rem' }}>
+                    <strong style={{ color: '#065f46', fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
+                      🛡️ Bảo Toàn Tính Toàn Vẹn Hệ Thống
+                    </strong>
+                    <span style={{ fontSize: '0.78rem', color: '#047857' }}>
+                      Mọi hành động can thiệp đều được tự động gắn mã hash SHA-256 vào Audit Log để đối soát kiểm thử đồ án Capstone.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BẢNG LỊCH SỬ GHI ĐÈ */}
+              <div className="admin-table-container">
+                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
+                  <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>Nhật Ký Can Thiệp Gần Đây (Audit History)</strong>
+                </div>
+                <table className="admin-data-table">
+                  <thead>
+                    <tr>
+                      <th>MÃ SỰ KIỆN</th>
+                      <th>ĐỐI TƯỢNG CAN THIỆP</th>
+                      <th>GIÁ TRỊ CŨ (AI)</th>
+                      <th>GIÁ TRỊ MỚI (ADMIN)</th>
+                      <th>THỜI GIAN</th>
+                      <th>TRẠNG THÁI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overrideHistory.map(item => (
+                      <tr key={item.id}>
+                        <td><strong style={{ color: '#059669' }}>{item.id}</strong></td>
+                        <td>{item.target}</td>
+                        <td><span style={{ color: '#ef4444' }}>{item.oldVal}</span></td>
+                        <td><strong style={{ color: '#059669' }}>{item.newVal}</strong></td>
+                        <td><small style={{ color: '#64748b' }}>{item.time}</small></td>
+                        <td><span style={{ color: '#059669', fontWeight: 700, fontSize: '0.75rem' }}>● {item.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {/* =====================================================================
+              MÀN HÌNH 8: NỘI DUNG BỊ AI GẮN CỜ (FLAGGED CONTENT REVIEW)
+              ===================================================================== */}
+          {activeMenu === 'ai-flagged' && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+                    8. Nội Dung Bị AI Gắn Cờ (Flagged Content Review)
+                  </h1>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                    Hàng đợi duyệt/xóa các bài viết, video, công thức do AI tự động phát hiện nghi vấn vi phạm tiêu chuẩn thuần chay và an toàn dinh dưỡng.
+                  </p>
+                </div>
+                <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.45rem 1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 800 }}>
+                  {pendingModerationCount} Nội dung cần giải quyết
+                </span>
+              </div>
+
+              {/* LIST FLAGGED ITEMS */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {flaggedItems.length === 0 ? (
+                  <div style={{ background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '3rem', textAlign: 'center' }}>
+                    <CheckCircle2 size={40} color="#059669" style={{ margin: '0 auto 1rem auto' }} />
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a' }}>Không có nội dung nào bị gắn cờ!</h3>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Tất cả các bài viết do người dùng đăng tải đều đã an toàn và được duyệt.</p>
+                  </div>
+                ) : (
+                  flaggedItems.map(item => (
+                    <div key={item.id} style={{ background: '#ffffff', border: '1px solid #fee2e2', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 2px 8px rgba(220, 38, 38, 0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#b91c1c', background: '#fee2e2', padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                              {item.id}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Phân loại: {item.type}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>• Đăng bởi: <strong>{item.author}</strong></span>
+                          </div>
+                          <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{item.title}</h3>
+                        </div>
+
+                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.4rem 0.75rem', textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 700 }}>AI CONFIDENCE</div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#d97706' }}>{item.confidence}</div>
+                        </div>
+                      </div>
+
+                      {/* LÝ DO AI GẮN CỜ */}
+                      <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#991b1b', fontSize: '0.85rem', fontWeight: 700 }}>
+                        <AlertTriangle size={16} />
+                        <span>Cảnh báo AI: {item.aiFlagReason}</span>
+                      </div>
+
+                      {/* ĐOẠN TRÍCH NỘI DUNG */}
+                      <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '0.85rem 1rem', fontSize: '0.88rem', color: '#475569', lineHeight: '1.6', marginBottom: '1.25rem', fontStyle: 'italic' }}>
+                        &quot;{item.snippet}&quot;
+                      </div>
+
+                      {/* HÀNH ĐỘNG CỦA ADMIN */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '0.45rem 0.95rem', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                          onClick={() => handleFlagAction(item.id, 'dismiss')}
+                          title="Xác nhận AI cảnh báo nhầm, bài viết đạt chuẩn thuần chay"
+                        >
+                          Phê Duyệt (Bỏ Cờ AI)
+                        </button>
+                        <button
+                          style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.45rem 1rem', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                          onClick={() => handleFlagAction(item.id, 'remove')}
+                          title="Xóa nội dung vi phạm này"
+                        >
+                          Xác Nhận Vi Phạm &amp; Xóa Bài
+                        </button>
+                        <button
+                          style={{ background: '#991b1b', border: 'none', color: '#ffffff', padding: '0.45rem 1rem', borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                          onClick={() => handleFlagAction(item.id, 'ban')}
+                          title="Xóa bài và khóa luôn tài khoản tác giả"
+                        >
+                          Xóa &amp; Khóa Tài Khoản
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
+
         </main>
       </div>
-
-      {/* =========================================================================
-          MODAL: CAN THIỆP & GHI ĐÈ KẾT QUẢ AI (MANUAL INTERVENTION CONTROL - MỤC 6)
-          ========================================================================= */}
-      {showInterventionModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '580px',
-            padding: '1.75rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Edit3 size={20} color="#059669" />
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                  Can thiệp &amp; Ghi đè Kết quả AI (Manual Override)
-                </h3>
-              </div>
-              <button 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                onClick={() => setShowInterventionModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '1.25rem', lineHeight: '1.45' }}>
-              Quyền quản trị viên cho phép sửa trực tiếp kết quả tính toán vi chất dinh dưỡng hoặc nhãn nhận diện sai lệch của mô hình AI trước khi người dùng nhìn thấy.
-            </p>
-
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
-                Món ăn: {manualOverrideData.recipeName}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
-                    Hàm lượng Protein Gốc (AI):
-                  </label>
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={manualOverrideData.originalProtein} 
-                    style={{ width: '100%', padding: '0.45rem', background: '#e2e8f0', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', color: '#64748b' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', display: 'block', marginBottom: '0.25rem' }}>
-                    Ghi đè Protein Thực (Admin):
-                  </label>
-                  <input 
-                    type="text" 
-                    value={manualOverrideData.overrideProtein} 
-                    onChange={(e) => setManualOverrideData({ ...manualOverrideData, overrideProtein: e.target.value })}
-                    style={{ width: '100%', padding: '0.45rem', background: '#ffffff', border: '1px solid #059669', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, color: '#047857' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.25rem' }}>
-                  Lý do ghi đè can thiệp (Audit Trail):
-                </label>
-                <textarea 
-                  rows="2"
-                  value={manualOverrideData.reason}
-                  onChange={(e) => setManualOverrideData({ ...manualOverrideData, reason: e.target.value })}
-                  style={{ width: '100%', padding: '0.45rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button 
-                className="admin-btn-outline"
-                onClick={() => setShowInterventionModal(false)}
-              >
-                Hủy bỏ
-              </button>
-              <button 
-                className="admin-btn-primary"
-                onClick={() => {
-                  setShowInterventionModal(false);
-                  showToast('Đã áp dụng ghi đè dinh dưỡng của Admin vào cơ sở dữ liệu!');
-                }}
-              >
-                Lưu &amp; Cập nhật Dinh Dưỡng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODAL: CẤU HÌNH NGƯỠNG NHẠY AI (THRESHOLD CONFIGURATION)
-          ========================================================================= */}
-      {showThresholdModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '560px',
-            padding: '1.75rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Sliders size={20} color="#059669" />
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                  Cấu hình Ngưỡng Nhạy AI (Model Ops)
-                </h3>
-              </div>
-              <button 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                onClick={() => setShowThresholdModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', color: '#64748b', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-              Điều chỉnh độ nhạy suy luận của các mô hình nòng cốt. Thay đổi sẽ lập tức có hiệu lực trên toàn bộ cụm Cluster Production.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.75rem' }}>
-              {/* Slider 1: YOLO Confidence */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-                  <span>YOLOv8 Computer Vision (Độ tin cậy nhận diện):</span>
-                  <span style={{ color: '#059669' }}>{thresholds.yoloConfidence}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="50" 
-                  max="95" 
-                  value={thresholds.yoloConfidence}
-                  onChange={(e) => setThresholds({ ...thresholds, yoloConfidence: parseInt(e.target.value) })}
-                  style={{ width: '100%', accentColor: '#059669' }}
-                />
-              </div>
-
-              {/* Slider 2: PuLP Meal Planner Slack */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-                  <span>PuLP Linear Solver (Độ khắt khe cân bằng vi chất B12/Sắt):</span>
-                  <span style={{ color: '#047857' }}>{thresholds.lpNutrientSlack}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="85" 
-                  max="99" 
-                  value={thresholds.lpNutrientSlack}
-                  onChange={(e) => setThresholds({ ...thresholds, lpNutrientSlack: parseInt(e.target.value) })}
-                  style={{ width: '100%', accentColor: '#047857' }}
-                />
-              </div>
-
-              {/* Slider 3: Chatbot Factuality Guardrail */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-                  <span>Chatbot RAG Factuality (Kiểm tra dữ liệu y khoa):</span>
-                  <span style={{ color: '#2563eb' }}>{thresholds.llmFactuality}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="70" 
-                  max="99" 
-                  value={thresholds.llmFactuality}
-                  onChange={(e) => setThresholds({ ...thresholds, llmFactuality: parseInt(e.target.value) })}
-                  style={{ width: '100%', accentColor: '#2563eb' }}
-                />
-              </div>
-
-              {/* Slider 4: Video Non-Vegan Filter */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-                  <span>Bộ lọc mỡ/thịt động vật trong Video:</span>
-                  <span style={{ color: '#d97706' }}>{thresholds.nonVeganDetect}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="60" 
-                  max="95" 
-                  value={thresholds.nonVeganDetect}
-                  onChange={(e) => setThresholds({ ...thresholds, nonVeganDetect: parseInt(e.target.value) })}
-                  style={{ width: '100%', accentColor: '#d97706' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button 
-                className="admin-btn-outline"
-                onClick={() => setShowThresholdModal(false)}
-              >
-                Hủy bỏ
-              </button>
-              <button 
-                className="admin-btn-primary"
-                onClick={() => {
-                  setShowThresholdModal(false);
-                  showToast('Đã lưu cấu hình ngưỡng nhạy AI vào Production thành công!');
-                }}
-              >
-                Lưu cấu hình
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODAL: XUẤT BÁO CÁO CAPSTONE (CAPSTONE REPORT EXPORT)
-          ========================================================================= */}
-      {showExportModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '620px',
-            padding: '2rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Download size={20} color="#059669" />
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                  Xuất Báo Cáo Kỹ Thuật Capstone
-                </h3>
-              </div>
-              <button 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                onClick={() => setShowExportModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-              <div style={{ fontWeight: 700, color: '#047857', marginBottom: '0.4rem' }}>
-                Đề tài: SEP490 - AI-Driven Vegetarian Meal Assistant (VeggieAI)
-              </div>
-              <div style={{ color: '#475569', lineHeight: '1.5' }}>
-                • <strong>NFR Benchmark SLA:</strong> 1.42s TB (Đạt chuẩn 100% tiêu chí hội đồng)<br />
-                • <strong>PuLP Solver SLA:</strong> 1.85s &lt; 10s NFR<br />
-                • <strong>Tổng suy luận AI:</strong> 184,200 lượt/ngày<br />
-                • <strong>Tỷ lệ chính xác YOLOv8:</strong> 96.4%<br />
-                • <strong>Tỷ lệ can thiệp kiểm duyệt thủ công:</strong> 0.4%<br />
-                • <strong>Thời gian xuất bản:</strong> {new Date().toLocaleDateString('vi-VN')}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button 
-                className="admin-btn-outline"
-                onClick={() => setShowExportModal(false)}
-              >
-                Đóng
-              </button>
-              <button 
-                className="admin-btn-primary"
-                onClick={() => {
-                  setShowExportModal(false);
-                  showToast('Đang tạo và tải xuống file báo cáo Capstone PDF...');
-                }}
-              >
-                <Download size={16} /> Tải file PDF Báo Cáo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          MODAL: XEM LOGS MÔ HÌNH CHI TIẾT
-          ========================================================================= */}
-      {showLogsModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#0f172a',
-            color: '#f1f5f9',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '740px',
-            padding: '1.5rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-            animation: 'fadeIn 0.2s ease',
-            border: '1px solid #334155'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                <Cpu size={20} color="#10b981" />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
-                  Live Inference Stream: {selectedModelLog || 'AI Cluster Logs'}
-                </h3>
-              </div>
-              <button 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-                onClick={() => setShowLogsModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{
-              background: '#020617',
-              padding: '1rem',
-              borderRadius: '8px',
-              fontFamily: 'Consolas, Monaco, monospace',
-              fontSize: '0.78rem',
-              color: '#4ade80',
-              height: '280px',
-              overflowY: 'auto',
-              lineHeight: '1.6'
-            }}>
-              <div>[INFO] 2026-09-13 14:32:45.102 | YOLOv8.detect() | Preprocessed 1280x720 tensor in 14ms</div>
-              <div>[INFO] 2026-09-13 14:32:45.210 | Found 5 classes: [carrot: 0.98, tofu: 0.95, mushroom: 0.96]</div>
-              <div>[INFO] 2026-09-13 14:32:45.890 | PuLP.LpProblem(MINIMIZE_DEFICIT) | Variables: 48, Constraints: 14 | Solved in 1.45s</div>
-              <div>[PASS] 2026-09-13 14:32:46.012 | Meal Planner PuLP Solver: Latency 1.85s &lt; 10s NFR SLA [PASSED]</div>
-              <div>[INFO] 2026-09-13 14:32:46.120 | RAG_Search(k=10) | Cosine similarity query time: 82ms</div>
-              <div>[INFO] 2026-09-13 14:32:47.330 | LLM_Engine | Generated nutritional explanation: 245 tokens</div>
-              <div>[INFO] 2026-09-13 14:33:01.002 | Auto-Moderator NLP | Scanned comment #CMT-801: Spam 0.98 [FLAGGED]</div>
-              <div>[SYNC] 2026-09-13 14:33:10.890 | Worker Node 03 heartbeat OK | GPU Temp: 58C | Mem: 4.2GB/16GB</div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>• Streaming qua gRPC WebSocket từ cụm máy chủ HCM-DC01</span>
-              <button 
-                className="admin-btn-primary" 
-                style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}
-                onClick={() => setShowLogsModal(false)}
-              >
-                Đóng Logs
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
