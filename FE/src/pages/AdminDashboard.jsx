@@ -36,7 +36,7 @@ export default function AdminDashboard({ onNavigate }) {
   // =========================================================================
   // DỮ LIỆU MÀN HÌNH 1: QUẢN LÝ NGƯỜI DÙNG (USERS)
   // ĐÚNG CHUẨN 4 ACTORS: Authorized User / Unauthorized User / Mod / Admin
-  // KHÔNG CÓ VIP, KHÔNG CÓ BILLING, KHÔNG CÓ ĐIỂM UY TÍN
+  // TÍCH HỢP ĐIỂM UY TÍN (TRUST SCORE) ĐỂ ĐỊNH TUYẾN KIỂM DUYỆT BÌNH LUẬN
   // =========================================================================
   const [usersList, setUsersList] = useState([
     { 
@@ -44,6 +44,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Nguyễn Văn An', 
       email: 'an.nguyen@gmail.com', 
       role: 'Authorized User', 
+      trustScore: 98,
+      trustLevel: 'Rất cao (98/100)',
+      trustTier: 'Đăng trực tiếp',
       diet: 'Thuần chay (Vegan)', 
       status: 'active', 
       joined: '12/08/2026', 
@@ -67,6 +70,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Trần Thị Bích', 
       email: 'bich.tran@gmail.com', 
       role: 'Mod', 
+      trustScore: 100,
+      trustLevel: 'Tuyệt đối (100/100)',
+      trustTier: 'Đặc quyền Mod',
       diet: 'Ăn chay linh hoạt (Flexi)', 
       status: 'active', 
       joined: '05/06/2026', 
@@ -89,6 +95,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Lê Hoàng Long', 
       email: 'long.le@spamdiet.com', 
       role: 'Unauthorized User', 
+      trustScore: 32,
+      trustLevel: 'Rủi ro cao (32/100)',
+      trustTier: 'Tiền kiểm duyệt',
       diet: 'Chưa khảo sát dinh dưỡng', 
       status: 'warning', 
       joined: '01/09/2026', 
@@ -110,6 +119,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Phạm Thu Thảo', 
       email: 'thao.pham@health.vn', 
       role: 'Authorized User', 
+      trustScore: 95,
+      trustLevel: 'Tiêu chuẩn (95/100)',
+      trustTier: 'Đăng trực tiếp',
       diet: 'Thuần chay (Lacto-ovo)', 
       status: 'active', 
       joined: '20/07/2026', 
@@ -132,6 +144,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Vũ Minh Đức', 
       email: 'duc.vu@modcommunity.vn', 
       role: 'Mod', 
+      trustScore: 100,
+      trustLevel: 'Tuyệt đối (100/100)',
+      trustTier: 'Đặc quyền Mod',
       diet: 'Thuần chay (Vegan)', 
       status: 'active', 
       joined: '15/05/2026', 
@@ -154,6 +169,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Đặng Quốc Huy', 
       email: 'huy.dang@fakead.net', 
       role: 'Unauthorized User', 
+      trustScore: 15,
+      trustLevel: 'Nghi vấn cao (15/100)',
+      trustTier: 'Bị khóa',
       diet: 'Chưa cập nhật', 
       status: 'locked', 
       joined: '02/09/2026', 
@@ -175,6 +193,9 @@ export default function AdminDashboard({ onNavigate }) {
       name: 'Admin', 
       email: 'admin@veggieai.vn', 
       role: 'Admin', 
+      trustScore: 100,
+      trustLevel: 'Quản trị (100/100)',
+      trustTier: 'Toàn quyền',
       diet: 'Thuần chay (Vegan)', 
       status: 'active', 
       joined: '01/01/2026', 
@@ -454,7 +475,7 @@ export default function AdminDashboard({ onNavigate }) {
       authorAvatarBg: '#3b82f6',
       authorRole: 'Authorized User',
       authorVerified: true,
-      source: 'Chuyên gia',
+      source: 'Ban Biên Tập',
       aiMatch: '21 Thực Đơn Bóc Tách',
       aiDetails: 'Tự tính Macro theo TDEE',
       macro: 'Tỷ lệ P:C:F cân bằng 30:45:25',
@@ -1935,7 +1956,7 @@ export default function AdminDashboard({ onNavigate }) {
                         <span className="admin-metric-val">8,920</span>
                       </div>
                       <div className="admin-metric-row">
-                        <span className="admin-metric-lbl">Can thiệp chuyên gia:</span>
+                        <span className="admin-metric-lbl">Can thiệp Mod/Admin:</span>
                         <span className="admin-metric-val">Chỉ 0.4%</span>
                       </div>
                     </div>
@@ -2332,12 +2353,13 @@ export default function AdminDashboard({ onNavigate }) {
                           onChange={handleSelectAllUsers}
                         />
                       </th>
-                      <th style={{ width: '22%' }}>THÀNH VIÊN</th>
-                      <th style={{ width: '16%' }}>VAI TRÒ (4 ACTORS)</th>
-                      <th style={{ width: '18%' }}>CHẾ ĐỘ ĂN CHAY (WF01)</th>
-                      <th style={{ width: '16%' }}>SỬ DỤNG TÍNH NĂNG AI THẬT</th>
-                      <th style={{ width: '10%' }}>TRẠNG THÁI</th>
-                      <th style={{ width: '14%', textAlign: 'center' }}>THAO TÁC QUẢN TRỊ</th>
+                      <th style={{ width: '20%' }}>THÀNH VIÊN</th>
+                      <th style={{ width: '15%' }}>VAI TRÒ (4 ACTORS)</th>
+                      <th style={{ width: '13%' }}>ĐIỂM UY TÍN (NLP)</th>
+                      <th style={{ width: '16%' }}>CHẾ ĐỘ ĂN CHAY (WF01)</th>
+                      <th style={{ width: '14%' }}>SỬ DỤNG TÍNH NĂNG AI THẬT</th>
+                      <th style={{ width: '8%' }}>TRẠNG THÁI</th>
+                      <th style={{ width: '10%', textAlign: 'center' }}>THAO TÁC</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2401,6 +2423,29 @@ export default function AdminDashboard({ onNavigate }) {
                               {u.role === 'Authorized User' && '🌱 Authorized User'}
                               {u.role === 'Unauthorized User' && '👤 Unauthorized User'}
                             </span>
+                          </td>
+
+                          {/* ĐIỂM UY TÍN HỆ THỐNG */}
+                          <td>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                              <span style={{
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                width: 'fit-content',
+                                background: u.trustScore >= 80 ? '#ecfdf5' : (u.trustScore >= 50 ? '#fff7ed' : '#fee2e2'),
+                                color: u.trustScore >= 80 ? '#047857' : (u.trustScore >= 50 ? '#c2410c' : '#b91c1c')
+                              }}>
+                                <ShieldCheck size={12} /> {u.trustScore}/100
+                              </span>
+                              <small style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                {u.trustTier}
+                              </small>
+                            </div>
                           </td>
 
                           <td>
@@ -2564,7 +2609,37 @@ export default function AdminDashboard({ onNavigate }) {
                       </div>
                     </div>
 
-                    {/* PHẦN 1: HỒ SƠ DINH DƯỠNG CÁ NHÂN HÓA (WF01) */}
+                    {/* PHẦN 1: ĐIỂM UY TÍN HỆ THỐNG & ĐỊNH TUYẾN KIỂM DUYỆT BÌNH LUẬN */}
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <ShieldCheck size={16} color="#059669" /> Điểm Uy Tín Hệ Thống &amp; Định Tuyến Kiểm Duyệt
+                        </h4>
+                        <span style={{
+                          background: selectedUserDetail.trustScore >= 80 ? '#dcfce7' : (selectedUserDetail.trustScore >= 50 ? '#ffedd5' : '#fee2e2'),
+                          color: selectedUserDetail.trustScore >= 80 ? '#15803d' : (selectedUserDetail.trustScore >= 50 ? '#c2410c' : '#b91c1c'),
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '8px'
+                        }}>
+                          {selectedUserDetail.trustScore}/100 &bull; {selectedUserDetail.trustTier}
+                        </span>
+                      </div>
+
+                      <p style={{ margin: '0 0 0.65rem 0', fontSize: '0.8rem', color: '#166534', lineHeight: 1.5 }}>
+                        <strong>Mục đích nghiệp vụ:</strong> Tín hiệu phân loại độ tin cậy để tự động định tuyến kiểm duyệt bình luận và bài viết (WF07 &amp; WF09). Thành viên uy tín thấp (&lt; 50) sẽ tự động bị chuyển vào hàng đợi kiểm duyệt trước khi hiển thị cho cộng đồng.
+                      </p>
+
+                      <div style={{ background: '#ffffff', border: '1px solid #dcfce7', borderRadius: '8px', padding: '0.65rem 0.85rem', fontSize: '0.76rem', color: '#475569', lineHeight: 1.55 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>Công thức tính điểm minh bạch (Transparency Algorithm):</div>
+                        <div>&bull; <strong>Điểm khởi tạo:</strong> 100/100 khi kích hoạt tài khoản.</div>
+                        <div>&bull; <strong>Trừ điểm vi phạm:</strong> -35 điểm/lần vi phạm sai lệch y khoa nghiêm trọng; -20 điểm/lần spam quảng cáo; -15 điểm/lần ngôn từ công kích thô tục.</div>
+                        <div>&bull; <strong>Cộng điểm thâm niên &amp; an toàn:</strong> +5 điểm cho mỗi 30 ngày tham gia không phát sinh vi phạm (tối đa 100).</div>
+                      </div>
+                    </div>
+
+                    {/* PHẦN 2: HỒ SƠ DINH DƯỠNG CÁ NHÂN HÓA (WF01) */}
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.25rem' }}>
                       <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         🥗 Hồ Sơ Dinh Dưỡng Cá Nhân Hóa (Khớp WF01)
@@ -3026,7 +3101,7 @@ export default function AdminDashboard({ onNavigate }) {
                     <option value="YouTube">YouTube</option>
                     <option value="TikTok">TikTok</option>
                     <option value="VeggieAI Editorial">VeggieAI Editorial</option>
-                    <option value="Chuyên gia">Cộng tác viên Dinh dưỡng</option>
+                    <option value="Authorized User">Thành viên cộng đồng</option>
                   </select>
 
                   <select 
