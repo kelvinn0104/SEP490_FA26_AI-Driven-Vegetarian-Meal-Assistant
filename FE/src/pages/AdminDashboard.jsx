@@ -6,7 +6,8 @@ import {
   XCircle, Eye, RefreshCw, FileText, Plus, Database, Activity, 
   Check, ArrowRight, ExternalLink, ShieldCheck, ChevronRight, X, 
   Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
-  Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart
+  Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart,
+  EyeOff, Ban
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -755,31 +756,246 @@ export default function AdminDashboard({ onNavigate }) {
   };
 
   // =========================================================================
-  // DỮ LIỆU MÀN HÌNH 4: QUẢN LÝ BÌNH LUẬN (COMMENTS)
+  // DỮ LIỆU MÀN HÌNH 4: QUẢN LÝ BÌNH LUẬN (COMMENTS & COMMUNITY MODERATION)
   // =========================================================================
   const [commentsList, setCommentsList] = useState([
-    { id: 'CMT-101', author: 'LeVanCuong', avatar: 'LC', content: 'Bài viết chia sẻ rất khoa học! Tôi áp dụng bổ sung đậu gà ngâm nở thấy không còn bị đầy hơi nữa.', target: 'Blog: Top 5 Nguồn Protein', time: '10 phút trước', status: 'approved', flagged: false },
-    { id: 'CMT-102', author: 'BotQuangCao99', avatar: 'BQ', content: 'Cần gì ăn đậu hũ cho mệt, inbox Zalo 0909xxx mua thuốc tăng cơ giảm mỡ cấp tốc 3 ngày cam kết!', target: 'Video: Đậu Hũ Sốt Cà', time: '25 phút trước', status: 'hidden', flagged: true, flagReason: 'Spam bán hàng & lừa đảo (NLP Confidence 98%)' },
-    { id: 'CMT-103', author: 'HoangYenPham', avatar: 'HY', content: 'Sữa hạt sen điều béo ngậy uống vào buổi tối ngủ rất ngon giấc, cảm ơn VeggieAI đã gợi ý!', target: 'Video: Sữa Hạt Sen Điều', time: '1 giờ trước', status: 'approved', flagged: false },
-    { id: 'CMT-104', author: 'NguyenMinhTri', avatar: 'MT', content: 'Uống nước ép cần tây sống chữa khỏi 100% ung thư dạ dày nha mọi người, đừng đi bệnh viện uổng tiền.', target: 'Blog: Nước Ép & Giải Độc', time: '2 giờ trước', status: 'hidden', flagged: true, flagReason: 'Sai lệch kiến thức y tế nghiêm trọng (NLP Confidence 94%)' }
-  ]);
-  const [commentsFilter, setCommentsFilter] = useState('all');
-  const [commentsSearch, setCommentsSearch] = useState('');
-
-  const handleToggleHideComment = (id) => {
-    setCommentsList(prev => prev.map(c => {
-      if (c.id === id) {
-        const next = c.status === 'approved' ? 'hidden' : 'approved';
-        showToast(next === 'hidden' ? `Đã ẩn bình luận #${id} khỏi giao diện công khai.` : `Đã cho phép hiển thị bình luận #${id}.`);
-        return { ...c, status: next };
+    {
+      id: 'CMT-88912',
+      recordId: 'REV-2026-88912',
+      author: 'Minh Tuấn Bùi',
+      email: 'tuanntri88@gmail.com',
+      handle: '@tuanntri88',
+      avatar: 'MT',
+      avatarBg: '#3b82f6',
+      reputation: 32,
+      violationCount: 'Vi phạm lần 2',
+      joined: '3 tháng trước',
+      content: 'Mọi người đừng nghe bác sĩ tây y, bệnh tiểu đường type 2 chỉ cần nhịn ăn tuyệt đối 21 ngày chỉ uống nước mía là tế bào tự thực diệt khuẩn và khỏi dứt điểm 100%!',
+      highlightWord: 'nhịn ăn tuyệt đối 21 ngày chỉ uống nước mía',
+      time: '5 phút trước',
+      editStatus: 'Chưa qua chỉnh sửa',
+      targetTitle: 'Thực đơn chay 7 ngày cho người tiểu đường',
+      targetType: 'Blog Dinh Dưỡng',
+      targetThumb: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
+      status: 'flagged',
+      category: 'misinformation',
+      riskLevel: 'high',
+      riskLabel: 'Mức Nguy Hiểm',
+      aiAnalysis: {
+        title: 'Sai lệch nghiêm trọng',
+        desc: 'Tuyên truyền nhịn ăn uống nước mía chữa khỏi đái tháo đường đi ngược phác đồ dinh dưỡng chuẩn khoa học.',
+        riskDesc: 'Tăng đường huyết đột ngột từ nước mía có thể gây hôn mê nhiễm toan ceton đối với bệnh nhân tiểu đường.',
+        confidence: '99.4% tương đồng với mẫu tin giả y tế đã phân loại trong từ điển cấm VeggieAI.'
       }
-      return c;
-    }));
+    },
+    {
+      id: 'CMT-88913',
+      recordId: 'REV-2026-88913',
+      author: 'Thảo Dược Vegan',
+      email: 'thaoduoc_xanh@gmail.com',
+      handle: '@thaoduoc_xanh',
+      avatar: 'TD',
+      avatarBg: '#10b981',
+      reputation: 15,
+      violationCount: 'Mới tạo (2 ngày)',
+      joined: '2 ngày trước',
+      content: 'Ai muốn bổ sung canxi và b12 chuẩn tự nhiên không cần ăn đậu nành thì kết bạn Zalo 0988.xxx.899 mình gửi viên thảo dược gia truyền cam kết giảm đau xương khớp sau 3 ngày!',
+      highlightWord: 'kết bạn Zalo 0988.xxx.899',
+      time: '18 phút trước',
+      editStatus: 'Chưa qua chỉnh sửa',
+      targetTitle: 'Cà Ri Đậu Lăng Kem Dừa Khoai Lang',
+      targetType: 'Video Nấu Ăn',
+      targetThumb: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+      status: 'flagged',
+      category: 'spam',
+      riskLevel: 'medium',
+      riskLabel: 'Cảnh Báo Spam',
+      aiAnalysis: {
+        title: 'Spam bán hàng & Lừa đảo TPCN',
+        desc: 'Phát hiện điều hướng sang Zalo cá nhân kinh doanh thực phẩm bổ sung không rõ nguồn gốc, cam kết chữa dứt điểm sai sự thật.',
+        riskDesc: 'Có dấu hiệu chiếm đoạt tài sản người dùng và phân phối sản phẩm chưa qua kiểm nghiệm an toàn.',
+        confidence: '98.8% khớp với mẫu Spam Telegram/Zalo trong cơ sở dữ liệu anti-spam.'
+      }
+    },
+    {
+      id: 'CMT-88914',
+      recordId: 'REV-2026-88914',
+      author: 'Hoàng Nam Vũ',
+      email: 'namvu_kitchen@gmail.com',
+      handle: '@namvu_kitchen',
+      avatar: 'HN',
+      avatarBg: '#f59e0b',
+      reputation: 78,
+      violationCount: 'Cảnh cáo lần 1',
+      joined: '1 năm trước',
+      content: 'Nấu ăn kiểu này mà cũng đăng lên làm đầu bếp? Nhìn như đồ ăn cho lợn, ngu ngốc thế mà cũng đòi dạy dinh dưỡng chay!',
+      highlightWord: 'đồ ăn cho lợn, ngu ngốc thế mà cũng đòi dạy',
+      time: '1 giờ trước',
+      editStatus: 'Chưa qua chỉnh sửa',
+      targetTitle: 'Gỏi Cuốn Bơ Sốt Đậu Phộng Chay',
+      targetType: 'Video Nấu Ăn',
+      targetThumb: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
+      status: 'flagged',
+      category: 'toxic',
+      riskLevel: 'medium',
+      riskLabel: 'Ngôn Từ Thô Tục',
+      aiAnalysis: {
+        title: 'Ngôn từ xúc phạm & Công kích cá nhân',
+        desc: 'Sử dụng từ ngữ miệt thị, thô tục (so sánh xúc phạm) vi phạm bộ tiêu chuẩn ứng xử văn minh cộng đồng ẩm thực VeggieAI.',
+        riskDesc: 'Tạo môi trường thảo luận tiêu cực, gây thù ghét giữa các thành viên.',
+        confidence: '96.5% xác định là Toxicity Comment bởi mô hình NLP Transformer.'
+      }
+    },
+    {
+      id: 'CMT-88915',
+      recordId: 'REV-2026-88915',
+      author: 'Lê Điệp',
+      email: 'dieple_user@gmail.com',
+      handle: '@dieple_member',
+      avatar: 'LD',
+      avatarBg: '#6366f1',
+      reputation: 98,
+      violationCount: 'Authorized User',
+      joined: '2 năm trước',
+      content: 'Lưu ý người bệnh thận giai đoạn 3 cần tham khảo bác sĩ trước khi dùng quá nhiều nấm đông cô vì hàm lượng kali và purin cao có thể gây tăng axit uric.',
+      highlightWord: null,
+      time: '2 giờ trước',
+      editStatus: 'Đã kiểm duyệt',
+      targetTitle: 'Kho Tộ Nấm Dinh Dưỡng Đậm Đà',
+      targetType: 'Blog Dinh Dưỡng',
+      targetThumb: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+      status: 'approved',
+      category: 'safe',
+      riskLevel: 'low',
+      riskLabel: 'An Toàn',
+      aiAnalysis: {
+        title: 'Nhận diện nhầm (False Positive)',
+        desc: 'Bình luận mang tính chất chia sẻ lưu ý sức khỏe thận trọng cho người có bệnh lý nền, dẫn chứng purin và kali phù hợp khoa học.',
+        riskDesc: 'Không có rủi ro phát tán thông tin sai lệch hay phản cảm.',
+        confidence: 'AI phân loại False Positive: Đủ điều kiện phê duyệt hiển thị ngay.'
+      }
+    },
+    {
+      id: 'CMT-88916',
+      recordId: 'REV-2026-88916',
+      author: 'Nguyễn Thu Trang',
+      email: 'thutrang.vegan@gmail.com',
+      handle: '@thutrang_vegan',
+      avatar: 'TT',
+      avatarBg: '#ec4899',
+      reputation: 92,
+      violationCount: 'Authorized User',
+      joined: '8 tháng trước',
+      content: 'Cảm ơn công thức rất chi tiết! Mình đã nấu thử cho cả nhà ăn ngày rằm và ai cũng khen nước dùng cà ri thanh ngọt tự nhiên.',
+      highlightWord: null,
+      time: '3 giờ trước',
+      editStatus: 'Đã kiểm duyệt',
+      targetTitle: 'Cà Ri Đậu Lăng Kem Dừa Khoai Lang',
+      targetType: 'Video Nấu Ăn',
+      targetThumb: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+      status: 'approved',
+      category: 'safe',
+      riskLevel: 'low',
+      riskLabel: 'An Toàn',
+      aiAnalysis: null
+    }
+  ]);
+
+  const [commentsFilter, setCommentsFilter] = useState('flagged');
+  const [commentsSearch, setCommentsSearch] = useState('');
+  const [commentsRiskFilter, setCommentsRiskFilter] = useState('all');
+  const [commentsSourceFilter, setCommentsSourceFilter] = useState('all');
+  const [selectedCommentIds, setSelectedCommentIds] = useState(['CMT-88912', 'CMT-88913']);
+  const [activeInspectingCommentId, setActiveInspectingCommentId] = useState('CMT-88912');
+  const [showKeywordModal, setShowKeywordModal] = useState(false);
+  const [bannedKeywords, setBannedKeywords] = useState([
+    'nhịn ăn tuyệt đối',
+    'uống nước mía chữa khỏi',
+    'kết bạn Zalo 09',
+    'thuốc giảm cân cấp tốc',
+    'đồ ăn cho lợn',
+    'thảo dược gia truyền',
+    'chữa khỏi 100% ung thư'
+  ]);
+  const [newBannedKeyword, setNewBannedKeyword] = useState('');
+
+  const activeInspectingComment = commentsList.find(c => c.id === activeInspectingCommentId) || commentsList[0];
+
+  const handleToggleSelectComment = (id) => {
+    setSelectedCommentIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
   };
 
-  const handleDeleteComment = (id) => {
-    setCommentsList(prev => prev.filter(c => c.id !== id));
-    showToast(`🗑️ Đã xóa vĩnh viễn bình luận #${id} khỏi cơ sở dữ liệu.`);
+  const handleSelectAllComments = (items) => {
+    const itemIds = items.map(i => i.id);
+    const allSelected = itemIds.length > 0 && itemIds.every(id => selectedCommentIds.includes(id));
+    if (allSelected) {
+      setSelectedCommentIds(prev => prev.filter(id => !itemIds.includes(id)));
+    } else {
+      setSelectedCommentIds(prev => Array.from(new Set([...prev, ...itemIds])));
+    }
+  };
+
+  const handleBatchHide = () => {
+    if (selectedCommentIds.length === 0) return;
+    setCommentsList(prev => prev.map(c => 
+      selectedCommentIds.includes(c.id) ? { ...c, status: 'hidden' } : c
+    ));
+    showToast(`👁️ Đã ẩn ${selectedCommentIds.length} bình luận đã chọn khỏi hệ thống!`);
+  };
+
+  const handleBatchApproveSafe = () => {
+    if (selectedCommentIds.length === 0) return;
+    setCommentsList(prev => prev.map(c => 
+      selectedCommentIds.includes(c.id) ? { ...c, status: 'approved', riskLevel: 'low', riskLabel: 'An Toàn' } : c
+    ));
+    showToast(`✅ Đã đánh dấu an toàn & hiển thị cho ${selectedCommentIds.length} bình luận!`);
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedCommentIds.length === 0) return;
+    const count = selectedCommentIds.length;
+    setCommentsList(prev => prev.filter(c => !selectedCommentIds.includes(c.id)));
+    setSelectedCommentIds([]);
+    showToast(`🗑️ Đã xóa vĩnh viễn ${count} bình luận đã chọn.`);
+  };
+
+  const handleQuickApproveSafe = () => {
+    showToast('🛡️ Duyệt nhanh an toàn: Đã tự động phê duyệt 28 bình luận có độ tin cậy NLP > 99%!');
+  };
+
+  const handleSingleDelete = (comment) => {
+    setCommentsList(prev => prev.filter(c => c.id !== comment.id));
+    setSelectedCommentIds(prev => prev.filter(id => id !== comment.id));
+    showToast(`🗑️ Đã xóa bình luận #${comment.id} và gửi cảnh báo vi phạm tới ${comment.author}!`);
+  };
+
+  const handleSingleBanUser = (comment) => {
+    showToast(`⛔ Đã khóa tính năng bình luận của tài khoản ${comment.author} (${comment.handle}) trong 7 ngày!`);
+  };
+
+  const handleSingleMarkFalsePositive = (comment) => {
+    setCommentsList(prev => prev.map(c => 
+      c.id === comment.id ? { ...c, status: 'approved', riskLevel: 'low', riskLabel: 'An Toàn' } : c
+    ));
+    showToast(`✓ Đã bỏ qua cờ vi phạm: Bình luận #${comment.id} đã được đánh dấu nhận diện nhầm & hiển thị.`);
+  };
+
+  const handleExportCSV = () => {
+    showToast('📥 Đang xuất báo cáo kiểm duyệt bình luận (CSV)... Tải xuống hoàn tất!');
+  };
+
+  const handleAddBannedKeyword = () => {
+    if (!newBannedKeyword.trim()) return;
+    setBannedKeywords(prev => [...prev, newBannedKeyword.trim()]);
+    setNewBannedKeyword('');
+    showToast(`➕ Đã thêm từ khóa cấm mới: "${newBannedKeyword.trim()}"`);
+  };
+
+  const handleRemoveBannedKeyword = (kw) => {
+    setBannedKeywords(prev => prev.filter(k => k !== kw));
+    showToast(`Đã xóa từ khóa "${kw}" khỏi bộ lọc.`);
   };
 
   // =========================================================================
@@ -4279,142 +4495,882 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =====================================================================
-              MÀN HÌNH 4: QUẢN LÝ BÌNH LUẬN
+          {/* =====================================================================
+              MÀN HÌNH 4: QUẢN LÝ BÌNH LUẬN & TƯƠNG TÁC CỘNG ĐỒNG (HIGH FIDELITY)
               ===================================================================== */}
           {activeMenu === 'comments' && (
-            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+            <section style={{ animation: 'fadeIn 0.2s ease', paddingBottom: '3rem' }}>
+              {/* TOP HEADER */}
               <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                    4. Quản lý Bình luận
+                  {/* BADGES ROW */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.55rem', flexWrap: 'wrap' }}>
+                    <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.74rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                      AUTOMATED MODERATION v3.2
+                    </span>
+                    <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>
+                      NLP Transformer Model <strong style={{ color: '#0f172a' }}>#VEG-TOX-89</strong>
+                    </span>
+                  </div>
+
+                  <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.45rem 0', lineHeight: '1.25' }}>
+                    Quản lý Bình luận &amp; Tương tác Cộng đồng
                   </h1>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Danh sách toàn bộ tương tác người dùng, phát hiện từ khóa thô tục và xóa bình luận vi phạm tiêu chuẩn.
+                  <p style={{ color: '#64748b', fontSize: '0.86rem', margin: 0, maxWidth: '780px', lineHeight: '1.5' }}>
+                    Giám sát 128,450 bình luận trên toàn hệ thống blog &amp; video công thức chay. Tự động bảo vệ chất lượng nội dung bằng mô hình NLP Toxicity và chuẩn kiểm định an toàn dinh dưỡng thuần chay.
                   </p>
                 </div>
-                <button 
-                  className="admin-btn-primary" 
-                  onClick={() => showToast('Mô hình NLP Toxicity vừa quét xong: Không phát hiện vi phạm mới.')}
-                >
-                  <RefreshCw size={15} /> Quét Tự Động NLP
-                </button>
-              </div>
 
-              {/* FILTER BAR */}
-              <div className="admin-filter-bar">
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* HEADER ACTION BUTTONS */}
+                <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <button 
-                    className={`admin-subtab-btn ${commentsFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => setCommentsFilter('all')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.55rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer', transition: 'all 0.15s' }}
+                    onClick={handleExportCSV}
+                    title="Xuất danh sách kiểm duyệt ra tệp CSV"
                   >
-                    Tất cả ({commentsList.length})
+                    <Download size={14} /> Xuất báo cáo (CSV)
                   </button>
+
                   <button 
-                    className={`admin-subtab-btn ${commentsFilter === 'flagged' ? 'active' : ''}`}
-                    onClick={() => setCommentsFilter('flagged')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.55rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer', transition: 'all 0.15s' }}
+                    onClick={() => setShowKeywordModal(true)}
+                    title="Cấu hình danh sách từ khóa cấm quét tự động"
                   >
-                    Bị gắn cờ vi phạm ({commentsList.filter(c => c.flagged).length})
+                    <Sliders size={14} /> Bộ lọc từ khóa cấm
                   </button>
+
                   <button 
-                    className={`admin-subtab-btn ${commentsFilter === 'safe' ? 'active' : ''}`}
-                    onClick={() => setCommentsFilter('safe')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#047857', border: 'none', padding: '0.55rem 1.15rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer', boxShadow: '0 2px 4px rgba(4,120,87,0.25)', transition: 'all 0.15s' }}
+                    onClick={handleQuickApproveSafe}
                   >
-                    An toàn ({commentsList.filter(c => !c.flagged).length})
+                    <ShieldCheck size={15} /> Duyệt nhanh an toàn (28)
                   </button>
                 </div>
-
-                <input 
-                  type="text" 
-                  className="admin-filter-input"
-                  placeholder="Tìm kiếm nội dung, tác giả, bài viết..." 
-                  value={commentsSearch}
-                  onChange={(e) => setCommentsSearch(e.target.value)}
-                />
               </div>
 
-              {/* COMMENTS TABLE */}
-              <div className="admin-table-container">
-                <table className="admin-data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '18%' }}>TÁC GIẢ</th>
-                      <th style={{ width: '40%' }}>NỘI DUNG BÌNH LUẬN</th>
-                      <th style={{ width: '20%' }}>VỊ TRÍ BÀI VIẾT</th>
-                      <th style={{ width: '10%' }}>TRẠNG THÁI</th>
-                      <th style={{ width: '12%', textAlign: 'center' }}>THAO TÁC</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {commentsList
-                      .filter(c => {
-                        if (commentsFilter === 'flagged') return c.flagged;
-                        if (commentsFilter === 'safe') return !c.flagged;
-                        return true;
-                      })
-                      .filter(c => {
-                        if (!commentsSearch) return true;
-                        return c.content.toLowerCase().includes(commentsSearch.toLowerCase()) || 
-                               c.author.toLowerCase().includes(commentsSearch.toLowerCase()) ||
-                               c.target.toLowerCase().includes(commentsSearch.toLowerCase());
-                      })
-                      .map((comment) => (
-                        <tr key={comment.id}>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f1f5f9', color: '#047857', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
-                                {comment.avatar}
-                              </div>
-                              <div>
-                                <strong style={{ display: 'block', color: '#0f172a' }}>{comment.author}</strong>
-                                <small style={{ color: '#94a3b8' }}>{comment.time}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ lineHeight: '1.45', color: '#334155' }}>{comment.content}</div>
-                            {comment.flagged && (
-                              <div style={{ marginTop: '0.35rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#fee2e2', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-                                <AlertTriangle size={12} /> {comment.flagReason}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 600 }}>{comment.target}</span>
-                          </td>
-                          <td>
-                            <span style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              padding: '0.2rem 0.55rem',
-                              borderRadius: '12px',
-                              background: comment.status === 'approved' ? '#ecfdf5' : '#fee2e2',
-                              color: comment.status === 'approved' ? '#047857' : '#b91c1c'
-                            }}>
-                              {comment.status === 'approved' ? 'Hiển thị' : 'Đã ẩn'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                              <button 
-                                style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.35rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
-                                onClick={() => handleToggleHideComment(comment.id)}
-                              >
-                                {comment.status === 'hidden' ? 'Hiện' : 'Ẩn'}
-                              </button>
-                              <button 
-                                style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer' }}
-                                onClick={() => handleDeleteComment(comment.id)}
-                                title="Xóa vĩnh viễn"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
+              {/* 4 STATS METRIC CARDS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                {/* METRIC 1 */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>Tổng bình luận hệ thống</span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MessageSquare size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', lineHeight: '1.1', marginBottom: '0.65rem' }}>
+                    128,450
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem' }}>
+                    <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '10px' }}>
+                      &uarr; +8.4%
+                    </span>
+                    <span style={{ color: '#64748b' }}>so với tuần trước</span>
+                  </div>
+                </div>
+
+                {/* METRIC 2 */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ea580c' }} />
+                      <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>AI gắn cờ nghi vấn</span>
+                    </div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Flag size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', lineHeight: '1.1', marginBottom: '0.65rem' }}>
+                    42
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem' }}>
+                    <span style={{ color: '#64748b' }}>Chờ kiểm duyệt gấp:</span>
+                    <span style={{ background: '#7f1d1d', color: '#ffffff', fontWeight: 800, padding: '0.12rem 0.45rem', borderRadius: '6px', fontSize: '0.68rem' }}>
+                      14 High Risk
+                    </span>
+                  </div>
+                </div>
+
+                {/* METRIC 3 */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>Đã gỡ &amp; Khóa vi phạm</span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ban size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#dc2626', lineHeight: '1.1', marginBottom: '0.65rem' }}>
+                    318
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Spam TPCN (210) &bull; Sai lệch (108)
+                  </div>
+                </div>
+
+                {/* METRIC 4 */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>Tỷ lệ tương tác an toàn</span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ShieldCheck size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#047857', lineHeight: '1.1', marginBottom: '0.65rem' }}>
+                    94.2%
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Độ chuẩn NLP: <strong>98.7%</strong></span>
+                    <div style={{ flex: 1, height: '5px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: '98.7%', height: '100%', background: '#059669', borderRadius: '3px' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MAIN CONTENT 2-COLUMN GRID */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(320px, 1.15fr)', gap: '1.5rem', alignItems: 'start' }}>
+                
+                {/* ================= LEFT COLUMN: TABLE & FILTERS ================= */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  
+                  {/* SUBTABS FILTER BAR */}
+                  <div style={{ display: 'flex', gap: '0.45rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem', marginBottom: '1rem', overflowX: 'auto' }}>
+                    <button 
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: commentsFilter === 'all' ? '#047857' : 'transparent',
+                        color: commentsFilter === 'all' ? '#ffffff' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s'
+                      }}
+                      onClick={() => setCommentsFilter('all')}
+                    >
+                      Tất cả <span style={{ opacity: 0.85, fontSize: '0.74rem' }}>128,450</span>
+                    </button>
+
+                    <button 
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: commentsFilter === 'flagged' ? '#047857' : 'transparent',
+                        color: commentsFilter === 'flagged' ? '#ffffff' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s'
+                      }}
+                      onClick={() => setCommentsFilter('flagged')}
+                    >
+                      AI gắn cờ <span style={{ background: commentsFilter === 'flagged' ? '#065f46' : '#f1f5f9', color: commentsFilter === 'flagged' ? '#fff' : '#475569', padding: '0.1rem 0.4rem', borderRadius: '10px', fontSize: '0.7rem' }}>42</span>
+                    </button>
+
+                    <button 
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: commentsFilter === 'spam' ? '#047857' : 'transparent',
+                        color: commentsFilter === 'spam' ? '#ffffff' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s'
+                      }}
+                      onClick={() => setCommentsFilter('spam')}
+                    >
+                      Spam &amp; Quảng cáo <span style={{ opacity: 0.85, fontSize: '0.74rem' }}>18</span>
+                    </button>
+
+                    <button 
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: commentsFilter === 'misinformation' ? '#047857' : 'transparent',
+                        color: commentsFilter === 'misinformation' ? '#ffffff' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s'
+                      }}
+                      onClick={() => setCommentsFilter('misinformation')}
+                    >
+                      Sai lệch dinh dưỡng <span style={{ opacity: 0.85, fontSize: '0.74rem' }}>15</span>
+                    </button>
+
+                    <button 
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: commentsFilter === 'hidden' ? '#047857' : 'transparent',
+                        color: commentsFilter === 'hidden' ? '#ffffff' : '#64748b',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s'
+                      }}
+                      onClick={() => setCommentsFilter('hidden')}
+                    >
+                      Đã ẩn/Xóa <span style={{ opacity: 0.85, fontSize: '0.74rem' }}>318</span>
+                    </button>
+                  </div>
+
+                  {/* SEARCH & SECONDARY FILTERS ROW */}
+                  <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+                      <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                      <input 
+                        type="text"
+                        placeholder="Tìm theo từ khóa, tài khoản, bài viết..."
+                        value={commentsSearch}
+                        onChange={(e) => setCommentsSearch(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem 0.75rem 0.5rem 2.2rem',
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          outline: 'none',
+                          color: '#1e293b',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <select 
+                      value={commentsRiskFilter}
+                      onChange={(e) => setCommentsRiskFilter(e.target.value)}
+                      style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.5rem 0.65rem', fontSize: '0.8rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                    >
+                      <option value="all">Mức độ: Tất cả rủi ro</option>
+                      <option value="high">Rủi ro cao (High Risk)</option>
+                      <option value="medium">Rủi ro trung bình</option>
+                      <option value="low">Rủi ro thấp / An toàn</option>
+                    </select>
+
+                    <select 
+                      value={commentsSourceFilter}
+                      onChange={(e) => setCommentsSourceFilter(e.target.value)}
+                      style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.5rem 0.65rem', fontSize: '0.8rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                    >
+                      <option value="all">Nguồn: Tất cả bài viết</option>
+                      <option value="blog">Blog Dinh Dưỡng</option>
+                      <option value="video">Video Nấu Ăn</option>
+                    </select>
+
+                    <button 
+                      style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}
+                      onClick={() => {
+                        setCommentsSearch('');
+                        setCommentsRiskFilter('all');
+                        setCommentsSourceFilter('all');
+                        showToast('Đã làm mới bộ lọc danh sách bình luận.');
+                      }}
+                      title="Làm mới bộ lọc"
+                    >
+                      <RefreshCw size={14} />
+                    </button>
+                  </div>
+
+                  {/* BATCH ACTION BAR (WHEN SELECTED) */}
+                  <div style={{
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '8px',
+                    padding: '0.65rem 0.95rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.65rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.82rem', color: '#1e40af', fontWeight: 700 }}>
+                      <input 
+                        type="checkbox"
+                        checked={selectedCommentIds.length > 0}
+                        onChange={() => handleSelectAllComments(commentsList)}
+                        style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
+                      />
+                      <span>Đang chọn {selectedCommentIds.length}/42 bình luận nghi vấn</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                      <button 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}
+                        onClick={handleBatchHide}
+                        title="Ẩn khỏi hiển thị công khai"
+                      >
+                        <EyeOff size={13} /> Ẩn đã chọn
+                      </button>
+
+                      <button 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: 700, color: '#047857', cursor: 'pointer' }}
+                        onClick={handleBatchApproveSafe}
+                        title="Đánh dấu an toàn"
+                      >
+                        <CheckCircle2 size={13} /> Đánh dấu An toàn
+                      </button>
+
+                      <button 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#fee2e2', border: '1px solid #fca5a5', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: 700, color: '#b91c1c', cursor: 'pointer' }}
+                        onClick={handleBatchDelete}
+                        title="Xóa vĩnh viễn"
+                      >
+                        <Trash2 size={13} /> Xóa vĩnh viễn
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* DATA TABLE */}
+                  <div style={{ overflowX: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.74rem', textTransform: 'uppercase' }}>
+                          <th style={{ padding: '0.65rem 0.5rem', width: '36px', textAlign: 'center' }}>
+                            <input 
+                              type="checkbox"
+                              checked={commentsList.length > 0 && commentsList.every(c => selectedCommentIds.includes(c.id))}
+                              onChange={() => handleSelectAllComments(commentsList)}
+                              style={{ accentColor: '#047857', cursor: 'pointer' }}
+                            />
+                          </th>
+                          <th style={{ padding: '0.65rem 0.75rem', width: '22%' }}>Người gửi &amp; Tín nhiệm</th>
+                          <th style={{ padding: '0.65rem 0.75rem', width: '48%' }}>Nội dung bình luận</th>
+                          <th style={{ padding: '0.65rem 0.75rem', width: '26%' }}>Bài viết ngữ cảnh</th>
                         </tr>
-                      ))}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {commentsList
+                          .filter(c => {
+                            if (commentsFilter === 'flagged') return c.status === 'flagged';
+                            if (commentsFilter === 'spam') return c.category === 'spam';
+                            if (commentsFilter === 'misinformation') return c.category === 'misinformation';
+                            if (commentsFilter === 'hidden') return c.status === 'hidden';
+                            return true;
+                          })
+                          .filter(c => {
+                            if (commentsRiskFilter === 'high') return c.riskLevel === 'high';
+                            if (commentsRiskFilter === 'medium') return c.riskLevel === 'medium';
+                            if (commentsRiskFilter === 'low') return c.riskLevel === 'low';
+                            return true;
+                          })
+                          .filter(c => {
+                            if (commentsSourceFilter === 'blog') return c.targetType === 'Blog Dinh Dưỡng';
+                            if (commentsSourceFilter === 'video') return c.targetType === 'Video Nấu Ăn';
+                            return true;
+                          })
+                          .filter(c => {
+                            if (!commentsSearch) return true;
+                            const q = commentsSearch.toLowerCase();
+                            return c.content.toLowerCase().includes(q) ||
+                                   c.author.toLowerCase().includes(q) ||
+                                   c.handle.toLowerCase().includes(q) ||
+                                   c.targetTitle.toLowerCase().includes(q);
+                          })
+                          .map((comment) => {
+                            const isSelected = selectedCommentIds.includes(comment.id);
+                            const isInspecting = activeInspectingComment?.id === comment.id;
+
+                            return (
+                              <tr 
+                                key={comment.id}
+                                onClick={() => setActiveInspectingCommentId(comment.id)}
+                                style={{
+                                  borderBottom: '1px solid #f1f5f9',
+                                  background: isInspecting ? '#f0fdf4' : (isSelected ? '#f8fafc' : '#ffffff'),
+                                  cursor: 'pointer',
+                                  transition: 'background 0.12s'
+                                }}
+                              >
+                                <td style={{ padding: '0.85rem 0.5rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                  <input 
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleToggleSelectComment(comment.id)}
+                                    style={{ accentColor: '#047857', cursor: 'pointer' }}
+                                  />
+                                </td>
+
+                                <td style={{ padding: '0.85rem 0.75rem', verticalAlign: 'top' }}>
+                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: comment.avatarBg, color: '#ffffff', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                      {comment.avatar}
+                                    </div>
+                                    <div>
+                                      <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>{comment.author}</strong>
+                                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{comment.handle}</span>
+                                      
+                                      <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
+                                        <span style={{
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          padding: '0.1rem 0.35rem',
+                                          borderRadius: '4px',
+                                          background: comment.reputation < 50 ? '#fee2e2' : (comment.reputation < 80 ? '#fff7ed' : '#ecfdf5'),
+                                          color: comment.reputation < 50 ? '#b91c1c' : (comment.reputation < 80 ? '#c2410c' : '#047857')
+                                        }}>
+                                          Uy tín: {comment.reputation}/100
+                                        </span>
+                                        {comment.violationCount && (
+                                          <span style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: 700,
+                                            padding: '0.1rem 0.35rem',
+                                            borderRadius: '4px',
+                                            background: comment.violationCount.includes('Vi phạm') ? '#fee2e2' : (comment.violationCount.includes('Mới') ? '#ffedd5' : '#f1f5f9'),
+                                            color: comment.violationCount.includes('Vi phạm') ? '#dc2626' : (comment.violationCount.includes('Mới') ? '#ea580c' : '#475569')
+                                          }}>
+                                            {comment.violationCount}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td style={{ padding: '0.85rem 0.75rem', verticalAlign: 'top' }}>
+                                  <div style={{ fontSize: '0.84rem', color: '#1e293b', lineHeight: '1.55', marginBottom: '0.4rem' }}>
+                                    &ldquo;
+                                    {comment.highlightWord ? (
+                                      <>
+                                        {comment.content.split(comment.highlightWord)[0]}
+                                        <mark style={{
+                                          background: comment.riskLevel === 'high' ? '#fee2e2' : '#ffedd5',
+                                          color: comment.riskLevel === 'high' ? '#b91c1c' : '#c2410c',
+                                          padding: '0.1rem 0.3rem',
+                                          borderRadius: '4px',
+                                          fontWeight: 700
+                                        }}>
+                                          {comment.highlightWord}
+                                        </mark>
+                                        {comment.content.split(comment.highlightWord)[1]}
+                                      </>
+                                    ) : (
+                                      comment.content
+                                    )}
+                                    &rdquo;
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.72rem', color: '#94a3b8' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                      <Clock size={12} /> {comment.time}
+                                    </span>
+                                    <span>&bull;</span>
+                                    <span>{comment.editStatus}</span>
+                                  </div>
+                                </td>
+
+                                <td style={{ padding: '0.85rem 0.75rem', verticalAlign: 'top' }}>
+                                  <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center' }}>
+                                    <img 
+                                      src={comment.targetThumb}
+                                      alt={comment.targetTitle}
+                                      style={{ width: '42px', height: '42px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                                    />
+                                    <div>
+                                      <strong style={{ display: 'block', fontSize: '0.78rem', color: '#0f172a', lineHeight: '1.35', marginBottom: '0.2rem' }}>
+                                        {comment.targetTitle}
+                                      </strong>
+                                      <span style={{
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        padding: '0.1rem 0.4rem',
+                                        borderRadius: '4px',
+                                        background: comment.targetType.includes('Video') ? '#eff6ff' : '#f0fdf4',
+                                        color: comment.targetType.includes('Video') ? '#2563eb' : '#059669'
+                                      }}>
+                                        {comment.targetType}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PAGINATION */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem', color: '#64748b' }}>
+                    <span>Hiển thị 1-4 trên tổng số 42 bình luận nghi vấn</span>
+                    
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                      <button style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.25rem 0.55rem', fontSize: '0.75rem', cursor: 'pointer', color: '#64748b' }}>&lt;</button>
+                      <button style={{ background: '#047857', border: 'none', borderRadius: '6px', padding: '0.25rem 0.65rem', fontSize: '0.75rem', cursor: 'pointer', color: '#ffffff', fontWeight: 800 }}>1</button>
+                      <button style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.25rem 0.65rem', fontSize: '0.75rem', cursor: 'pointer', color: '#64748b' }}>2</button>
+                      <button style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.25rem 0.65rem', fontSize: '0.75rem', cursor: 'pointer', color: '#64748b' }}>3</button>
+                      <button style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.25rem 0.55rem', fontSize: '0.75rem', cursor: 'pointer', color: '#64748b' }}>&gt;</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ================= RIGHT COLUMN: CHI TIẾT KIỂM DUYỆT AI ================= */}
+                <div style={{ position: 'sticky', top: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {activeInspectingComment ? (
+                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                      {/* DRAWER HEADER */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                            <ShieldAlert size={18} color="#dc2626" />
+                            <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                              Chi tiết Kiểm duyệt AI
+                            </h3>
+                          </div>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.15rem', display: 'block' }}>
+                            Mã bản ghi: #{activeInspectingComment.recordId}
+                          </span>
+                        </div>
+
+                        <span style={{
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '8px',
+                          background: activeInspectingComment.riskLevel === 'high' ? '#fee2e2' : (activeInspectingComment.riskLevel === 'medium' ? '#ffedd5' : '#ecfdf5'),
+                          color: activeInspectingComment.riskLevel === 'high' ? '#b91c1c' : (activeInspectingComment.riskLevel === 'medium' ? '#c2410c' : '#047857'),
+                          border: activeInspectingComment.riskLevel === 'high' ? '1px solid #fca5a5' : '1px solid #fdba74'
+                        }}>
+                          {activeInspectingComment.riskLabel}
+                        </span>
+                      </div>
+
+                      {/* USER INFO MINI CARD */}
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.85rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
+                          <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: activeInspectingComment.avatarBg, color: '#ffffff', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                            {activeInspectingComment.avatar}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{activeInspectingComment.author}</strong>
+                              <span style={{ color: '#dc2626', fontSize: '0.72rem', fontWeight: 800 }}>{activeInspectingComment.violationCount}</span>
+                            </div>
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>{activeInspectingComment.email}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '0.5rem', fontSize: '0.74rem' }}>
+                          <span style={{ color: '#64748b' }}>Tham gia: <strong>{activeInspectingComment.joined}</strong></span>
+                          <span style={{ color: '#b91c1c', fontWeight: 700 }}>Tín nhiệm: {activeInspectingComment.reputation}/100</span>
+                        </div>
+                      </div>
+
+                      {/* ORIGINAL COMMENT BOX */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '0.35rem' }}>
+                          NỘI DUNG BÌNH LUẬN GỐC:
+                        </label>
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.85rem', fontSize: '0.82rem', lineHeight: '1.55', color: '#1e293b', fontStyle: 'italic' }}>
+                          &ldquo;
+                          {activeInspectingComment.highlightWord ? (
+                            <>
+                              {activeInspectingComment.content.split(activeInspectingComment.highlightWord)[0]}
+                              <mark style={{
+                                background: activeInspectingComment.riskLevel === 'high' ? '#fee2e2' : '#ffedd5',
+                                color: activeInspectingComment.riskLevel === 'high' ? '#b91c1c' : '#c2410c',
+                                padding: '0.15rem 0.35rem',
+                                borderRadius: '4px',
+                                fontWeight: 800
+                              }}>
+                                {activeInspectingComment.highlightWord}
+                              </mark>
+                              {activeInspectingComment.content.split(activeInspectingComment.highlightWord)[1]}
+                            </>
+                          ) : (
+                            activeInspectingComment.content
+                          )}
+                          &rdquo;
+                        </div>
+                      </div>
+
+                      {/* AI NLP ANALYSIS BOX */}
+                      {activeInspectingComment.aiAnalysis && (
+                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '0.85rem', marginBottom: '1rem' }}>
+                          <div style={{ fontSize: '0.74rem', color: '#92400e', fontWeight: 800, marginBottom: '0.55rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <Zap size={14} color="#d97706" /> PHÂN TÍCH TỰ ĐỘNG TỪ VEGGIE-NLP
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', fontSize: '0.78rem' }}>
+                            <div>
+                              <strong style={{ color: '#b91c1c', display: 'block', marginBottom: '0.1rem' }}>
+                                &bull; {activeInspectingComment.aiAnalysis.title}:
+                              </strong>
+                              <span style={{ color: '#451a03', lineHeight: '1.45' }}>
+                                {activeInspectingComment.aiAnalysis.desc}
+                              </span>
+                            </div>
+
+                            <div>
+                              <strong style={{ color: '#ea580c', display: 'block', marginBottom: '0.1rem' }}>
+                                &bull; Rủi ro tiềm tàng:
+                              </strong>
+                              <span style={{ color: '#451a03', lineHeight: '1.45' }}>
+                                {activeInspectingComment.aiAnalysis.riskDesc}
+                              </span>
+                            </div>
+
+                            <div style={{ borderTop: '1px dashed #fcd34d', paddingTop: '0.45rem', fontSize: '0.72rem', color: '#78350f' }}>
+                              Mức tin cậy mô hình: <strong>{activeInspectingComment.aiAnalysis.confidence}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CONTEXT POST BOX */}
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem 0.75rem', marginBottom: '1.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <img 
+                            src={activeInspectingComment.targetThumb}
+                            alt={activeInspectingComment.targetTitle}
+                            style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Đăng tại bài viết:</div>
+                            <strong style={{ fontSize: '0.78rem', color: '#0f172a' }}>{activeInspectingComment.targetTitle}</strong>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', color: '#047857', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Xem <ExternalLink size={12} />
+                        </span>
+                      </div>
+
+                      {/* ACTION BUTTONS (ADMIN INTERVENTION) */}
+                      <div style={{ marginBottom: '1.15rem' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.5rem' }}>
+                          HÀNH ĐỘNG CAN THIỆP CỦA QUẢN TRỊ VIÊN:
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <button 
+                            style={{
+                              width: '100%',
+                              background: '#b91c1c',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.45rem',
+                              boxShadow: '0 2px 4px rgba(185,28,28,0.25)',
+                              transition: 'all 0.15s'
+                            }}
+                            onClick={() => handleSingleDelete(activeInspectingComment)}
+                          >
+                            <Trash2 size={15} /> Xóa bình luận &amp; Gửi cảnh báo vi phạm
+                          </button>
+
+                          <button 
+                            style={{
+                              width: '100%',
+                              background: '#78350f',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.45rem',
+                              boxShadow: '0 2px 4px rgba(120,53,15,0.25)',
+                              transition: 'all 0.15s'
+                            }}
+                            onClick={() => handleSingleBanUser(activeInspectingComment)}
+                          >
+                            <Ban size={15} /> Khóa tính năng bình luận của User (7 ngày)
+                          </button>
+
+                          <button 
+                            style={{
+                              width: '100%',
+                              background: '#ecfdf5',
+                              border: '1px solid #a7f3d0',
+                              color: '#047857',
+                              borderRadius: '8px',
+                              padding: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.45rem',
+                              transition: 'all 0.15s'
+                            }}
+                            onClick={() => handleSingleMarkFalsePositive(activeInspectingComment)}
+                          >
+                            <CheckCircle2 size={15} /> Bỏ qua cờ / Đánh dấu Nhận diện nhầm (False Positive)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* POLICY DISCLAIMER BOX */}
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.75rem', fontSize: '0.75rem', color: '#166534', lineHeight: '1.45' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, marginBottom: '0.25rem' }}>
+                          <ShieldCheck size={14} color="#059669" /> Quy tắc an toàn VeggieAI
+                        </div>
+                        Các bình luận tuyên truyền nhịn ăn cực đoan, sai lệch dinh dưỡng, bôi nhọ hoặc buôn bán TPCN không rõ nguồn gốc sẽ bị gỡ bỏ theo Điều lệ Bảo vệ Sức khỏe Cộng đồng.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                      <MessageSquare size={36} color="#cbd5e1" style={{ margin: '0 auto 0.5rem auto' }} />
+                      <p style={{ margin: 0, fontSize: '0.85rem' }}>Chọn một bình luận trong bảng để xem chi tiết phân tích AI</p>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* MODAL: BỘ LỌC TỪ KHÓA CẤM (KEYWORD BLACKLIST) */}
+              {showKeywordModal && (
+                <div style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  backdropFilter: 'blur(3px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '1rem'
+                }}>
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '520px',
+                    padding: '1.5rem',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+                    animation: 'fadeIn 0.2s ease'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Sliders size={18} color="#047857" />
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Bộ Lọc Từ Khóa Cấm (NLP Blacklist)
+                        </h3>
+                      </div>
+                      <button 
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                        onClick={() => setShowKeywordModal(false)}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 1rem 0', lineHeight: '1.5' }}>
+                      Mô hình Veggie-NLP tự động phát hiện và gắn cờ các bình luận có chứa các từ ngữ thuộc từ điển cấm này trước khi hiển thị cho cộng đồng.
+                    </p>
+
+                    {/* ADD KEYWORD FORM */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                      <input 
+                        type="text"
+                        placeholder="Nhập từ khóa cấm cần bổ sung..."
+                        value={newBannedKeyword}
+                        onChange={(e) => setNewBannedKeyword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddBannedKeyword()}
+                        style={{
+                          flex: 1,
+                          padding: '0.55rem 0.75rem',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          outline: 'none'
+                        }}
+                      />
+                      <button 
+                        style={{ background: '#047857', border: 'none', borderRadius: '8px', color: '#ffffff', padding: '0.55rem 1rem', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                        onClick={handleAddBannedKeyword}
+                      >
+                        + Thêm từ khóa
+                      </button>
+                    </div>
+
+                    {/* KEYWORDS TAGS LIST */}
+                    <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.5rem' }}>
+                      DANH SÁCH TỪ KHÓA ĐANG KÍCH HOẠT ({bannedKeywords.length}):
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', maxHeight: '200px', overflowY: 'auto', padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '1.25rem' }}>
+                      {bannedKeywords.map((kw, i) => (
+                        <span 
+                          key={i}
+                          style={{
+                            background: '#fee2e2',
+                            border: '1px solid #fca5a5',
+                            color: '#b91c1c',
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: '6px',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          {kw}
+                          <X 
+                            size={13} 
+                            style={{ cursor: 'pointer', color: '#dc2626' }}
+                            onClick={() => handleRemoveBannedKeyword(kw)}
+                          />
+                        </span>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                        &bull; Độ chính xác phân loại NLP: 98.7%
+                      </span>
+                      <button 
+                        style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.45rem 1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}
+                        onClick={() => setShowKeywordModal(false)}
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
