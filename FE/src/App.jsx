@@ -18,8 +18,47 @@ import Button from './components/ui/Button';
 import Card from './components/ui/Card';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
   const { user, loginAsAdmin } = useAuth();
+
+  // XÁC ĐỊNH TAB KHỞI TẠO HOẶC PHỤC HỒI SAU KHI NHẤN F5
+  const getInitialTab = () => {
+    try {
+      // 1. Kiểm tra tài khoản đã lưu trong localStorage
+      const savedUserStr = localStorage.getItem('veggieai_user');
+      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+      const role = savedUser?.role;
+
+      // 2. Kiểm tra tab gần nhất đã lưu trong session/localStorage
+      const savedTab = localStorage.getItem('veggieai_active_tab');
+
+      // 3. Nếu là Admin: mặc định là 'admin' (Admin Dashboard), giữ nguyên tab nếu đang mở trang hợp lệ
+      if (role === 'Admin') {
+        if (savedTab && !['login', 'register', 'home'].includes(savedTab)) {
+          return savedTab;
+        }
+        return 'admin';
+      }
+
+      // 4. Nếu là Moderator: mặc định là 'moderation' (Moderator Dashboard), giữ nguyên tab nếu đang mở trang hợp lệ
+      if (role === 'Moderator') {
+        if (savedTab && !['login', 'register', 'home'].includes(savedTab)) {
+          return savedTab;
+        }
+        return 'moderation';
+      }
+
+      // 5. Nếu là User hoặc Khách: giữ nguyên tab đã lưu nếu không phải tab quản trị
+      if (savedTab && !['admin', 'moderation'].includes(savedTab)) {
+        return savedTab;
+      }
+
+      return 'home';
+    } catch (e) {
+      return 'home';
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
 
   // VÔ HIỆU HÓA SCROLL RESTORATION TỰ ĐỘNG CỦA TRÌNH DUYỆT ĐỂ LUÔN BẮT ĐẦU Ở ĐẦU TRANG
   useEffect(() => {
@@ -28,13 +67,36 @@ export default function App() {
     }
   }, []);
 
-  // ĐIỀU HƯỚNG VÀ TỰ ĐỘNG CUỘN LÊN ĐẦU TRANG CHO MỌI LIÊN KẾT
+  // ĐIỀU HƯỚNG VÀ TỰ ĐỘNG LƯU VÀO LOCALSTORAGE ĐỂ TRÁNH BỊ MẤT TRANG KHI F5
   const handleNavigate = (tab) => {
     setActiveTab(tab);
+    try {
+      localStorage.setItem('veggieai_active_tab', tab);
+    } catch (e) {}
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   };
+
+  // ĐẢM BẢO KHI ĐĂNG NHẬP HOẶC ĐỔI ROLE THÌ ADMIN & MOD TỰ ĐỘNG CHUYỂN ĐẾN DASHBOARD MẶC ĐỊNH
+  useEffect(() => {
+    if (user?.role === 'Admin') {
+      const savedTab = localStorage.getItem('veggieai_active_tab');
+      if (!savedTab || ['login', 'register', 'home'].includes(savedTab)) {
+        handleNavigate('admin');
+      }
+    } else if (user?.role === 'Moderator') {
+      const savedTab = localStorage.getItem('veggieai_active_tab');
+      if (!savedTab || ['login', 'register', 'home'].includes(savedTab)) {
+        handleNavigate('moderation');
+      }
+    } else if (!user) {
+      // Khi đã đăng xuất, nếu tab hiện tại là trang quản trị thì quay về home
+      if (activeTab === 'admin' || activeTab === 'moderation') {
+        handleNavigate('home');
+      }
+    }
+  }, [user]);
 
   // ĐẢM BẢO MỌI THAY ĐỔI TAB LUÔN ĐƯỢC BẮT ĐẦU Ở ĐẦU TRANG MỚI (RAF + BACKUP TIMERS)
   useEffect(() => {
@@ -154,7 +216,7 @@ export default function App() {
         {/* BẢO VỆ TRANG MODERATION: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP */}
         {activeTab === 'moderation' && (
           user && (user.role === 'Admin' || user.role === 'Moderator') ? (
-            <ModerationQueue />
+            <ModerationQueue onNavigate={handleNavigate} />
           ) : (
             <Card style={{ maxWidth: '600px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
               <div style={{ width: '60px', height: '60px', background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>

@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     try {
       localStorage.removeItem('veggieai_user');
+      localStorage.removeItem('veggieai_active_tab');
     } catch (e) {}
   };
 

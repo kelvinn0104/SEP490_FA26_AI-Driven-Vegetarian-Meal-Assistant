@@ -28,7 +28,27 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'videos', label: 'Video nấu ăn' }
   ];
 
-  const currentNavLinks = user ? memberNavLinks : guestNavLinks;
+  const currentNavLinks = (() => {
+    if (!user) return guestNavLinks;
+    if (user.role === 'Moderator') {
+      return [
+        { id: 'moderation', label: '🛡️ Dashboard Duyệt bài' },
+        { id: 'home', label: 'Trang chủ' },
+        { id: 'blog', label: 'Blog' },
+        { id: 'videos', label: 'Video nấu ăn' }
+      ];
+    }
+    if (user.role === 'Admin') {
+      return [
+        { id: 'admin', label: '👑 Admin Dashboard' },
+        { id: 'home', label: 'Trang chủ' },
+        { id: 'planner', label: 'Thực đơn AI' },
+        { id: 'vision', label: 'Quét tủ lạnh' },
+        { id: 'blog', label: 'Blog' }
+      ];
+    }
+    return memberNavLinks;
+  })();
 
   const handleNavClick = (tab) => {
     if (setActiveTab) setActiveTab(tab);
