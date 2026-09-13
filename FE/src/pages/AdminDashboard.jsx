@@ -275,6 +275,11 @@ export default function AdminDashboard({ onNavigate }) {
 
   // =========================================================================
   // DỮ LIỆU MÀN HÌNH 2 & 3: QUẢN LÝ BLOG & VIDEO NẤU ĂN + CHI TIẾT
+  // TUÂN THỦ 100% PHẠM VI 4 ACTORS & WF07 / WF09 / WF11:
+  // - Tác giả người dùng hiển thị vai trò chính thức: Authorized User
+  // - Badge xác thực đơn giản: "Đã xác minh" (bỏ chức danh nghề nghiệp / đối tác KOL)
+  // - Quy trình kiểm duyệt đưa về Mod duyệt Public (WF07), bỏ "kiểm định y khoa" ngoài phạm vi
+  // - Lý do gắn cờ chuẩn WF09: "Nghi vấn sai lệch dinh dưỡng" (bỏ bản quyền)
   // =========================================================================
   const [contentList, setContentList] = useState([
     { 
@@ -290,9 +295,9 @@ export default function AdminDashboard({ onNavigate }) {
       tags: ['Không Gluten', 'Nhiều Chất Xơ'],
       warningTag: null,
       author: 'Bếp Chay An Lạc',
-      authorAvatar: 'YT',
+      authorAvatar: 'AN',
       authorAvatarBg: '#f97316',
-      authorRole: 'YouTube Partner',
+      authorRole: 'Authorized User',
       authorVerified: true,
       source: 'YouTube',
       aiMatch: '98.4% AI Match',
@@ -304,7 +309,7 @@ export default function AdminDashboard({ onNavigate }) {
       rating: '4.9 (310)',
       isFlagged: false,
       status: 'Đã xuất bản',
-      verifiedMedical: false,
+      verifiedMod: true,
       mediaUrl: 'https://youtube.com/watch?v=mock-curry-vegan',
       content: 'Món Cà Ri Rau Củ Nước Cốt Dừa béo ngậy tự nhiên, kết hợp khoai lang mật, cà rốt và đậu hũ chiên. Công thức đã được AI bóc tách chi tiết từng bước nấu và cân bằng lượng calo.',
       ingredients: ['Khoai lang: 2 củ', 'Cà rốt: 1 củ', 'Nước cốt dừa: 200ml', 'Đậu hũ: 2 bìa', 'Bột cà ri: 1 muỗng']
@@ -322,21 +327,21 @@ export default function AdminDashboard({ onNavigate }) {
       tags: ['B12 Tự Nhiên', 'Kiến thức Dinh Dưỡng'],
       warningTag: null,
       author: 'BS. CKI Lan Hương',
-      authorAvatar: 'BS',
+      authorAvatar: 'LH',
       authorAvatarBg: '#10b981',
-      authorRole: 'Chuyên gia Viện DD',
+      authorRole: 'Authorized User',
       authorVerified: true,
       source: 'VeggieAI Editorial',
-      aiMatch: 'Thẩm định Y khoa',
+      aiMatch: '99.2% AI Match',
       aiDetails: 'Trích xuất 6 nguồn vi chất',
       macro: 'RDA đối chiếu: 2.4 mcg/ngày',
-      aiStatus: 'verified',
+      aiStatus: 'extracted',
       views: '42.1k lượt xem',
       saved: '3,890 lưu cẩm nang',
       rating: '5.0 (892)',
       isFlagged: false,
       status: 'Đã xuất bản',
-      verifiedMedical: true,
+      verifiedMod: true,
       mediaUrl: '',
       content: 'Vitamin B12 đóng vai trò then chốt trong việc tạo hồng cầu và duy trì hệ thần kinh. Người ăn thuần chay nên bổ sung nấm men dinh dưỡng men bia (Nutritional Yeast), sữa thực vật bổ sung vi chất hoặc viên uống định kỳ theo chỉ dẫn của chuyên gia dinh dưỡng.',
       ingredients: ['Men dinh dưỡng: 5g/ngày', 'Tảo biển chlorella: 3g', 'Sữa hạt bổ sung vi chất: 250ml']
@@ -354,9 +359,9 @@ export default function AdminDashboard({ onNavigate }) {
       tags: ['Ít Dầu Mỡ', 'Nhanh & Tiện'],
       warningTag: null,
       author: 'Vũ Bảo Nam',
-      authorAvatar: 'TT',
+      authorAvatar: 'BN',
       authorAvatarBg: '#1e293b',
-      authorRole: 'TikTok Creator',
+      authorRole: 'Authorized User',
       authorVerified: false,
       source: 'TikTok',
       aiMatch: '96.2% AI Match',
@@ -368,7 +373,7 @@ export default function AdminDashboard({ onNavigate }) {
       rating: '4.8 (145)',
       isFlagged: false,
       status: 'Đã xuất bản',
-      verifiedMedical: false,
+      verifiedMod: true,
       mediaUrl: 'https://tiktok.com/@vubaonam/video/mock-ram-chay',
       content: 'Chả ram chay làm từ mộc nhĩ, cà rốt, miến dong cuốn bánh tráng đậu xanh chiên nhiệt độ 180 độ C trong 12 phút. Giảm 80% dầu mỡ so với chiên ngập dầu truyền thống.',
       ingredients: ['Bánh tráng đậu xanh: 1 gói', 'Mộc nhĩ ngâm nở: 50g', 'Cà rốt bào sợi: 1 củ', 'Miến dong: 50g']
@@ -388,7 +393,7 @@ export default function AdminDashboard({ onNavigate }) {
       author: 'Lê Thị Mai Lan',
       authorAvatar: 'ML',
       authorAvatarBg: '#3b82f6',
-      authorRole: 'Sports Nutritionist',
+      authorRole: 'Authorized User',
       authorVerified: true,
       source: 'Chuyên gia',
       aiMatch: '21 Thực Đơn Bóc Tách',
@@ -400,7 +405,7 @@ export default function AdminDashboard({ onNavigate }) {
       rating: '4.9 (1.2k)',
       isFlagged: false,
       status: 'Đã xuất bản',
-      verifiedMedical: true,
+      verifiedMod: true,
       mediaUrl: '',
       content: 'Kế hoạch 7 ngày meal prep thuần chay cung cấp trên 80g protein mỗi ngày từ các nguồn thực vật chất lượng cao: đậu gà, hạt diêm mạch, đậu phụ nướng và bột protein thực vật cô đặc.',
       ingredients: ['Bột protein hạt gai dầu: 30g', 'Yến mạch: 80g', 'Hạt chia: 15g', 'Bơ đậu phộng: 20g']
@@ -420,7 +425,7 @@ export default function AdminDashboard({ onNavigate }) {
       author: 'Ẩm Thực An Duyên',
       authorAvatar: 'AD',
       authorAvatarBg: '#0d9488',
-      authorRole: 'Chuyên gia Ẩm thực',
+      authorRole: 'Authorized User',
       authorVerified: true,
       source: 'YouTube',
       aiMatch: '99.1% AI Match',
@@ -432,7 +437,7 @@ export default function AdminDashboard({ onNavigate }) {
       rating: '4.7 (95)',
       isFlagged: false,
       status: 'Đã xuất bản',
-      verifiedMedical: false,
+      verifiedMod: true,
       mediaUrl: 'https://youtube.com/watch?v=mock-lau-nam',
       content: 'Nước dùng lẩu hầm từ kỷ tử, táo đỏ, đẳng sâm và mía lau thanh mát. Đi kèm hơn 6 loại nấm tươi giàu polysaccharide giúp tăng cường hệ miễn dịch.',
       ingredients: ['Nấm hầu thủ: 150g', 'Nấm đùi gà: 150g', 'Kỷ tử & táo đỏ: 50g', 'Mía lau: 2 khúc']
@@ -448,11 +453,11 @@ export default function AdminDashboard({ onNavigate }) {
       duration: '10:40',
       readTime: null,
       tags: ['Không Phụ Gia'],
-      warningTag: 'Cần rà soát bản quyền video',
+      warningTag: 'Nghi vấn sai lệch dinh dưỡng',
       author: 'Ẩm Thực Chay Hương Việt',
-      authorAvatar: 'YT',
+      authorAvatar: 'HV',
       authorAvatarBg: '#ea580c',
-      authorRole: 'YouTube Channel',
+      authorRole: 'Authorized User',
       authorVerified: false,
       source: 'YouTube',
       aiMatch: '82.4% Cần kiểm chứng',
@@ -464,7 +469,7 @@ export default function AdminDashboard({ onNavigate }) {
       rating: '4.2 (41)',
       isFlagged: true,
       status: 'Cần rà soát',
-      verifiedMedical: false,
+      verifiedMod: false,
       mediaUrl: 'https://youtube.com/watch?v=mock-bun-bo-hue-chay',
       content: 'Nước dùng bún bò chay ngọt thanh tự nhiên từ bắp cải, củ cải trắng và sả đập dập. Lưu ý kiểm tra lại tỷ lệ mắm ruốc chay và ớt sa tế để tránh sai lệch gia vị.',
       ingredients: ['Sả cây: 5 nhánh', 'Dứa chín: 1/2 quả', 'Chao trắng/đỏ: 2 viên', 'Nấm bào ngư: 200g']
@@ -2322,7 +2327,7 @@ export default function AdminDashboard({ onNavigate }) {
                     Quản lý Blog &amp; Video Nấu Ăn
                   </h1>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0, maxWidth: '840px', lineHeight: '1.5' }}>
-                    Quản lý toàn bộ 14.820 bài viết cẩm nang dinh dưỡng y khoa và video nấu ăn bóc tách công thức tự động bởi AI trên hệ sinh thái VeggieAI.
+                    Quản lý toàn bộ 14.820 bài viết cẩm nang dinh dưỡng chay và video nấu ăn bóc tách công thức tự động bởi AI trên hệ sinh thái VeggieAI.
                   </p>
                 </div>
 
@@ -2351,9 +2356,9 @@ export default function AdminDashboard({ onNavigate }) {
                       transition: 'all 0.15s'
                     }}
                     onClick={() => setShowSyncModal(true)}
-                    title="Đồng bộ video mới từ các kênh đối tác YouTube và TikTok"
+                    title="Công cụ nội bộ Admin bulk-import video vào kho hệ thống (khác với WF11 User dán link)"
                   >
-                    <RotateCcw size={15} color="#2563eb" /> Đồng bộ YouTube/TikTok
+                    <RotateCcw size={15} color="#2563eb" /> Nhập liệu Video AI (Admin Import)
                   </button>
 
                   <button 
@@ -2364,11 +2369,11 @@ export default function AdminDashboard({ onNavigate }) {
                         title: 'Bài viết dinh dưỡng mới chưa đặt tên',
                         type: 'Blog',
                         typeLabel: 'Blog Dinh Dưỡng',
-                        category: 'Cẩm nang Y khoa',
+                        category: 'Cẩm nang Ăn Chay',
                         author: 'Admin',
                         authorAvatar: 'AD',
                         authorAvatarBg: '#059669',
-                        authorRole: 'Quản trị viên',
+                        authorRole: 'Authorized User',
                         authorVerified: true,
                         source: 'VeggieAI Editorial',
                         views: '0 lượt xem',
@@ -2387,7 +2392,7 @@ export default function AdminDashboard({ onNavigate }) {
                         macro: 'Chưa bóc tách calo',
                         aiStatus: 'pending',
                         isFlagged: false,
-                        verifiedMedical: false,
+                        verifiedMod: true,
                         content: 'Nhập nội dung bài viết chia sẻ kiến thức dinh dưỡng chay tại đây...',
                         ingredients: ['Nguyên liệu mẫu 1']
                       };
@@ -2437,26 +2442,26 @@ export default function AdminDashboard({ onNavigate }) {
                     5,210 <span style={{ fontSize: '1.05rem', color: '#94a3b8', fontWeight: 500 }}>/ 5,370</span>
                   </div>
                   <div style={{ fontSize: '0.76rem', color: '#059669', marginTop: '0.45rem', borderTop: '1px dashed #f1f5f9', paddingTop: '0.45rem', fontWeight: 600 }}>
-                    Đạt chuẩn calo, gia vị &amp; định lượng
+                    Đạt chuẩn calo, gia vị &amp; định lượng (WF11)
                   </div>
                 </div>
 
-                {/* Card 3: Nội dung đã kiểm định Y khoa */}
+                {/* Card 3: Nội dung đã phê duyệt (Mod Tuyến 1) */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                     <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ShieldCheck size={20} />
+                      <CheckCircle2 size={20} />
                     </div>
                     <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.74rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
-                      Y Khoa &amp; Dinh Dưỡng
+                      Đã duyệt Public (WF07)
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NỘI DUNG ĐÃ KIỂM ĐỊNH Y KHOA</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NỘI DUNG ĐÃ PHÊ DUYỆT (MOD)</div>
                   <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0.2rem 0' }}>
                     8,940 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>bài duyệt</span>
                   </div>
                   <div style={{ fontSize: '0.76rem', color: '#059669', marginTop: '0.45rem', borderTop: '1px dashed #f1f5f9', paddingTop: '0.45rem', fontWeight: 600 }}>
-                    ✓ Bác sĩ/Nutritionist bảo trợ khoa học
+                    ✓ Phê duyệt hiển thị bởi Moderator (WF07)
                   </div>
                 </div>
 
@@ -2475,7 +2480,7 @@ export default function AdminDashboard({ onNavigate }) {
                     24 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>bài/video</span>
                   </div>
                   <div style={{ fontSize: '0.76rem', color: '#b91c1c', marginTop: '0.45rem', borderTop: '1px dashed #fee2e2', paddingTop: '0.45rem', fontWeight: 600 }}>
-                    ⚠️ Nghi sai lệch dinh dưỡng &amp; bản quyền
+                    ⚠️ Nghi vấn sai lệch dinh dưỡng &amp; thuần chay (WF09)
                   </div>
                 </div>
               </div>
@@ -2551,7 +2556,7 @@ export default function AdminDashboard({ onNavigate }) {
                   }}
                   onClick={() => setContentTab('verified')}
                 >
-                  Đã kiểm định Y khoa (8,940)
+                  Đã duyệt Public (8,940)
                 </button>
 
                 <button 
@@ -2627,7 +2632,7 @@ export default function AdminDashboard({ onNavigate }) {
                   >
                     <option value="all">Thể loại: Tất cả</option>
                     <option value="Chay Thuần Vegan">Chay Thuần Vegan</option>
-                    <option value="Cẩm nang Y khoa">Cẩm nang Y khoa</option>
+                    <option value="Cẩm nang Y khoa">Cẩm nang Dinh Dưỡng</option>
                     <option value="Món Ăn Vặt & Chiên">Món Ăn Vặt &amp; Chiên</option>
                     <option value="Dinh Dưỡng Thể Thao">Dinh Dưỡng Thể Thao</option>
                     <option value="Chay Thực Dưỡng">Chay Thực Dưỡng</option>
@@ -2643,7 +2648,7 @@ export default function AdminDashboard({ onNavigate }) {
                     <option value="YouTube">YouTube</option>
                     <option value="TikTok">TikTok</option>
                     <option value="VeggieAI Editorial">VeggieAI Editorial</option>
-                    <option value="Chuyên gia">Chuyên gia Dinh dưỡng</option>
+                    <option value="Chuyên gia">Cộng tác viên Dinh dưỡng</option>
                   </select>
 
                   <select 
@@ -2653,8 +2658,7 @@ export default function AdminDashboard({ onNavigate }) {
                   >
                     <option value="all">Trạng thái AI: Tất cả</option>
                     <option value="extracted">Đã bóc tách thành công</option>
-                    <option value="verified">Thẩm định Y khoa</option>
-                    <option value="warning">Cần kiểm chứng / Cảnh báo</option>
+                    <option value="warning">Nghi vấn sai lệch / Cảnh báo</option>
                   </select>
 
                   <select 
@@ -2662,9 +2666,9 @@ export default function AdminDashboard({ onNavigate }) {
                     value={contentVerifyFilter}
                     onChange={(e) => setContentVerifyFilter(e.target.value)}
                   >
-                    <option value="all">Kiểm định: Tất cả</option>
-                    <option value="verified">Đã kiểm định Y khoa</option>
-                    <option value="unverified">Chưa kiểm định</option>
+                    <option value="all">Kiểm duyệt (WF07): Tất cả</option>
+                    <option value="verified">Đã duyệt Public (Mod)</option>
+                    <option value="unverified">Chờ duyệt / Cần rà soát</option>
                   </select>
 
                   <button 
@@ -2682,6 +2686,7 @@ export default function AdminDashboard({ onNavigate }) {
                   </button>
                 </div>
               </div>
+
 
               {/* FLOATING BULK ACTIONS BAR (KHI CÓ ITEMS ĐƯỢC CHỌN) */}
               {selectedContentIds.length > 0 && (
@@ -2759,7 +2764,7 @@ export default function AdminDashboard({ onNavigate }) {
                       .filter(c => {
                         if (contentTab === 'blog') return c.type === 'Blog';
                         if (contentTab === 'video') return c.type === 'Video';
-                        if (contentTab === 'verified') return c.verifiedMedical;
+                        if (contentTab === 'verified') return c.verifiedMod;
                         if (contentTab === 'pending_ai') return c.aiStatus === 'warning' || c.aiStatus === 'pending';
                         if (contentTab === 'draft') return c.status !== 'Đã xuất bản';
                         return true;
@@ -2768,8 +2773,8 @@ export default function AdminDashboard({ onNavigate }) {
                         if (contentCategoryFilter !== 'all' && c.category !== contentCategoryFilter) return false;
                         if (contentSourceFilter !== 'all' && c.source !== contentSourceFilter) return false;
                         if (contentAiStatusFilter !== 'all' && c.aiStatus !== contentAiStatusFilter) return false;
-                        if (contentVerifyFilter === 'verified' && !c.verifiedMedical) return false;
-                        if (contentVerifyFilter === 'unverified' && c.verifiedMedical) return false;
+                        if (contentVerifyFilter === 'verified' && !c.verifiedMod) return false;
+                        if (contentVerifyFilter === 'unverified' && c.verifiedMod) return false;
                         if (!contentSearch) return true;
                         const s = contentSearch.toLowerCase();
                         return c.title.toLowerCase().includes(s) || 
@@ -2871,7 +2876,7 @@ export default function AdminDashboard({ onNavigate }) {
                             </div>
                           </td>
 
-                          {/* CỘT 2: TÁC GIẢ / NGUỒN */}
+                          {/* CỘT 2: TÁC GIẢ / NGUỒN (CHỈ DÙNG 4 ACTORS: AUTHORIZED USER + BADGE ĐÃ XÁC MINH) */}
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                               <div style={{ 
@@ -2891,14 +2896,16 @@ export default function AdminDashboard({ onNavigate }) {
                               </div>
 
                               <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                                   <strong style={{ fontSize: '0.84rem', color: '#0f172a' }}>{item.author}</strong>
                                   {item.authorVerified && (
-                                    <span title="Tác giả / Bác sĩ đã xác minh"><CheckCircle2 size={13} color="#059669" /></span>
+                                    <span title="Đã xác minh chuyên môn" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#059669', fontSize: '0.7rem', fontWeight: 700 }}>
+                                      <CheckCircle2 size={12} color="#059669" /> Đã xác minh
+                                    </span>
                                   )}
                                 </div>
                                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.1rem' }}>
-                                  {item.authorRole}
+                                  {item.authorRole || 'Authorized User'}
                                 </div>
                               </div>
                             </div>
@@ -2909,16 +2916,12 @@ export default function AdminDashboard({ onNavigate }) {
                             <div>
                               {/* BADGE BÓC TÁCH */}
                               <div style={{ marginBottom: '0.3rem' }}>
-                                {item.aiStatus === 'verified' ? (
-                                  <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    <ShieldCheck size={12} /> {item.aiMatch}
-                                  </span>
-                                ) : item.aiStatus === 'warning' ? (
+                                {item.aiStatus === 'warning' ? (
                                   <span style={{ background: '#fefce8', border: '1px solid #fef08a', color: '#a16207', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                                     <AlertTriangle size={12} /> {item.aiMatch}
                                   </span>
                                 ) : (
-                                  <span style={{ background: '#ecfeff', border: '1px solid #a5f3fc', color: '#0891b2', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                                     <Zap size={11} /> {item.aiMatch}
                                   </span>
                                 )}
@@ -3011,13 +3014,18 @@ export default function AdminDashboard({ onNavigate }) {
                     animation: 'fadeIn 0.2s ease'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <RotateCcw size={18} />
                         </div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                          Đồng Bộ &amp; Bóc Tách Video Tự Động
-                        </h3>
+                        <div>
+                          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                            Nhập Liệu Video Hàng Loạt (Admin Bulk-Import)
+                          </h3>
+                          <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>
+                            Công cụ quản trị nội bộ hệ thống (Internal Admin Tool)
+                          </span>
+                        </div>
                       </div>
                       <button 
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
@@ -3027,8 +3035,8 @@ export default function AdminDashboard({ onNavigate }) {
                       </button>
                     </div>
 
-                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
-                      Nhập đường dẫn liên kết video hoặc kênh ẩm thực đối tác. Cụm AI sẽ tự động phân tích giọng nói (Whisper STT), bóc tách nguyên liệu chay và tính toán bảng phân bổ dinh dưỡng Macro.
+                    <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
+                      <strong>Lưu ý nghiệp vụ:</strong> Đây là công cụ nội bộ dành cho Quản trị viên (Admin) nhập nguồn video số lượng lớn để xây dựng kho dữ liệu nền. Khác với <em>WF11</em> (người dùng tự dán link cá nhân để AI trích xuất công thức).
                     </p>
 
                     <div style={{ marginBottom: '1.25rem' }}>
