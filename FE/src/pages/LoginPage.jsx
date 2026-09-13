@@ -307,12 +307,12 @@ export default function LoginPage({ onNavigate }) {
                 <Compass size={18} />
               </div>
               <div className="auth-trial-text">
-                Bạn muốn dùng thử trước? <strong>Trải nghiệm bản dùng thử giới hạn với Trợ lý AI</strong>
+                Bạn muốn dùng thử trước? <strong>Trải nghiệm bản dùng thử giới hạn với Hỏi AI</strong>
               </div>
               <button 
                 type="button"
                 className="auth-trial-btn"
-                onClick={() => onNavigate && onNavigate('home')}
+                onClick={() => onNavigate && onNavigate('chatbot')}
               >
                 Khám phá ngay
               </button>
