@@ -577,7 +577,7 @@ export default function AdminDashboard({ onNavigate }) {
   ]);
   const [detailTags, setDetailTags] = useState(contentList[0]?.tags || ['#CaRiChay', '#GiauChatXo', '#DinhDuongKhoaHoc', '#MonChayHangNgay']);
   const [detailBlogContent, setDetailBlogContent] = useState(
-    contentList[0]?.editorContent || `💡 Mẹo Nấu Ăn & Bảo Quản Chuẩn Y Khoa:\n\n1. Giữ trọn vi chất: Không hầm kỹ khoai lang và cà rốt quá 20 phút ở nhiệt độ trên 100°C để bảo toàn tối đa lượng Vitamin A (Beta-carotene) hòa tan trong chất béo dừa tự nhiên.\n\n2. Bảo quản tủ lạnh: Để nguội hoàn toàn, chia vào hộp thủy tinh kín khí có thể trữ mát trong 48 giờ. Khi hâm nóng lại, thêm 2 thìa canh nước ấm và đảo lửa nhỏ.`
+    contentList[0]?.editorContent || `💡 Mẹo Nấu Ăn & Bảo Quản Chuẩn Dinh Dưỡng Khoa Học:\n\n1. Giữ trọn vi chất: Không hầm kỹ khoai lang và cà rốt quá 20 phút ở nhiệt độ trên 100°C để bảo toàn tối đa lượng Vitamin A (Beta-carotene) hòa tan trong chất béo dừa tự nhiên.\n\n2. Bảo quản tủ lạnh: Để nguội hoàn toàn, chia vào hộp thủy tinh kín khí có thể trữ mát trong 48 giờ. Khi hâm nóng lại, thêm 2 thìa canh nước ấm và đảo lửa nhỏ.`
   );
   const [detailSummary, setDetailSummary] = useState(
     contentList[0]?.summary || 'Món cà ri thuần chay thanh nhẹ, kết hợp khoai lang dồi dào chất xơ, nấm đông cô nâng cao hệ miễn dịch tự nhiên, béo thơm nước cốt dừa với hương cà ri ấm nồng sả nghệ hỗ trợ giảm viêm tiêu hóa.'
@@ -3288,13 +3288,13 @@ export default function AdminDashboard({ onNavigate }) {
                     {/* BADGES ROW */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
                       <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <ShieldCheck size={13} /> Đã duyệt (WF07)
+                        <ShieldCheck size={13} /> Đã duyệt Public (WF07)
                       </span>
                       <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                         <Zap size={13} /> AI Trích xuất 98.4%
                       </span>
-                      <span style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Video size={13} /> Video YouTube Partner
+                      <span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Video size={13} /> Nguồn: YouTube
                       </span>
                       <span style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 700, marginLeft: '0.2rem' }}>
                         ID: #{currentEditingContent.id}-VN
@@ -3356,32 +3356,10 @@ export default function AdminDashboard({ onNavigate }) {
                             Video Nguồn &amp; Thông Tin Bài Đăng
                           </h3>
                           <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                            Đồng bộ từ kênh/Đối tác Sáng tạo Nội dung ẩm thực
+                            Thông tin video nấu ăn và công thức bóc tách AI
                           </div>
                         </div>
                       </div>
-
-                      {/* LIVE STREAM SYNC PILL */}
-                      <button 
-                        style={{
-                          background: detailLiveStreamSync ? '#ecfdf5' : '#f1f5f9',
-                          border: '1px solid',
-                          borderColor: detailLiveStreamSync ? '#a7f3d0' : '#e2e8f0',
-                          color: detailLiveStreamSync ? '#047857' : '#64748b',
-                          padding: '0.3rem 0.75rem',
-                          borderRadius: '16px',
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.35rem'
-                        }}
-                        onClick={() => setDetailLiveStreamSync(!detailLiveStreamSync)}
-                      >
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: detailLiveStreamSync ? '#059669' : '#94a3b8' }} />
-                        Live Stream Sync: {detailLiveStreamSync ? 'On' : 'Off'}
-                      </button>
                     </div>
 
                     {/* VIDEO PLAYER PREVIEW */}
@@ -3494,7 +3472,7 @@ export default function AdminDashboard({ onNavigate }) {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
-                          Kênh tác giả (Partner)
+                          Tác giả
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.55rem 0.85rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -3502,7 +3480,7 @@ export default function AdminDashboard({ onNavigate }) {
                             <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{currentEditingContent.author}</strong>
                           </div>
                           <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                            {currentEditingContent.authorSubs || '485K SUB'}
+                            Authorized User
                           </span>
                         </div>
                       </div>
@@ -3936,59 +3914,81 @@ export default function AdminDashboard({ onNavigate }) {
                     </button>
                   </div>
 
-                  {/* WIDGET 2: THẨM ĐỊNH DINH DƯỠNG */}
+                  {/* WIDGET 2: TRẠNG THÁI DUYỆT (MOD - WF07) */}
                   <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                      <ShieldCheck size={18} color="#059669" />
-                      <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                        Thẩm Định Dinh Dưỡng
-                      </h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ShieldCheck size={18} color="#059669" />
+                        <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Trạng Thái Duyệt (Mod)
+                        </h3>
+                      </div>
+                      <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '12px' }}>
+                        ✓ Đã duyệt Public (WF07)
+                      </span>
                     </div>
 
-                    {/* EXPERT QUOTE BOX */}
-                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '1rem', marginBottom: '1.15rem' }}>
+                    {/* MODERATOR CARD */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.9rem', marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#10b981', color: '#ffffff', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          LH
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#047857', color: '#ffffff', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          HN
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>BS. CKI Nguyễn Lan Hương</strong>
-                            <CheckCircle2 size={13} color="#059669" />
+                            <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>Mod_HoangNam</strong>
+                            <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem 0.35rem', borderRadius: '4px' }}>Moderator</span>
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                            Viện Dinh Dưỡng Lâm Sàng TP. HCM
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.1rem' }}>
+                            Kiểm duyệt viên Tuyến 1 &bull; Quyền phê duyệt Public (WF07)
                           </div>
                         </div>
                       </div>
 
-                      <p style={{ fontSize: '0.8rem', color: '#334155', fontStyle: 'italic', margin: '0 0 0.65rem 0', lineHeight: '1.5' }}>
-                        &ldquo;Công thức sở hữu tỷ lệ cân đối đạm thực vật chất lượng cao từ nấm đông cô và đậu hũ non. Hàm lượng chất béo từ nước cốt dừa đã được kiểm soát trong ngưỡng an toàn, phù hợp cho người ăn thuần chay trường kỳ và người huyết áp ổn định.&rdquo;
-                      </p>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', borderTop: '1px dashed #bbf7d0', paddingTop: '0.5rem' }}>
-                        <span style={{ color: '#475569' }}>Chứng chỉ thẩm định: <strong>#NUTRI-VER-984</strong></span>
-                        <span style={{ color: '#059669', fontWeight: 700, cursor: 'pointer' }}>Đăng ký điện tử</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem', borderTop: '1px dashed #e2e8f0', paddingTop: '0.65rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Thời gian duyệt:</span>
+                          <strong style={{ color: '#0f172a' }}>11:30 Hôm nay</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Quy trình thực thi:</span>
+                          <span style={{ color: '#047857', fontWeight: 700 }}>WF07 - Kiểm duyệt trước Public</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Đánh giá tuân thủ:</span>
+                          <span style={{ color: '#059669', fontWeight: 700 }}>100% Thuần chay (Không vi phạm)</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* KHUYẾN NGHỊ Y KHOA ĐẶC THÙ (CHECKLIST) */}
-                    <div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.65rem' }}>
-                        KHUYẾN NGHỊ Y KHOA ĐẶC THÙ
+                    {/* GHI CHÚ KIỂM DUYỆT (MODERATOR NOTE) */}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem' }}>
+                        GHI CHÚ KIỂM DUYỆT (MODERATOR):
+                      </label>
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', color: '#166534', lineHeight: '1.5' }}>
+                        &ldquo;Công thức nấu và video đã được kiểm tra kỹ lưỡng. Nguyên liệu thuần chay đạt chuẩn, tỷ lệ calo và phân bổ dinh dưỡng do AI bóc tách khớp với định lượng thực tế. Đủ điều kiện hiển thị công khai trên ứng dụng VeggieAI.&rdquo;
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                        {detailDietary.map((d) => (
-                          <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.8rem', color: '#334155', cursor: 'pointer' }}>
-                            <input 
-                              type="checkbox"
-                              checked={d.checked}
-                              onChange={() => handleToggleDietary(d.id)}
-                              style={{ width: '16px', height: '16px', accentColor: '#047857', cursor: 'pointer' }}
-                            />
-                            <span>{d.label}</span>
-                          </label>
-                        ))}
+                    </div>
+
+                    {/* TIÊU CHÍ ĐÃ XÁC NHẬN */}
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.5rem' }}>
+                        TIÊU CHÍ ĐÃ KIỂM TRA TRƯỚC PUBLIC
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#059669', fontWeight: 600 }}>
+                          <CheckCircle2 size={14} color="#059669" />
+                          <span>Nguyên liệu &amp; quy trình đạt chuẩn thuần chay</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#059669', fontWeight: 600 }}>
+                          <CheckCircle2 size={14} color="#059669" />
+                          <span>Không phát hiện sai lệch dinh dưỡng (WF09)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#059669', fontWeight: 600 }}>
+                          <CheckCircle2 size={14} color="#059669" />
+                          <span>Không có nội dung spam hoặc quảng cáo vi phạm</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -4155,7 +4155,7 @@ export default function AdminDashboard({ onNavigate }) {
                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', marginTop: '0.35rem', flexShrink: 0 }} />
                           <div>
                             <div style={{ color: '#0f172a', fontWeight: 700 }}>
-                              14:05 Hôm nay &bull; Admin_Master
+                              14:05 Hôm nay &bull; Admin
                             </div>
                             <div style={{ color: '#64748b', lineHeight: '1.45' }}>
                               Điều chỉnh định lượng nước cốt dừa từ 300ml xuống 250ml.
@@ -4167,10 +4167,10 @@ export default function AdminDashboard({ onNavigate }) {
                           <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', marginTop: '0.35rem', flexShrink: 0 }} />
                           <div>
                             <div style={{ color: '#0f172a', fontWeight: 700 }}>
-                              11:30 Hôm nay &bull; BS. Lan Hương
+                              11:30 Hôm nay &bull; Mod_HoangNam
                             </div>
                             <div style={{ color: '#64748b', lineHeight: '1.45' }}>
-                              Phê duyệt chỉ số dinh dưỡng lâm sàng và ký số bảo trợ.
+                              Phê duyệt nội dung hợp lệ chuẩn thuần chay (WF07).
                             </div>
                           </div>
                         </div>
