@@ -5,7 +5,8 @@ import {
   Zap, Clock, Flag, TrendingUp, CheckCircle2, AlertTriangle, 
   XCircle, Eye, RefreshCw, FileText, Plus, Database, Activity, 
   Check, ArrowRight, ExternalLink, ShieldCheck, ChevronRight, X, 
-  Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck
+  Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
+  Play, Tag, RotateCcw, Star, Share2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -273,69 +274,218 @@ export default function AdminDashboard({ onNavigate }) {
   };
 
   // =========================================================================
-  // DỮ LIỆU MÀN HÌNH 2 & 3: QUẢN LÝ BLOG & VIDEO + CHI TIẾT
+  // DỮ LIỆU MÀN HÌNH 2 & 3: QUẢN LÝ BLOG & VIDEO NẤU ĂN + CHI TIẾT
   // =========================================================================
   const [contentList, setContentList] = useState([
     { 
-      id: 'C-01', 
-      title: 'Top 5 Nguồn Protein Thuần Chay Tăng Cơ Vượt Trội Cho Người Tập Gym', 
+      id: 'VID-8921', 
+      title: 'Cà Ri Rau Củ Nước Cốt Dừa', 
+      type: 'Video',
+      typeLabel: 'Chay Thuần Vegan',
+      category: 'Chay Thuần Vegan',
+      date: 'Hôm nay 10:15',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+      duration: '04:23',
+      readTime: null,
+      tags: ['Không Gluten', 'Nhiều Chất Xơ'],
+      warningTag: null,
+      author: 'Bếp Chay An Lạc',
+      authorAvatar: 'YT',
+      authorAvatarBg: '#f97316',
+      authorRole: 'YouTube Partner',
+      authorVerified: true,
+      source: 'YouTube',
+      aiMatch: '98.4% AI Match',
+      aiDetails: '11 nguyên liệu • 4 bước nấu',
+      macro: '410 kcal • 14g Protein • 52g Carbs',
+      aiStatus: 'extracted',
+      views: '28.5k lượt xem',
+      saved: '1,420 lưu thực đơn',
+      rating: '4.9 (310)',
+      isFlagged: false,
+      status: 'Đã xuất bản',
+      verifiedMedical: false,
+      mediaUrl: 'https://youtube.com/watch?v=mock-curry-vegan',
+      content: 'Món Cà Ri Rau Củ Nước Cốt Dừa béo ngậy tự nhiên, kết hợp khoai lang mật, cà rốt và đậu hũ chiên. Công thức đã được AI bóc tách chi tiết từng bước nấu và cân bằng lượng calo.',
+      ingredients: ['Khoai lang: 2 củ', 'Cà rốt: 1 củ', 'Nước cốt dừa: 200ml', 'Đậu hũ: 2 bìa', 'Bột cà ri: 1 muỗng']
+    },
+    { 
+      id: 'POST-4109', 
+      title: 'Phân tích khoa học: Tối ưu B12 cho người ăn thuần chay', 
       type: 'Blog',
-      typeLabel: 'Blog Dinh Dưỡng', 
-      author: 'BS. Lê Minh Tuấn', 
-      views: '24,510', 
-      status: 'Đã xuất bản', 
-      date: '10/09/2026',
-      mediaUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
-      content: 'Chế độ ăn thuần chay hoàn toàn có thể đáp ứng từ 1.6g - 2.2g protein/kg thể trọng cho vận động viên nhờ sự kết hợp giữa đậu nành lên men (tempeh), hạt diêm mạch (quinoa), đậu lăng đỏ và tảo xoắn spirulina. Các axit amin chuỗi nhánh (BCAA) có trong thực vật giúp tổng hợp cơ bắp tương đương đạm động vật mà không gây áp lực lên thận.',
-      ingredients: ['Tempeh hữu cơ: 200g', 'Hạt diêm mạch (Quinoa): 100g', 'Đậu gà ngâm nở: 150g', 'Bột tảo Spirulina: 1 muỗng cà phê'],
-      tags: ['Protein Thực Vật', 'Tập Gym', 'Thuần Chay', 'BCAA']
+      typeLabel: 'Cẩm nang Y khoa',
+      category: 'Cẩm nang Y khoa',
+      date: 'Hôm qua 15:30',
+      thumbnail: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=400',
+      duration: null,
+      readTime: '6 phút đọc',
+      tags: ['B12 Tự Nhiên', 'Kiến thức Dinh Dưỡng'],
+      warningTag: null,
+      author: 'BS. CKI Lan Hương',
+      authorAvatar: 'BS',
+      authorAvatarBg: '#10b981',
+      authorRole: 'Chuyên gia Viện DD',
+      authorVerified: true,
+      source: 'VeggieAI Editorial',
+      aiMatch: 'Thẩm định Y khoa',
+      aiDetails: 'Trích xuất 6 nguồn vi chất',
+      macro: 'RDA đối chiếu: 2.4 mcg/ngày',
+      aiStatus: 'verified',
+      views: '42.1k lượt xem',
+      saved: '3,890 lưu cẩm nang',
+      rating: '5.0 (892)',
+      isFlagged: false,
+      status: 'Đã xuất bản',
+      verifiedMedical: true,
+      mediaUrl: '',
+      content: 'Vitamin B12 đóng vai trò then chốt trong việc tạo hồng cầu và duy trì hệ thần kinh. Người ăn thuần chay nên bổ sung nấm men dinh dưỡng men bia (Nutritional Yeast), sữa thực vật bổ sung vi chất hoặc viên uống định kỳ theo chỉ dẫn của chuyên gia dinh dưỡng.',
+      ingredients: ['Men dinh dưỡng: 5g/ngày', 'Tảo biển chlorella: 3g', 'Sữa hạt bổ sung vi chất: 250ml']
     },
     { 
-      id: 'C-02', 
-      title: 'Video: Hướng Dẫn Nấu Đậu Hũ Sốt Cà Chua & Nấm Đông Cô Chuẩn Vị Nhà Hàng', 
+      id: 'VID-3301', 
+      title: 'Ram Chay Giòn Rụm Bằng Nồi Chiên Không Dầu', 
       type: 'Video',
-      typeLabel: 'Video Nấu Ăn', 
-      author: 'Chef Mai Anh', 
-      views: '18,920', 
-      status: 'Đã xuất bản', 
-      date: '08/09/2026',
-      mediaUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
-      content: 'Bí quyết chiên đậu hũ vàng giòn không bị khô và sốt cà chua nấm đông cô đậm đà không cần bột ngọt. Dùng dầu hạt cải và nước tương tamari lên men tự nhiên giúp món ăn thanh mát, thơm ngon bổ dưỡng.',
-      ingredients: ['Đậu hũ mơ: 3 bìa', 'Nấm đông cô tươi: 100g', 'Cà chua chín mọng: 4 quả', 'Hành baro: 1 nhánh', 'Nước tương Tamari: 2 thìa'],
-      tags: ['Món Xào', 'Nấm Đông Cô', 'Dễ Làm', 'Cơm Gia Đình']
+      typeLabel: 'Món Ăn Vặt & Chiên',
+      category: 'Món Ăn Vặt & Chiên',
+      date: '2 ngày trước',
+      thumbnail: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400',
+      duration: '01:15',
+      readTime: null,
+      tags: ['Ít Dầu Mỡ', 'Nhanh & Tiện'],
+      warningTag: null,
+      author: 'Vũ Bảo Nam',
+      authorAvatar: 'TT',
+      authorAvatarBg: '#1e293b',
+      authorRole: 'TikTok Creator',
+      authorVerified: false,
+      source: 'TikTok',
+      aiMatch: '96.2% AI Match',
+      aiDetails: '7 nguyên liệu • 3 bước',
+      macro: '280 kcal/phần • 9g Protein',
+      aiStatus: 'extracted',
+      views: '19.2k lượt xem',
+      saved: '2,110 lưu món',
+      rating: '4.8 (145)',
+      isFlagged: false,
+      status: 'Đã xuất bản',
+      verifiedMedical: false,
+      mediaUrl: 'https://tiktok.com/@vubaonam/video/mock-ram-chay',
+      content: 'Chả ram chay làm từ mộc nhĩ, cà rốt, miến dong cuốn bánh tráng đậu xanh chiên nhiệt độ 180 độ C trong 12 phút. Giảm 80% dầu mỡ so với chiên ngập dầu truyền thống.',
+      ingredients: ['Bánh tráng đậu xanh: 1 gói', 'Mộc nhĩ ngâm nở: 50g', 'Cà rốt bào sợi: 1 củ', 'Miến dong: 50g']
     },
     { 
-      id: 'C-03', 
-      title: 'Video: Tự Làm Sữa Hạt Sen & Hạt Điều Béo Mịn Không Bị Tách Nước', 
+      id: 'POST-7890', 
+      title: 'Thực đơn 7 ngày tăng cơ thuần chay cho người tập Gym', 
+      type: 'Blog',
+      typeLabel: 'Dinh Dưỡng Thể Thao',
+      category: 'Dinh Dưỡng Thể Thao',
+      date: '3 ngày trước',
+      thumbnail: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400',
+      duration: null,
+      readTime: '2 phút đọc',
+      tags: ['80g+ Protein/Ngày', 'Meal Prep'],
+      warningTag: null,
+      author: 'Lê Thị Mai Lan',
+      authorAvatar: 'ML',
+      authorAvatarBg: '#3b82f6',
+      authorRole: 'Sports Nutritionist',
+      authorVerified: true,
+      source: 'Chuyên gia',
+      aiMatch: '21 Thực Đơn Bóc Tách',
+      aiDetails: 'Tự tính Macro theo TDEE',
+      macro: 'Tỷ lệ P:C:F cân bằng 30:45:25',
+      aiStatus: 'extracted',
+      views: '51.4k lượt xem',
+      saved: '6,320 người áp dụng',
+      rating: '4.9 (1.2k)',
+      isFlagged: false,
+      status: 'Đã xuất bản',
+      verifiedMedical: true,
+      mediaUrl: '',
+      content: 'Kế hoạch 7 ngày meal prep thuần chay cung cấp trên 80g protein mỗi ngày từ các nguồn thực vật chất lượng cao: đậu gà, hạt diêm mạch, đậu phụ nướng và bột protein thực vật cô đặc.',
+      ingredients: ['Bột protein hạt gai dầu: 30g', 'Yến mạch: 80g', 'Hạt chia: 15g', 'Bơ đậu phộng: 20g']
+    },
+    { 
+      id: 'VID-5620', 
+      title: 'Lẩu Nấm Dưỡng Sinh Thanh Lọc Cơ Thể Cuối Tuần', 
       type: 'Video',
-      typeLabel: 'Video Nấu Ăn', 
-      author: 'Trần Bích Thảo', 
-      views: '12,300', 
-      status: 'Đã xuất bản', 
-      date: '06/09/2026',
-      mediaUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800',
-      content: 'Công thức sữa hạt giàu Magie, Sắt và Vitamin nhóm B. Hướng dẫn nhiệt độ xay nấu lý tưởng ở 80 độ C để bảo toàn dinh dưỡng và tạo độ sánh mịn tự nhiên từ chất béo lành mạnh trong hạt điều.',
-      ingredients: ['Hạt sen tươi: 120g', 'Hạt điều rang mộc: 80g', 'Quả chà là tạo ngọt: 3 quả', 'Nước tinh khiết: 1.2 lít'],
-      tags: ['Sữa Hạt', 'Giàu Magie', 'Thuần Thực Vật', 'Không Đường Tinh Luyện']
+      typeLabel: 'Chay Thực Dưỡng',
+      category: 'Chay Thực Dưỡng',
+      date: '4 ngày trước',
+      thumbnail: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400',
+      duration: '08:20',
+      readTime: null,
+      tags: ['Thanh Lọc Cơ Thể', 'Nấm Dược Liệu'],
+      warningTag: null,
+      author: 'Ẩm Thực An Duyên',
+      authorAvatar: 'AD',
+      authorAvatarBg: '#0d9488',
+      authorRole: 'Chuyên gia Ẩm thực',
+      authorVerified: true,
+      source: 'YouTube',
+      aiMatch: '99.1% AI Match',
+      aiDetails: '14 nguyên liệu thảo mộc',
+      macro: '195 kcal/bát • Đạt chuẩn Dưỡng Sinh',
+      aiStatus: 'extracted',
+      views: '14.8k lượt xem',
+      saved: '980 lưu thực đơn',
+      rating: '4.7 (95)',
+      isFlagged: false,
+      status: 'Đã xuất bản',
+      verifiedMedical: false,
+      mediaUrl: 'https://youtube.com/watch?v=mock-lau-nam',
+      content: 'Nước dùng lẩu hầm từ kỷ tử, táo đỏ, đẳng sâm và mía lau thanh mát. Đi kèm hơn 6 loại nấm tươi giàu polysaccharide giúp tăng cường hệ miễn dịch.',
+      ingredients: ['Nấm hầu thủ: 150g', 'Nấm đùi gà: 150g', 'Kỷ tử & táo đỏ: 50g', 'Mía lau: 2 khúc']
     },
     { 
-      id: 'C-04', 
-      title: 'Công Thức Cà Rốt Hầm Nước Cốt Dừa & Nấm Đùi Gà Thơm Nức Mũi', 
-      type: 'Recipe',
-      typeLabel: 'Công Thức Món Chay', 
-      author: 'VeggieAI Kitchen Team', 
-      views: '35,120', 
-      status: 'Đã xuất bản', 
-      date: '02/09/2026',
-      mediaUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800',
-      content: 'Món hầm sánh đậm kết hợp beta-carotene từ cà rốt tươi và axit béo chuỗi trung bình (MCT) từ nước cốt dừa hữu cơ. Nấm đùi gà dai ngọt tự nhiên tạo cảm giác ngon miệng như món hầm truyền thống.',
-      ingredients: ['Cà rốt Đà Lạt: 2 củ lớn', 'Nấm đùi gà tươi: 200g', 'Nước cốt dừa ép tươi: 150ml', 'Khoai tây: 1 củ', 'Tiêu xanh: 2 nhánh'],
-      tags: ['Món Hầm', 'Beta-Carotene', 'MCT Oil', 'Ấm Bụng']
+      id: 'VID-1108', 
+      title: 'Bí quyết Nấu Nước Dùng Bún Bò Chay Đậm Đà Chuẩn Huế', 
+      type: 'Video',
+      typeLabel: 'Món Nước Truyền Thống',
+      category: 'Món Nước Truyền Thống',
+      date: '1 tuần trước',
+      thumbnail: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
+      duration: '10:40',
+      readTime: null,
+      tags: ['Không Phụ Gia'],
+      warningTag: 'Cần rà soát bản quyền video',
+      author: 'Ẩm Thực Chay Hương Việt',
+      authorAvatar: 'YT',
+      authorAvatarBg: '#ea580c',
+      authorRole: 'YouTube Channel',
+      authorVerified: false,
+      source: 'YouTube',
+      aiMatch: '82.4% Cần kiểm chứng',
+      aiDetails: '9 nguyên liệu phát hiện',
+      macro: 'Nghi vấn định lượng sai lệch gia vị',
+      aiStatus: 'warning',
+      views: '9.1k lượt xem',
+      saved: '340 lưu thực đơn',
+      rating: '4.2 (41)',
+      isFlagged: true,
+      status: 'Cần rà soát',
+      verifiedMedical: false,
+      mediaUrl: 'https://youtube.com/watch?v=mock-bun-bo-hue-chay',
+      content: 'Nước dùng bún bò chay ngọt thanh tự nhiên từ bắp cải, củ cải trắng và sả đập dập. Lưu ý kiểm tra lại tỷ lệ mắm ruốc chay và ớt sa tế để tránh sai lệch gia vị.',
+      ingredients: ['Sả cây: 5 nhánh', 'Dứa chín: 1/2 quả', 'Chao trắng/đỏ: 2 viên', 'Nấm bào ngư: 200g']
     }
   ]);
+
+  // Bộ lọc Màn hình 2
   const [contentTab, setContentTab] = useState('all');
   const [contentSearch, setContentSearch] = useState('');
+  const [contentCategoryFilter, setContentCategoryFilter] = useState('all');
+  const [contentSourceFilter, setContentSourceFilter] = useState('all');
+  const [contentAiStatusFilter, setContentAiStatusFilter] = useState('all');
+  const [contentVerifyFilter, setContentVerifyFilter] = useState('all');
+  const [selectedContentIds, setSelectedContentIds] = useState(['VID-8921', 'POST-7890']);
   
+  // Modal Đồng bộ YouTube / TikTok
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncUrl, setSyncUrl] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStep, setSyncStep] = useState(0);
+
   // Chi tiết bài viết đang xem/chỉnh sửa (Màn hình 3)
   const [currentEditingContent, setCurrentEditingContent] = useState(contentList[0]);
 
@@ -356,6 +506,85 @@ export default function AdminDashboard({ onNavigate }) {
       setCurrentEditingContent(contentList[0]);
       setActiveMenu('content');
     }
+  };
+
+  // Checkbox handlers
+  const handleSelectAllContent = (e) => {
+    if (e.target.checked) {
+      setSelectedContentIds(contentList.map(c => c.id));
+    } else {
+      setSelectedContentIds([]);
+    }
+  };
+
+  const handleSelectOneContent = (id) => {
+    setSelectedContentIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  // Bulk actions handlers
+  const handleBulkTag = () => {
+    if (selectedContentIds.length === 0) return;
+    showToast(`🏷️ Đã mở hộp thoại gắn nhãn cho ${selectedContentIds.length} nội dung được chọn.`);
+  };
+
+  const handleBulkReExtractAI = () => {
+    if (selectedContentIds.length === 0) return;
+    showToast(`⚡ Đang gửi ${selectedContentIds.length} video/bài viết đến cụm AI Whisper & NLP để bóc tách lại công thức...`);
+  };
+
+  const handleBulkHide = () => {
+    if (selectedContentIds.length === 0) return;
+    setContentList(prev => prev.map(c => selectedContentIds.includes(c.id) ? { ...c, status: c.status === 'Đã ẩn' ? 'Đã xuất bản' : 'Đã ẩn' } : c));
+    showToast(`👁️ Đã cập nhật trạng thái ẩn/hiện cho ${selectedContentIds.length} nội dung!`);
+  };
+
+  const handleBulkDeleteContent = () => {
+    if (selectedContentIds.length === 0) return;
+    setContentList(prev => prev.filter(c => !selectedContentIds.includes(c.id)));
+    showToast(`🗑️ Đã xóa thành công ${selectedContentIds.length} bài viết/video khỏi hệ thống.`);
+    setSelectedContentIds([]);
+  };
+
+  const handleExportContentCSV = () => {
+    const headers = ['Mã', 'Tiêu đề', 'Phân loại', 'Tác giả', 'Nguồn', 'Độ khớp AI', 'Macro Calo', 'Lượt xem', 'Trạng thái'];
+    const rows = contentList.map(c => [
+      `"${c.id}"`,
+      `"${c.title.replace(/"/g, '""')}"`,
+      `"${c.typeLabel}"`,
+      `"${c.author}"`,
+      `"${c.source}"`,
+      `"${c.aiMatch}"`,
+      `"${c.macro}"`,
+      `"${c.views}"`,
+      `"${c.status}"`
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `VeggieAI_Blog_Video_List_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('📥 Đã xuất thành công file CSV danh sách Blog & Video nấu ăn!');
+  };
+
+  const handleStartSync = () => {
+    setIsSyncing(true);
+    setSyncStep(1);
+    setTimeout(() => {
+      setSyncStep(2);
+      setTimeout(() => {
+        setSyncStep(3);
+        setTimeout(() => {
+          setIsSyncing(false);
+          setShowSyncModal(false);
+          setSyncStep(0);
+          showToast('🎉 Đồng bộ & bóc tách AI thành công 1 video ẩm thực mới từ YouTube!');
+        }, 1200);
+      }, 1200);
+    }, 1000);
   };
 
   // =========================================================================
@@ -2074,128 +2303,648 @@ export default function AdminDashboard({ onNavigate }) {
           {/* =====================================================================
               MÀN HÌNH 2: QUẢN LÝ BLOG & VIDEO
               ===================================================================== */}
+          {/* =====================================================================
+              MÀN HÌNH 2: QUẢN LÝ BLOG & VIDEO NẤU ĂN
+              CHUẨN 100% THEO GIAO DIỆN HÌNH ẢNH THIẾT KẾ:
+              - 4 THẺ CHỈ SỐ: Tổng nội dung, Video bóc tách AI, Kiểm định Y khoa, Gắn cờ
+              - HỆ THỐNG PILLS TAB LỌC (Tất cả, Blog, Video, Y khoa, Chờ bóc tách, Nháp & Ẩn)
+              - THANH TÌM KIẾM & 4 BỘ LỌC DROPDOWN (Thể loại, Nguồn, Trạng thái AI, Kiểm định)
+              - THANH BULK ACTIONS: Gắn nhãn, Trích xuất AI lại, Ẩn, Xóa
+              - BẢNG NỘI DUNG CHI TIẾT: Thumbnail video/blog, Tác giả xác minh, Bóc tách AI, Tương tác
+              - PHÂN TRANG: Hiển thị 10 / 14,820 nội dung
+              ===================================================================== */}
           {activeMenu === 'content' && (
             <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              {/* HEADER ROW */}
               <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                    2. Quản lý Blog &amp; Video
+                  <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
+                    Quản lý Blog &amp; Video Nấu Ăn
                   </h1>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Danh sách toàn bộ bài viết dinh dưỡng, video nấu ăn và công thức ẩm thực trên hệ thống.
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0, maxWidth: '840px', lineHeight: '1.5' }}>
+                    Quản lý toàn bộ 14.820 bài viết cẩm nang dinh dưỡng y khoa và video nấu ăn bóc tách công thức tự động bởi AI trên hệ sinh thái VeggieAI.
                   </p>
                 </div>
+
+                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button 
+                    className="admin-btn-outline" 
+                    onClick={handleExportContentCSV}
+                    title="Xuất dữ liệu toàn bộ blog và video ra file CSV"
+                  >
+                    <Download size={15} /> Xuất CSV
+                  </button>
+
+                  <button 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      color: '#1d4ed8',
+                      padding: '0.55rem 1.15rem',
+                      borderRadius: '8px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onClick={() => setShowSyncModal(true)}
+                    title="Đồng bộ video mới từ các kênh đối tác YouTube và TikTok"
+                  >
+                    <RotateCcw size={15} color="#2563eb" /> Đồng bộ YouTube/TikTok
+                  </button>
+
+                  <button 
+                    className="admin-btn-primary"
+                    onClick={() => {
+                      const newBlank = {
+                        id: `POST-0${contentList.length + 1}`,
+                        title: 'Bài viết dinh dưỡng mới chưa đặt tên',
+                        type: 'Blog',
+                        typeLabel: 'Blog Dinh Dưỡng',
+                        category: 'Cẩm nang Y khoa',
+                        author: 'Admin',
+                        authorAvatar: 'AD',
+                        authorAvatarBg: '#059669',
+                        authorRole: 'Quản trị viên',
+                        authorVerified: true,
+                        source: 'VeggieAI Editorial',
+                        views: '0 lượt xem',
+                        saved: '0 lưu',
+                        rating: '5.0 (0)',
+                        status: 'Bản nháp',
+                        date: 'Hôm nay',
+                        mediaUrl: '',
+                        thumbnail: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400',
+                        duration: null,
+                        readTime: '3 phút đọc',
+                        tags: ['Mới'],
+                        warningTag: null,
+                        aiMatch: 'Chờ phân tích',
+                        aiDetails: 'Đang chuẩn bị mô hình',
+                        macro: 'Chưa bóc tách calo',
+                        aiStatus: 'pending',
+                        isFlagged: false,
+                        verifiedMedical: false,
+                        content: 'Nhập nội dung bài viết chia sẻ kiến thức dinh dưỡng chay tại đây...',
+                        ingredients: ['Nguyên liệu mẫu 1']
+                      };
+                      setContentList([newBlank, ...contentList]);
+                      handleEditContent(newBlank);
+                    }}
+                  >
+                    <Plus size={16} /> Thêm bài viết / video
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 STATS CARDS CHUẨN XÁC THEO HÌNH ẢNH */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.15rem', marginBottom: '1.5rem' }}>
+                {/* Card 1: Tổng nội dung hệ thống */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Layers size={20} />
+                    </div>
+                    <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.74rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
+                      ↗ +8.6%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TỔNG NỘI DUNG HỆ THỐNG</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0.2rem 0' }}>
+                    14,820 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>mục</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.85rem', fontSize: '0.76rem', color: '#475569', marginTop: '0.45rem', borderTop: '1px dashed #f1f5f9', paddingTop: '0.45rem' }}>
+                    <span><strong style={{ color: '#0f172a' }}>● 9,460</strong> Blog</span>
+                    <span><strong style={{ color: '#ea580c' }}>● 5,370</strong> Video</span>
+                  </div>
+                </div>
+
+                {/* Card 2: Video bóc tách AI thành công */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Cpu size={20} />
+                    </div>
+                    <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.74rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
+                      97.0% Tự động
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>VIDEO BÓC TÁCH AI THÀNH CÔNG</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0.2rem 0' }}>
+                    5,210 <span style={{ fontSize: '1.05rem', color: '#94a3b8', fontWeight: 500 }}>/ 5,370</span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#059669', marginTop: '0.45rem', borderTop: '1px dashed #f1f5f9', paddingTop: '0.45rem', fontWeight: 600 }}>
+                    Đạt chuẩn calo, gia vị &amp; định lượng
+                  </div>
+                </div>
+
+                {/* Card 3: Nội dung đã kiểm định Y khoa */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ShieldCheck size={20} />
+                    </div>
+                    <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.74rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
+                      Y Khoa &amp; Dinh Dưỡng
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NỘI DUNG ĐÃ KIỂM ĐỊNH Y KHOA</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0.2rem 0' }}>
+                    8,940 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>bài duyệt</span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#059669', marginTop: '0.45rem', borderTop: '1px dashed #f1f5f9', paddingTop: '0.45rem', fontWeight: 600 }}>
+                    ✓ Bác sĩ/Nutritionist bảo trợ khoa học
+                  </div>
+                </div>
+
+                {/* Card 4: Nội dung gắn cờ rà soát */}
+                <div style={{ background: '#ffffff', border: '1px solid #fee2e2', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(220,38,38,0.03)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Flag size={20} />
+                    </div>
+                    <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: '0.74rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
+                      Cần xử lý
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NỘI DUNG GẮN CỜ RÀ SOÁT</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#dc2626', margin: '0.2rem 0' }}>
+                    24 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>bài/video</span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#b91c1c', marginTop: '0.45rem', borderTop: '1px dashed #fee2e2', paddingTop: '0.45rem', fontWeight: 600 }}>
+                    ⚠️ Nghi sai lệch dinh dưỡng &amp; bản quyền
+                  </div>
+                </div>
+              </div>
+
+              {/* TABS LỌC (SUBTABS PILLS) */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.15rem', flexWrap: 'wrap' }}>
                 <button 
-                  className="admin-btn-primary"
-                  onClick={() => {
-                    const newBlank = {
-                      id: `C-0${contentList.length + 1}`,
-                      title: 'Bài viết dinh dưỡng mới chưa đặt tên',
-                      type: 'Blog',
-                      typeLabel: 'Blog Dinh Dưỡng',
-                      author: 'Admin',
-                      views: '0',
-                      status: 'Bản nháp',
-                      date: 'Hôm nay',
-                      mediaUrl: '',
-                      content: 'Nhập nội dung bài viết chia sẻ kiến thức dinh dưỡng chay tại đây...',
-                      ingredients: ['Nguyên liệu 1'],
-                      tags: ['Mới']
-                    };
-                    setContentList([newBlank, ...contentList]);
-                    handleEditContent(newBlank);
+                  style={{
+                    background: contentTab === 'all' ? '#047857' : '#ffffff',
+                    color: contentTab === 'all' ? '#ffffff' : '#475569',
+                    border: '1px solid',
+                    borderColor: contentTab === 'all' ? '#047857' : '#e2e8f0',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
                   }}
+                  onClick={() => setContentTab('all')}
                 >
-                  <Plus size={16} /> Thêm Bài Viết / Video Mới
+                  Tất cả (14,820)
+                </button>
+
+                <button 
+                  style={{
+                    background: contentTab === 'blog' ? '#047857' : '#ffffff',
+                    color: contentTab === 'blog' ? '#ffffff' : '#475569',
+                    border: '1px solid',
+                    borderColor: contentTab === 'blog' ? '#047857' : '#e2e8f0',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => setContentTab('blog')}
+                >
+                  Bài viết Blog (9,450)
+                </button>
+
+                <button 
+                  style={{
+                    background: contentTab === 'video' ? '#047857' : '#ffffff',
+                    color: contentTab === 'video' ? '#ffffff' : '#475569',
+                    border: '1px solid',
+                    borderColor: contentTab === 'video' ? '#047857' : '#e2e8f0',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => setContentTab('video')}
+                >
+                  Video Nấu Ăn (5,370)
+                </button>
+
+                <button 
+                  style={{
+                    background: contentTab === 'verified' ? '#047857' : '#ffffff',
+                    color: contentTab === 'verified' ? '#ffffff' : '#475569',
+                    border: '1px solid',
+                    borderColor: contentTab === 'verified' ? '#047857' : '#e2e8f0',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => setContentTab('verified')}
+                >
+                  Đã kiểm định Y khoa (8,940)
+                </button>
+
+                <button 
+                  style={{
+                    background: contentTab === 'pending_ai' ? '#047857' : '#ffffff',
+                    color: contentTab === 'pending_ai' ? '#ffffff' : '#475569',
+                    border: '1px solid',
+                    borderColor: contentTab === 'pending_ai' ? '#047857' : '#e2e8f0',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => setContentTab('pending_ai')}
+                >
+                  <span>Chờ AI bóc tách</span>
+                  <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '10px' }}>48</span>
+                </button>
+
+                <button 
+                  style={{
+                    background: contentTab === 'draft' ? '#047857' : '#ffffff',
+                    color: contentTab === 'draft' ? '#ffffff' : '#475569',
+                    border: '1px solid',
+                    borderColor: contentTab === 'draft' ? '#047857' : '#e2e8f0',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '20px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => setContentTab('draft')}
+                >
+                  Nháp &amp; Ẩn (112)
                 </button>
               </div>
 
-              {/* TABS & SEARCH */}
-              <div className="admin-filter-bar">
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button className={`admin-subtab-btn ${contentTab === 'all' ? 'active' : ''}`} onClick={() => setContentTab('all')}>
-                    Tất cả ({contentList.length})
-                  </button>
-                  <button className={`admin-subtab-btn ${contentTab === 'Blog' ? 'active' : ''}`} onClick={() => setContentTab('Blog')}>
-                    Blog Dinh Dưỡng ({contentList.filter(c => c.type === 'Blog').length})
-                  </button>
-                  <button className={`admin-subtab-btn ${contentTab === 'Video' ? 'active' : ''}`} onClick={() => setContentTab('Video')}>
-                    Video Nấu Ăn ({contentList.filter(c => c.type === 'Video').length})
-                  </button>
-                  <button className={`admin-subtab-btn ${contentTab === 'Recipe' ? 'active' : ''}`} onClick={() => setContentTab('Recipe')}>
-                    Công thức Món Chay ({contentList.filter(c => c.type === 'Recipe').length})
-                  </button>
+              {/* SEARCH & SELECT FILTERS ROW */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* SEARCH INPUT */}
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    style={{
+                      width: '100%',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '0.65rem 1rem 0.65rem 2.4rem',
+                      fontSize: '0.85rem',
+                      color: '#0f172a',
+                      outline: 'none'
+                    }}
+                    placeholder="Tìm theo tiêu đề, tác giả, nguyên liệu..." 
+                    value={contentSearch}
+                    onChange={(e) => setContentSearch(e.target.value)}
+                  />
                 </div>
 
-                <input 
-                  type="text" 
-                  className="admin-filter-input"
-                  placeholder="Tìm bài viết, tác giả..." 
-                  value={contentSearch}
-                  onChange={(e) => setContentSearch(e.target.value)}
-                />
+                {/* 4 DROPDOWNS & RESET BUTTON */}
+                <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select 
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.45rem 0.85rem', fontSize: '0.82rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                    value={contentCategoryFilter}
+                    onChange={(e) => setContentCategoryFilter(e.target.value)}
+                  >
+                    <option value="all">Thể loại: Tất cả</option>
+                    <option value="Chay Thuần Vegan">Chay Thuần Vegan</option>
+                    <option value="Cẩm nang Y khoa">Cẩm nang Y khoa</option>
+                    <option value="Món Ăn Vặt & Chiên">Món Ăn Vặt &amp; Chiên</option>
+                    <option value="Dinh Dưỡng Thể Thao">Dinh Dưỡng Thể Thao</option>
+                    <option value="Chay Thực Dưỡng">Chay Thực Dưỡng</option>
+                    <option value="Món Nước Truyền Thống">Món Nước Truyền Thống</option>
+                  </select>
+
+                  <select 
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.45rem 0.85rem', fontSize: '0.82rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                    value={contentSourceFilter}
+                    onChange={(e) => setContentSourceFilter(e.target.value)}
+                  >
+                    <option value="all">Nguồn: Tất cả kênh</option>
+                    <option value="YouTube">YouTube</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="VeggieAI Editorial">VeggieAI Editorial</option>
+                    <option value="Chuyên gia">Chuyên gia Dinh dưỡng</option>
+                  </select>
+
+                  <select 
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.45rem 0.85rem', fontSize: '0.82rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                    value={contentAiStatusFilter}
+                    onChange={(e) => setContentAiStatusFilter(e.target.value)}
+                  >
+                    <option value="all">Trạng thái AI: Tất cả</option>
+                    <option value="extracted">Đã bóc tách thành công</option>
+                    <option value="verified">Thẩm định Y khoa</option>
+                    <option value="warning">Cần kiểm chứng / Cảnh báo</option>
+                  </select>
+
+                  <select 
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.45rem 0.85rem', fontSize: '0.82rem', color: '#334155', fontWeight: 600, outline: 'none' }}
+                    value={contentVerifyFilter}
+                    onChange={(e) => setContentVerifyFilter(e.target.value)}
+                  >
+                    <option value="all">Kiểm định: Tất cả</option>
+                    <option value="verified">Đã kiểm định Y khoa</option>
+                    <option value="unverified">Chưa kiểm định</option>
+                  </select>
+
+                  <button 
+                    style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.65rem' }}
+                    onClick={() => {
+                      setContentSearch('');
+                      setContentTab('all');
+                      setContentCategoryFilter('all');
+                      setContentSourceFilter('all');
+                      setContentAiStatusFilter('all');
+                      setContentVerifyFilter('all');
+                    }}
+                  >
+                    <RotateCcw size={14} /> Đặt lại bộ lọc
+                  </button>
+                </div>
               </div>
 
-              {/* TABLE */}
+              {/* FLOATING BULK ACTIONS BAR (KHI CÓ ITEMS ĐƯỢC CHỌN) */}
+              {selectedContentIds.length > 0 && (
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '0.65rem 1rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  animation: 'fadeIn 0.2s ease'
+                }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a' }}>
+                    Đã chọn: <strong style={{ color: '#047857' }}>{selectedContentIds.length}</strong>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button 
+                      style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      onClick={handleBulkTag}
+                    >
+                      <Tag size={13} /> Gắn nhãn
+                    </button>
+
+                    <button 
+                      style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, color: '#047857', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      onClick={handleBulkReExtractAI}
+                    >
+                      <Zap size={13} color="#059669" /> Trích xuất AI lại
+                    </button>
+
+                    <button 
+                      style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      onClick={handleBulkHide}
+                    >
+                      <Eye size={13} /> Ẩn
+                    </button>
+
+                    <button 
+                      style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', padding: '0.4rem 0.65rem', color: '#b91c1c', cursor: 'pointer' }}
+                      onClick={handleBulkDeleteContent}
+                      title="Xóa nội dung đã chọn"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* DATA TABLE CHUẨN XÁC THEO HÌNH ẢNH */}
               <div className="admin-table-container">
                 <table className="admin-data-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '40%' }}>TIÊU ĐỀ BÀI VIẾT / VIDEO</th>
-                      <th style={{ width: '15%' }}>PHÂN LOẠI</th>
-                      <th style={{ width: '15%' }}>TÁC GIẢ</th>
-                      <th style={{ width: '10%' }}>LƯỢT XEM</th>
-                      <th style={{ width: '10%' }}>TRẠNG THÁI</th>
-                      <th style={{ width: '10%', textAlign: 'center' }}>THAO TÁC</th>
+                      <th style={{ width: '4%', textAlign: 'center' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedContentIds.length === contentList.length && contentList.length > 0}
+                          onChange={handleSelectAllContent}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#047857' }}
+                        />
+                      </th>
+                      <th style={{ width: '40%' }}>NỘI DUNG &amp; HÌNH ẢNH</th>
+                      <th style={{ width: '22%' }}>TÁC GIẢ / NGUỒN</th>
+                      <th style={{ width: '22%' }}>BÓC TÁCH AI (CÔNG THỨC &amp; MACRO)</th>
+                      <th style={{ width: '12%', textAlign: 'right' }}>TƯƠNG TÁC</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contentList
-                      .filter(c => contentTab === 'all' ? true : c.type === contentTab)
-                      .filter(c => !contentSearch ? true : c.title.toLowerCase().includes(contentSearch.toLowerCase()) || c.author.toLowerCase().includes(contentSearch.toLowerCase()))
-                      .map(item => (
-                        <tr key={item.id}>
-                          <td>
-                            <strong style={{ color: '#0f172a', display: 'block', marginBottom: '0.2rem' }}>{item.title}</strong>
-                            <small style={{ color: '#94a3b8' }}>Mã bài: {item.id} • Đăng ngày {item.date}</small>
-                          </td>
-                          <td>
-                            <span style={{ 
-                              background: item.type === 'Blog' ? '#eff6ff' : item.type === 'Video' ? '#fef3c7' : '#ecfdf5', 
-                              color: item.type === 'Blog' ? '#2563eb' : item.type === 'Video' ? '#d97706' : '#059669', 
-                              padding: '0.2rem 0.5rem', 
-                              borderRadius: '6px', 
-                              fontSize: '0.75rem', 
-                              fontWeight: 700 
-                            }}>
-                              {item.typeLabel}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{ fontSize: '0.85rem', color: '#334155' }}>{item.author}</span>
-                          </td>
-                          <td>
-                            <strong>{item.views}</strong>
-                          </td>
-                          <td>
-                            <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.75rem' }}>● {item.status}</span>
-                          </td>
+                      .filter(c => {
+                        if (contentTab === 'blog') return c.type === 'Blog';
+                        if (contentTab === 'video') return c.type === 'Video';
+                        if (contentTab === 'verified') return c.verifiedMedical;
+                        if (contentTab === 'pending_ai') return c.aiStatus === 'warning' || c.aiStatus === 'pending';
+                        if (contentTab === 'draft') return c.status !== 'Đã xuất bản';
+                        return true;
+                      })
+                      .filter(c => {
+                        if (contentCategoryFilter !== 'all' && c.category !== contentCategoryFilter) return false;
+                        if (contentSourceFilter !== 'all' && c.source !== contentSourceFilter) return false;
+                        if (contentAiStatusFilter !== 'all' && c.aiStatus !== contentAiStatusFilter) return false;
+                        if (contentVerifyFilter === 'verified' && !c.verifiedMedical) return false;
+                        if (contentVerifyFilter === 'unverified' && c.verifiedMedical) return false;
+                        if (!contentSearch) return true;
+                        const s = contentSearch.toLowerCase();
+                        return c.title.toLowerCase().includes(s) || 
+                               c.author.toLowerCase().includes(s) || 
+                               (c.ingredients && c.ingredients.some(i => i.toLowerCase().includes(s))) ||
+                               (c.tags && c.tags.some(t => t.toLowerCase().includes(s)));
+                      })
+                      .map((item) => (
+                        <tr 
+                          key={item.id}
+                          style={{ 
+                            background: selectedContentIds.includes(item.id) ? '#f0fdf4' : 'transparent',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          {/* CHECKBOX */}
                           <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                              <button 
-                                style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}
+                            <input 
+                              type="checkbox" 
+                              checked={selectedContentIds.includes(item.id)}
+                              onChange={() => handleSelectOneContent(item.id)}
+                              style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#047857' }}
+                            />
+                          </td>
+
+                          {/* CỘT 1: NỘI DUNG & HÌNH ẢNH */}
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                              {/* THUMBNAIL BOX */}
+                              <div 
+                                style={{ 
+                                  position: 'relative', 
+                                  width: '96px', 
+                                  height: '62px', 
+                                  borderRadius: '8px', 
+                                  overflow: 'hidden', 
+                                  flexShrink: 0,
+                                  background: '#0f172a',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                                }}
                                 onClick={() => handleEditContent(item)}
-                                title="Xem và chỉnh sửa chi tiết (Màn hình 3)"
                               >
-                                Xem &amp; Sửa
-                              </button>
-                              <button 
-                                style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer' }}
-                                onClick={() => handleDeleteContent(item.id)}
-                                title="Xóa nội dung"
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                                <img 
+                                  src={item.thumbnail} 
+                                  alt={item.title} 
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                                {item.type === 'Video' ? (
+                                  <>
+                                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Play size={11} color="#0f172a" fill="#0f172a" style={{ marginLeft: '1px' }} />
+                                      </div>
+                                    </div>
+                                    <span style={{ position: 'absolute', right: '4px', bottom: '4px', background: 'rgba(0,0,0,0.75)', color: '#ffffff', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                                      {item.duration || '03:15'}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span style={{ position: 'absolute', right: '4px', bottom: '4px', background: 'rgba(15,23,42,0.85)', color: '#34d399', fontSize: '0.62rem', fontWeight: 700, padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                                    {item.readTime || '5 phút đọc'}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* TITLE & META */}
+                              <div style={{ flex: 1 }}>
+                                <div 
+                                  style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem', lineHeight: '1.35', cursor: 'pointer' }}
+                                  onClick={() => handleEditContent(item)}
+                                  title="Nhấp để xem và sửa chi tiết ở Màn hình 3"
+                                >
+                                  {item.title}
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.72rem', color: '#64748b', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                                  <strong style={{ color: '#475569' }}>{item.id}</strong>
+                                  <span>•</span>
+                                  <span style={{ color: '#059669', fontWeight: 600 }}>{item.category}</span>
+                                  <span>•</span>
+                                  <span>{item.date}</span>
+                                </div>
+
+                                {/* TAG PILLS */}
+                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                  {item.tags && item.tags.map((tg, i) => (
+                                    <span key={i} style={{ background: '#f0f9ff', color: '#0369a1', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                                      {tg}
+                                    </span>
+                                  ))}
+                                  {item.warningTag && (
+                                    <span style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                                      {item.warningTag}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* CỘT 2: TÁC GIẢ / NGUỒN */}
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <div style={{ 
+                                width: '34px', 
+                                height: '34px', 
+                                borderRadius: '50%', 
+                                background: item.authorAvatarBg || '#047857', 
+                                color: '#ffffff', 
+                                fontWeight: 800, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                fontSize: '0.75rem',
+                                flexShrink: 0
+                              }}>
+                                {item.authorAvatar}
+                              </div>
+
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <strong style={{ fontSize: '0.84rem', color: '#0f172a' }}>{item.author}</strong>
+                                  {item.authorVerified && (
+                                    <span title="Tác giả / Bác sĩ đã xác minh"><CheckCircle2 size={13} color="#059669" /></span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.1rem' }}>
+                                  {item.authorRole}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* CỘT 3: BÓC TÁCH AI (CÔNG THỨC & MACRO) */}
+                          <td>
+                            <div>
+                              {/* BADGE BÓC TÁCH */}
+                              <div style={{ marginBottom: '0.3rem' }}>
+                                {item.aiStatus === 'verified' ? (
+                                  <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <ShieldCheck size={12} /> {item.aiMatch}
+                                  </span>
+                                ) : item.aiStatus === 'warning' ? (
+                                  <span style={{ background: '#fefce8', border: '1px solid #fef08a', color: '#a16207', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <AlertTriangle size={12} /> {item.aiMatch}
+                                  </span>
+                                ) : (
+                                  <span style={{ background: '#ecfeff', border: '1px solid #a5f3fc', color: '#0891b2', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Zap size={11} /> {item.aiMatch}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ fontSize: '0.78rem', color: '#334155', fontWeight: 600, marginBottom: '0.15rem' }}>
+                                {item.aiDetails}
+                              </div>
+
+                              <div style={{ fontSize: '0.74rem', color: item.aiStatus === 'warning' ? '#dc2626' : '#64748b', fontWeight: item.aiStatus === 'warning' ? 700 : 500 }}>
+                                {item.macro}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* CỘT 4: TƯƠNG TÁC */}
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+                              {item.views}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b', margin: '0.15rem 0' }}>
+                              {item.saved}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.2rem' }}>
+                              <span>★</span>
+                              <span>{item.rating}</span>
                             </div>
                           </td>
                         </tr>
@@ -2203,6 +2952,143 @@ export default function AdminDashboard({ onNavigate }) {
                   </tbody>
                 </table>
               </div>
+
+              {/* PAGINATION FOOTER */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#64748b' }}>
+                  <span>Hiển thị</span>
+                  <select style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.25rem 0.5rem', fontSize: '0.8rem', outline: 'none' }}>
+                    <option>10</option>
+                    <option>20</option>
+                    <option>50</option>
+                  </select>
+                  <span>trên tổng số <strong>14,820</strong> nội dung</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                  <button style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                    &lt;
+                  </button>
+                  <button style={{ width: '32px', height: '32px', border: '1px solid #047857', background: '#047857', color: '#ffffff', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>
+                    1
+                  </button>
+                  <button style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', color: '#334155' }}>
+                    2
+                  </button>
+                  <button style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', color: '#334155' }}>
+                    3
+                  </button>
+                  <span style={{ padding: '0 0.3rem', color: '#94a3b8' }}>...</span>
+                  <button style={{ width: '40px', height: '32px', border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', color: '#334155' }}>
+                    1482
+                  </button>
+                  <button style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                    &gt;
+                  </button>
+                </div>
+              </div>
+
+              {/* MODAL: ĐỒNG BỘ YOUTUBE & TIKTOK + BÓC TÁCH CÔNG THỨC TỰ ĐỘNG BỞI AI */}
+              {showSyncModal && (
+                <div style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '1rem'
+                }}>
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '560px',
+                    padding: '1.75rem',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    animation: 'fadeIn 0.2s ease'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <RotateCcw size={18} />
+                        </div>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                          Đồng Bộ &amp; Bóc Tách Video Tự Động
+                        </h3>
+                      </div>
+                      <button 
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                        onClick={() => setShowSyncModal(false)}
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
+                      Nhập đường dẫn liên kết video hoặc kênh ẩm thực đối tác. Cụm AI sẽ tự động phân tích giọng nói (Whisper STT), bóc tách nguyên liệu chay và tính toán bảng phân bổ dinh dưỡng Macro.
+                    </p>
+
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem' }}>
+                        ĐƯỜNG DẪN VIDEO YOUTUBE / TIKTOK HOẶC TÊN KÊNH:
+                      </label>
+                      <input 
+                        type="text" 
+                        style={{
+                          width: '100%',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          padding: '0.65rem 0.85rem',
+                          fontSize: '0.85rem',
+                          color: '#0f172a',
+                          outline: 'none'
+                        }}
+                        placeholder="https://www.youtube.com/watch?v=... hoặc @kenhchay"
+                        value={syncUrl}
+                        onChange={(e) => setSyncUrl(e.target.value)}
+                      />
+                    </div>
+
+                    {/* LIVE PIPELINE PROGRESS */}
+                    {isSyncing && (
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem', fontSize: '0.8rem' }}>
+                        <div style={{ fontWeight: 700, color: '#047857', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <RefreshCw size={14} className="animate-spin" /> Đang xử lý bóc tách trí tuệ nhân tạo:
+                        </div>
+                        <div style={{ color: syncStep >= 1 ? '#059669' : '#94a3b8', marginBottom: '0.25rem' }}>
+                          {syncStep >= 1 ? '✓' : '○'} Bước 1: Trích xuất phụ đề &amp; nhận dạng giọng nói Whisper STT...
+                        </div>
+                        <div style={{ color: syncStep >= 2 ? '#059669' : '#94a3b8', marginBottom: '0.25rem' }}>
+                          {syncStep >= 2 ? '✓' : '○'} Bước 2: Bóc tách nguyên liệu &amp; kiểm tra đạt chuẩn Thuần Chay (NLP Engine)...
+                        </div>
+                        <div style={{ color: syncStep >= 3 ? '#059669' : '#94a3b8' }}>
+                          {syncStep >= 3 ? '✓' : '○'} Bước 3: Tính toán Calo, Carbs, Protein, Chất béo và lưu vào hệ thống!
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                      <button 
+                        className="admin-btn-outline"
+                        onClick={() => setShowSyncModal(false)}
+                        disabled={isSyncing}
+                      >
+                        Hủy
+                      </button>
+                      <button 
+                        className="admin-btn-primary"
+                        onClick={handleStartSync}
+                        disabled={isSyncing}
+                      >
+                        {isSyncing ? 'Đang bóc tách...' : 'Bắt đầu Bóc Tách AI'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
