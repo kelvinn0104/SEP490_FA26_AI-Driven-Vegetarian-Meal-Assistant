@@ -6,7 +6,7 @@ import {
   XCircle, Eye, RefreshCw, FileText, Plus, Database, Activity, 
   Check, ArrowRight, ExternalLink, ShieldCheck, ChevronRight, X, 
   Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
-  Play, Tag, RotateCcw, Star, Share2
+  Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -284,35 +284,93 @@ export default function AdminDashboard({ onNavigate }) {
   const [contentList, setContentList] = useState([
     { 
       id: 'VID-8921', 
-      title: 'Cà Ri Rau Củ Nước Cốt Dừa', 
+      title: 'Cà Ri Rau Củ Nước Cốt Dừa & Nấm Hương', 
       type: 'Video',
-      typeLabel: 'Chay Thuần Vegan',
-      category: 'Chay Thuần Vegan',
-      date: 'Hôm nay 10:15',
-      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
-      duration: '04:23',
+      typeLabel: 'Thuần Chay Chuẩn',
+      category: 'Món chính | Món Nước & Sốt',
+      date: 'Hôm nay 10:18',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1000',
+      duration: '04:25',
       readTime: null,
-      tags: ['Không Gluten', 'Nhiều Chất Xơ'],
+      tags: ['#CaRiChay', '#GiauChatXo', '#DinhDuongKhoaHoc', '#MonChayHangNgay'],
       warningTag: null,
       author: 'Bếp Chay An Lạc',
+      authorSubs: '485K SUB',
       authorAvatar: 'AN',
       authorAvatarBg: '#f97316',
       authorRole: 'Authorized User',
       authorVerified: true,
       source: 'YouTube',
+      channelEpisode: 'Bếp Chay An Lạc - Ep. 142',
       aiMatch: '98.4% AI Match',
-      aiDetails: '11 nguyên liệu • 4 bước nấu',
-      macro: '410 kcal • 14g Protein • 52g Carbs',
+      aiConfidence: '98.4% Confidence',
+      aiModel: 'Whisper v3 + YOLO-Recipe',
+      aiTime: '4.2s',
+      aiDetails: '7 nguyên liệu bóc tách • 4 bước nấu chuẩn hóa',
+      macro: '410 kcal • 14g Protein • 52g Carbs • 16g Fat',
+      calories: 410,
+      caloriesRni: '22.5% nhu cầu hàng ngày (RNI 1,800 kcal)',
+      macroBreakdown: {
+        carbs: { g: 52, pct: 55, color: '#10b981' },
+        fat: { g: 16, pct: 27, color: '#f59e0b' },
+        protein: { g: 14, pct: 18, color: '#06b6d4' },
+        fiber: { g: 8.5, pct: 34 }
+      },
+      micronutrients: [
+        { name: 'Vitamin A (Beta-carotene)', value: '180% RNI (Cà rốt & Khoai lang)' },
+        { name: 'Sắt hữu cơ (Non-heme Iron)', value: '4.2mg (35% RNI)' },
+        { name: 'Canxi tự nhiên từ đậu hũ & nấm', value: '120mg (12% RNI)' }
+      ],
       aiStatus: 'extracted',
-      views: '28.5k lượt xem',
-      saved: '1,420 lưu thực đơn',
-      rating: '4.9 (310)',
+      views: '28.5K',
+      saved: '1,420',
+      rating: '4.9 ★',
       isFlagged: false,
       status: 'Đã xuất bản',
       verifiedMod: true,
-      mediaUrl: 'https://youtube.com/watch?v=mock-curry-vegan',
+      mediaUrl: 'https://youtube.com/watch?v=veggie-curry-coconut',
+      summary: 'Món cà ri thuần chay thanh nhẹ, kết hợp khoai lang dồi dào chất xơ, nấm đông cô nâng cao hệ miễn dịch tự nhiên, béo thơm nước cốt dừa với hương cà ri ấm nồng sả nghệ hỗ trợ giảm viêm tiêu hóa.',
       content: 'Món Cà Ri Rau Củ Nước Cốt Dừa béo ngậy tự nhiên, kết hợp khoai lang mật, cà rốt và đậu hũ chiên. Công thức đã được AI bóc tách chi tiết từng bước nấu và cân bằng lượng calo.',
-      ingredients: ['Khoai lang: 2 củ', 'Cà rốt: 1 củ', 'Nước cốt dừa: 200ml', 'Đậu hũ: 2 bìa', 'Bột cà ri: 1 muỗng']
+      editorContent: `💡 Mẹo Nấu Ăn & Bảo Quản Chuẩn Y Khoa:\n\n1. Giữ trọn vi chất: Không hầm kỹ khoai lang và cà rốt quá 20 phút ở nhiệt độ trên 100°C để bảo toàn tối đa lượng Vitamin A (Beta-carotene) hòa tan trong chất béo dừa tự nhiên.\n\n2. Bảo quản tủ lạnh: Để nguội hoàn toàn, chia vào hộp thủy tinh kín khí có thể trữ mát trong 48 giờ. Khi hâm nóng lại, thêm 2 thìa canh nước ấm và đảo lửa nhỏ.`,
+      ingredientsDetailed: [
+        { id: 1, name: 'Khoai lang mật', amount: '200g', tag: 'Rau củ giàu Beta-Carotene', status: 'Đã khớp CSDL' },
+        { id: 2, name: 'Cà rốt Đà Lạt', amount: '150g', tag: 'Củ giàu Vitamin A', status: 'Đã khớp CSDL' },
+        { id: 3, name: 'Nấm đông cô ngâm nở', amount: '100g', tag: 'Đạm thực vật & Kẽm', status: 'Đã khớp CSDL' },
+        { id: 4, name: 'Nước cốt dừa tươi', amount: '250ml', tag: 'Chất béo thực vật MCT', status: 'Đã khớp CSDL' },
+        { id: 5, name: 'Đậu hũ non chiên', amount: '150g', tag: 'Đạm Isoflavone', status: 'Đã khớp CSDL' },
+        { id: 6, name: 'Bột cà ri hữu cơ', amount: '15g', tag: 'Gia vị thảo mộc kháng viêm', status: 'Đã khớp CSDL' },
+        { id: 7, name: 'Sả cây băm nhuyễn', amount: '3 cây (30g)', tag: 'Hương liệu thảo dược', status: 'Đã khớp CSDL' }
+      ],
+      cookingSteps: [
+        { step: 1, time: '00:15 - 01:10', title: 'Sơ chế rau củ & nấm đông cô', desc: 'Ngâm nấm đông cô với nước ấm 15 phút. Gọt vỏ khoai lang và cà rốt, cắt khúc vuông 3x3cm vừa miệng ăn.' },
+        { step: 2, time: '01:11 - 02:25', title: 'Phi thơm thảo mộc & bột cà ri', desc: 'Đun nóng 1 muỗng dầu dừa trên chảo sâu lòng, phi thơm sả băm nhuyễn và cho bột cà ri hữu cơ vào xào nhanh 30 giây dậy mùi.' },
+        { step: 3, time: '02:26 - 03:40', title: 'Nấu rau củ & hòa quyện nước cốt dừa', desc: 'Cho khoai, cà rốt và nấm vào đảo đều thấm gia vị. Rót 300ml nước dùng rau củ hầm sôi 10 phút, sau đó hạ nhỏ lửa và cho 250ml nước cốt dừa tươi vào khuấy đều.' },
+        { step: 4, time: '03:41 - 04:25', title: 'Hoàn thiện với đậu hũ non chiên vàng', desc: 'Cho đậu hũ non đã chiên vàng vào nồi, đảo nhẹ tay tránh nát đậu. Đun liu riu thêm 3 phút, nêm muối hồng và hạt nêm nấm hữu cơ rồi tắt bếp.' }
+      ],
+      transcript: [
+        { time: '00:15', speaker: 'Bếp Chay An Lạc', text: 'Chào các bạn, hôm nay Bếp Chay An Lạc sẽ hướng dẫn món cà ri rau củ nước cốt dừa thơm béo chuẩn vị tự nhiên...' },
+        { time: '01:05', speaker: 'Bếp Chay An Lạc', text: 'Phần nấm đông cô sau khi ngâm nở chúng ta vắt ráo, khoai lang và cà rốt cắt miếng vừa ăn để giữ được độ ngọt...' },
+        { time: '02:40', speaker: 'Bếp Chay An Lạc', text: 'Đoạn sôi múi cà và thêm nước cốt dừa: Hãy giảm nhỏ lửa để nước dừa hòa quyện mịn màng, không bị kết tủa...' },
+        { time: '03:50', speaker: 'Bếp Chay An Lạc', text: 'Món ăn hoàn thành với màu sắc vàng ươm hấp dẫn, giàu beta-carotene và đạm thực vật lành mạnh cho cả gia đình.' }
+      ],
+      expertReview: {
+        expertName: 'BS. CKI Nguyễn Lan Hương',
+        expertRole: 'Viện Dinh Dưỡng Lâm Sàng TP. HCM',
+        avatar: 'LH',
+        quote: 'Công thức sở hữu tỷ lệ cân đối đạm thực vật chất lượng cao từ nấm đông cô và đậu hũ non. Hàm lượng chất béo từ nước cốt dừa đã được kiểm soát trong ngưỡng an toàn, phù hợp cho người ăn thuần chay trường kỳ và người huyết áp ổn định.',
+        certId: '#NUTRI-VER-984'
+      },
+      dietaryChecklist: [
+        { id: 'cholesterol', label: 'Thích hợp cho người kiểm soát Cholesterol', checked: true },
+        { id: 'fiber', label: 'Giàu chất xơ hòa tan hỗ trợ tiêu hóa', checked: true },
+        { id: 'glutenFree', label: 'Không chứa Gluten (Gluten-Free 100%)', checked: true },
+        { id: 'lowSodium', label: 'Thực đơn hạn chế muối/nghiêm ngặt (Low Sodium)', checked: false }
+      ],
+      auditLogs: [
+        { time: '14:05 Hôm nay', author: 'Admin_Master', text: 'Điều chỉnh định lượng nước cốt dừa từ 300ml xuống 250ml.' },
+        { time: '11:30 Hôm nay', author: 'BS. Lan Hương', text: 'Phê duyệt chỉ số dinh dưỡng lâm sàng và ký số bảo trợ.' },
+        { time: '10:18 Hôm nay', author: 'VeggieAI Engine', text: 'Whisper STT và YOLOv8 hoàn tất bóc tách 7 nguyên liệu & 4 bước nấu.' }
+      ]
     },
     { 
       id: 'POST-4109', 
@@ -493,15 +551,119 @@ export default function AdminDashboard({ onNavigate }) {
 
   // Chi tiết bài viết đang xem/chỉnh sửa (Màn hình 3)
   const [currentEditingContent, setCurrentEditingContent] = useState(contentList[0]);
+  const [detailActiveTab, setDetailActiveTab] = useState('ingredients');
+  const [detailLiveStreamSync, setDetailLiveStreamSync] = useState(false);
+  const [detailRecommender, setDetailRecommender] = useState(true);
+  const [detailCategory, setDetailCategory] = useState('Món chính | Món Nước & Sốt');
+  const [detailDifficulty, setDetailDifficulty] = useState('Dễ (Dưới 20 phút)');
+  const [detailPlayingVideo, setDetailPlayingVideo] = useState(false);
+  const [detailNewTag, setDetailNewTag] = useState('');
+  const [showAddTagInput, setShowAddTagInput] = useState(false);
+  const [showUserPreviewModal, setShowUserPreviewModal] = useState(false);
+  const [detailIngredients, setDetailIngredients] = useState(contentList[0]?.ingredientsDetailed || [
+    { id: 1, name: 'Khoai lang mật', amount: '200g', tag: 'Rau củ giàu Beta-Carotene', status: 'Đã khớp CSDL' },
+    { id: 2, name: 'Cà rốt Đà Lạt', amount: '150g', tag: 'Củ giàu Vitamin A', status: 'Đã khớp CSDL' },
+    { id: 3, name: 'Nấm đông cô ngâm nở', amount: '100g', tag: 'Đạm thực vật & Kẽm', status: 'Đã khớp CSDL' },
+    { id: 4, name: 'Nước cốt dừa tươi', amount: '250ml', tag: 'Chất béo thực vật MCT', status: 'Đã khớp CSDL' },
+    { id: 5, name: 'Đậu hũ non chiên', amount: '150g', tag: 'Đạm Isoflavone', status: 'Đã khớp CSDL' },
+    { id: 6, name: 'Bột cà ri hữu cơ', amount: '15g', tag: 'Gia vị thảo mộc kháng viêm', status: 'Đã khớp CSDL' },
+    { id: 7, name: 'Sả cây băm nhuyễn', amount: '3 cây (30g)', tag: 'Hương liệu thảo dược', status: 'Đã khớp CSDL' }
+  ]);
+  const [detailDietary, setDetailDietary] = useState(contentList[0]?.dietaryChecklist || [
+    { id: 'cholesterol', label: 'Thích hợp cho người kiểm soát Cholesterol', checked: true },
+    { id: 'fiber', label: 'Giàu chất xơ hòa tan hỗ trợ tiêu hóa', checked: true },
+    { id: 'glutenFree', label: 'Không chứa Gluten (Gluten-Free 100%)', checked: true },
+    { id: 'lowSodium', label: 'Thực đơn hạn chế muối/nghiêm ngặt (Low Sodium)', checked: false }
+  ]);
+  const [detailTags, setDetailTags] = useState(contentList[0]?.tags || ['#CaRiChay', '#GiauChatXo', '#DinhDuongKhoaHoc', '#MonChayHangNgay']);
+  const [detailBlogContent, setDetailBlogContent] = useState(
+    contentList[0]?.editorContent || `💡 Mẹo Nấu Ăn & Bảo Quản Chuẩn Y Khoa:\n\n1. Giữ trọn vi chất: Không hầm kỹ khoai lang và cà rốt quá 20 phút ở nhiệt độ trên 100°C để bảo toàn tối đa lượng Vitamin A (Beta-carotene) hòa tan trong chất béo dừa tự nhiên.\n\n2. Bảo quản tủ lạnh: Để nguội hoàn toàn, chia vào hộp thủy tinh kín khí có thể trữ mát trong 48 giờ. Khi hâm nóng lại, thêm 2 thìa canh nước ấm và đảo lửa nhỏ.`
+  );
+  const [detailSummary, setDetailSummary] = useState(
+    contentList[0]?.summary || 'Món cà ri thuần chay thanh nhẹ, kết hợp khoai lang dồi dào chất xơ, nấm đông cô nâng cao hệ miễn dịch tự nhiên, béo thơm nước cốt dừa với hương cà ri ấm nồng sả nghệ hỗ trợ giảm viêm tiêu hóa.'
+  );
+  const [detailSteps, setDetailSteps] = useState(contentList[0]?.cookingSteps || [
+    { step: 1, time: '00:15 - 01:10', title: 'Sơ chế rau củ & nấm đông cô', desc: 'Ngâm nấm đông cô với nước ấm 15 phút. Gọt vỏ khoai lang và cà rốt, cắt khúc vuông 3x3cm vừa miệng ăn.' },
+    { step: 2, time: '01:11 - 02:25', title: 'Phi thơm thảo mộc & bột cà ri', desc: 'Đun nóng 1 muỗng dầu dừa trên chảo sâu lòng, phi thơm sả băm nhuyễn và cho bột cà ri hữu cơ vào xào nhanh 30 giây dậy mùi.' },
+    { step: 3, time: '02:26 - 03:40', title: 'Nấu rau củ & hòa quyện nước cốt dừa', desc: 'Cho khoai, cà rốt và nấm vào đảo đều thấm gia vị. Rót 300ml nước dùng rau củ hầm sôi 10 phút, sau đó hạ nhỏ lửa và cho 250ml nước cốt dừa tươi vào khuấy đều.' },
+    { step: 4, time: '03:41 - 04:25', title: 'Hoàn thiện với đậu hũ non chiên vàng', desc: 'Cho đậu hũ non đã chiên vàng vào nồi, đảo nhẹ tay tránh nát đậu. Đun liu riu thêm 3 phút, nêm muối hồng và hạt nêm nấm hữu cơ rồi tắt bếp.' }
+  ]);
+  const [detailTranscript, setDetailTranscript] = useState(contentList[0]?.transcript || [
+    { time: '00:15', speaker: 'Bếp Chay An Lạc', text: 'Chào các bạn, hôm nay Bếp Chay An Lạc sẽ hướng dẫn món cà ri rau củ nước cốt dừa thơm béo chuẩn vị tự nhiên...' },
+    { time: '01:05', speaker: 'Bếp Chay An Lạc', text: 'Phần nấm đông cô sau khi ngâm nở chúng ta vắt ráo, khoai lang và cà rốt cắt miếng vừa ăn để giữ được độ ngọt...' },
+    { time: '02:40', speaker: 'Bếp Chay An Lạc', text: 'Đoạn sôi múi cà và thêm nước cốt dừa: Hãy giảm nhỏ lửa để nước dừa hòa quyện mịn màng, không bị kết tủa...' },
+    { time: '03:50', speaker: 'Bếp Chay An Lạc', text: 'Món ăn hoàn thành với màu sắc vàng ươm hấp dẫn, giàu beta-carotene và đạm thực vật lành mạnh cho cả gia đình.' }
+  ]);
 
   const handleEditContent = (contentItem) => {
     setCurrentEditingContent(contentItem);
+    setDetailActiveTab('ingredients');
+    setDetailIngredients(contentItem.ingredientsDetailed || [
+      { id: 1, name: 'Khoai lang mật', amount: '200g', tag: 'Rau củ giàu Beta-Carotene', status: 'Đã khớp CSDL' },
+      { id: 2, name: 'Cà rốt Đà Lạt', amount: '150g', tag: 'Củ giàu Vitamin A', status: 'Đã khớp CSDL' },
+      { id: 3, name: 'Nấm đông cô ngâm nở', amount: '100g', tag: 'Đạm thực vật & Kẽm', status: 'Đã khớp CSDL' },
+      { id: 4, name: 'Nước cốt dừa tươi', amount: '250ml', tag: 'Chất béo thực vật MCT', status: 'Đã khớp CSDL' },
+      { id: 5, name: 'Đậu hũ non chiên', amount: '150g', tag: 'Đạm Isoflavone', status: 'Đã khớp CSDL' },
+      { id: 6, name: 'Bột cà ri hữu cơ', amount: '15g', tag: 'Gia vị thảo mộc kháng viêm', status: 'Đã khớp CSDL' },
+      { id: 7, name: 'Sả cây băm nhuyễn', amount: '3 cây (30g)', tag: 'Hương liệu thảo dược', status: 'Đã khớp CSDL' }
+    ]);
+    setDetailDietary(contentItem.dietaryChecklist || [
+      { id: 'cholesterol', label: 'Thích hợp cho người kiểm soát Cholesterol', checked: true },
+      { id: 'fiber', label: 'Giàu chất xơ hòa tan hỗ trợ tiêu hóa', checked: true },
+      { id: 'glutenFree', label: 'Không chứa Gluten (Gluten-Free 100%)', checked: true },
+      { id: 'lowSodium', label: 'Thực đơn hạn chế muối/nghiêm ngặt (Low Sodium)', checked: false }
+    ]);
+    setDetailTags(contentItem.tags || ['#CaRiChay', '#GiauChatXo', '#DinhDuongKhoaHoc', '#MonChayHangNgay']);
+    setDetailSummary(contentItem.summary || contentItem.content || '');
+    setDetailBlogContent(
+      contentItem.editorContent || `💡 Mẹo Nấu Ăn & Bảo Quản Chuẩn Y Khoa:\n\n1. Giữ trọn vi chất: Không hầm kỹ khoai lang và cà rốt quá 20 phút ở nhiệt độ trên 100°C để bảo toàn tối đa lượng Vitamin A (Beta-carotene) hòa tan trong chất béo dừa tự nhiên.\n\n2. Bảo quản tủ lạnh: Để nguội hoàn toàn, chia vào hộp thủy tinh kín khí có thể trữ mát trong 48 giờ. Khi hâm nóng lại, thêm 2 thìa canh nước ấm và đảo lửa nhỏ.`
+    );
+    setDetailSteps(contentItem.cookingSteps || []);
+    setDetailTranscript(contentItem.transcript || []);
     setActiveMenu('content-detail');
   };
 
   const handleSaveContentDetail = () => {
-    setContentList(prev => prev.map(c => c.id === currentEditingContent.id ? currentEditingContent : c));
-    showToast(`✅ Đã lưu thay đổi nội dung bài viết #${currentEditingContent.id} thành công!`);
+    setContentList(prev => prev.map(c => c.id === currentEditingContent.id ? {
+      ...c,
+      ...currentEditingContent,
+      summary: detailSummary,
+      editorContent: detailBlogContent,
+      tags: detailTags,
+      ingredientsDetailed: detailIngredients,
+      cookingSteps: detailSteps,
+      dietaryChecklist: detailDietary
+    } : c));
+    showToast(`✅ Đã lưu thay đổi & cập nhật bài viết #${currentEditingContent.id} thành công!`);
+  };
+
+  const handleAddIngredient = () => {
+    const newId = detailIngredients.length + 1;
+    const sample = { id: newId, name: `Nguyên liệu chay #${newId}`, amount: '100g', tag: 'Dinh dưỡng thực vật', status: 'Đã khớp CSDL' };
+    setDetailIngredients([...detailIngredients, sample]);
+    showToast(`Đã thêm nguyên liệu: ${sample.name}`);
+  };
+
+  const handleRemoveIngredient = (id) => {
+    setDetailIngredients(detailIngredients.filter(i => i.id !== id));
+  };
+
+  const handleAddTag = () => {
+    if (!detailNewTag.trim()) return;
+    const formatted = detailNewTag.startsWith('#') ? detailNewTag.trim() : `#${detailNewTag.trim().replace(/\s+/g, '')}`;
+    if (!detailTags.includes(formatted)) {
+      setDetailTags([...detailTags, formatted]);
+    }
+    setDetailNewTag('');
+    setShowAddTagInput(false);
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setDetailTags(detailTags.filter(t => t !== tagToRemove));
+  };
+
+  const handleToggleDietary = (id) => {
+    setDetailDietary(detailDietary.map(d => d.id === id ? { ...d, checked: !d.checked } : d));
   };
 
   const handleDeleteContent = (contentId) => {
@@ -3101,170 +3263,1018 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =====================================================================
-              MÀN HÌNH 3: CHI TIẾT BÀI VIẾT/VIDEO
+              MÀN HÌNH 3: CHI TIẾT BÀI VIẾT & VIDEO (HIGH FIDELITY)
               ===================================================================== */}
           {activeMenu === 'content-detail' && currentEditingContent && (
-            <section style={{ animation: 'fadeIn 0.2s ease' }}>
-              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <button 
-                    onClick={() => setActiveMenu('content')}
-                    style={{ background: '#f1f5f9', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.82rem', color: '#475569' }}
-                  >
-                    <ArrowLeft size={16} /> Quay lại danh sách
-                  </button>
+            <section style={{ animation: 'fadeIn 0.2s ease', paddingBottom: '3rem' }}>
+              {/* BREADCRUMB & TOP HEADER */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.65rem' }}>
+                  <span style={{ cursor: 'pointer', color: '#047857', fontWeight: 600 }} onClick={() => setActiveMenu('overview')}>Admin Portal</span>
+                  <ChevronRight size={13} />
+                  <span>Quản lý nội dung &amp; cộng đồng</span>
+                  <ChevronRight size={13} />
+                  <span style={{ cursor: 'pointer', color: '#047857', fontWeight: 600 }} onClick={() => setActiveMenu('content')}>Quản lý Blog &amp; Video</span>
+                  <ChevronRight size={13} />
+                  <span style={{ color: '#0f172a', fontWeight: 700 }}>{currentEditingContent.id}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      3. Chi tiết &amp; Chỉnh sửa Nội Dung (#{currentEditingContent.id})
+                    <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', lineHeight: '1.3' }}>
+                      Chi tiết bài viết &amp; Video: {currentEditingContent.title}
                     </h1>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button 
-                    style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.55rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                    onClick={() => handleDeleteContent(currentEditingContent.id)}
-                  >
-                    <Trash2 size={16} /> Xóa Bài Này
-                  </button>
-                  <button 
-                    className="admin-btn-primary"
-                    onClick={handleSaveContentDetail}
-                  >
-                    <Check size={16} /> Lưu Thay Đổi
-                  </button>
-                </div>
-              </div>
-
-              {/* EDIT FORM CONTAINER */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-                {/* LEFT: MAIN FORM */}
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem' }}>
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-                      Tiêu đề bài viết / video:
-                    </label>
-                    <input 
-                      type="text"
-                      value={currentEditingContent.title}
-                      onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, title: e.target.value })}
-                      style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-                        Phân loại nội dung:
-                      </label>
-                      <select
-                        value={currentEditingContent.type}
-                        onChange={(e) => setCurrentEditingContent({ 
-                          ...currentEditingContent, 
-                          type: e.target.value,
-                          typeLabel: e.target.value === 'Blog' ? 'Blog Dinh Dưỡng' : e.target.value === 'Video' ? 'Video Nấu Ăn' : 'Công Thức Món Chay'
-                        })}
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
-                      >
-                        <option value="Blog">Blog Dinh Dưỡng</option>
-                        <option value="Video">Video Nấu Ăn</option>
-                        <option value="Recipe">Công Thức Món Chay</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-                        Tác giả / Chuyên gia:
-                      </label>
-                      <input 
-                        type="text"
-                        value={currentEditingContent.author}
-                        onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, author: e.target.value })}
-                        style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
-                      />
+                    
+                    {/* BADGES ROW */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <ShieldCheck size={13} /> Đã duyệt (WF07)
+                      </span>
+                      <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Zap size={13} /> AI Trích xuất 98.4%
+                      </span>
+                      <span style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', padding: '0.2rem 0.65rem', borderRadius: '14px', fontSize: '0.76rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Video size={13} /> Video YouTube Partner
+                      </span>
+                      <span style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 700, marginLeft: '0.2rem' }}>
+                        ID: #{currentEditingContent.id}-VN
+                      </span>
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-                      Nội dung bài viết / Mô tả video:
-                    </label>
-                    <textarea 
-                      rows={8}
-                      value={currentEditingContent.content}
-                      onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, content: e.target.value })}
-                      style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', lineHeight: '1.6', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-                      Danh sách nguyên liệu &amp; định lượng:
-                    </label>
-                    {currentEditingContent.ingredients.map((ing, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                        <input 
-                          type="text"
-                          value={ing}
-                          onChange={(e) => {
-                            const next = [...currentEditingContent.ingredients];
-                            next[idx] = e.target.value;
-                            setCurrentEditingContent({ ...currentEditingContent, ingredients: next });
-                          }}
-                          style={{ flex: 1, padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}
-                        />
-                        <button
-                          style={{ background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '0.35rem 0.6rem', color: '#ef4444', cursor: 'pointer' }}
-                          onClick={() => {
-                            const next = currentEditingContent.ingredients.filter((_, i) => i !== idx);
-                            setCurrentEditingContent({ ...currentEditingContent, ingredients: next });
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      style={{ background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '0.4rem 0.8rem', fontSize: '0.8rem', fontWeight: 600, color: '#047857', cursor: 'pointer', marginTop: '0.4rem' }}
-                      onClick={() => setCurrentEditingContent({ ...currentEditingContent, ingredients: [...currentEditingContent.ingredients, 'Nguyên liệu mới: 50g'] })}
+                  {/* ACTION BUTTONS TOP RIGHT */}
+                  <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.55rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer', transition: 'all 0.15s' }}
+                      onClick={() => showToast('🔄 Đang gửi yêu cầu Whisper STT & YOLO-Recipe... Bóc tách lại thành công!')}
+                      title="Chạy lại pipeline bóc tách AI"
                     >
-                      + Thêm nguyên liệu
+                      <RefreshCw size={14} /> Chạy lại AI
+                    </button>
+
+                    <button 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.55rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer', transition: 'all 0.15s' }}
+                      onClick={() => setShowUserPreviewModal(true)}
+                      title="Xem giao diện hiển thị cho người dùng"
+                    >
+                      <Eye size={14} /> Xem trước User
+                    </button>
+
+                    <button 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.55rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, color: '#dc2626', cursor: 'pointer', transition: 'all 0.15s' }}
+                      onClick={() => handleDeleteContent(currentEditingContent.id)}
+                      title="Xóa bài viết/video này"
+                    >
+                      <Trash2 size={14} /> Xóa
+                    </button>
+
+                    <button 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#047857', border: 'none', padding: '0.55rem 1.25rem', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer', boxShadow: '0 2px 4px rgba(4,120,87,0.25)', transition: 'all 0.15s' }}
+                      onClick={handleSaveContentDetail}
+                    >
+                      <Check size={15} /> Lưu thay đổi &amp; Cập nhật
                     </button>
                   </div>
                 </div>
+              </div>
 
-                {/* RIGHT: MEDIA & METADATA PREVIEW */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
-                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', color: '#0f172a' }}>Ảnh đại diện / Video URL:</h4>
-                    {currentEditingContent.mediaUrl && (
-                      <img 
-                        src={currentEditingContent.mediaUrl} 
-                        alt="Preview" 
-                        style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.75rem' }}
+              {/* MAIN CONTENT 2-COLUMN GRID */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.9fr) minmax(320px, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+                {/* ================= LEFT COLUMN ================= */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  
+                  {/* CARD 1: VIDEO NGUỒN & THÔNG TIN BÀI ĐĂNG */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    {/* CARD HEADER */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Video size={18} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                            Video Nguồn &amp; Thông Tin Bài Đăng
+                          </h3>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            Đồng bộ từ kênh/Đối tác Sáng tạo Nội dung ẩm thực
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* LIVE STREAM SYNC PILL */}
+                      <button 
+                        style={{
+                          background: detailLiveStreamSync ? '#ecfdf5' : '#f1f5f9',
+                          border: '1px solid',
+                          borderColor: detailLiveStreamSync ? '#a7f3d0' : '#e2e8f0',
+                          color: detailLiveStreamSync ? '#047857' : '#64748b',
+                          padding: '0.3rem 0.75rem',
+                          borderRadius: '16px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                        onClick={() => setDetailLiveStreamSync(!detailLiveStreamSync)}
+                      >
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: detailLiveStreamSync ? '#059669' : '#94a3b8' }} />
+                        Live Stream Sync: {detailLiveStreamSync ? 'On' : 'Off'}
+                      </button>
+                    </div>
+
+                    {/* VIDEO PLAYER PREVIEW */}
+                    <div style={{
+                      position: 'relative',
+                      width: '100%',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      background: '#090d16',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.12)',
+                      marginBottom: '1.25rem'
+                    }}>
+                      <div style={{ position: 'relative', width: '100%', paddingTop: '48%', background: '#090d16' }}>
+                        <img 
+                          src={currentEditingContent.thumbnail || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1000'}
+                          alt={currentEditingContent.title}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            opacity: detailPlayingVideo ? 0.95 : 0.85
+                          }}
+                        />
+
+                        {/* Top bar overlay */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          padding: '0.75rem 1rem',
+                          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          zIndex: 2
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <span style={{ background: '#dc2626', color: '#ffffff', fontSize: '0.68rem', fontWeight: 900, padding: '0.15rem 0.45rem', borderRadius: '4px', letterSpacing: '0.5px' }}>
+                              YOUTUBE 4K
+                            </span>
+                            <span style={{ color: '#ffffff', fontSize: '0.86rem', fontWeight: 700, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                              {currentEditingContent.channelEpisode || 'Bếp Chay An Lạc - Ep. 142'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#ffffff' }}>
+                            <Layers size={16} style={{ cursor: 'pointer', opacity: 0.85 }} />
+                            <ExternalLink size={16} style={{ cursor: 'pointer', opacity: 0.85 }} />
+                          </div>
+                        </div>
+
+                        {/* Center Play button */}
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                          <button 
+                            style={{
+                              width: '56px',
+                              height: '56px',
+                              borderRadius: '50%',
+                              background: '#047857',
+                              border: '3px solid rgba(255,255,255,0.9)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 4px 20px rgba(4, 120, 87, 0.6)',
+                              transition: 'transform 0.15s ease'
+                            }}
+                            onClick={() => {
+                              setDetailPlayingVideo(!detailPlayingVideo);
+                              showToast(detailPlayingVideo ? 'Tạm dừng video' : 'Đang phát video mô phỏng');
+                            }}
+                          >
+                            <Play size={22} color="#ffffff" fill="#ffffff" style={{ marginLeft: '3px' }} />
+                          </button>
+                        </div>
+
+                        {/* Bottom bar overlay with Segmented Timeline */}
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          padding: '0.6rem 1rem',
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
+                          zIndex: 2
+                        }}>
+                          {/* Segmented Timeline */}
+                          <div style={{ display: 'flex', gap: '3px', height: '4px', width: '100%', marginBottom: '0.45rem', borderRadius: '2px', overflow: 'hidden', background: 'rgba(255,255,255,0.25)' }}>
+                            <div style={{ width: '25%', background: '#10b981' }} title="00:15 - Sơ chế" />
+                            <div style={{ width: '35%', background: '#3b82f6' }} title="01:11 - Phi thơm" />
+                            <div style={{ width: '25%', background: '#f59e0b' }} title="02:26 - Nước cốt dừa" />
+                            <div style={{ width: '15%', background: '#ec4899' }} title="03:41 - Đậu hũ" />
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: '#e2e8f0', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <span>
+                              <strong style={{ color: '#ffffff' }}>02:40 / 04:25</strong> - Phân đoạn AI: Đoạn sôi múi cà &amp; Thêm nước cốt dừa
+                            </span>
+                            <span style={{ color: '#94a3b8', fontSize: '0.68rem', fontStyle: 'italic' }}>
+                              Auto-segmented by vision YOLOv8
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* INPUTS ROW 1: TÁC GIẢ & LINK VIDEO */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
+                          Kênh tác giả (Partner)
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.55rem 0.85rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <CheckCircle2 size={14} color="#059669" />
+                            <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>{currentEditingContent.author}</strong>
+                          </div>
+                          <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                            {currentEditingContent.authorSubs || '485K SUB'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
+                          Liên kết Video Gốc
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.35rem 0.5rem 0.35rem 0.85rem' }}>
+                          <input 
+                            type="text"
+                            value={currentEditingContent.mediaUrl || 'https://youtube.com/watch?v=veggie-curry-coconut'}
+                            onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, mediaUrl: e.target.value })}
+                            style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.82rem', color: '#334155', outline: 'none' }}
+                          />
+                          <a 
+                            href={currentEditingContent.mediaUrl || '#'} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.3rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, color: '#2563eb', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                          >
+                            Mở <ExternalLink size={11} />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* INPUT ROW 2: TIÊU ĐỀ HIỂN THỊ */}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
+                        Tiêu đề bài viết / video hiển thị
+                      </label>
+                      <input 
+                        type="text"
+                        value={currentEditingContent.title}
+                        onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, title: e.target.value })}
+                        style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.65rem 0.85rem', fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', outline: 'none', boxSizing: 'border-box' }}
                       />
-                    )}
-                    <input 
-                      type="text"
-                      placeholder="Dán link ảnh hoặc video YouTube..."
-                      value={currentEditingContent.mediaUrl}
-                      onChange={(e) => setCurrentEditingContent({ ...currentEditingContent, mediaUrl: e.target.value })}
-                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                    />
+                    </div>
+
+                    {/* INPUT ROW 3: MÔ TẢ TÓM TẮT & CÔNG NĂNG Y HỌC */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
+                        Mô tả tóm tắt &amp; Công năng y học
+                      </label>
+                      <textarea 
+                        rows={3}
+                        value={detailSummary}
+                        onChange={(e) => setDetailSummary(e.target.value)}
+                        style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.75rem', fontSize: '0.86rem', lineHeight: '1.55', color: '#334155', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
                   </div>
 
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
-                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', color: '#0f172a' }}>Thẻ phân loại dinh dưỡng:</h4>
-                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                      {currentEditingContent.tags.map((tag, i) => (
-                        <span key={i} style={{ background: '#ecfdf5', color: '#059669', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
-                          #{tag}
+                  {/* CARD 2: KẾT QUẢ BÓC TÁCH AI TỰ ĐỘNG */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    {/* CARD HEADER */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Sparkles size={18} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                            Kết quả Bóc tách AI tự động
+                          </h3>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            Trích xuất tự động qua xử lý âm thanh &amp; nhận diện hình ảnh khung hình
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* BADGES ON RIGHT */}
+                      <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700 }}>
+                          Whisper v3 + YOLO-Recipe
                         </span>
-                      ))}
+                        <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Độ tin cậy: 98.4% Confidence <Check size={11} />
+                        </span>
+                        <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600 }}>
+                          Thời gian: 4.2s
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 3 SUBTABS */}
+                    <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+                      <button 
+                        style={{
+                          background: detailActiveTab === 'ingredients' ? '#ecfdf5' : 'transparent',
+                          color: detailActiveTab === 'ingredients' ? '#047857' : '#64748b',
+                          border: 'none',
+                          padding: '0.45rem 0.95rem',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s'
+                        }}
+                        onClick={() => setDetailActiveTab('ingredients')}
+                      >
+                        <Utensils size={14} /> Danh sách Nguyên liệu ({detailIngredients.length})
+                      </button>
+
+                      <button 
+                        style={{
+                          background: detailActiveTab === 'steps' ? '#ecfdf5' : 'transparent',
+                          color: detailActiveTab === 'steps' ? '#047857' : '#64748b',
+                          border: 'none',
+                          padding: '0.45rem 0.95rem',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s'
+                        }}
+                        onClick={() => setDetailActiveTab('steps')}
+                      >
+                        <ListOrdered size={14} /> Các bước chế biến (4 bước)
+                      </button>
+
+                      <button 
+                        style={{
+                          background: detailActiveTab === 'transcript' ? '#ecfdf5' : 'transparent',
+                          color: detailActiveTab === 'transcript' ? '#047857' : '#64748b',
+                          border: 'none',
+                          padding: '0.45rem 0.95rem',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.15s'
+                        }}
+                        onClick={() => setDetailActiveTab('transcript')}
+                      >
+                        <FileText size={14} /> Băng ghi STT Transcript
+                      </button>
+                    </div>
+
+                    {/* TAB 1: INGREDIENTS TABLE */}
+                    {detailActiveTab === 'ingredients' && (
+                      <div>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', textAlign: 'left' }}>
+                                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 700 }}>TÊN NGUYÊN LIỆU</th>
+                                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 700 }}>ĐỊNH LƯỢNG</th>
+                                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 700 }}>AI DETECT TAG &amp; PHÂN LOẠI</th>
+                                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 700 }}>TRẠNG THÁI</th>
+                                <th style={{ padding: '0.5rem 0.75rem', fontWeight: 700, textAlign: 'center' }}>HÀNH ĐỘNG</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {detailIngredients.map((item) => (
+                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700, color: '#0f172a' }}>
+                                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', marginRight: '0.5rem' }} />
+                                    {item.name}
+                                  </td>
+                                  <td style={{ padding: '0.65rem 0.75rem' }}>
+                                    <span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.2rem 0.55rem', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
+                                      {item.amount}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.65rem 0.75rem' }}>
+                                    <span style={{ background: '#ecfeff', border: '1px solid #a5f3fc', color: '#0891b2', padding: '0.2rem 0.55rem', borderRadius: '6px', fontWeight: 700, fontSize: '0.74rem' }}>
+                                      {item.tag}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.65rem 0.75rem', color: '#059669', fontWeight: 700 }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                      <Check size={13} /> {item.status}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center' }}>
+                                    <button 
+                                      style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.2rem', borderRadius: '4px' }}
+                                      onClick={() => handleRemoveIngredient(item.id)}
+                                      title="Xóa nguyên liệu này"
+                                    >
+                                      <X size={15} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* ADD INGREDIENT FOOTER */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                          <button 
+                            style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', color: '#047857', padding: '0.45rem 0.95rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                            onClick={handleAddIngredient}
+                          >
+                            <Plus size={14} /> + Thêm nguyên liệu thủ công
+                          </button>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
+                            Tự động gắn mã dinh dưỡng FDC - USDA &amp; Viện Dinh Dưỡng Quốc Gia
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 2: COOKING STEPS */}
+                    {detailActiveTab === 'steps' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {detailSteps.map((s) => (
+                          <div key={s.step} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#047857', color: '#ffffff', fontWeight: 800, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {s.step}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                                <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{s.title}</strong>
+                                <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                                  ⏱ {s.time}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '0.84rem', color: '#475569', margin: 0, lineHeight: '1.55' }}>
+                                {s.desc}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* TAB 3: STT TRANSCRIPT */}
+                    {detailActiveTab === 'transcript' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {detailTranscript.map((t, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '0.75rem', padding: '0.65rem 0.85rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '3px solid #059669' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', minWidth: '42px' }}>{t.time}</span>
+                            <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: '1.5' }}>
+                              <strong style={{ color: '#0f172a' }}>{t.speaker}: </strong>
+                              {t.text}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CARD 3: TRÌNH BIÊN SOẠN CHI TIẾT BÀI VIẾT (BLOG CONTENT) */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    {/* CARD HEADER */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                            Trình biên soạn Chi tiết Bài viết (Blog Content)
+                          </h3>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            Nội dung hiển thị trên ứng dụng VeggieAI &amp; Công thức dinh dưỡng
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        Lưu nháp: Tự động <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }} />
+                      </div>
+                    </div>
+
+                    {/* FORMATTING TOOLBAR */}
+                    <div style={{ display: 'flex', gap: '0.35rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem', marginBottom: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', fontWeight: 900, cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Định dạng in đậm')}>B</button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', fontStyle: 'italic', fontWeight: 700, cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Định dạng in nghiêng')}>I</button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', textDecoration: 'underline', fontWeight: 700, cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Định dạng gạch chân')}>U</button>
+                      <span style={{ width: '1px', height: '16px', background: '#cbd5e1', margin: '0 0.2rem' }} />
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Tiêu đề H1')}>H1</button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Tiêu đề H2')}>H2</button>
+                      <span style={{ width: '1px', height: '16px', background: '#cbd5e1', margin: '0 0.2rem' }} />
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Danh sách chấm')}><List size={15} /></button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Danh sách số')}><ListOrdered size={15} /></button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Trích dẫn')}><Quote size={14} /></button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Chèn liên kết')}><ExternalLink size={14} /></button>
+                      <button style={{ background: 'transparent', border: 'none', padding: '0.25rem 0.55rem', cursor: 'pointer', color: '#334155' }} onClick={() => showToast('Chèn bảng')}><Layers size={14} /></button>
+                    </div>
+
+                    {/* EDITABLE CONTENT BOX */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', minHeight: '140px' }}>
+                      <textarea 
+                        rows={7}
+                        value={detailBlogContent}
+                        onChange={(e) => setDetailBlogContent(e.target.value)}
+                        style={{
+                          width: '100%',
+                          border: 'none',
+                          background: 'transparent',
+                          fontSize: '0.86rem',
+                          lineHeight: '1.65',
+                          color: '#1e293b',
+                          fontFamily: 'inherit',
+                          outline: 'none',
+                          resize: 'vertical',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ================= RIGHT COLUMN (SIDEBAR WIDGETS) ================= */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  
+                  {/* WIDGET 1: PHÂN TÍCH MACRO TỰ ĐỘNG */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <PieChart size={18} color="#059669" />
+                        <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Phân Tích Macro Tự Động
+                        </h3>
+                      </div>
+                      <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.55rem', borderRadius: '4px' }}>
+                        1 Khẩu Phần
+                      </span>
+                    </div>
+
+                    {/* CALORIES STAT */}
+                    <div style={{ marginBottom: '1.15rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+                        TỔNG NĂNG LƯỢNG
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0.2rem 0' }}>
+                        <div style={{ fontSize: '2.3rem', fontWeight: 900, color: '#047857', letterSpacing: '-0.5px' }}>
+                          410 <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600 }}>kcal</span>
+                        </div>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Zap size={20} />
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        Chiếm 22.5% nhu cầu hàng ngày (RNI 1,800 kcal)
+                      </div>
+                    </div>
+
+                    {/* DONUT CHART & MACRO LEGEND */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1rem 0', borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', marginBottom: '1.15rem' }}>
+                      {/* SVG DONUT CHART */}
+                      <div style={{ position: 'relative', width: '108px', height: '108px', flexShrink: 0 }}>
+                        <svg width="108" height="108" viewBox="0 0 108 108" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="54" cy="54" r="42" fill="none" stroke="#f1f5f9" strokeWidth="12" />
+                          {/* Carbs 55%: 0.55 * 264 = 145 */}
+                          <circle cx="54" cy="54" r="42" fill="none" stroke="#10b981" strokeWidth="12" strokeDasharray="145 119" strokeDashoffset="0" />
+                          {/* Fat 27%: 0.27 * 264 = 71 */}
+                          <circle cx="54" cy="54" r="42" fill="none" stroke="#f59e0b" strokeWidth="12" strokeDasharray="71 193" strokeDashoffset="-145" />
+                          {/* Protein 18%: 0.18 * 264 = 48 */}
+                          <circle cx="54" cy="54" r="42" fill="none" stroke="#06b6d4" strokeWidth="12" strokeDasharray="48 216" strokeDashoffset="-216" />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>100%</span>
+                          <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 600 }}>Macros</span>
+                        </div>
+                      </div>
+
+                      {/* MACRO BREAKDOWN LIST */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                            Carbs (55%)
+                          </span>
+                          <strong style={{ color: '#0f172a' }}>52g</strong>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
+                            Fat MCT (27%)
+                          </span>
+                          <strong style={{ color: '#0f172a' }}>16g</strong>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#06b6d4' }} />
+                            Đạm thực vật (18%)
+                          </span>
+                          <strong style={{ color: '#0f172a' }}>14g</strong>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.2rem', paddingTop: '0.25rem', borderTop: '1px solid #f1f5f9', color: '#059669', fontWeight: 700 }}>
+                          <span>Chất xơ hòa tan:</span>
+                          <strong>8.5g (34% RNI)</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* HÀM LƯỢNG VI CHẤT THIẾT YẾU */}
+                    <div style={{ marginBottom: '1.15rem' }}>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.65rem' }}>
+                        HÀM LƯỢNG VI CHẤT THIẾT YẾU
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px' }}>
+                          <span style={{ color: '#334155' }}>Vitamin A (Beta-carotene)</span>
+                          <strong style={{ color: '#059669' }}>180% RNI (Cà rốt &amp; Khoai lang)</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px' }}>
+                          <span style={{ color: '#334155' }}>Sắt hữu cơ (Non-heme Iron)</span>
+                          <strong style={{ color: '#0f172a' }}>4.2mg (35% RNI)</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '0.45rem 0.65rem', borderRadius: '6px' }}>
+                          <span style={{ color: '#334155' }}>Canxi tự nhiên từ đậu hũ &amp; nấm</span>
+                          <strong style={{ color: '#0f172a' }}>120mg (12% RNI)</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.55rem', fontSize: '0.8rem', fontWeight: 700, color: '#047857', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', transition: 'all 0.15s' }}
+                      onClick={() => showToast('Mô hình Macro Engine đã tái tính toán bảng dinh dưỡng!')}
+                    >
+                      <RefreshCw size={13} /> Tính toán lại Macro theo nguyên liệu
+                    </button>
+                  </div>
+
+                  {/* WIDGET 2: THẨM ĐỊNH DINH DƯỠNG */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <ShieldCheck size={18} color="#059669" />
+                      <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        Thẩm Định Dinh Dưỡng
+                      </h3>
+                    </div>
+
+                    {/* EXPERT QUOTE BOX */}
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '1rem', marginBottom: '1.15rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#10b981', color: '#ffffff', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          LH
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>BS. CKI Nguyễn Lan Hương</strong>
+                            <CheckCircle2 size={13} color="#059669" />
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                            Viện Dinh Dưỡng Lâm Sàng TP. HCM
+                          </div>
+                        </div>
+                      </div>
+
+                      <p style={{ fontSize: '0.8rem', color: '#334155', fontStyle: 'italic', margin: '0 0 0.65rem 0', lineHeight: '1.5' }}>
+                        &ldquo;Công thức sở hữu tỷ lệ cân đối đạm thực vật chất lượng cao từ nấm đông cô và đậu hũ non. Hàm lượng chất béo từ nước cốt dừa đã được kiểm soát trong ngưỡng an toàn, phù hợp cho người ăn thuần chay trường kỳ và người huyết áp ổn định.&rdquo;
+                      </p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', borderTop: '1px dashed #bbf7d0', paddingTop: '0.5rem' }}>
+                        <span style={{ color: '#475569' }}>Chứng chỉ thẩm định: <strong>#NUTRI-VER-984</strong></span>
+                        <span style={{ color: '#059669', fontWeight: 700, cursor: 'pointer' }}>Đăng ký điện tử</span>
+                      </div>
+                    </div>
+
+                    {/* KHUYẾN NGHỊ Y KHOA ĐẶC THÙ (CHECKLIST) */}
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.65rem' }}>
+                        KHUYẾN NGHỊ Y KHOA ĐẶC THÙ
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                        {detailDietary.map((d) => (
+                          <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.8rem', color: '#334155', cursor: 'pointer' }}>
+                            <input 
+                              type="checkbox"
+                              checked={d.checked}
+                              onChange={() => handleToggleDietary(d.id)}
+                              style={{ width: '16px', height: '16px', accentColor: '#047857', cursor: 'pointer' }}
+                            />
+                            <span>{d.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WIDGET 3: THIẾT LẬP MÔ HÌNH & TAGS */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <Sliders size={18} color="#059669" />
+                      <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        Thiết Lập Mô Hình &amp; Tags
+                      </h3>
+                    </div>
+
+                    {/* TOGGLE SWITCH: AI MEAL PLANNER RECOMMENDER */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', marginBottom: '1rem' }}>
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '0.82rem', color: '#0f172a' }}>AI Meal Planner Recommender</strong>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Đưa vào thực đơn tự động</span>
+                      </div>
+                      <button 
+                        style={{
+                          width: '42px',
+                          height: '24px',
+                          borderRadius: '12px',
+                          background: detailRecommender ? '#047857' : '#cbd5e1',
+                          border: 'none',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'background 0.2s ease'
+                        }}
+                        onClick={() => {
+                          setDetailRecommender(!detailRecommender);
+                          showToast(detailRecommender ? 'Đã tắt tự động đề xuất' : 'Đã bật AI tự động đưa vào thực đơn');
+                        }}
+                      >
+                        <span style={{
+                          position: 'absolute',
+                          top: '3px',
+                          left: detailRecommender ? '21px' : '3px',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          transition: 'left 0.2s ease',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                        }} />
+                      </button>
+                    </div>
+
+                    {/* DROPDOWNS */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.15rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '0.3rem' }}>
+                          Danh mục chính
+                        </label>
+                        <select 
+                          value={detailCategory}
+                          onChange={(e) => setDetailCategory(e.target.value)}
+                          style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem', fontSize: '0.78rem', outline: 'none', color: '#334155', fontWeight: 600 }}
+                        >
+                          <option value="Món chính | Món Nước & Sốt">Món chính | M...</option>
+                          <option value="Món Kho & Xào">Món Kho &amp; Xào</option>
+                          <option value="Canh & Lẩu Chay">Canh &amp; Lẩu Chay</option>
+                          <option value="Ăn Sáng Dinh Dưỡng">Ăn Sáng Dinh Dưỡng</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', marginBottom: '0.3rem' }}>
+                          Độ khó nấu
+                        </label>
+                        <select 
+                          value={detailDifficulty}
+                          onChange={(e) => setDetailDifficulty(e.target.value)}
+                          style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem', fontSize: '0.78rem', outline: 'none', color: '#334155', fontWeight: 600 }}
+                        >
+                          <option value="Dễ (Dưới 20 phút)">Dễ (Dưới 20 p)</option>
+                          <option value="Trung bình (20-40 phút)">Trung bình</option>
+                          <option value="Nâng cao (> 40 phút)">Nâng cao</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* SEMANTIC TAGS */}
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.55rem' }}>
+                        THẺ PHÂN LOẠI AI (SEMANTIC TAGS)
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {detailTags.map((tag, i) => (
+                          <span 
+                            key={i} 
+                            style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            {tag}
+                            <X size={12} style={{ cursor: 'pointer', color: '#94a3b8' }} onClick={() => handleRemoveTag(tag)} />
+                          </span>
+                        ))}
+
+                        {showAddTagInput ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <input 
+                              type="text"
+                              value={detailNewTag}
+                              onChange={(e) => setDetailNewTag(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                              placeholder="#TagMoi"
+                              style={{ padding: '0.2rem 0.45rem', border: '1px solid #059669', borderRadius: '6px', fontSize: '0.74rem', outline: 'none', width: '90px' }}
+                              autoFocus
+                            />
+                            <button style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.2rem 0.4rem', fontSize: '0.7rem', cursor: 'pointer' }} onClick={handleAddTag}>Lưu</button>
+                          </div>
+                        ) : (
+                          <button 
+                            style={{ background: '#ffffff', border: '1px dashed #cbd5e1', color: '#047857', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                            onClick={() => setShowAddTagInput(true)}
+                          >
+                            + Thêm tag
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WIDGET 4: TƯƠNG TÁC & LỊCH SỬ BẢN GHI */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Activity size={18} color="#059669" />
+                        <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Tương Tác &amp; Lịch Sử Bản Ghi
+                        </h3>
+                      </div>
+                      <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                        v2.3
+                      </span>
+                    </div>
+
+                    {/* 3 STATS BOXES */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', marginBottom: '1.15rem', textAlign: 'center' }}>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem 0.35rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Lượt xem</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '0.15rem' }}>28.5K</div>
+                      </div>
+
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem 0.35rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Lưu món</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#047857', marginTop: '0.15rem' }}>1,420</div>
+                      </div>
+
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem 0.35rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Đánh giá</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#d97706', marginTop: '0.15rem' }}>4.9 ★</div>
+                      </div>
+                    </div>
+
+                    {/* NHẬT KÝ THAY ĐỔI GẦN NHẤT */}
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginBottom: '0.65rem' }}>
+                        NHẬT KÝ THAY ĐỔI GẦN NHẤT
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', marginTop: '0.35rem', flexShrink: 0 }} />
+                          <div>
+                            <div style={{ color: '#0f172a', fontWeight: 700 }}>
+                              14:05 Hôm nay &bull; Admin_Master
+                            </div>
+                            <div style={{ color: '#64748b', lineHeight: '1.45' }}>
+                              Điều chỉnh định lượng nước cốt dừa từ 300ml xuống 250ml.
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', marginTop: '0.35rem', flexShrink: 0 }} />
+                          <div>
+                            <div style={{ color: '#0f172a', fontWeight: 700 }}>
+                              11:30 Hôm nay &bull; BS. Lan Hương
+                            </div>
+                            <div style={{ color: '#64748b', lineHeight: '1.45' }}>
+                              Phê duyệt chỉ số dinh dưỡng lâm sàng và ký số bảo trợ.
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', marginTop: '0.35rem', flexShrink: 0 }} />
+                          <div>
+                            <div style={{ color: '#0f172a', fontWeight: 700 }}>
+                              10:18 Hôm nay &bull; VeggieAI Engine
+                            </div>
+                            <div style={{ color: '#64748b', lineHeight: '1.45' }}>
+                              Whisper STT và YOLOv8 hoàn tất bóc tách 7 nguyên liệu &amp; 4 bước nấu.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* MODAL: XEM TRƯỚC USER (MÔ PHỎNG GIAO DIỆN APP NGƯỜI DÙNG) */}
+              {showUserPreviewModal && (
+                <div style={{
+                  position: 'fixed',
+                  inset: 0,
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '1rem'
+                }}>
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '20px',
+                    width: '100%',
+                    maxWidth: '460px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+                    animation: 'fadeIn 0.2s ease',
+                    position: 'relative'
+                  }}>
+                    {/* MODAL HEADER */}
+                    <div style={{ position: 'relative', width: '100%', height: '200px' }}>
+                      <img 
+                        src={currentEditingContent.thumbnail || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1000'}
+                        alt="Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <button 
+                        style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(15,23,42,0.75)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        onClick={() => setShowUserPreviewModal(false)}
+                      >
+                        <X size={18} />
+                      </button>
+                      <span style={{ position: 'absolute', bottom: '12px', left: '12px', background: 'rgba(4,120,87,0.9)', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                        Preview: VeggieAI Mobile App
+                      </span>
+                    </div>
+
+                    <div style={{ padding: '1.25rem' }}>
+                      <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0' }}>
+                        {currentEditingContent.title}
+                      </h2>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                        <span style={{ background: '#ecfdf5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                          ⚡ 410 kcal
+                        </span>
+                        <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                          Đạm 14g
+                        </span>
+                        <span style={{ background: '#fef3c7', color: '#b45309', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                          Carbs 52g
+                        </span>
+                      </div>
+
+                      <p style={{ fontSize: '0.84rem', color: '#475569', lineHeight: '1.55', marginBottom: '1rem' }}>
+                        {detailSummary}
+                      </p>
+
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0' }}>
+                        Nguyên liệu chuẩn bị:
+                      </h4>
+                      <ul style={{ paddingLeft: '1.2rem', margin: '0 0 1rem 0', fontSize: '0.82rem', color: '#334155' }}>
+                        {detailIngredients.map(i => (
+                          <li key={i.id} style={{ marginBottom: '0.25rem' }}>
+                            <strong>{i.name}</strong> - {i.amount}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button 
+                        style={{ width: '100%', background: '#047857', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.65rem', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
+                        onClick={() => setShowUserPreviewModal(false)}
+                      >
+                        Đóng Xem Trước
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
