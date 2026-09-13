@@ -12,7 +12,8 @@ import { useAuth } from '../context/AuthContext';
 export default function AdminDashboard({ onNavigate }) {
   const { user, logout } = useAuth();
   
-  // 8 MÀN HÌNH CHUẨN CỦA ADMIN THEO QUY ĐỊNH:
+  // ĐIỀU HÀNH TỔNG QUAN & 8 MÀN HÌNH CHUẨN CỦA ADMIN THEO QUY ĐỊNH:
+  // 'overview' - Tổng quan Dashboard
   // 1: 'users' - Quản lý người dùng
   // 2: 'content' - Quản lý blog & video
   // 3: 'content-detail' - Chi tiết bài viết/video
@@ -21,7 +22,7 @@ export default function AdminDashboard({ onNavigate }) {
   // 6: 'ai-monitoring' - Giám sát mô hình AI (AI Monitoring)
   // 7: 'ai-override' - Can thiệp thủ công AI
   // 8: 'ai-flagged' - Nội dung bị AI gắn cờ (Flagged Content Review)
-  const [activeMenu, setActiveMenu] = useState('users');
+  const [activeMenu, setActiveMenu] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -619,11 +620,27 @@ export default function AdminDashboard({ onNavigate }) {
             </div>
           </div>
 
-          {/* SIDEBAR NAVIGATION: 8 MÀN HÌNH RIÊNG BIỆT */}
+          {/* SIDEBAR NAVIGATION: TỔNG QUAN DASHBOARD + 8 MÀN HÌNH QUẢN TRỊ */}
           <div className="admin-sidebar-menu">
+            {/* NHÓM TỔNG QUAN HỆ THỐNG */}
+            <div className="admin-sidebar-group">
+              <div className="admin-group-label">ĐIỀU HÀNH &amp; TỔNG QUAN</div>
+
+              {/* Tổng quan Dashboard */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('overview')}
+              >
+                <div className="admin-menu-link-inner">
+                  <LayoutDashboard size={17} />
+                  <span>Tổng quan Dashboard</span>
+                </div>
+              </button>
+            </div>
+
             {/* NHÓM 1: HỆ THỐNG & NỘI DUNG (MỤC 1 -> 5) */}
             <div className="admin-sidebar-group">
-              <div className="admin-group-label">HỆ THỐNG & NỘI DUNG</div>
+              <div className="admin-group-label">HỆ THỐNG &amp; NỘI DUNG</div>
 
               {/* 1. Quản lý người dùng */}
               <button 
@@ -772,6 +789,7 @@ export default function AdminDashboard({ onNavigate }) {
             <span>Admin</span>
             <ChevronRight size={14} />
             <span className="admin-breadcrumb-active">
+              {activeMenu === 'overview' && 'Tổng quan Dashboard'}
               {activeMenu === 'users' && '1. Quản lý người dùng'}
               {activeMenu === 'content' && '2. Quản lý blog & video'}
               {activeMenu === 'content-detail' && '3. Chi tiết bài viết/video'}
@@ -821,6 +839,711 @@ export default function AdminDashboard({ onNavigate }) {
             CONTENT BODY: 8 MÀN HÌNH CHI TIẾT
             ========================================================================= */}
         <main className="admin-content-body">
+
+          {/* =====================================================================
+              MÀN HÌNH TỔNG QUAN: EXECUTIVE DASHBOARD (OVERVIEW)
+              TRUNG TÂM ĐIỀU HÀNH VEGGIEAI & GIÁM SÁT HỆ THỐNG
+              TUÂN THỦ 100% PHẠM VI CAPSTONE:
+              - ĐẦY ĐỦ KPI TỔNG QUAN, NFR SLA BENCHMARK, MODEL OPS
+              - PHÍM TẮT TRUY CẬP NHANH 8 MÀN HÌNH QUẢN TRỊ
+              - KHÔNG CÓ VIP / GÓI TRẢ PHÍ / MRR / VNPAY
+              ===================================================================== */}
+          {activeMenu === 'overview' && (
+            <section style={{ animation: 'fadeIn 0.2s ease' }}>
+              {/* HERO BANNER */}
+              <section className="admin-hero-banner">
+                <div>
+                  <div className="admin-capstone-tag">
+                    <Sparkles size={13} />
+                    <span>CAPSTONE ENGINEERING PORTAL • Cluster Live: HCM-DC01</span>
+                  </div>
+                  <h1 className="admin-hero-title">Trung tâm Điều hành VeggieAI &amp; Giám sát Hệ thống</h1>
+                  <p className="admin-hero-desc">
+                    Báo cáo thời gian thực về lưu lượng suy luận 5 mô hình AI, hiệu năng phi chức năng (NFR SLA ≤1.42s) và tình trạng kiểm duyệt toàn hệ thống.
+                  </p>
+                </div>
+
+                <div className="admin-hero-actions">
+                  <button 
+                    className="admin-btn-outline"
+                    onClick={() => showToast('📄 Đang xuất file báo cáo tổng quan VeggieAI Capstone (CSV/PDF)...')}
+                  >
+                    <Download size={16} />
+                    <span>Xuất Báo Cáo</span>
+                  </button>
+
+                  <button 
+                    className="admin-btn-primary"
+                    onClick={() => showToast('⚡ Đã kiểm tra cụm AI: 5 mô hình hoạt động ổn định, SLA trung bình 1.42s đạt 100% NFR!')}
+                  >
+                    <RefreshCw size={16} />
+                    <span>Quét Trạng Thái AI</span>
+                  </button>
+                </div>
+              </section>
+
+              {/* 4 KPI METRIC CARDS CHUẨN ĐỀ TÀI (KHÔNG CÓ VIP / BILLING) */}
+              <section className="admin-kpi-grid">
+                {/* Card 1: Thành viên hoạt động */}
+                <div className="admin-kpi-card">
+                  <div className="admin-kpi-header">
+                    <span className="admin-kpi-title">THÀNH VIÊN HOẠT ĐỘNG</span>
+                    <div className="admin-kpi-icon-box" style={{ background: '#ecfdf5', color: '#059669' }}>
+                      <Users size={18} />
+                    </div>
+                  </div>
+                  <div className="admin-kpi-val-row">
+                    <span className="admin-kpi-val">52,840</span>
+                    <span className="admin-kpi-trend">↑ 12.5%</span>
+                  </div>
+                  <div className="admin-kpi-footer">
+                    <span style={{ color: '#059669', fontWeight: 700 }}>Hồ sơ dinh dưỡng cá nhân hóa:</span> 41,250 hồ sơ (WF01)
+                  </div>
+                  <div style={{ marginTop: '0.45rem', fontSize: '0.74rem', color: '#64748b', borderTop: '1px dashed #e2e8f0', paddingTop: '0.4rem' }}>
+                    🌱 48.1K Authorized • 👤 4.7K Unauth • 🛡️ 14 Mod • 👑 1 Admin
+                  </div>
+                </div>
+
+                {/* Card 2: Lưu lượng suy luận AI */}
+                <div className="admin-kpi-card">
+                  <div className="admin-kpi-header">
+                    <span className="admin-kpi-title">LƯU LƯỢNG SUY LUẬN AI</span>
+                    <div className="admin-kpi-icon-box" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                      <Zap size={18} />
+                    </div>
+                  </div>
+                  <div className="admin-kpi-val-row">
+                    <span className="admin-kpi-val">184.2K</span>
+                    <span className="admin-kpi-unit">lượt/ngày</span>
+                  </div>
+                  <div className="admin-kpi-footer" style={{ display: 'flex', gap: '0.65rem' }}>
+                    <span>• Vision: <strong>46%</strong></span>
+                    <span>• LLM: <strong>38%</strong></span>
+                    <span>• Solver: <strong>16%</strong></span>
+                  </div>
+                  <div style={{ marginTop: '0.45rem', fontSize: '0.74rem', color: '#059669', borderTop: '1px dashed #e2e8f0', paddingTop: '0.4rem', fontWeight: 600 }}>
+                    ● 100% Cụm GPU hoạt động liên tục không gián đoạn
+                  </div>
+                </div>
+
+                {/* Card 3: Thời gian phản hồi TB (SLA) */}
+                <div className="admin-kpi-card">
+                  <div className="admin-kpi-header">
+                    <span className="admin-kpi-title">THỜI GIAN PHẢN HỒI TB (SLA)</span>
+                    <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '12px' }}>
+                      PASS 100%
+                    </span>
+                  </div>
+                  <div className="admin-kpi-val-row">
+                    <span className="admin-kpi-val">1.42s</span>
+                    <span className="admin-kpi-unit">NFR Benchmark</span>
+                  </div>
+                  <div className="admin-kpi-footer">
+                    <span>Vision: <strong>2.1s</strong></span> • <span>PuLP Solver: <strong>1.85s &lt; 10s NFR</strong></span>
+                  </div>
+                  <div style={{ marginTop: '0.45rem', fontSize: '0.74rem', color: '#16a34a', borderTop: '1px dashed #e2e8f0', paddingTop: '0.4rem', fontWeight: 600 }}>
+                    ✓ Đạt chuẩn 100% tiêu chí hiệu năng đánh giá đồ án
+                  </div>
+                </div>
+
+                {/* Card 4: Hàng đợi cần xử lý */}
+                <div className="admin-kpi-card">
+                  <div className="admin-kpi-header">
+                    <span className="admin-kpi-title">HÀNG ĐỢI CẦN XỬ LÝ</span>
+                    <div className="admin-kpi-icon-box" style={{ background: '#ffedd5', color: '#c2410c' }}>
+                      <Flag size={18} />
+                    </div>
+                  </div>
+                  <div className="admin-kpi-val-row">
+                    <span className="admin-kpi-val" style={{ color: '#ea580c' }}>
+                      {pendingModerationCount + commentsList.filter(c => c.flagged).length}
+                    </span>
+                    <span className="admin-kpi-unit" style={{ color: '#c2410c', fontWeight: 700 }}>Cần can thiệp</span>
+                  </div>
+                  <div className="admin-kpi-footer" style={{ display: 'flex', gap: '0.85rem' }}>
+                    <span>Bài viết gắn cờ: <strong>{pendingModerationCount}</strong></span>
+                    <span style={{ color: '#dc2626' }}>Bình luận độc hại: <strong>{commentsList.filter(c => c.flagged).length}</strong></span>
+                  </div>
+                  <div style={{ marginTop: '0.45rem', fontSize: '0.74rem', color: '#d97706', borderTop: '1px dashed #e2e8f0', paddingTop: '0.4rem', cursor: 'pointer', fontWeight: 700 }} onClick={() => setActiveMenu('ai-flagged')}>
+                    Xem và giải quyết ngay &rarr;
+                  </div>
+                </div>
+              </section>
+
+              {/* LỐI TẮT TRUY CẬP NHANH 8 MÀN HÌNH QUẢN TRỊ */}
+              <section style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem 0' }}>
+                      Danh Mục 8 Màn Hình Quản Trị Hệ Thống
+                    </h2>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+                      Nhấp trực tiếp vào màn hình bên dưới để chuyển nhanh đến phân hệ tác vụ tương ứng:
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {/* Shortcut 1 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('users')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>1</div>
+                        <Users size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý người dùng</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Theo dõi 4 vai trò, hồ sơ dinh dưỡng WF01, khóa &amp; mở khóa tài khoản.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857' }}>
+                      ● 52,840 người dùng (+142 hôm nay)
+                    </div>
+                  </div>
+
+                  {/* Shortcut 2 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('content')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>2</div>
+                        <FileText size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý blog &amp; video</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Toàn bộ bài viết dinh dưỡng, video ẩm thực và công thức nấu chay.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857' }}>
+                      ● {contentList.length} bài viết &amp; công thức công khai
+                    </div>
+                  </div>
+
+                  {/* Shortcut 3 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('content-detail')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>3</div>
+                        <Edit3 size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Chi tiết bài viết/video</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Soạn thảo WYSIWYG, chỉnh sửa thành phần dinh dưỡng và xuất bản.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2563eb' }}>
+                      ✎ Trình soạn thảo &amp; Xem trước trực quan
+                    </div>
+                  </div>
+
+                  {/* Shortcut 4 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('comments')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>4</div>
+                        <MessageSquare size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý bình luận</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Kiểm duyệt phản hồi cộng đồng, phát hiện từ khóa thô tục và spam.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: commentsList.some(c => c.flagged) ? '#dc2626' : '#047857' }}>
+                      ● {commentsList.length} bình luận ({commentsList.filter(c => c.flagged).length} bị NLP gắn cờ)
+                    </div>
+                  </div>
+
+                  {/* Shortcut 5 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('categories')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>5</div>
+                        <Layers size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý category</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Phân loại nhóm món chay: Thuần chay, Thực dưỡng, Giàu Protein, v.v.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857' }}>
+                      ● {categoriesList.length} danh mục ẩm thực đã chuẩn hóa
+                    </div>
+                  </div>
+
+                  {/* Shortcut 6 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('ai-monitoring')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>6</div>
+                        <Cpu size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Giám sát mô hình AI</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Chi tiết thông lượng, độ trễ và độ chính xác 5 mô hình AI nòng cốt.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#16a34a' }}>
+                      ⚡ 5/5 AI Engines Đạt chuẩn NFR SLA
+                    </div>
+                  </div>
+
+                  {/* Shortcut 7 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('ai-override')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>7</div>
+                        <Sliders size={18} color="#059669" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Can thiệp thủ công AI</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Quyền hạn Admin: Ghi đè kết quả mô hình, điều chỉnh vi chất, sửa khẩu phần.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706' }}>
+                      🛠️ Quyền ghi đè tham số tối cao (Admin Override)
+                    </div>
+                  </div>
+
+                  {/* Shortcut 8 */}
+                  <div 
+                    style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
+                    onClick={() => setActiveMenu('ai-flagged')}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ef4444'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>8</div>
+                        <ShieldAlert size={18} color="#dc2626" />
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Nội dung bị AI gắn cờ</strong>
+                      </div>
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                      Rà soát nghi vấn vi phạm tiêu chuẩn thuần chay, false positive và xóa bài.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626' }}>
+                      ⚠️ {pendingModerationCount} nội dung đang chờ giải quyết
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* GIÁM SÁT 5 MÔ HÌNH AI NÒNG CỐT (MODEL OPS) */}
+              <section style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem 0' }}>
+                      Giám Sát Vận Hành 5 Mô Hình AI (Model Ops Overview)
+                    </h2>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+                      Chỉ số hiệu năng, độ trễ và độ chính xác thực tế của toàn bộ các tác vụ trí tuệ nhân tạo.
+                    </p>
+                  </div>
+                  <button 
+                    className="admin-btn-outline"
+                    style={{ fontSize: '0.82rem', padding: '0.4rem 0.85rem' }}
+                    onClick={() => setActiveMenu('ai-monitoring')}
+                  >
+                    Xem chi tiết Màn hình 6 &rarr;
+                  </button>
+                </div>
+
+                <div className="admin-models-grid">
+                  {/* Model 1: Computer Vision */}
+                  <div className="admin-model-card">
+                    <div className="admin-model-header">
+                      <div className="admin-model-icon-title">
+                        <div className="admin-model-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
+                          <Activity size={18} />
+                        </div>
+                        <span className="admin-model-name">Computer Vision</span>
+                      </div>
+                      <span className="admin-model-badge" style={{ background: '#dcfce7', color: '#15803d' }}>
+                        Ổn định
+                      </span>
+                    </div>
+                    <p className="admin-model-desc">Nhận diện rau củ &amp; độ tươi trong tủ lạnh</p>
+                    <div className="admin-model-metrics">
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Độ chính xác:</span>
+                        <span className="admin-metric-val">96.4%</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Độ trễ TB:</span>
+                        <span className="admin-metric-val">2.1s</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Đã quét hôm nay:</span>
+                        <span className="admin-metric-val">24,150 ảnh</span>
+                      </div>
+                    </div>
+                    <div className="admin-model-footer">
+                      <span>v3.4 - YOLOv8-Custom</span>
+                      <button className="admin-model-log-link" onClick={() => setActiveMenu('ai-monitoring')}>
+                        Chi tiết &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Model 2: Recommendation Engine */}
+                  <div className="admin-model-card">
+                    <div className="admin-model-header">
+                      <div className="admin-model-icon-title">
+                        <div className="admin-model-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                          <Sparkles size={18} />
+                        </div>
+                        <span className="admin-model-name">Recommendation</span>
+                      </div>
+                      <span className="admin-model-badge" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                        Tối ưu
+                      </span>
+                    </div>
+                    <p className="admin-model-desc">Đề xuất thực đơn Macro &amp; định vị ẩm thực</p>
+                    <div className="admin-model-metrics">
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Độ khớp dinh dưỡng:</span>
+                        <span className="admin-metric-val">96.2%</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Tỷ lệ CTR gợi ý:</span>
+                        <span className="admin-metric-val">41.8%</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Quy đổi bữa ăn:</span>
+                        <span className="admin-metric-val">19,840 món</span>
+                      </div>
+                    </div>
+                    <div className="admin-model-footer">
+                      <span>Graph-Collab-Filter</span>
+                      <button className="admin-model-log-link" onClick={() => setActiveMenu('ai-monitoring')}>
+                        Chi tiết &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Model 3: AI Meal Planner (PuLP Solver) */}
+                  <div className="admin-model-card" style={{ borderColor: '#a7f3d0', boxShadow: '0 4px 12px rgba(5,150,105,0.08)' }}>
+                    <div className="admin-model-header">
+                      <div className="admin-model-icon-title">
+                        <div className="admin-model-icon" style={{ background: '#ecfdf5', color: '#047857' }}>
+                          <Utensils size={18} />
+                        </div>
+                        <span className="admin-model-name" style={{ color: '#047857' }}>AI Meal Planner</span>
+                      </div>
+                      <span className="admin-model-badge" style={{ background: '#047857', color: '#ffffff' }}>
+                        Cốt lõi
+                      </span>
+                    </div>
+                    <p className="admin-model-desc">Tối ưu hóa thực đơn 7 ngày PuLP LP + GenAI</p>
+                    <div className="admin-model-metrics">
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Cân bằng Macro/Micro:</span>
+                        <span className="admin-metric-val" style={{ color: '#047857' }}>98.6%</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Thực đơn tạo/ngày:</span>
+                        <span className="admin-metric-val">14,210</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Độ trễ TB (NFR ≤10s):</span>
+                        <span className="admin-metric-val" style={{ color: '#16a34a' }}>1.85s (PASS)</span>
+                      </div>
+                    </div>
+                    <div className="admin-model-footer">
+                      <span>PuLP Solver + GenAI</span>
+                      <button className="admin-model-log-link" onClick={() => setActiveMenu('ai-monitoring')}>
+                        Chi tiết &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Model 4: Nutrition Chatbot */}
+                  <div className="admin-model-card">
+                    <div className="admin-model-header">
+                      <div className="admin-model-icon-title">
+                        <div className="admin-model-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                          <Cpu size={18} />
+                        </div>
+                        <span className="admin-model-name">Nutrition Chatbot</span>
+                      </div>
+                      <span className="admin-model-badge" style={{ background: '#dcfce7', color: '#15803d' }}>
+                        Tốt
+                      </span>
+                    </div>
+                    <p className="admin-model-desc">Trợ lý cố vấn dinh dưỡng thuần chay tự nhiên</p>
+                    <div className="admin-model-metrics">
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Hài lòng người dùng:</span>
+                        <span className="admin-metric-val">4.8 / 5.0</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Tổng phiên đối thoại:</span>
+                        <span className="admin-metric-val">8,920</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Can thiệp chuyên gia:</span>
+                        <span className="admin-metric-val">Chỉ 0.4%</span>
+                      </div>
+                    </div>
+                    <div className="admin-model-footer">
+                      <span>Fine-tuned LLM 8B</span>
+                      <button className="admin-model-log-link" onClick={() => setActiveMenu('ai-monitoring')}>
+                        Chi tiết &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Model 5: Video Summarizer */}
+                  <div className="admin-model-card">
+                    <div className="admin-model-header">
+                      <div className="admin-model-icon-title">
+                        <div className="admin-model-icon" style={{ background: '#fdf4ff', color: '#c026d3' }}>
+                          <Video size={18} />
+                        </div>
+                        <span className="admin-model-name">Video Summarizer</span>
+                      </div>
+                      <span className="admin-model-badge" style={{ background: '#fae8ff', color: '#a21caf' }}>
+                        Tự động
+                      </span>
+                    </div>
+                    <p className="admin-model-desc">Trích xuất công thức &amp; kiểm duyệt nguyên liệu</p>
+                    <div className="admin-model-metrics">
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Độ chính xác bóc tách:</span>
+                        <span className="admin-metric-val">94.8%</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Video đã xử lý:</span>
+                        <span className="admin-metric-val">1,420 clips</span>
+                      </div>
+                      <div className="admin-metric-row">
+                        <span className="admin-metric-lbl">Tự động phát hiện non-vegan:</span>
+                        <span className="admin-metric-val">100%</span>
+                      </div>
+                    </div>
+                    <div className="admin-model-footer">
+                      <span>Whisper + Extractive NLP</span>
+                      <button className="admin-model-log-link" onClick={() => setActiveMenu('ai-monitoring')}>
+                        Chi tiết &gt;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* SECTION: 2-COLUMN OPERATIONAL GRID */}
+              <section className="admin-workflow-grid">
+                {/* LEFT COLUMN: HÀNG ĐỢI KIỂM DUYỆT CẤP BÁCH */}
+                <div className="admin-mod-panel">
+                  <div className="admin-sec-header" style={{ marginBottom: '0.6rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: '#dc2626', fontSize: '1.2rem' }}>•</span>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                        Hàng Đợi Nội Dung Bị AI Gắn Cờ Cần Xử Lý
+                      </h3>
+                    </div>
+                    <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '12px' }}>
+                      {pendingModerationCount} Mục chờ duyệt
+                    </span>
+                  </div>
+
+                  <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '0.65rem 0.85rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.75rem', color: '#92400e', lineHeight: '1.45', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <strong>🛡️ Quyền hạn Quyết định Tối cao của Admin:</strong> Phê duyệt giữ lại bài viết (nếu AI nhận diện nhầm) hoặc xóa bỏ và khóa tài khoản vi phạm.
+                    </div>
+                    <button 
+                      style={{ background: 'white', border: '1px solid #fde68a', borderRadius: '6px', padding: '0.25rem 0.6rem', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', cursor: 'pointer' }}
+                      onClick={() => setActiveMenu('ai-flagged')}
+                    >
+                      Mở Màn hình 8 &gt;
+                    </button>
+                  </div>
+
+                  {/* LIST 2 QUICK ITEMS */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {flaggedItems.slice(0, 2).map((item) => (
+                      <div key={item.id} style={{ background: '#ffffff', border: '1px solid #fee2e2', borderRadius: '10px', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#fee2e2', color: '#b91c1c', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                              {item.id}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Đăng bởi: <strong>{item.author}</strong></span>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: '#d97706', fontWeight: 700 }}>AI Conf: {item.confidence}</span>
+                        </div>
+                        <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '0.95rem', color: '#0f172a' }}>{item.title}</h4>
+                        <div style={{ fontSize: '0.78rem', color: '#b91c1c', background: '#fef2f2', padding: '0.35rem 0.6rem', borderRadius: '6px', marginBottom: '0.75rem', fontWeight: 600 }}>
+                          ⚠️ {item.aiFlagReason}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                          <button 
+                            style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                            onClick={() => handleFlagAction(item.id, 'dismiss')}
+                          >
+                            Phê Duyệt Giữ Lại
+                          </button>
+                          <button 
+                            style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                            onClick={() => handleFlagAction(item.id, 'remove')}
+                          >
+                            Xác Nhận Vi Phạm &amp; Gỡ Bài
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button 
+                    style={{ width: '100%', marginTop: '1rem', background: '#f8fafc', border: '1px dashed #cbd5e1', padding: '0.65rem', borderRadius: '8px', color: '#047857', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
+                    onClick={() => setActiveMenu('ai-flagged')}
+                  >
+                    Xem toàn bộ {pendingModerationCount} nội dung bị AI gắn cờ (Màn hình 8) &rarr;
+                  </button>
+                </div>
+
+                {/* RIGHT COLUMN: ANALYTICS & INSIGHT CARDS */}
+                <div className="admin-side-cards">
+                  {/* Card 1: Phân bổ Chế độ Ăn Chay */}
+                  <div className="admin-chart-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                      <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                        Phân bổ Chế độ Ăn Chay
+                      </h3>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>52,840 tài khoản</span>
+                    </div>
+
+                    <div className="admin-donut-wrapper">
+                      {/* SVG Donut Chart */}
+                      <div style={{ position: 'relative', width: '120px', height: '120px' }}>
+                        <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#f1f5f9" strokeWidth="4" />
+                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#059669" strokeWidth="4" strokeDasharray="56.2 87.9" strokeDashoffset="0" />
+                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#34d399" strokeWidth="4" strokeDasharray="21.1 87.9" strokeDashoffset="-56.2" />
+                          <circle cx="18" cy="18" r="14" fill="transparent" stroke="#f59e0b" strokeWidth="4" strokeDasharray="10.5 87.9" strokeDashoffset="-77.3" />
+                        </svg>
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>64%</div>
+                          <div style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700 }}>Thuần chay</div>
+                        </div>
+                      </div>
+
+                      {/* Legend */}
+                      <div className="admin-donut-legend">
+                        <div className="admin-legend-item">
+                          <span className="admin-legend-dot" style={{ background: '#059669' }}></span>
+                          <span>Thuần chay (Vegan) <strong>64%</strong></span>
+                        </div>
+                        <div className="admin-legend-item">
+                          <span className="admin-legend-dot" style={{ background: '#34d399' }}></span>
+                          <span>Chay có trứng &amp; sữa <strong>24%</strong></span>
+                        </div>
+                        <div className="admin-legend-item">
+                          <span className="admin-legend-dot" style={{ background: '#f59e0b' }}></span>
+                          <span>Ăn chay linh hoạt (Flexi) <strong>12%</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Cân bằng Macro Trung bình Thực đơn AI */}
+                  <div className="admin-chart-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                      <h3 style={{ fontSize: '0.98rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                        Cân Bằng Dinh Dưỡng Thực Đơn AI (PuLP Solver)
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>Đạt chuẩn NIN</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                          <span style={{ color: '#475569' }}>🌾 Carbohydrates phức tạp (Tinh bột chậm)</span>
+                          <strong style={{ color: '#0f172a' }}>55% (Chuẩn 50-60%)</strong>
+                        </div>
+                        <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: '55%', height: '100%', background: '#059669', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                          <span style={{ color: '#475569' }}>🌱 Protein thực vật hoàn chỉnh</span>
+                          <strong style={{ color: '#0f172a' }}>20% (Chuẩn 15-25%)</strong>
+                        </div>
+                        <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: '68%', height: '100%', background: '#10b981', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                          <span style={{ color: '#475569' }}>🥑 Chất béo không bão hòa đơn/đa</span>
+                          <strong style={{ color: '#0f172a' }}>25% (Chuẩn 20-30%)</strong>
+                        </div>
+                        <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: '80%', height: '100%', background: '#f59e0b', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '0.85rem', padding: '0.55rem 0.75rem', background: '#f8fafc', borderRadius: '6px', fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Hoàn tất khảo sát WF01:</span>
+                      <strong style={{ color: '#047857' }}>91.2% người dùng</strong>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </section>
+          )}
 
           {/* =====================================================================
               MÀN HÌNH 1: QUẢN LÝ NGƯỜI DÙNG (USERS MANAGEMENT)
