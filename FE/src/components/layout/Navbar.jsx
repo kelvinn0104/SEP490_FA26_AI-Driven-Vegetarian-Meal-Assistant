@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Sparkles, User, ShieldCheck, LogOut, LogIn } from 'lucide-react';
+import { Search, Sparkles, User, ShieldCheck, ShieldAlert, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ activeTab, setActiveTab }) {
@@ -118,6 +118,11 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 className="user-avatar-circle"
                 onClick={() => setShowDropdown(!showDropdown)}
                 title={`${user.name} (${user.role})`}
+                style={{
+                  background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#059669',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                }}
               >
                 <User size={18} color="white" />
               </button>
@@ -126,7 +131,15 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <div className="user-dropdown-menu">
                   <div className="dropdown-user-info">
                     <strong>{user.name}</strong>
-                    <span className="dropdown-user-role">{user.role}</span>
+                    <span 
+                      className="dropdown-user-role"
+                      style={{
+                        background: user.role === 'Admin' ? '#fee2e2' : user.role === 'Moderator' ? '#fef3c7' : '#ecfdf5',
+                        color: user.role === 'Admin' ? '#b91c1c' : user.role === 'Moderator' ? '#b45309' : '#047857'
+                      }}
+                    >
+                      {user.role === 'Admin' ? '👑 Quản trị viên' : user.role === 'Moderator' ? '🛡️ Kiểm duyệt viên' : '🌱 Thành viên (User)'}
+                    </span>
                     <small style={{ color: '#64748b' }}>{user.email}</small>
                   </div>
 
@@ -137,7 +150,16 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       className="dropdown-item"
                       onClick={() => { handleNavClick('admin'); setShowDropdown(false); }}
                     >
-                      <ShieldCheck size={16} /> Bảng điều khiển Admin
+                      <ShieldCheck size={16} color="#dc2626" /> Bảng điều khiển Admin
+                    </button>
+                  )}
+
+                  {(user.role === 'Admin' || user.role === 'Moderator') && (
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => { handleNavClick('moderation'); setShowDropdown(false); }}
+                    >
+                      <ShieldAlert size={16} color="#d97706" /> Hàng chờ duyệt bài (Mod)
                     </button>
                   )}
 

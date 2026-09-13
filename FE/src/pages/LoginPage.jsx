@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Eye, EyeOff, Lock, Mail, User, ArrowRight, ShieldCheck, 
-  Camera, Utensils, Video, Star, Compass, Check
+  Camera, Utensils, Video, Star, Compass, Check, Sparkles, ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { mockLoginApi, MOCK_ACCOUNTS } from '../utils/api';
 
 export default function LoginPage({ onNavigate }) {
   // Luôn đảm bảo khi mở trang Đăng nhập thì vị trí cuộn ở đỉnh trang (0, 0)
@@ -19,20 +20,60 @@ export default function LoginPage({ onNavigate }) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loginStatus, setLoginStatus] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLoginSubmit = (e) => {
-    e.preventDefault();
-    setLoginStatus('success');
+  const handleLoginSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setErrorMessage('');
+    setLoading(true);
 
-    login({
-      name: identifier.includes('@') ? identifier.split('@')[0] : (identifier || 'Thành viên VeggieAI'),
-      email: identifier.includes('@') ? identifier : `${identifier || 'user'}@veggieai.vn`,
-      role: 'AuthorizedUser'
-    });
+    try {
+      const res = await mockLoginApi({ identifier, password });
+      setLoginStatus('success');
+      login(res.user);
 
-    setTimeout(() => {
-      if (onNavigate) onNavigate('home');
-    }, 600);
+      setTimeout(() => {
+        if (res.user.role === 'Admin') {
+          if (onNavigate) onNavigate('admin');
+        } else if (res.user.role === 'Moderator') {
+          if (onNavigate) onNavigate('moderation');
+        } else {
+          if (onNavigate) onNavigate('home');
+        }
+      }, 500);
+    } catch (err) {
+      setErrorMessage(err.message || 'Đăng nhập thất bại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOneClickLogin = async (acc) => {
+    setIdentifier(acc.email);
+    setPassword(acc.password);
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const res = await mockLoginApi({ identifier: acc.email, password: acc.password });
+      setLoginStatus('success');
+      login(res.user);
+
+      setTimeout(() => {
+        if (res.user.role === 'Admin') {
+          if (onNavigate) onNavigate('admin');
+        } else if (res.user.role === 'Moderator') {
+          if (onNavigate) onNavigate('moderation');
+        } else {
+          if (onNavigate) onNavigate('home');
+        }
+      }, 500);
+    } catch (err) {
+      setErrorMessage(err.message || 'Đăng nhập thất bại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = (e) => {
@@ -216,12 +257,63 @@ export default function LoginPage({ onNavigate }) {
               </button>
             </div>
 
+            {/* TÀI KHOẢN MẪU DÀNH CHO 3 ROLES */}
+            <div className="mock-roles-container">
+              <div className="mock-roles-header">
+                <span className="mock-roles-title">
+                  <Sparkles size={15} color="#059669" /> Tài khoản mẫu (3 Roles)
+                </span>
+                <span className="mock-roles-hint">Nhấp 1 chạm để đăng nhập</span>
+              </div>
+
+              <div className="mock-roles-grid">
+                {MOCK_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.role}
+                    type="button"
+                    className={`mock-role-btn ${identifier === acc.email ? 'active' : ''}`}
+                    onClick={() => handleOneClickLogin(acc)}
+                    disabled={loading}
+                    title={`${acc.roleLabel}: ${acc.permissions}`}
+                  >
+                    <span 
+                      className="mock-role-badge" 
+                      style={{ background: acc.badgeBg, color: acc.badgeColor }}
+                    >
+                      {acc.role === 'Admin' ? '👑 Admin' : acc.role === 'Moderator' ? '🛡️ Mod' : '🌱 User'}
+                    </span>
+                    <span className="mock-role-email">{acc.email}</span>
+                    <span className="mock-role-pass">Pass: {acc.password}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* DIVIDER */}
             <div className="divider-row">
               <span className="divider-line"></span>
-              <span className="divider-text">HOẶC QUA THÔNG TIN</span>
+              <span className="divider-text">HOẶC NHẬP THỦ CÔNG</span>
               <span className="divider-line"></span>
             </div>
+
+            {/* ERROR ALERT */}
+            {errorMessage && (
+              <div style={{
+                padding: '0.65rem 1rem',
+                background: '#fee2e2',
+                color: '#b91c1c',
+                borderRadius: '10px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                marginBottom: '1.15rem',
+                border: '1px solid #fca5a5',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span>⚠️ {errorMessage}</span>
+              </div>
+            )}
 
             {/* LOGIN FORM */}
             <form onSubmit={handleLoginSubmit}>
@@ -235,7 +327,7 @@ export default function LoginPage({ onNavigate }) {
                   <input 
                     type="text" 
                     required 
-                    placeholder="name@example.com hoặc 090..." 
+                    placeholder="admin@veggieai.vn, mod@... hoặc user@..." 
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                   />
@@ -280,23 +372,24 @@ export default function LoginPage({ onNavigate }) {
               </label>
 
               {/* Submit Button */}
-              <button type="submit" className="auth-submit-btn">
-                <span>Đăng nhập vào VeggieAI</span>
+              <button type="submit" className="auth-submit-btn" disabled={loading}>
+                <span>{loading ? 'Đang xác thực tài khoản...' : 'Đăng nhập vào VeggieAI'}</span>
                 <ArrowRight size={18} />
               </button>
 
               {loginStatus === 'success' && (
                 <div style={{
-                  padding: '0.65rem 1rem',
+                  padding: '0.75rem 1rem',
                   background: '#ecfdf5',
                   color: '#047857',
                   borderRadius: '10px',
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   textAlign: 'center',
-                  marginBottom: '1rem'
+                  marginBottom: '1rem',
+                  border: '1px solid #a7f3d0'
                 }}>
-                  Đăng nhập thành công! Đang chuyển hướng...
+                  ✅ Đăng nhập thành công! Đang chuyển hướng theo phân quyền...
                 </div>
               )}
             </form>
