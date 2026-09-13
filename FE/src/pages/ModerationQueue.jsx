@@ -465,7 +465,7 @@ export default function ModerationQueue({ onNavigate }) {
                         alignItems: 'center',
                         gap: '0.4rem'
                       }}
-                      title="Chuyển lên Super Admin giải quyết trường hợp phức tạp / tranh chấp"
+                      title="Chuyển lên Admin giải quyết trường hợp phức tạp / tranh chấp"
                     >
                       <ArrowUpRight size={15} /> Chuyển cấp trên (Admin Tier 2)
                     </button>
@@ -513,7 +513,7 @@ export default function ModerationQueue({ onNavigate }) {
                   <div style={{ fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
                     {item.status === 'approved' && 'Bài viết đã xuất bản công khai lên hệ thống.'}
                     {item.status === 'rejected' && `Đã từ chối: ${item.rejectReason || 'Không phù hợp tiêu chuẩn.'}`}
-                    {item.status === 'escalated' && 'Đang chờ Super Admin xử lý tại Tier 2 Escalation.'}
+                    {item.status === 'escalated' && 'Đang chờ Admin xử lý tại Tier 2 Escalation.'}
                   </div>
                 )}
               </div>
@@ -638,7 +638,7 @@ export default function ModerationQueue({ onNavigate }) {
                     cursor: 'pointer'
                   }}
                 >
-                  🚀 Chuyển Super Admin
+                  🚀 Chuyển Admin
                 </button>
                 <button
                   onClick={() => handleOpenRejectModal(selectedItem)}

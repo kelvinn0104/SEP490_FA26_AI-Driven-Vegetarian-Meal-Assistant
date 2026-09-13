@@ -39,12 +39,12 @@ export async function fetchPendingModeration() {
 export const MOCK_ACCOUNTS = [
   {
     role: 'Admin',
-    roleLabel: 'Quản trị viên (Admin)',
+    roleLabel: 'Admin',
     email: 'admin@veggieai.vn',
     username: 'admin',
     password: '123',
     passwords: ['123', 'admin123', '123456'],
-    name: 'Quản Trị Viên VeggieAI',
+    name: 'Admin',
     badgeColor: '#dc2626',
     badgeBg: '#fee2e2',
     permissions: 'Toàn quyền: Quản trị hệ thống, Bảng điều khiển Admin, Duyệt bài, Thực đơn AI'

@@ -141,10 +141,16 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 style={{
                   background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#059669',
                   border: '2px solid white',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  color: 'white'
                 }}
               >
-                <User size={18} color="white" />
+                {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : <User size={18} color="white" />}
               </button>
 
               {showDropdown && (
@@ -158,7 +164,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                         color: user.role === 'Admin' ? '#b91c1c' : user.role === 'Moderator' ? '#b45309' : '#047857'
                       }}
                     >
-                      {user.role === 'Admin' ? '👑 Quản trị viên' : user.role === 'Moderator' ? '🛡️ Kiểm duyệt viên' : '🌱 Thành viên (User)'}
+                      {user.role === 'Admin' ? '👑 Admin' : user.role === 'Moderator' ? '🛡️ Kiểm duyệt viên' : '🌱 Thành viên (User)'}
                     </span>
                     <small style={{ color: '#64748b' }}>{user.email}</small>
                   </div>

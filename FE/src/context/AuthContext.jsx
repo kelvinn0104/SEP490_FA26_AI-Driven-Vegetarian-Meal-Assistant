@@ -28,10 +28,10 @@ export function AuthProvider({ children }) {
 
   const loginAsAdmin = () => {
     login({
-      name: 'Quản Trị Viên VeggieAI',
+      name: 'Admin',
       email: 'admin@veggieai.vn',
       role: 'Admin',
-      roleLabel: 'Quản trị viên (Admin)'
+      roleLabel: 'Admin'
     });
   };
 

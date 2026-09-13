@@ -328,8 +328,8 @@ export default function AdminDashboard({ onNavigate }) {
           <div className="admin-sidebar-user">
             <div className="admin-user-avatar">AD</div>
             <div>
-              <div className="admin-user-name">Operations Team</div>
-              <div className="admin-user-role">Super Admin</div>
+              <div className="admin-user-name">Admin</div>
+              <div className="admin-user-role">Quản trị viên</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -396,9 +396,9 @@ export default function AdminDashboard({ onNavigate }) {
               <span className="admin-bell-badge"></span>
             </button>
 
-            <div className="admin-profile-pill" onClick={() => showToast('Đang đăng nhập với quyền: Admin Master (Super Admin)')}>
-              <div className="admin-profile-avatar">AM</div>
-              <span className="admin-profile-text">Admin Master (Super Admin)</span>
+            <div className="admin-profile-pill" onClick={() => showToast('Đang đăng nhập với quyền: Admin')}>
+              <div className="admin-profile-avatar">AD</div>
+              <span className="admin-profile-text">Admin</span>
             </div>
           </div>
         </header>
