@@ -3079,6 +3079,9 @@ body {
   border-right: 1px solid #f1f5f9;
   z-index: 100;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.02);
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .admin-sidebar-top {
@@ -3115,6 +3118,7 @@ body {
 }
 
 .admin-group-label {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 0.65rem;
   font-weight: 700;
   color: #94a3b8;
@@ -3129,6 +3133,7 @@ body {
   font-weight: 700;
   padding: 0.1rem 0.4rem;
   border-radius: 6px;
+  font-family: 'Inter', sans-serif;
 }
 
 .admin-menu-link {
@@ -3136,15 +3141,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.45rem 0.65rem;
+  padding: 0.48rem 0.65rem;
   background: transparent;
   border: 1.5px solid transparent;
   border-radius: 12px;
   color: #334155;
-  font-size: 0.82rem;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
 }
 
@@ -3158,6 +3161,20 @@ body {
   gap: 0.65rem;
 }
 
+.admin-menu-link-inner span {
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.835rem;
+  font-weight: 500;
+  color: #334155;
+  letter-spacing: -0.01em;
+  transition: color 0.15s ease, font-weight 0.15s ease;
+  line-height: 1.35;
+}
+
+.admin-menu-link:hover .admin-menu-link-inner span {
+  color: #0f172a;
+}
+
 .admin-menu-icon-box {
   width: 32px;
   height: 32px;
@@ -3168,25 +3185,31 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
 }
 
 .admin-menu-link:hover .admin-menu-icon-box {
   background: #e2e8f0;
-  color: #334155;
+  color: #1e293b;
 }
 
-/* ACTIVE ITEM STYLING (EXACT SCREENSHOT MATCH) */
+/* ACTIVE ITEM STYLING (CRISP, CLEAN, HARMONIOUS TYPOGRAPHY) */
 .admin-menu-link.active {
   background: #ecfdf5;
   border: 1.5px solid #a7f3d0;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.06);
+}
+
+.admin-menu-link.active .admin-menu-link-inner span {
   color: #064e3b;
-  font-weight: 800;
+  font-weight: 600;
+  letter-spacing: -0.012em;
 }
 
 .admin-menu-link.active .admin-menu-icon-box {
   background: #047857;
   color: #ffffff;
+  box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
 }
 
 /* BADGES */
