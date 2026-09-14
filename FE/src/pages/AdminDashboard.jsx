@@ -9,23 +9,24 @@ import {
   Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart,
   EyeOff, Ban, MoreVertical, CornerDownRight, ChevronDown, ChevronUp,
   SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter, Maximize2, CheckSquare, Square, Bot,
-  ChevronsLeft, Settings
+  ChevronsLeft, Settings, Key, Smartphone, Laptop, Save, User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard({ onNavigate }) {
   const { user, logout } = useAuth();
   
-  // ĐIỀU HÀNH TỔNG QUAN & 8 MÀN HÌNH CHUẨN CỦA ADMIN THEO QUY ĐỊNH:
+  // ĐIỀU HÀNH TỔNG QUAN & CÁC MÀN HÌNH CHUẨN CỦA ADMIN THEO QUY ĐỊNH:
   // 'overview' - Tổng quan Dashboard
-  // 1: 'users' - Quản lý người dùng
-  // 2: 'content' - Quản lý blog & video
+  // 1: 'users' - Quản lý người dùng / Quản trị thành viên
+  // 2: 'content' - Quản lý blog & video / Quản lý Công thức & Video
   // 3: 'content-detail' - Quản lý bài viết/video
   // 4: 'comments' - Quản lý bình luận
-  // 5: 'categories' - Quản lý danh mục món ăn
-  // 6: 'ai-monitoring' - Giám sát mô hình AI (AI Monitoring)
+  // 5: 'categories' - Quản lý danh mục món ăn / Danh mục thực phẩm chay
+  // 6: 'ai-monitoring' - Giám sát AI & Model Ops
   // 7: 'ai-override' - Can thiệp thủ công AI
-  // 8: 'ai-flagged' - Nội dung bị AI gắn cờ (Flagged Content Review)
+  // 8: 'ai-flagged' - Kiểm duyệt nội dung AI (Flagged Content Review)
+  // 9: 'profile' - Hồ sơ cá nhân & Cài đặt tài khoản Admin
   const [activeMenu, setActiveMenu] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
@@ -33,6 +34,54 @@ export default function AdminDashboard({ onNavigate }) {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // =========================================================================
+  // DỮ LIỆU MÀN HÌNH 9: HỒ SƠ & CÀI ĐẶT TÀI KHOẢN (ADMIN NGUYỄN VĂN MINH)
+  // =========================================================================
+  const [profileTab, setProfileTab] = useState('info'); // 'info' | 'security' | 'notifications' | 'api' | 'sessions'
+  const [adminProfileData, setAdminProfileData] = useState({
+    fullName: 'Nguyễn Văn Minh (Admin Trưởng)',
+    roleResponsibility: 'Hệ thống Dinh dưỡng & Kiểm duyệt AI',
+    email: 'admin@veggie.ai',
+    phone: '+84 (0) 908 721 999',
+    timezone: '(GMT+07:00) Hà Nội, Bangkok, Jakarta',
+    language: 'Tiếng Việt (Mặc định)'
+  });
+  const [passwordState, setPasswordState] = useState({
+    currentPass: '••••••••••••••••',
+    newPass: ''
+  });
+  const [activeSessions, setActiveSessions] = useState([
+    {
+      id: 1,
+      device: 'MacBook Pro 16" (M3 Max) – Chrome 124',
+      location: 'TP. Hồ Chí Minh, Việt Nam',
+      ip: '118.69.182.xx',
+      time: 'Vừa kích hoạt',
+      isCurrent: true
+    },
+    {
+      id: 2,
+      device: 'iPhone 15 Pro Max – Safari Mobile',
+      location: 'TP. Hồ Chí Minh, Việt Nam',
+      ip: '118.69.182.xx',
+      time: '2 giờ trước',
+      isCurrent: false
+    }
+  ]);
+  const [aiAlerts, setAiAlerts] = useState({
+    toxicityAlert: true,
+    slaAlert: true,
+    autoApproveHighTrust: true,
+    weeklyAuditCsv: true
+  });
+  const [showAdminActivityModal, setShowAdminActivityModal] = useState(false);
+  const [showRecoveryCodesModal, setShowRecoveryCodesModal] = useState(false);
+  const [showReconfig2faModal, setShowReconfig2faModal] = useState(false);
+
+  const handleSaveAdminProfile = () => {
+    showToast('✅ Đã lưu toàn bộ thông tin hồ sơ và cấu hình bảo mật Admin thành công!');
   };
 
   // =========================================================================
@@ -2435,10 +2484,10 @@ export default function AdminDashboard({ onNavigate }) {
 
           {/* SIDEBAR NAVIGATION */}
           <div className="admin-sidebar-menu">
-            {/* NHÓM 1: ĐIỀU HÀNH & TỔNG QUAN */}
+            {/* NHÓM 1: ĐIỀU HÀNH & AI HUB */}
             <div className="admin-sidebar-group">
               <div className="admin-group-header-row">
-                <span className="admin-group-label">ĐIỀU HÀNH &amp; TỔNG QUAN</span>
+                <span className="admin-group-label">ĐIỀU HÀNH &amp; AI HUB</span>
               </div>
 
               {/* Tổng quan Dashboard */}
@@ -2453,89 +2502,8 @@ export default function AdminDashboard({ onNavigate }) {
                   <span>Tổng quan Dashboard</span>
                 </div>
               </button>
-            </div>
 
-            {/* NHÓM 2: HỆ THỐNG & NỘI DUNG */}
-            <div className="admin-sidebar-group">
-              <div className="admin-group-header-row">
-                <span className="admin-group-label">HỆ THỐNG &amp; NỘI DUNG</span>
-                <span className="admin-group-count-badge">5 mục</span>
-              </div>
-
-              {/* 1. Quản lý người dùng */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'users' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('users')}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <Users size={16} />
-                  </div>
-                  <span>Quản lý người dùng</span>
-                </div>
-              </button>
-
-              {/* 2. Quản lý blog & video */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'content' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('content')}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <Camera size={16} />
-                  </div>
-                  <span>Quản lý blog &amp; video</span>
-                </div>
-              </button>
-
-              {/* 3. Quản lý bài viết/video */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'content-detail' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('content-detail')}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <Edit3 size={16} />
-                  </div>
-                  <span>Quản lý bài viết/video</span>
-                </div>
-              </button>
-
-              {/* 4. Quản lý bình luận */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'comments' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('comments')}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <MessageSquare size={16} />
-                  </div>
-                  <span>Quản lý bình luận</span>
-                </div>
-                <span className="admin-badge-count-green">{commentsList.length}</span>
-              </button>
-
-              {/* 5. Quản lý danh mục */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'categories' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('categories')}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <Layers size={16} />
-                  </div>
-                  <span>Quản lý danh mục</span>
-                </div>
-              </button>
-            </div>
-
-            {/* NHÓM 3: GIÁM SÁT & VẬN HÀNH AI */}
-            <div className="admin-sidebar-group">
-              <div className="admin-group-header-row">
-                <span className="admin-group-label">GIÁM SÁT &amp; VẬN HÀNH AI</span>
-              </div>
-
-              {/* 6. Giám sát mô hình AI */}
+              {/* Giám sát AI & Model Ops */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'ai-monitoring' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('ai-monitoring')}
@@ -2544,24 +2512,11 @@ export default function AdminDashboard({ onNavigate }) {
                   <div className="admin-menu-icon-box">
                     <Cpu size={16} />
                   </div>
-                  <span>Giám sát mô hình AI</span>
+                  <span>Giám sát AI &amp; Model Ops</span>
                 </div>
               </button>
 
-              {/* 7. Can thiệp thủ công AI */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'ai-override' ? 'active' : ''}`}
-                onClick={() => setActiveMenu('ai-override')}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <Sliders size={16} />
-                  </div>
-                  <span>Can thiệp thủ công AI</span>
-                </div>
-              </button>
-
-              {/* 8. Nội dung bị gắn cờ */}
+              {/* Kiểm duyệt nội dung AI */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'ai-flagged' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('ai-flagged')}
@@ -2570,32 +2525,128 @@ export default function AdminDashboard({ onNavigate }) {
                   <div className="admin-menu-icon-box">
                     <ShieldCheck size={16} />
                   </div>
-                  <span>Nội dung bị gắn cờ</span>
+                  <span>Kiểm duyệt nội dung AI</span>
                 </div>
-                <span className="admin-badge-count-red-circle">{flaggedItems.length || 4}</span>
+                <span className="admin-badge-count-red-circle">{flaggedItems.length || 12}</span>
+              </button>
+            </div>
+
+            {/* NHÓM 2: QUẢN LÝ NỘI DUNG & NGƯỜI DÙNG */}
+            <div className="admin-sidebar-group">
+              <div className="admin-group-header-row">
+                <span className="admin-group-label">QUẢN LÝ NỘI DUNG &amp; NGƯỜI DÙNG</span>
+              </div>
+
+              {/* Quản lý Công thức & Video */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'content' || activeMenu === 'content-detail' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('content')}
+              >
+                <div className="admin-menu-link-inner">
+                  <div className="admin-menu-icon-box">
+                    <Camera size={16} />
+                  </div>
+                  <span>Quản lý Công thức &amp; Video</span>
+                </div>
+              </button>
+
+              {/* Quản trị thành viên */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'users' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('users')}
+              >
+                <div className="admin-menu-link-inner">
+                  <div className="admin-menu-icon-box">
+                    <Users size={16} />
+                  </div>
+                  <span>Quản trị thành viên</span>
+                </div>
+              </button>
+
+              {/* Danh mục thực phẩm chay */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'categories' ? 'active' : ''}`}
+                onClick={() => setActiveMenu('categories')}
+              >
+                <div className="admin-menu-link-inner">
+                  <div className="admin-menu-icon-box">
+                    <Layers size={16} />
+                  </div>
+                  <span>Danh mục thực phẩm chay</span>
+                </div>
+              </button>
+            </div>
+
+            {/* NHÓM 3: CÀI ĐẶT & TÀI KHOẢN */}
+            <div className="admin-sidebar-group">
+              <div className="admin-group-header-row">
+                <span className="admin-group-label">CÀI ĐẶT &amp; TÀI KHOẢN</span>
+              </div>
+
+              {/* Trang cá nhân & Cài đặt */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'profile' ? 'active' : ''}`}
+                onClick={() => { setActiveMenu('profile'); setProfileTab('info'); }}
+              >
+                <div className="admin-menu-link-inner">
+                  <div className="admin-menu-icon-box">
+                    <UserCheck size={16} />
+                  </div>
+                  <span>Trang cá nhân &amp; Cài đặt</span>
+                </div>
+              </button>
+
+              {/* Bảo mật */}
+              <button 
+                className={`admin-menu-link ${activeMenu === 'security' ? 'active' : ''}`}
+                onClick={() => { setActiveMenu('security'); setProfileTab('security'); }}
+              >
+                <div className="admin-menu-link-inner">
+                  <div className="admin-menu-icon-box">
+                    <Lock size={16} />
+                  </div>
+                  <span>Bảo mật</span>
+                </div>
               </button>
             </div>
           </div>
         </div>
 
-        {/* SIDEBAR FOOTER (EXACT MATCH SCREENSHOT) */}
+        {/* SIDEBAR FOOTER (EXACT MATCH SCREENSHOT & REVISED IDENTITY) */}
         <div className="admin-sidebar-footer">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '10px', background: '#047857', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              AD
-              <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '9px', height: '9px', borderRadius: '50%', background: '#10b981', border: '2px solid #ffffff' }}></span>
+          <div 
+            onClick={() => { setActiveMenu('profile'); setProfileTab('info'); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+            title="Xem hồ sơ cá nhân"
+          >
+            <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid #a7f3d0', flexShrink: 0 }}>
+              <img 
+                src="/admin_minh_avatar.jpg" 
+                alt="Nguyễn Văn Minh" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentNode.style.background = '#047857';
+                  e.target.parentNode.style.color = '#fff';
+                  e.target.parentNode.style.display = 'flex';
+                  e.target.parentNode.style.alignItems = 'center';
+                  e.target.parentNode.style.justifyContent = 'center';
+                  e.target.parentNode.innerText = 'VM';
+                }}
+              />
+              <span style={{ position: 'absolute', bottom: '0px', right: '0px', width: '9px', height: '9px', borderRadius: '50%', background: '#10b981', border: '2px solid #ffffff' }}></span>
             </div>
             <div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>Admin System</div>
-              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>admin@veggie.ai</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>Nguyễn Văn Minh</div>
+              <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700 }}>Admin</div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <button 
-              onClick={() => showToast('Cài đặt hệ thống')}
+              onClick={() => { setActiveMenu('profile'); setProfileTab('info'); }}
               style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.3rem', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
-              title="Cài đặt"
+              title="Cài đặt tài khoản"
             >
               <Settings size={16} />
             </button>
@@ -2616,18 +2667,19 @@ export default function AdminDashboard({ onNavigate }) {
       <div className="admin-main-container">
         <header className="admin-topbar">
           <div className="admin-breadcrumb">
-            <span>Admin</span>
+            <span>Admin Portal</span>
             <ChevronRight size={14} />
             <span className="admin-breadcrumb-active">
               {activeMenu === 'overview' && 'Tổng quan Dashboard'}
-              {activeMenu === 'users' && '1. Quản lý người dùng'}
-              {activeMenu === 'content' && '2. Quản lý blog & video'}
-              {activeMenu === 'content-detail' && '3. Quản lý bài viết/video'}
-              {activeMenu === 'comments' && '4. Quản lý bình luận'}
-              {activeMenu === 'categories' && '5. Quản lý danh mục món ăn'}
-              {activeMenu === 'ai-monitoring' && '6. Giám sát mô hình AI (AI Monitoring)'}
-              {activeMenu === 'ai-override' && '7. Can thiệp thủ công AI'}
-              {activeMenu === 'ai-flagged' && '8. Nội dung bị AI gắn cờ (Flagged Content Review)'}
+              {activeMenu === 'users' && 'Quản trị thành viên'}
+              {activeMenu === 'content' && 'Quản lý Công thức & Video'}
+              {activeMenu === 'content-detail' && 'Quản lý bài viết/video'}
+              {activeMenu === 'comments' && 'Quản lý bình luận'}
+              {activeMenu === 'categories' && 'Danh mục thực phẩm chay'}
+              {activeMenu === 'ai-monitoring' && 'Giám sát AI & Model Ops'}
+              {activeMenu === 'ai-override' && 'Can thiệp thủ công AI'}
+              {activeMenu === 'ai-flagged' && 'Kiểm duyệt nội dung AI'}
+              {(activeMenu === 'profile' || activeMenu === 'security') && 'Hồ Sơ & Cài Đặt Tài Khoản'}
             </span>
           </div>
 
@@ -2636,7 +2688,7 @@ export default function AdminDashboard({ onNavigate }) {
             <input 
               type="text" 
               className="admin-search-input"
-              placeholder="Tìm kiếm tài nguyên, mô hình AI, bài viết..." 
+              placeholder="Tìm kiếm công thức, tác giả, id kiểm duyệt..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -2658,9 +2710,19 @@ export default function AdminDashboard({ onNavigate }) {
               {pendingModerationCount > 0 && <span className="admin-bell-badge"></span>}
             </button>
 
-            <div className="admin-profile-pill" onClick={() => showToast('Đang đăng nhập với quyền: Admin')}>
-              <div className="admin-profile-avatar">AD</div>
-              <span className="admin-profile-text">Admin</span>
+            <div 
+              className="admin-profile-pill" 
+              onClick={() => { setActiveMenu('profile'); setProfileTab('info'); }}
+              style={{ cursor: 'pointer' }}
+              title="Xem trang cá nhân & Cài đặt"
+            >
+              <img 
+                src="/admin_minh_avatar.jpg" 
+                alt="Nguyễn Văn Minh" 
+                style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <span className="admin-profile-text">Nguyễn Văn Minh (Admin)</span>
             </div>
           </div>
         </header>
@@ -10386,6 +10448,694 @@ export default function AdminDashboard({ onNavigate }) {
                       <span>Model: YOLOv8-Safety Vision v2.4 (TensorRT GPU FP16)</span>
                       <button onClick={() => setShowEvidenceZoomModal(false)} style={{ background: '#334155', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '0.4rem 1rem', fontSize: '0.78rem', cursor: 'pointer' }}>
                         Đóng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* =========================================================================
+              MÀN HÌNH 9: TRANG CÁ NHÂN & CÀI ĐẶT TÀI KHOẢN (ADMIN NGUYỄN VĂN MINH)
+              ========================================================================= */}
+          {(activeMenu === 'profile' || activeMenu === 'security') && (
+            <section className="admin-profile-page">
+              {/* TOP HEADER */}
+              <div className="admin-profile-top-header">
+                <div>
+                  <div className="admin-profile-tag">
+                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                    HỆ THỐNG QUẢN TRỊ TRUNG TÂM
+                  </div>
+                  <h1 className="admin-profile-title">Hồ Sơ &amp; Cài Đặt Tài Khoản</h1>
+                  <p className="admin-profile-desc">
+                    Quản lý thông tin bảo mật, thông báo hệ thống và phân quyền cấp cao của Admin VeggieAI.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => setShowAdminActivityModal(true)}
+                    style={{
+                      background: '#f1f5f9',
+                      border: '1px solid #e2e8f0',
+                      color: '#334155',
+                      padding: '0.55rem 1rem',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Clock size={16} />
+                    Xem nhật ký hoạt động
+                  </button>
+                  <button 
+                    onClick={handleSaveAdminProfile}
+                    style={{
+                      background: '#047857',
+                      border: 'none',
+                      color: '#ffffff',
+                      padding: '0.55rem 1.25rem',
+                      borderRadius: '8px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      boxShadow: '0 2px 6px rgba(4, 120, 87, 0.25)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Save size={16} />
+                    Lưu toàn bộ
+                  </button>
+                </div>
+              </div>
+
+              {/* 2-COLUMN MAIN LAYOUT */}
+              <div className="admin-profile-grid">
+                {/* LEFT COLUMN */}
+                <div className="admin-profile-left-col">
+                  {/* PROFILE CARD */}
+                  <div className="admin-profile-card">
+                    <div className="admin-profile-avatar-wrapper">
+                      <img 
+                        src="/admin_minh_avatar.jpg" 
+                        alt="Nguyễn Văn Minh" 
+                        className="admin-profile-avatar-img"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <span className="admin-profile-online-dot" title="Trực tuyến"></span>
+                    </div>
+                    <h2 className="admin-profile-name">Nguyễn Văn Minh</h2>
+                    <span className="admin-profile-role-badge">Admin</span>
+                    <div className="admin-profile-email">admin@veggie.ai</div>
+
+                    <div className="admin-profile-meta-grid">
+                      <div className="admin-profile-meta-item">
+                        <span className="admin-profile-meta-label">Gia nhập</span>
+                        <span className="admin-profile-meta-val">14/03/2023</span>
+                      </div>
+                      <div className="admin-profile-meta-item">
+                        <span className="admin-profile-meta-label">Trạng thái 2FA</span>
+                        <span className="admin-profile-meta-val" style={{ color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                          Đang Bật
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VERTICAL SUB-TABS */}
+                  <div className="admin-profile-nav-list">
+                    <button 
+                      className={`admin-profile-nav-btn ${profileTab === 'info' ? 'active' : ''}`}
+                      onClick={() => setProfileTab('info')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <User size={16} />
+                        <span>Thông tin cá nhân</span>
+                      </div>
+                      <ChevronRight size={14} />
+                    </button>
+
+                    <button 
+                      className={`admin-profile-nav-btn ${profileTab === 'security' ? 'active' : ''}`}
+                      onClick={() => setProfileTab('security')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <ShieldCheck size={16} />
+                        <span>Bảo mật &amp; 2FA</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      className={`admin-profile-nav-btn ${profileTab === 'notifications' ? 'active' : ''}`}
+                      onClick={() => setProfileTab('notifications')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Bell size={16} />
+                        <span>Cài đặt thông báo</span>
+                      </div>
+                      <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '9999px' }}>
+                        2 mới
+                      </span>
+                    </button>
+
+                    <button 
+                      className={`admin-profile-nav-btn ${profileTab === 'api' ? 'active' : ''}`}
+                      onClick={() => setProfileTab('api')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Key size={16} />
+                        <span>Khóa API &amp; Webhook</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      className={`admin-profile-nav-btn ${profileTab === 'sessions' ? 'active' : ''}`}
+                      onClick={() => setProfileTab('sessions')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Laptop size={16} />
+                        <span>Nhật ký phiên</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* SECURITY POLICY CARD */}
+                  <div className="admin-policy-card">
+                    <div className="admin-policy-header">
+                      <Shield size={18} />
+                      <span>Chính sách bảo mật tổ chức</span>
+                    </div>
+                    <p className="admin-policy-text">
+                      Tài khoản Quản trị Trưởng chịu trách nhiệm kiểm định mô hình dữ liệu công thức dinh dưỡng &amp; lọc nội dung tự động.
+                    </p>
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN */}
+                <div className="admin-profile-right-col">
+                  {/* CARD 1: THÔNG TIN QUẢN TRỊ VIÊN */}
+                  <div className="admin-profile-section">
+                    <div className="admin-profile-section-header">
+                      <div className="admin-profile-section-title-wrap">
+                        <div className="admin-profile-icon-square">
+                          <User size={18} />
+                        </div>
+                        <div>
+                          <div className="admin-profile-section-title">Thông Tin Quản Trị Viên</div>
+                          <div className="admin-profile-section-sub">Chi tiết nhân sự &amp; định danh trên bảng điều khiển</div>
+                        </div>
+                      </div>
+                      <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '6px', fontFamily: 'monospace' }}>
+                        ID: ADM-88921
+                      </span>
+                    </div>
+
+                    <div className="admin-form-grid-2col">
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Họ và Tên</label>
+                        <div className="admin-input-wrap">
+                          <input 
+                            type="text" 
+                            className="admin-form-input" 
+                            value={adminProfileData.fullName}
+                            onChange={(e) => setAdminProfileData({ ...adminProfileData, fullName: e.target.value })}
+                          />
+                          <CheckCircle2 size={16} color="#10b981" style={{ position: 'absolute', right: '12px' }} />
+                        </div>
+                      </div>
+
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Chức danh / Trách nhiệm</label>
+                        <input 
+                          type="text" 
+                          className="admin-form-input" 
+                          value={adminProfileData.roleResponsibility}
+                          onChange={(e) => setAdminProfileData({ ...adminProfileData, roleResponsibility: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Địa chỉ Email Quản Trị</label>
+                        <div className="admin-input-wrap">
+                          <input 
+                            type="email" 
+                            className="admin-form-input" 
+                            value={adminProfileData.email}
+                            disabled
+                          />
+                          <Lock size={15} color="#94a3b8" style={{ position: 'absolute', right: '12px' }} />
+                        </div>
+                        <span className="admin-input-hint">Liên hệ DevOps để đổi email định danh hệ thống</span>
+                      </div>
+
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Số điện thoại liên lạc</label>
+                        <input 
+                          type="text" 
+                          className="admin-form-input" 
+                          value={adminProfileData.phone}
+                          onChange={(e) => setAdminProfileData({ ...adminProfileData, phone: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Múi giờ vận hành</label>
+                        <select 
+                          className="admin-form-input"
+                          value={adminProfileData.timezone}
+                          onChange={(e) => setAdminProfileData({ ...adminProfileData, timezone: e.target.value })}
+                        >
+                          <option>(GMT+07:00) Hà Nội, Bangkok, Jakarta</option>
+                          <option>(GMT+08:00) Singapore, Kuala Lumpur</option>
+                          <option>(GMT+09:00) Tokyo, Seoul</option>
+                          <option>(GMT+00:00) UTC / London</option>
+                        </select>
+                      </div>
+
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Ngôn ngữ hiển thị</label>
+                        <select 
+                          className="admin-form-input"
+                          value={adminProfileData.language}
+                          onChange={(e) => setAdminProfileData({ ...adminProfileData, language: e.target.value })}
+                        >
+                          <option>Tiếng Việt (Mặc định)</option>
+                          <option>English (United States)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD 2: BẢO MẬT TÀI KHOẢN & 2FA */}
+                  <div className="admin-profile-section">
+                    <div className="admin-profile-section-header">
+                      <div className="admin-profile-section-title-wrap">
+                        <div className="admin-profile-icon-square">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <div className="admin-profile-section-title">Bảo Mật Tài Khoản &amp; 2FA</div>
+                          <div className="admin-profile-section-sub">Quản lý mật khẩu cấp cao và phiên truy cập an toàn</div>
+                        </div>
+                      </div>
+                      <span style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.65rem', borderRadius: '9999px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                        Cực kỳ an toàn
+                      </span>
+                    </div>
+
+                    {/* ĐỔI MẬT KHẨU */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                        <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>Đổi mật khẩu bảo mật</strong>
+                        <span style={{ fontSize: '0.72rem', color: '#0d9488', fontWeight: 600 }}>Cập nhật 45 ngày trước</span>
+                      </div>
+
+                      <div className="admin-form-grid-2col" style={{ marginBottom: '0.85rem' }}>
+                        <div className="admin-form-group">
+                          <label className="admin-form-label">Mật khẩu hiện tại</label>
+                          <input 
+                            type="password" 
+                            className="admin-form-input" 
+                            value={passwordState.currentPass}
+                            onChange={(e) => setPasswordState({ ...passwordState, currentPass: e.target.value })}
+                          />
+                        </div>
+                        <div className="admin-form-group">
+                          <label className="admin-form-label">Mật khẩu mới</label>
+                          <input 
+                            type="password" 
+                            className="admin-form-input" 
+                            placeholder="Tối thiểu 12 ký tự, gồm số và ký tự đặc biệt"
+                            value={passwordState.newPass}
+                            onChange={(e) => setPasswordState({ ...passwordState, newPass: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <div style={{ height: '5px', width: '100%', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+                          <div style={{ width: '100%', height: '100%', background: '#10b981', borderRadius: '9999px' }}></div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                          <span style={{ color: '#059669', fontWeight: 600 }}>Độ mạnh mật khẩu hiện hành: 100% (Hoàn hảo)</span>
+                          <span style={{ color: '#64748b', fontFamily: 'monospace' }}>256-bit Hash</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2FA GOOGLE AUTHENTICATOR */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Smartphone size={20} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>Xác thực hai yếu tố (2FA) – Google Authenticator</strong>
+                            <span style={{ background: '#064e3b', color: '#ffffff', fontSize: '0.62rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '9999px', letterSpacing: '0.3px' }}>
+                              ĐÃ KÍCH HOẠT
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.2rem' }}>
+                            Bảo vệ mỗi lượt duyệt nội dung quan trọng &amp; can thiệp thuật toán AI với mã TOTP 6 số.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => setShowRecoveryCodesModal(true)}
+                          style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '0.45rem 0.85rem', borderRadius: '7px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          Xem mã phục hồi
+                        </button>
+                        <button 
+                          onClick={() => setShowReconfig2faModal(true)}
+                          style={{ background: '#047857', border: 'none', color: '#ffffff', padding: '0.45rem 0.95rem', borderRadius: '7px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Cấu hình lại
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* PHIÊN ĐĂNG NHẬP & THIẾT BỊ HOẠT ĐỘNG */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>Phiên đăng nhập &amp; Thiết bị hoạt động</strong>
+                        <button 
+                          onClick={() => {
+                            setActiveSessions(prev => prev.filter(s => s.isCurrent));
+                            showToast('Đã đăng xuất khỏi tất cả các thiết bị khác thành công!');
+                          }}
+                          style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <LogOut size={13} />
+                          Đăng xuất khỏi tất cả thiết bị khác
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {activeSessions.map(session => (
+                          <div key={session.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {session.device.includes('MacBook') ? <Laptop size={16} /> : <Smartphone size={16} />}
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{session.device}</strong>
+                                  {session.isCurrent && (
+                                    <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.65rem', fontWeight: 700, padding: '0.08rem 0.4rem', borderRadius: '4px' }}>
+                                      Phiên này
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                  {session.location} • IP: {session.ip} • {session.time}
+                                </div>
+                              </div>
+                            </div>
+
+                            {session.isCurrent ? (
+                              <CheckCircle2 size={18} color="#10b981" />
+                            ) : (
+                              <button 
+                                onClick={() => {
+                                  setActiveSessions(prev => prev.filter(s => s.id !== session.id));
+                                  showToast(`Đã ngắt phiên thiết bị: ${session.device}`);
+                                }}
+                                style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                title="Đăng xuất thiết bị này"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD 3: TÙY CHỌN PHÂN QUYỀN & CẢNH BÁO AI */}
+                  <div className="admin-profile-section">
+                    <div className="admin-profile-section-header">
+                      <div className="admin-profile-section-title-wrap">
+                        <div className="admin-profile-icon-square" style={{ background: '#fff1f2', color: '#e11d48' }}>
+                          <AlertTriangle size={18} />
+                        </div>
+                        <div>
+                          <div className="admin-profile-section-title">Tùy Chọn Phân Quyền &amp; Cảnh Báo AI</div>
+                          <div className="admin-profile-section-sub">Quy định luồng cảnh báo khẩn cấp và ngưỡng kiểm định VeggieAI</div>
+                        </div>
+                      </div>
+                      <span style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.65rem', borderRadius: '9999px' }}>
+                        Realtime Stream Active
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                      {/* CẢNH BÁO KHẨN CẤP AI */}
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>Cảnh báo khẩn cấp: Vi phạm nghiêm trọng từ AI</strong>
+                            <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                              Toxicity &gt; 85%
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45 }}>
+                            Tự động gửi thông báo đẩy SMS &amp; Email khẩn cấp khi hệ thống phát hiện công thức dinh dưỡng vi phạm tiêu chuẩn an toàn thực phẩm hoặc có ngôn từ độc hại cao.
+                          </div>
+                        </div>
+                        <label className="admin-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={aiAlerts.toxicityAlert} 
+                            onChange={(e) => setAiAlerts({ ...aiAlerts, toxicityAlert: e.target.checked })} 
+                          />
+                          <span className="admin-slider"></span>
+                        </label>
+                      </div>
+
+                      {/* CẢNH BÁO HÀNG ĐỢI TỒN ĐỌNG */}
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>Cảnh báo hàng đợi kiểm duyệt tồn đọng</strong>
+                            <span style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                              &gt; 24 giờ
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45 }}>
+                            Kích hoạt còi nhắc nhở trên bảng điều khiển Dashboard và email tổng hợp lúc 08:00 AM hàng ngày nếu số lượng bài viết chờ vượt quá hạn định cam kết (SLA).
+                          </div>
+                        </div>
+                        <label className="admin-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={aiAlerts.slaAlert} 
+                            onChange={(e) => setAiAlerts({ ...aiAlerts, slaAlert: e.target.checked })} 
+                          />
+                          <span className="admin-slider"></span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* 2 SUB-CARDS */}
+                    <div className="admin-form-grid-2col">
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Mức độ tự động hóa phê duyệt</div>
+                          <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>Tự động duyệt bài điểm uy tín &gt; 95/100</strong>
+                        </div>
+                        <label className="admin-switch" style={{ width: '38px', height: '20px' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={aiAlerts.autoApproveHighTrust} 
+                            onChange={(e) => setAiAlerts({ ...aiAlerts, autoApproveHighTrust: e.target.checked })} 
+                          />
+                          <span className="admin-slider"></span>
+                        </label>
+                      </div>
+
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Thông báo nhật ký kiểm toán (Audit Logs)</div>
+                          <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>Gửi báo cáo CSV vào cuối tuần</strong>
+                        </div>
+                        <label className="admin-switch" style={{ width: '38px', height: '20px' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={aiAlerts.weeklyAuditCsv} 
+                            onChange={(e) => setAiAlerts({ ...aiAlerts, weeklyAuditCsv: e.target.checked })} 
+                          />
+                          <span className="admin-slider"></span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BOTTOM ACTIONS BAR */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' }}>
+                    <button 
+                      onClick={() => showToast('Đã kích hoạt thu hồi toàn bộ token đăng nhập trên tất cả thiết bị!')}
+                      style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                    >
+                      <LogOut size={16} />
+                      Đăng xuất khỏi tất cả thiết bị
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <button 
+                        onClick={() => showToast('Đã hủy các thay đổi chưa lưu.')}
+                        style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '0.55rem 1.25rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Hủy bỏ
+                      </button>
+                      <button 
+                        onClick={handleSaveAdminProfile}
+                        style={{ background: '#047857', border: 'none', color: '#ffffff', padding: '0.55rem 1.45rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem', boxShadow: '0 2px 6px rgba(4, 120, 87, 0.25)' }}
+                      >
+                        <Check size={16} />
+                        Lưu thay đổi
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MODAL 1: XEM NHẬT KÝ HOẠT ĐỘNG */}
+              {showAdminActivityModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Clock size={18} color="#047857" />
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Nhật Ký Hoạt Động Cấp Cao (Admin Audit Log)</h3>
+                      </div>
+                      <button onClick={() => setShowAdminActivityModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {[
+                          { time: '14:20 Hôm nay', action: 'Cập nhật cấu hình ngưỡng cảnh báo Toxicity AI từ 80% lên 85%', ip: '118.69.182.xx', status: 'Thành công' },
+                          { time: '11:15 Hôm nay', action: 'Phê duyệt can thiệp quy tắc thay thế mật ong cho người ăn thuần chay (#REQ-98814)', ip: '118.69.182.xx', status: 'Đã xác thực TOTP' },
+                          { time: '08:30 Hôm nay', action: 'Đăng nhập hệ thống từ thiết bị MacBook Pro 16" (M3 Max)', ip: '118.69.182.xx', status: '2FA Hợp lệ' },
+                          { time: 'Hôm qua 17:40', action: 'Xuất báo cáo nhật ký kiểm toán định kỳ tuần qua định dạng CSV', ip: '118.69.182.xx', status: 'Thành công' },
+                          { time: '09/09/2026', action: 'Đổi mật khẩu bảo mật hệ thống & gia hạn khóa ký số SHA-256', ip: '118.69.182.xx', status: 'Hoàn tất' }
+                        ].map((item, idx) => (
+                          <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>{item.action}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>IP: {item.ip} • {item.time}</div>
+                            </div>
+                            <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                              {item.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setShowAdminActivityModal(false)} style={{ background: '#047857', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.45rem 1.25rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 2: XEM MÃ PHỤC HỒI 2FA */}
+              {showRecoveryCodesModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Key size={18} color="#047857" />
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Mã Khôi Phục Dự Phòng 2FA</h3>
+                      </div>
+                      <button onClick={() => setShowRecoveryCodesModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.25rem' }}>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '1rem', lineHeight: 1.45 }}>
+                        Lưu giữ các mã khôi phục này ở nơi an toàn. Mỗi mã chỉ có thể sử dụng một lần nếu bạn mất quyền truy cập thiết bị Google Authenticator.
+                      </p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '1rem', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                        <div>4920-8192</div>
+                        <div>7103-9941</div>
+                        <div>2819-4402</div>
+                        <div>8831-2094</div>
+                        <div>6102-3984</div>
+                        <div>9914-1185</div>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <button 
+                        onClick={() => showToast('Đã sao chép 6 mã khôi phục vào bộ nhớ tạm!')}
+                        style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '0.45rem 1rem', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        Sao chép tất cả
+                      </button>
+                      <button onClick={() => setShowRecoveryCodesModal(false)} style={{ background: '#047857', color: '#ffffff', border: 'none', borderRadius: '7px', padding: '0.45rem 1.25rem', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>
+                        Đã lưu an toàn
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 3: CẤU HÌNH LẠI 2FA */}
+              {showReconfig2faModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '460px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Smartphone size={18} color="#047857" />
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Cấu Hình Lại Google Authenticator</h3>
+                      </div>
+                      <button onClick={() => setShowReconfig2faModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.25rem', textAlign: 'center' }}>
+                      <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '1rem' }}>
+                        Quét mã QR bên dưới bằng ứng dụng Google Authenticator hoặc ứng dụng TOTP tương đương:
+                      </p>
+                      <div style={{ display: 'inline-flex', padding: '0.75rem', background: '#f8fafc', border: '2px dashed #059669', borderRadius: '12px', marginBottom: '1rem' }}>
+                        <div style={{ width: '160px', height: '160px', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '2.5rem' }}>📲</span>
+                          <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, marginTop: '0.35rem' }}>TOTP: VEGGIE-ADM-MINH</span>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: '1rem' }}>
+                        Khóa bí mật: <strong style={{ fontFamily: 'monospace' }}>JBSWY3DPEHPK3PXP</strong>
+                      </div>
+
+                      <div style={{ textAlign: 'left' }}>
+                        <label className="admin-form-label">Nhập mã xác thực 6 số để kích hoạt:</label>
+                        <input 
+                          type="text" 
+                          maxLength={6}
+                          placeholder="000 000"
+                          style={{ width: '100%', padding: '0.6rem', textAlign: 'center', fontSize: '1.1rem', letterSpacing: '4px', fontWeight: 800, border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                      <button onClick={() => setShowReconfig2faModal(false)} style={{ background: '#f1f5f9', border: 'none', color: '#475569', borderRadius: '7px', padding: '0.45rem 1rem', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}>
+                        Hủy
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setShowReconfig2faModal(false);
+                          showToast('Xác thực 2FA thành công! Cấu hình mới đã có hiệu lực.');
+                        }} 
+                        style={{ background: '#047857', color: '#ffffff', border: 'none', borderRadius: '7px', padding: '0.45rem 1.25rem', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}
+                      >
+                        Xác nhận kích hoạt
                       </button>
                     </div>
                   </div>
