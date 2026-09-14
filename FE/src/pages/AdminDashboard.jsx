@@ -1021,222 +1021,209 @@ export default function AdminDashboard({ onNavigate }) {
   };
 
   // =========================================================================
-  // DỮ LIỆU MÀN HÌNH 5: QUẢN LÝ DANH MỤC & PHÂN LOẠI DINH DƯỠNG CHAY (TAXONOMY)
-  // Phục vụ cấu trúc đa tầng cho AI Meal Planner & Computer Vision
+  // DỮ LIỆU MÀN HÌNH 5: QUẢN LÝ DANH MỤC MÓN ĂN (2 TẦNG ĐƠN GIẢN HÓA)
+  // Rút gọn chuẩn CRUD cho Meal Planner VeggieAI, bỏ tầng Y khoa và rule-engine phức tạp
   // =========================================================================
+  const PRESET_CAT_ICONS = ['🥗', '🍲', '🥣', '🥑', '🥛', '🌱', '🍱', '🥘', '🌯', '🧁', '🥬', '🥕', '🥦', '🫘', '🧀', '🍵'];
+
   const [categoriesTaxonomy, setCategoriesTaxonomy] = useState([
     {
-      id: 'CAT-VEGAN-01',
-      name: 'Thuần Chay Tuyệt Đối (Strict Vegan)',
-      slug: 'strict-vegan',
-      level: 1,
-      icon: '🥗',
-      badge: 'Ưu tiên AI cao',
-      badgeType: 'ai-high',
-      count: 4520,
-      note: 'Bắt buộc: Không trứng, sữa động vật, mật ong',
+      id: 'CAT-GRP-01',
+      name: 'Trường phái ăn chay',
+      icon: '🌱',
+      count: 10610,
       active: true,
-      weight: 95,
       expanded: true,
       tabCategory: 'schools',
-      description: 'Trường phái thuần chay nghiêm ngặt, loại bỏ 100% nguyên liệu có nguồn gốc động vật, mật ong và các phụ gia có enzyme động vật.',
-      requiredKeywords: ['thuc-vat-nguyen-phan', 'dau-hu-huu-co', 'cac-loai-dau-hat', 'rau-xanh'],
-      excludedKeywords: ['thit', 'ca', 'trung', 'sua-dong-vat', 'pho-mai-dong-vat', 'mat-ong'],
-      macroThreshold: '100% nguồn gốc thực vật',
+      description: 'Phân loại các trường phái ăn chay phổ biến theo mức độ sử dụng nguyên liệu thực vật.',
+      children: [
+        {
+          id: 'CAT-VEGAN-01',
+          parentId: 'CAT-GRP-01',
+          name: 'Thuần Chay Tuyệt Đối',
+          icon: '🥗',
+          count: 4520,
+          active: true,
+          tabCategory: 'schools',
+          description: 'Loại bỏ hoàn toàn thịt động vật, trứng, sữa và mật ong, 100% nguồn gốc thực vật tự nhiên.'
+        },
+        {
+          id: 'CAT-LACTO-OVO',
+          parentId: 'CAT-GRP-01',
+          name: 'Chay Có Trứng & Sữa',
+          icon: '🥛',
+          count: 3890,
+          active: true,
+          tabCategory: 'schools',
+          description: 'Cho phép sử dụng sản phẩm từ sữa và trứng gà sạch kiểm định kết hợp thực vật.'
+        },
+        {
+          id: 'CAT-LACTO-01',
+          parentId: 'CAT-GRP-01',
+          name: 'Chay Có Sữa (Lacto-Vegetarian)',
+          icon: '🧀',
+          count: 1250,
+          active: true,
+          tabCategory: 'schools',
+          description: 'Sử dụng sữa tươi, sữa chua, bơ thực vật, không sử dụng trứng.'
+        },
+        {
+          id: 'CAT-FLEXI-01',
+          parentId: 'CAT-GRP-01',
+          name: 'Chay Bán Phần (Flexitarian)',
+          icon: '🥑',
+          count: 950,
+          active: true,
+          tabCategory: 'schools',
+          description: 'Chế độ ăn linh hoạt chủ yếu là thực vật, phù hợp cho người mới bắt đầu ăn chay.'
+        }
+      ]
+    },
+    {
+      id: 'CAT-GRP-02',
+      name: 'Loại món ăn',
+      icon: '🍲',
+      count: 5160,
+      active: true,
+      expanded: true,
+      tabCategory: 'meals',
+      description: 'Phân loại theo vai trò và cách dùng bữa: món chính, canh súp, salad khai vị, món kho, tráng miệng.',
+      children: [
+        {
+          id: 'CAT-MAIN-01',
+          parentId: 'CAT-GRP-02',
+          name: 'Món Chính',
+          icon: '🍱',
+          count: 1840,
+          active: true,
+          tabCategory: 'meals',
+          description: 'Các món ăn no cho bữa trưa và tối kết hợp cơm gạo lứt, bún, mì và rau củ xào kho.'
+        },
+        {
+          id: 'CAT-SOUP-01',
+          parentId: 'CAT-GRP-02',
+          name: 'Canh & Súp',
+          icon: '🥣',
+          count: 920,
+          active: true,
+          tabCategory: 'meals',
+          description: 'Canh rong biển, súp bí đỏ, canh củ sen bổ dưỡng thanh lọc cơ thể.'
+        },
+        {
+          id: 'CAT-SALAD-01',
+          parentId: 'CAT-GRP-02',
+          name: 'Salad & Khai Vị',
+          icon: '🥗',
+          count: 640,
+          active: true,
+          tabCategory: 'meals',
+          description: 'Salad rau củ hữu cơ trộn sốt chanh leo, dầu ô liu và hạt chia thanh mát.'
+        },
+        {
+          id: 'CAT-STIR-01',
+          parentId: 'CAT-GRP-02',
+          name: 'Món Xào & Kho',
+          icon: '🥘',
+          count: 810,
+          active: true,
+          tabCategory: 'meals',
+          description: 'Đậu hũ kho nấm, cà tím xào tía tô, củ cải kho tiêu thơm ngon đậm đà.'
+        },
+        {
+          id: 'CAT-ROLL-01',
+          parentId: 'CAT-GRP-02',
+          name: 'Món Cuốn Thực Vật',
+          icon: '🌯',
+          count: 520,
+          active: true,
+          tabCategory: 'meals',
+          description: 'Gỏi cuốn chay, phở cuốn nấm đậu phụ, bò bía chay dùng kèm nước chấm thanh vị.'
+        },
+        {
+          id: 'CAT-DESSERT-01',
+          parentId: 'CAT-GRP-02',
+          name: 'Tráng Miệng & Bánh Chay',
+          icon: '🧁',
+          count: 430,
+          active: true,
+          tabCategory: 'meals',
+          description: 'Chè hạt sen long nhãn, pudding hạt chia, bánh chuối nướng không trứng sữa.'
+        }
+      ]
+    },
+    {
+      id: 'CAT-GRP-03',
+      name: 'Nhóm dinh dưỡng nổi bật',
+      icon: '💪',
+      count: 4460,
+      active: true,
+      expanded: true,
+      tabCategory: 'nutrition',
+      description: 'Phân loại theo mục tiêu sức khỏe và hàm lượng vi chất dinh dưỡng thiết yếu.',
       children: [
         {
           id: 'CAT-VEG-PROT',
-          parentId: 'CAT-VEGAN-01',
-          name: 'Món Giàu Đạm Thực Vật (High Protein Vegan)',
-          slug: 'high-protein-veg',
-          level: 2,
+          parentId: 'CAT-GRP-03',
+          name: 'Giàu Đạm Thực Vật',
           icon: '🥣',
-          badge: '85% Weight',
-          weight: 85,
           count: 1840,
-          note: 'Macro chính: Đậu phụ, Seitan, Tempeh, Đậu gà',
           active: true,
           tabCategory: 'nutrition',
-          description: 'Tập hợp các món ăn chay cung cấp tối thiểu 18g protein/khẩu phần từ nguồn đạm thực vật nguyên phần lành mạnh như đậu nành hữu cơ, tempeh, đậu gà, đậu lăng và các loại nấm giàu axit amin.',
-          requiredKeywords: ['tempeh', 'dau-hu-huu-co', 'dau-ga-chickpea', 'dau-lang', 'nam-dong-co'],
-          excludedKeywords: ['thit', 'ca', 'nuoc-mam-ca', 'sua-bo-tuoi'],
-          macroThreshold: '≥ 18g Protein / 500 kcal'
+          description: 'Cung cấp tối thiểu 18g protein/khẩu phần từ tempeh, đậu hũ hữu cơ, đậu gà và các loại hạt.'
         },
         {
           id: 'CAT-VEG-OILFREE',
-          parentId: 'CAT-VEGAN-01',
-          name: 'Món Chay Không Dầu Mỡ (Oil-Free Vegan)',
-          slug: 'oil-free-vegan',
-          level: 2,
+          parentId: 'CAT-GRP-03',
+          name: 'Ít Dầu Mỡ (Oil-Free)',
           icon: '🥑',
-          badge: '70% Weight',
-          weight: 70,
           count: 920,
-          note: 'Chuẩn khoa học: Phù hợp tim mạch & kiểm soát mỡ máu',
           active: true,
           tabCategory: 'nutrition',
-          description: 'Chế biến không dầu ăn tinh luyện, tập trung phương pháp hấp luộc, áp chảo nước hoặc xào bằng nước dùng rau củ, bổ sung chất béo tốt từ bơ quả, hạt dinh dưỡng.',
-          requiredKeywords: ['hap-luoc', 'nuoc-dung-rau-cu', 'khong-dau-tinh-luyen', 'hat-dinh-duong'],
-          excludedKeywords: ['dau-chien-ran', 'mo-dong-vat', 'dau-tinh-luyen'],
-          macroThreshold: '≤ 3g Lipid / 500 kcal'
-        }
-      ]
-    },
-    {
-      id: 'CAT-MACRO-01',
-      name: 'Thực Dưỡng Ohsawa (Macrobiotic)',
-      slug: 'macrobiotic-ohsawa',
-      level: 1,
-      icon: '🍲',
-      badge: 'Đặc thù y học',
-      badgeType: 'special',
-      count: 2150,
-      note: 'AI Tagging: Cân bằng Âm Dương, ngũ cốc nguyên cám, muối mè',
-      active: true,
-      weight: 80,
-      expanded: true,
-      tabCategory: 'schools',
-      description: 'Chế độ ăn chay thực dưỡng dựa trên nguyên lý cân bằng Âm Dương với trọng tâm là gạo lứt nguyên cám, mè, muối hầm và các loại rau củ trồng tự nhiên.',
-      requiredKeywords: ['gao-lut', 'muoi-me', 'nguu-bang', 'cu-sen', 'tuong-tamari'],
-      excludedKeywords: ['duong-trang', 'hoa-chat-bao-quan', 'thit', 'ca'],
-      macroThreshold: 'Tỷ lệ Vàng: 50% Ngũ cốc lứt, 30% Rau củ',
-      children: [
+          description: 'Chế biến phương pháp hấp luộc hoặc xào nước, không dùng dầu mỡ chiên rán nhiệt cao.'
+        },
         {
-          id: 'CAT-MACRO-SOUP',
-          parentId: 'CAT-MACRO-01',
-          name: 'Nước Dùng Dưỡng Sinh & Canh Củ Kiềm Hóa',
-          slug: 'alkaline-macro-soup',
-          level: 2,
-          icon: '🥣',
-          badge: '65% Weight',
-          weight: 65,
-          count: 640,
-          note: 'Củ sen, ngưu bàng, tảo bẹ Kombu, nấm đông cô',
+          id: 'CAT-SUGAR-CONTROL',
+          parentId: 'CAT-GRP-03',
+          name: 'Ít đường / Phù hợp kiểm soát đường huyết',
+          icon: '🥗',
+          count: 860,
           active: true,
-          tabCategory: 'meals',
-          description: 'Các bài nước dùng hầm kỹ từ củ sen, ngưu bàng, nấm đông cô hữu cơ và tảo bẹ Kombu, tạo môi trường kiềm hóa tự nhiên và bổ sung khoáng chất vi lượng.',
-          requiredKeywords: ['nguu-bang', 'cu-sen', 'tao-be-kombu', 'nam-dong-co'],
-          excludedKeywords: ['bot-ngot-mi-chinh', 'duong-tinh-luyen', 'thit', 'ca'],
-          macroThreshold: 'Độ pH kiềm tự nhiên 7.2 - 7.5'
+          tabCategory: 'nutrition',
+          description: 'Món ăn có chỉ số đường huyết thấp (Low GI), nhiều chất xơ hòa tan giúp giữ đường huyết ổn định.'
+        },
+        {
+          id: 'CAT-IRON-RICH',
+          parentId: 'CAT-GRP-03',
+          name: 'Giàu Sắt & Khoáng Chất',
+          icon: '🥬',
+          count: 840,
+          active: true,
+          tabCategory: 'nutrition',
+          description: 'Giàu chất sắt thực vật và vitamin C tăng hấp thu từ rau chân vịt, củ dền, mè đen và mộc nhĩ.'
         }
       ]
-    },
-    {
-      id: 'CAT-LACTO-OVO',
-      name: 'Chay Có Trứng & Sữa (Lacto-Ovo)',
-      slug: 'lacto-ovo-veg',
-      level: 1,
-      icon: '🥛',
-      badge: 'Tiêu chuẩn',
-      badgeType: 'standard',
-      count: 3890,
-      note: 'Chú thích AI: Cho phép bơ thực vật, trứng gà ta sạch kiểm định',
-      active: true,
-      weight: 75,
-      expanded: false,
-      tabCategory: 'schools',
-      description: 'Cho phép sử dụng sản phẩm từ sữa và trứng gà từ trang trại nhân đạo, kết hợp đa dạng rau củ, đậu đỗ và trái cây tươi.',
-      requiredKeywords: ['trung-ga-sach', 'sua-chua', 'pho-mai-thuc-vat', 'rau-cu'],
-      excludedKeywords: ['thit-dong-vat', 'hai-san', 'mo-dong-vat'],
-      macroThreshold: 'Linh hoạt đạm động thực vật sạch',
-      children: []
-    },
-    {
-      id: 'CAT-QUICK-15M',
-      name: 'Thực Đơn Chay Nhanh 15 Phút (Quick Prep)',
-      slug: 'quick-prep-15m',
-      level: 1,
-      icon: '⏱️',
-      badge: 'High Demand',
-      badgeType: 'demand',
-      count: 1420,
-      note: 'Tag AI: Bóc tách từ tủ lạnh dưới 5 nguyên liệu cơ bản',
-      active: true,
-      weight: 90,
-      expanded: false,
-      tabCategory: 'meals',
-      description: 'Công thức nấu nhanh cho người bận rộn, tối ưu hoá với thuật toán AI Vision quét nguyên liệu sẵn có trong tủ lạnh để gợi ý ngay.',
-      requiredKeywords: ['nguyen-lieu-san-co', 'duoi-15-phut', 'so-che-nhanh'],
-      excludedKeywords: ['mon-ham-lau', 'nguyen-lieu-hiem'],
-      macroThreshold: 'Chuẩn bị & nấu ≤ 15 phút',
-      children: []
-    },
-    {
-      id: 'CAT-MED-DIABETES',
-      name: 'Hỗ Trợ Đường Huyết & Tiểu Đường Type 2',
-      slug: 'diabetes-support-diet',
-      level: 1,
-      icon: '🩺',
-      badge: 'Verified',
-      badgeType: 'verified',
-      count: 860,
-      note: 'Đã kiểm định dinh dưỡng (WF09/WF11)',
-      active: true,
-      weight: 92,
-      expanded: false,
-      tabCategory: 'nutrition',
-      description: 'Nhóm món ăn chay chỉ số đường huyết thấp (Low GI), giàu chất xơ hòa tan beta-glucan giúp ổn định glucose huyết sau ăn cho bệnh nhân tiểu đường.',
-      requiredKeywords: ['chi-so-gi-thap', 'kho-qua', 'dau-bap', 'yen-mach-nguyen-cam'],
-      excludedKeywords: ['duong-mia', 'tinh-bot-tinh-che', 'trai-cay-sieu-ngot'],
-      macroThreshold: 'Chỉ số Glycemic Index (GI) ≤ 55'
-    },
-    {
-      id: 'CAT-HOTPOT-SOUP',
-      name: 'Danh Mục Món Nước & Lẩu Chay',
-      slug: 'vegetarian-hotpot-soup',
-      level: 1,
-      icon: '🍲',
-      badge: 'Món chính',
-      badgeType: 'main',
-      count: 1040,
-      note: 'Tag AI: Bún Huế chay, Phở nấm, Lẩu tiêu xanh thực vật',
-      active: true,
-      weight: 80,
-      expanded: false,
-      tabCategory: 'meals',
-      description: 'Tổng hợp các món nước lèo, canh súp, bún phở và lẩu chay gia đình hoặc tiệc tùng với nước hầm rau củ quả tự nhiên ngọt thanh.',
-      requiredKeywords: ['bun-pho-chay', 'lau-thuc-vat', 'nuoc-ham-cu-qua', 'nam-tuoi'],
-      excludedKeywords: ['nuoc-dung-xuong', 'gia-vi-dong-vat'],
-      macroThreshold: 'Calo tiêu chuẩn 350 - 550 kcal'
     }
   ]);
 
-  // Node đang được chọn để cấu hình ở cột phải
+  // Node đang chọn để hiển thị chi tiết ở panel bên phải
   const [selectedCatNodeId, setSelectedCatNodeId] = useState('CAT-VEG-PROT');
 
-  // Form chỉnh sửa cấu hình ở cột phải
-  const [editCatName, setEditCatName] = useState('Món Giàu Đạm Thực Vật');
-  const [editCatSlug, setEditCatSlug] = useState('high-protein-veg');
-  const [editCatParentId, setEditCatParentId] = useState('CAT-VEGAN-01');
+  // Form chỉnh sửa cấu hình ở cột phải (rút gọn mạnh)
+  const [editCatName, setEditCatName] = useState('Giàu Đạm Thực Vật');
+  const [editCatParentId, setEditCatParentId] = useState('CAT-GRP-03');
   const [editCatDesc, setEditCatDesc] = useState(
-    'Tập hợp các món ăn chay cung cấp tối thiểu 18g protein/khẩu phần từ nguồn đạm thực vật nguyên phần lành mạnh như đậu nành hữu cơ, tempeh, đậu gà, đậu lăng và các loại nấm giàu axit amin.'
+    'Cung cấp tối thiểu 18g protein/khẩu phần từ tempeh, đậu hũ hữu cơ, đậu gà và các loại hạt.'
   );
   const [editCatIcon, setEditCatIcon] = useState('🥣');
-  const [editCatWeight, setEditCatWeight] = useState(85);
-  const [editCatMacroThreshold, setEditCatMacroThreshold] = useState('≥ 18g Protein / 500 kcal');
-  const [editCatRequiredKeywords, setEditCatRequiredKeywords] = useState([
-    'tempeh', 'dau-hu-huu-co', 'dau-ga-chickpea', 'dau-lang', 'nam-dong-co'
-  ]);
-  const [editCatExcludedKeywords, setEditCatExcludedKeywords] = useState([
-    'thit', 'ca', 'nuoc-mam-ca', 'sua-bo-tuoi'
-  ]);
-  const [newKeywordInput, setNewKeywordInput] = useState('');
-  const [showAddKwInput, setShowAddKwInput] = useState(false);
 
-  // Bộ lọc danh mục & tree controls
+  // Bộ lọc danh mục
   const [catActiveTab, setCatActiveTab] = useState('all'); // 'all', 'schools', 'meals', 'nutrition'
   const [catSearchQuery, setCatSearchQuery] = useState('');
-  const [catLevelFilter, setCatLevelFilter] = useState('all'); // 'all', '1', '2'
-  const [catStatusFilter, setCatStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
-  const [catPriorityFilter, setCatPriorityFilter] = useState('all'); // 'all', 'high', 'standard'
-  const [enableDragSort, setEnableDragSort] = useState(true);
-  const [isSyncingTaxonomy, setIsSyncingTaxonomy] = useState(false);
 
   // Modal thêm danh mục mới
   const [showAddCatModal, setShowAddCatModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
-  const [newCatSlug, setNewCatSlug] = useState('');
-  const [newCatParentId, setNewCatParentId] = useState('');
+  const [newCatParentId, setNewCatParentId] = useState('CAT-GRP-01');
   const [newCatDesc, setNewCatDesc] = useState('');
   const [newCatIcon, setNewCatIcon] = useState('🥗');
 
@@ -1256,31 +1243,26 @@ export default function AdminDashboard({ onNavigate }) {
   // Chọn node để xem/sửa cấu hình
   const handleSelectCategoryNode = (node) => {
     setSelectedCatNodeId(node.id);
-    setEditCatName(node.name.split(' (')[0] || node.name);
-    setEditCatSlug(node.slug || 'category-slug');
-    setEditCatParentId(node.parentId || (node.level === 1 ? '' : 'CAT-VEGAN-01'));
+    setEditCatName(node.name);
+    setEditCatParentId(node.parentId || '');
     setEditCatDesc(node.description || '');
     setEditCatIcon(node.icon || '🥗');
-    setEditCatWeight(node.weight || 80);
-    setEditCatMacroThreshold(node.macroThreshold || '≥ 15g Protein / 500 kcal');
-    setEditCatRequiredKeywords(node.requiredKeywords ? [...node.requiredKeywords] : ['thuc-vat-nguyen-phan']);
-    setEditCatExcludedKeywords(node.excludedKeywords ? [...node.excludedKeywords] : ['thit', 'ca']);
   };
 
   // Lưu cấu hình từ cột phải
   const handleSaveCategoryConfig = () => {
+    if (!editCatName.trim()) {
+      showToast('Vui lòng nhập tên danh mục!');
+      return;
+    }
+
     setCategoriesTaxonomy(prev => prev.map(parent => {
       if (parent.id === selectedCatNodeId) {
         return {
           ...parent,
-          name: editCatName,
-          slug: editCatSlug,
+          name: editCatName.trim(),
           icon: editCatIcon,
-          description: editCatDesc,
-          weight: editCatWeight,
-          macroThreshold: editCatMacroThreshold,
-          requiredKeywords: editCatRequiredKeywords,
-          excludedKeywords: editCatExcludedKeywords
+          description: editCatDesc.trim()
         };
       }
       if (parent.children && parent.children.length > 0) {
@@ -1290,14 +1272,9 @@ export default function AdminDashboard({ onNavigate }) {
             if (child.id === selectedCatNodeId) {
               return {
                 ...child,
-                name: editCatName,
-                slug: editCatSlug,
+                name: editCatName.trim(),
                 icon: editCatIcon,
-                description: editCatDesc,
-                weight: editCatWeight,
-                macroThreshold: editCatMacroThreshold,
-                requiredKeywords: editCatRequiredKeywords,
-                excludedKeywords: editCatExcludedKeywords
+                description: editCatDesc.trim()
               };
             }
             return child;
@@ -1306,7 +1283,7 @@ export default function AdminDashboard({ onNavigate }) {
       }
       return parent;
     }));
-    showToast(`✅ Đã lưu cấu hình danh mục "${editCatName}" và đồng bộ đồ thị AI Vision!`);
+    showToast(`✅ Đã lưu thay đổi cho danh mục "${editCatName}"!`);
   };
 
   // Hủy chỉnh sửa & khôi phục dữ liệu ban đầu của node
@@ -1314,31 +1291,8 @@ export default function AdminDashboard({ onNavigate }) {
     const node = findCatNode(selectedCatNodeId);
     if (node) {
       handleSelectCategoryNode(node);
-      showToast(`Đã khôi phục thông số gốc của danh mục.`);
+      showToast(`Đã khôi phục thông tin gốc của danh mục.`);
     }
-  };
-
-  // Xóa từ khóa bắt buộc
-  const handleRemoveRequiredKw = (kw) => {
-    setEditCatRequiredKeywords(prev => prev.filter(k => k !== kw));
-  };
-
-  // Thêm từ khóa bắt buộc
-  const handleAddRequiredKw = () => {
-    if (!newKeywordInput.trim()) return;
-    const cleanKw = newKeywordInput.trim().toLowerCase().replace(/\s+/g, '-');
-    if (!editCatRequiredKeywords.includes(cleanKw)) {
-      setEditCatRequiredKeywords([...editCatRequiredKeywords, cleanKw]);
-      showToast(`Đã thêm từ khóa nhận diện AI: ${cleanKw}`);
-    }
-    setNewKeywordInput('');
-    setShowAddKwInput(false);
-  };
-
-  // Xóa nguyên liệu loại trừ
-  const handleRemoveExcludedKw = (kw) => {
-    setEditCatExcludedKeywords(prev => prev.filter(k => k !== kw));
-    showToast(`Đã gỡ bỏ nguyên liệu loại trừ: ${kw}`);
   };
 
   // Đóng/mở rộng nhánh cha
@@ -1349,7 +1303,7 @@ export default function AdminDashboard({ onNavigate }) {
   // Mở rộng tất cả
   const handleExpandAllNodes = () => {
     setCategoriesTaxonomy(prev => prev.map(p => ({ ...p, expanded: true })));
-    showToast(`Đã mở rộng toàn bộ cây phân cấp danh mục.`);
+    showToast(`Đã mở rộng toàn bộ cây danh mục.`);
   };
 
   // Thu gọn tất cả
@@ -1358,10 +1312,10 @@ export default function AdminDashboard({ onNavigate }) {
     showToast(`Đã thu gọn toàn bộ cây danh mục.`);
   };
 
-  // Sắp xếp theo độ phổ biến (count món)
+  // Sắp xếp theo số lượng món ăn
   const handleSortByPopularity = () => {
     setCategoriesTaxonomy(prev => [...prev].sort((a, b) => b.count - a.count));
-    showToast(`Đã sắp xếp danh mục theo số lượng món ăn và độ phổ biến.`);
+    showToast(`Đã sắp xếp danh mục theo số lượng món ăn.`);
   };
 
   // Bật/tắt trạng thái hoạt động của danh mục
@@ -1377,22 +1331,43 @@ export default function AdminDashboard({ onNavigate }) {
       }
       return p;
     }));
-    showToast(`Đã thay đổi trạng thái hoạt động của #${nodeId}`);
+    showToast(`Đã thay đổi trạng thái hoạt động.`);
   };
 
-  // Đồng bộ Taxonomies với AI Knowledge Graph
-  const handleSyncTaxonomiesAI = () => {
-    setIsSyncingTaxonomy(true);
-    showToast(`🔄 Đang đối soát 68 nodes phân loại với mô hình AI Meal Planner & Vision...`);
-    setTimeout(() => {
-      setIsSyncingTaxonomy(false);
-      showToast(`✨ Đồng bộ Taxonomies AI thành công! Độ chính xác mapping đạt 99.1%.`);
-    }, 1400);
+  // Xóa danh mục (cha hoặc con)
+  const handleDeleteCategoryNode = (nodeId, name, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa danh mục "${name}" không?`)) {
+      return;
+    }
+
+    setCategoriesTaxonomy(prev => {
+      // Nếu là node cha
+      const isParent = prev.some(p => p.id === nodeId);
+      if (isParent) {
+        return prev.filter(p => p.id !== nodeId);
+      }
+      // Nếu là node con
+      return prev.map(p => ({
+        ...p,
+        children: p.children ? p.children.filter(c => c.id !== nodeId) : []
+      }));
+    });
+
+    if (selectedCatNodeId === nodeId) {
+      setSelectedCatNodeId('CAT-VEGAN-01');
+      setEditCatName('Thuần Chay Tuyệt Đối');
+      setEditCatParentId('CAT-GRP-01');
+      setEditCatDesc('Loại bỏ hoàn toàn thịt động vật, trứng, sữa và mật ong.');
+      setEditCatIcon('🥗');
+    }
+
+    showToast(`🗑️ Đã xóa danh mục "${name}".`);
   };
 
   // Xuất dữ liệu Taxonomies JSON/CSV
   const handleExportTaxonomies = () => {
-    showToast(`📥 Đã xuất tệp taxonomies_vegetarian_v4.2.json (68 phân loại dinh dưỡng).`);
+    showToast(`📥 Đã xuất tệp danh mục món ăn (dạng JSON/CSV) thành công.`);
   };
 
   // Thêm danh mục mới từ Modal
@@ -1401,30 +1376,21 @@ export default function AdminDashboard({ onNavigate }) {
       showToast('Vui lòng nhập tên danh mục!');
       return;
     }
-    const slug = newCatSlug.trim() || newCatName.toLowerCase().replace(/\s+/g, '-');
-    const newId = `CAT-${slug.substring(0, 8).toUpperCase()}-${Math.floor(10 + Math.random() * 90)}`;
+    const newId = `CAT-${Date.now()}`;
 
     if (newCatParentId) {
-      // Thêm làm con của parent
+      // Thêm làm con của nhóm cha
       setCategoriesTaxonomy(prev => prev.map(p => {
         if (p.id === newCatParentId) {
           const newChild = {
             id: newId,
             parentId: p.id,
-            name: newCatName,
-            slug: slug,
-            level: 2,
+            name: newCatName.trim(),
             icon: newCatIcon || '🥗',
-            badge: '80% Weight',
-            weight: 80,
             count: 0,
-            note: 'Phân nhánh mới khởi tạo',
             active: true,
             tabCategory: p.tabCategory || 'schools',
-            description: newCatDesc || 'Mô tả phân loại dinh dưỡng mới.',
-            requiredKeywords: ['mon-chay-moi'],
-            excludedKeywords: ['thit', 'ca'],
-            macroThreshold: 'Theo tiêu chuẩn nhóm mẹ'
+            description: newCatDesc.trim() || 'Mô tả danh mục món ăn mới.'
           };
           return {
             ...p,
@@ -1435,36 +1401,25 @@ export default function AdminDashboard({ onNavigate }) {
         return p;
       }));
     } else {
-      // Thêm làm parent gốc
+      // Thêm làm nhóm cha mới
       const newParent = {
         id: newId,
-        name: newCatName,
-        slug: slug,
-        level: 1,
+        name: newCatName.trim(),
         icon: newCatIcon || '🌱',
-        badge: 'Mới tạo',
-        badgeType: 'standard',
         count: 0,
-        note: 'Nhánh danh mục gốc mới tạo',
         active: true,
-        weight: 75,
         expanded: true,
         tabCategory: 'schools',
-        description: newCatDesc || 'Nhánh danh mục ẩm thực chay mới.',
-        requiredKeywords: ['chay-moi'],
-        excludedKeywords: ['thit', 'ca'],
-        macroThreshold: 'Chuẩn dinh dưỡng chung',
+        description: newCatDesc.trim() || 'Nhóm danh mục món ăn mới.',
         children: []
       };
       setCategoriesTaxonomy([newParent, ...categoriesTaxonomy]);
     }
 
     setNewCatName('');
-    setNewCatSlug('');
-    setNewCatParentId('');
     setNewCatDesc('');
     setShowAddCatModal(false);
-    showToast(`✅ Đã tạo thành công danh mục: ${newCatName}`);
+    showToast(`✅ Đã tạo thành công danh mục: ${newCatName.trim()}`);
   };
 
   // =========================================================================
@@ -5859,7 +5814,7 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =====================================================================
-              MÀN HÌNH 5: QUẢN LÝ DANH MỤC & PHÂN LOẠI DINH DƯỠNG CHAY (TAXONOMY)
+              MÀN HÌNH 5: QUẢN LÝ DANH MỤC MÓN ĂN (ĐÃ ĐƠN GIẢN HÓA 2 TẦNG)
               ===================================================================== */}
           {activeMenu === 'categories' && (
             <section style={{ animation: 'fadeIn 0.25s ease' }}>
@@ -5871,40 +5826,17 @@ export default function AdminDashboard({ onNavigate }) {
                     <ChevronRight size={12} />
                     <span>Operations Center</span>
                     <ChevronRight size={12} />
-                    <span style={{ color: '#047857', fontWeight: 600 }}>Danh mục thực phẩm & món chay</span>
+                    <span style={{ color: '#047857', fontWeight: 600 }}>Quản lý danh mục món ăn</span>
                   </div>
                   <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0', letterSpacing: '-0.02em' }}>
-                    Quản lý Danh mục & Phân loại Dinh dưỡng Chay
+                    Quản lý Danh mục Món Ăn
                   </h1>
                   <p style={{ color: '#64748b', fontSize: '0.86rem', margin: 0, maxWidth: '820px', lineHeight: 1.5 }}>
-                    Tổ chức cây danh mục đa tầng (Trường phái chay, Nhóm dưỡng chất, Dịp sử dụng, Dạng chế biến) phục vụ mô hình AI Meal Planner &amp; Vision bóc tách nguyên liệu thực tế.
+                    Tạo và quản lý danh mục để phân loại món ăn, công thức trong hệ thống VeggieAI.
                   </p>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                  <button 
-                    onClick={handleSyncTaxonomiesAI}
-                    disabled={isSyncingTaxonomy}
-                    style={{
-                      background: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
-                      color: '#047857',
-                      padding: '0.55rem 0.95rem',
-                      borderRadius: '8px',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      cursor: isSyncingTaxonomy ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.45rem',
-                      transition: 'all 0.2s ease'
-                    }}
-                    title="Đồng bộ cấu trúc phân loại cây tri thức với AI Meal Planner"
-                  >
-                    <RefreshCw size={15} className={isSyncingTaxonomy ? 'animate-spin' : ''} />
-                    {isSyncingTaxonomy ? 'Đang đồng bộ AI...' : 'Đồng bộ Taxonomies AI'}
-                  </button>
-
                   <button 
                     onClick={handleExportTaxonomies}
                     style={{
@@ -5947,7 +5879,7 @@ export default function AdminDashboard({ onNavigate }) {
                 </div>
               </div>
 
-              {/* 4 THẺ METRICS STATS */}
+              {/* 3 THẺ METRICS STATS (ĐÃ BỎ THẺ Y KHOA) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 {/* METRIC 1 */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem 1.25rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
@@ -5959,13 +5891,13 @@ export default function AdminDashboard({ onNavigate }) {
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                      <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>68</span>
+                      <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>28</span>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#047857', background: '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: '12px' }}>
                         +4 mới tháng này
                       </span>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      4 cấp phân nhánh (24 cha, 44 con)
+                      2 cấp phân nhánh (3 nhóm cha, 25 danh mục con)
                     </div>
                   </div>
                   <div style={{ height: '4px', background: '#10b981', borderRadius: '2px', marginTop: '1rem', width: '100%' }} />
@@ -5987,7 +5919,7 @@ export default function AdminDashboard({ onNavigate }) {
                       </span>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      Đã được AI thẩm định cấu trúc
+                      Đã phân loại vào hệ thống
                     </div>
                   </div>
                   <div style={{ height: '4px', background: '#047857', borderRadius: '2px', marginTop: '1rem', width: '100%' }} />
@@ -6009,36 +5941,14 @@ export default function AdminDashboard({ onNavigate }) {
                       </span>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      Khớp bộ lọc trường phái ăn uống
+                      Gợi ý thực đơn chính xác
                     </div>
                   </div>
                   <div style={{ height: '4px', background: '#3b82f6', borderRadius: '2px', marginTop: '1rem', width: '100%' }} />
                 </div>
-
-                {/* METRIC 4 */}
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem 1.25rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.05em' }}>CHỜ CHUẨN HÓA Y KHOA</span>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ShieldAlert size={16} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                      <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>3</span>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '0.15rem 0.5rem', borderRadius: '12px' }}>
-                        Cần rà soát
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      Đang đối soát cùng Viện Dinh Dưỡng
-                    </div>
-                  </div>
-                  <div style={{ height: '4px', background: '#ef4444', borderRadius: '2px', marginTop: '1rem', width: '100%' }} />
-                </div>
               </div>
 
-              {/* SUBTABS PILL NAVIGATION */}
+              {/* SUBTABS PILL NAVIGATION (KHÔNG CÒN TAB Y KHOA) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
                 <button
                   onClick={() => setCatActiveTab('all')}
@@ -6058,7 +5968,7 @@ export default function AdminDashboard({ onNavigate }) {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  Tất cả danh mục <span style={{ opacity: 0.85, fontSize: '0.75rem' }}>68</span>
+                  Tất cả danh mục <span style={{ opacity: 0.85, fontSize: '0.75rem' }}>28</span>
                 </button>
 
                 <button
@@ -6076,7 +5986,7 @@ export default function AdminDashboard({ onNavigate }) {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  Trường phái ăn chay (Vegan, Lacto, Ovo,...)
+                  Trường phái ăn chay
                 </button>
 
                 <button
@@ -6094,7 +6004,7 @@ export default function AdminDashboard({ onNavigate }) {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  Nhóm món &amp; Bữa ăn (Sáng, Trưa, Tối, Món kho)
+                  Loại món ăn
                 </button>
 
                 <button
@@ -6112,17 +6022,17 @@ export default function AdminDashboard({ onNavigate }) {
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  Mục tiêu dinh dưỡng (Giàu Protein, Ít Dầu Mỡ,...)
+                  Nhóm dinh dưỡng nổi bật
                 </button>
               </div>
 
-              {/* BỘ LỌC TÌM KIẾM & DROPDOWNS */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 300px', position: 'relative' }}>
+              {/* BỘ LỌC TÌM KIẾM & ĐIỀU KHIỂN CÂY DANH MỤC */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem 1.25rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 320px', position: 'relative' }}>
                   <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                   <input
                     type="text"
-                    placeholder="Tìm kiếm tên danh mục, mã slug, từ khóa AI bóc tách..."
+                    placeholder="Tìm kiếm tên danh mục..."
                     value={catSearchQuery}
                     onChange={(e) => setCatSearchQuery(e.target.value)}
                     style={{
@@ -6145,50 +6055,6 @@ export default function AdminDashboard({ onNavigate }) {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cấp bậc:</span>
-                    <select
-                      value={catLevelFilter}
-                      onChange={(e) => setCatLevelFilter(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', color: '#334155', outline: 'none' }}
-                    >
-                      <option value="all">Tất cả cấp</option>
-                      <option value="1">Cấp 1 - Danh mục gốc</option>
-                      <option value="2">Cấp 2 - Phân nhánh con</option>
-                    </select>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Trạng thái:</span>
-                    <select
-                      value={catStatusFilter}
-                      onChange={(e) => setCatStatusFilter(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', color: '#334155', outline: 'none' }}
-                    >
-                      <option value="all">Tất cả trạng thái</option>
-                      <option value="active">Đang hoạt động</option>
-                      <option value="inactive">Tạm dừng / Ẩn</option>
-                    </select>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Ưu tiên AI:</span>
-                    <select
-                      value={catPriorityFilter}
-                      onChange={(e) => setCatPriorityFilter(e.target.value)}
-                      style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', color: '#334155', outline: 'none' }}
-                    >
-                      <option value="all">Tất cả mức độ</option>
-                      <option value="high">Ưu tiên AI cao</option>
-                      <option value="standard">Tiêu chuẩn</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* TREE CONTROL TOOLBAR */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.25rem 0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.8rem', color: '#475569' }}>
                   <button
                     onClick={handleExpandAllNodes}
@@ -6208,63 +6074,25 @@ export default function AdminDashboard({ onNavigate }) {
                     onClick={handleSortByPopularity}
                     style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600, padding: 0 }}
                   >
-                    <TrendingUp size={14} /> Sắp xếp theo độ phổ biến
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Kéo thả sắp xếp</span>
-                  <button
-                    onClick={() => setEnableDragSort(!enableDragSort)}
-                    style={{
-                      width: '38px',
-                      height: '22px',
-                      borderRadius: '12px',
-                      background: enableDragSort ? '#047857' : '#cbd5e1',
-                      border: 'none',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s ease',
-                      padding: 0
-                    }}
-                    title="Bật/Tắt tính năng kéo thả thứ tự ưu tiên"
-                  >
-                    <div
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        position: 'absolute',
-                        top: '3px',
-                        left: enableDragSort ? '19px' : '3px',
-                        transition: 'left 0.2s ease',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }}
-                    />
+                    <TrendingUp size={14} /> Sắp xếp theo số lượng món
                   </button>
                 </div>
               </div>
 
-              {/* BỐ CỤC 2 CỘT CHÍNH: CÂY DANH MỤC (BÊN TRÁI) & CẤU HÌNH CHI TIẾT (BÊN PHẢI) */}
+              {/* BỐ CỤC 2 CỘT: CÂY DANH MỤC 2 TẦNG (TRÁI) & CHI TIẾT CẤU HÌNH RÚT GỌN (PHẢI) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 0.95fr)', gap: '1.25rem', alignItems: 'start' }}>
                 
-                {/* CỘT TRÁI: HIERARCHY TREE LIST */}
+                {/* CỘT TRÁI: DANH SÁCH DANH MỤC 2 TẦNG — ĐƠN GIẢN HÓA TỪNG DÒNG */}
                 <div>
                   {categoriesTaxonomy
                     .filter(parent => {
                       if (catActiveTab !== 'all' && parent.tabCategory !== catActiveTab) {
-                        const hasMatchingChild = parent.children?.some(c => c.tabCategory === catActiveTab);
-                        if (!hasMatchingChild) return false;
+                        return false;
                       }
-                      if (catLevelFilter === '2') return false; // Chỉ xem cấp 2 thì ẩn cấp 1
-                      if (catStatusFilter === 'active' && !parent.active) return false;
-                      if (catStatusFilter === 'inactive' && parent.active) return false;
-                      if (catPriorityFilter === 'high' && parent.badgeType !== 'ai-high') return false;
                       if (catSearchQuery) {
                         const q = catSearchQuery.toLowerCase();
-                        const matchParent = parent.name.toLowerCase().includes(q) || parent.slug.toLowerCase().includes(q) || parent.note.toLowerCase().includes(q);
-                        const matchChild = parent.children?.some(c => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q));
+                        const matchParent = parent.name.toLowerCase().includes(q);
+                        const matchChild = parent.children?.some(c => c.name.toLowerCase().includes(q));
                         return matchParent || matchChild;
                       }
                       return true;
@@ -6272,8 +6100,8 @@ export default function AdminDashboard({ onNavigate }) {
                     .map(parent => {
                       const isParentSelected = selectedCatNodeId === parent.id;
                       return (
-                        <div key={parent.id} style={{ marginBottom: '0.85rem' }}>
-                          {/* ROOT PARENT CARD */}
+                        <div key={parent.id} style={{ marginBottom: '0.9rem' }}>
+                          {/* DÒNG DANH MỤC CHA */}
                           <div 
                             onClick={() => handleSelectCategoryNode(parent)}
                             style={{
@@ -6286,9 +6114,9 @@ export default function AdminDashboard({ onNavigate }) {
                               boxShadow: isParentSelected ? '0 4px 14px rgba(16, 185, 129, 0.12)' : 'none'
                             }}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                {/* NÚT MỞ RỘNG/THU GỌN */}
+                                {/* NÚT MỞ RỘNG / THU GỌN */}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -6298,14 +6126,15 @@ export default function AdminDashboard({ onNavigate }) {
                                     background: '#f8fafc',
                                     border: '1px solid #e2e8f0',
                                     borderRadius: '6px',
-                                    width: '24px',
-                                    height: '24px',
+                                    width: '26px',
+                                    height: '26px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
                                     color: '#64748b'
                                   }}
+                                  title="Đóng/Mở nhánh con"
                                 >
                                   {parent.expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                 </button>
@@ -6324,34 +6153,20 @@ export default function AdminDashboard({ onNavigate }) {
                                   {parent.icon}
                                 </div>
 
-                                {/* TÊN & TAGS */}
+                                {/* TÊN & SỐ LƯỢNG MÓN ĂN (ĐƠN GIẢN HÓA) */}
                                 <div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                                      {parent.name}
-                                    </span>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                                      {parent.id}
-                                    </span>
-                                    {parent.badge && (
-                                      <span style={{
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        padding: '0.15rem 0.5rem',
-                                        borderRadius: '10px',
-                                        background: parent.badgeType === 'ai-high' ? '#dcfce7' : parent.badgeType === 'special' ? '#ede9fe' : '#f1f5f9',
-                                        color: parent.badgeType === 'ai-high' ? '#15803d' : parent.badgeType === 'special' ? '#6b21a8' : '#475569'
-                                      }}>
-                                        {parent.badge}
-                                      </span>
-                                    )}
+                                  <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                                    {parent.name}
+                                  </div>
+                                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                    {parent.count.toLocaleString()} món ăn
                                   </div>
                                 </div>
                               </div>
 
-                              {/* TOGGLE & MENU */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {/* SWITCH TOGGLE ACTIVE */}
+                              {/* HÀNH ĐỘNG: TOGGLE BẬT/TẮT, SỬA, XÓA */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                                {/* TOGGLE BẬT / TẮT */}
                                 <button
                                   onClick={(e) => handleToggleCategoryActive(parent.id, e)}
                                   style={{
@@ -6364,7 +6179,7 @@ export default function AdminDashboard({ onNavigate }) {
                                     cursor: 'pointer',
                                     padding: 0
                                   }}
-                                  title={parent.active ? 'Đang kích hoạt' : 'Đang tạm dừng'}
+                                  title={parent.active ? 'Đang bật' : 'Đang tắt'}
                                 >
                                   <div
                                     style={{
@@ -6380,39 +6195,47 @@ export default function AdminDashboard({ onNavigate }) {
                                   />
                                 </button>
 
+                                {/* NÚT SỬA */}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setNewCatParentId(parent.id);
-                                    setShowAddCatModal(true);
+                                    handleSelectCategoryNode(parent);
                                   }}
-                                  style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.2rem' }}
-                                  title="Thêm danh mục con"
+                                  style={{
+                                    background: '#f1f5f9',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0.3rem 0.65rem',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 700,
+                                    color: '#334155',
+                                    cursor: 'pointer'
+                                  }}
                                 >
-                                  <Plus size={16} />
+                                  Sửa
                                 </button>
 
+                                {/* NÚT XÓA */}
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    showToast(`Tùy chọn danh mục ${parent.name}`);
+                                  onClick={(e) => handleDeleteCategoryNode(parent.id, parent.name, e)}
+                                  style={{
+                                    background: '#fee2e2',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0.3rem 0.65rem',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 700,
+                                    color: '#b91c1c',
+                                    cursor: 'pointer'
                                   }}
-                                  style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.2rem' }}
                                 >
-                                  <MoreVertical size={16} />
+                                  Xóa
                                 </button>
                               </div>
                             </div>
-
-                            {/* SUBINFO */}
-                            <div style={{ marginTop: '0.45rem', paddingLeft: '4rem', fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 600, color: '#334155' }}>{parent.count.toLocaleString()} món ăn</span>
-                              <span>•</span>
-                              <span>{parent.note}</span>
-                            </div>
                           </div>
 
-                          {/* CHILDREN NODES */}
+                          {/* DANH SÁCH DANH MỤC CON (CẤP 2) */}
                           {parent.expanded && parent.children && parent.children.length > 0 && (
                             <div style={{ marginLeft: '1.75rem', marginTop: '0.45rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                               {parent.children.map(child => {
@@ -6425,56 +6248,48 @@ export default function AdminDashboard({ onNavigate }) {
                                       background: isChildSelected ? '#ecfdf5' : '#ffffff',
                                       border: isChildSelected ? '1.5px solid #10b981' : '1px solid #e2e8f0',
                                       borderRadius: '10px',
-                                      padding: '0.85rem 1rem',
+                                      padding: '0.8rem 1rem',
                                       cursor: 'pointer',
                                       transition: 'all 0.15s ease',
                                       display: 'flex',
                                       justifyContent: 'space-between',
                                       alignItems: 'center',
-                                      boxShadow: isChildSelected ? '0 4px 12px rgba(16, 185, 129, 0.15)' : 'none'
+                                      boxShadow: isChildSelected ? '0 4px 12px rgba(16, 185, 129, 0.12)' : 'none'
                                     }}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                                       <CornerDownRight size={15} color="#94a3b8" />
                                       <div style={{
-                                        width: '30px',
-                                        height: '30px',
+                                        width: '32px',
+                                        height: '32px',
                                         borderRadius: '50%',
                                         background: isChildSelected ? '#d1fae5' : '#f8fafc',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: '1.05rem'
+                                        fontSize: '1.1rem'
                                       }}>
                                         {child.icon}
                                       </div>
                                       <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: isChildSelected ? '#065f46' : '#0f172a' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: isChildSelected ? '#065f46' : '#0f172a' }}>
                                             {child.name}
                                           </span>
-                                          <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                                            {child.id}
-                                          </span>
                                           {isChildSelected && (
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
                                               Đang chọn
                                             </span>
                                           )}
-                                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#047857', background: '#dcfce7', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>
-                                            {child.badge || `${child.weight}% Weight`}
-                                          </span>
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-                                          <span style={{ fontWeight: 600, color: '#334155' }}>{child.count.toLocaleString()} công thức</span>
-                                          <span> • </span>
-                                          <span>{child.note}</span>
+                                        <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                          {child.count.toLocaleString()} món ăn
                                         </div>
                                       </div>
                                     </div>
 
-                                    {/* SWITCH CHO CON */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {/* HÀNH ĐỘNG CHO CON: TOGGLE BẬT/TẮT, SỬA, XÓA */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                                       <button
                                         onClick={(e) => handleToggleCategoryActive(child.id, e)}
                                         style={{
@@ -6487,7 +6302,7 @@ export default function AdminDashboard({ onNavigate }) {
                                           cursor: 'pointer',
                                           padding: 0
                                         }}
-                                        title={child.active ? 'Đang kích hoạt' : 'Đang tạm dừng'}
+                                        title={child.active ? 'Đang bật' : 'Đang tắt'}
                                       >
                                         <div
                                           style={{
@@ -6502,6 +6317,41 @@ export default function AdminDashboard({ onNavigate }) {
                                           }}
                                         />
                                       </button>
+
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSelectCategoryNode(child);
+                                        }}
+                                        style={{
+                                          background: '#f1f5f9',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          padding: '0.25rem 0.6rem',
+                                          fontSize: '0.74rem',
+                                          fontWeight: 700,
+                                          color: '#334155',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        Sửa
+                                      </button>
+
+                                      <button
+                                        onClick={(e) => handleDeleteCategoryNode(child.id, child.name, e)}
+                                        style={{
+                                          background: '#fee2e2',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          padding: '0.25rem 0.6rem',
+                                          fontSize: '0.74rem',
+                                          fontWeight: 700,
+                                          color: '#b91c1c',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        Xóa
+                                      </button>
                                     </div>
                                   </div>
                                 );
@@ -6514,45 +6364,27 @@ export default function AdminDashboard({ onNavigate }) {
 
                   {/* PHÂN TRANG DƯỚI CÙNG BÊN TRÁI */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', padding: '0.75rem 0.25rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8rem', color: '#64748b' }}>
-                    <span>Hiển thị 6 / 24 nhóm danh mục gốc (68 danh mục tổng thể)</span>
+                    <span>Hiển thị 3 nhóm phân loại lớn (28 danh mục món ăn)</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <button
-                        style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', color: '#475569' }}
-                        onClick={() => showToast('Trang trước')}
-                      >
-                        Trang trước
-                      </button>
                       <span style={{ background: '#f1f5f9', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>
-                        1 / 4
+                        1 / 1
                       </span>
-                      <button
-                        style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.35rem 0.65rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', color: '#475569' }}
-                        onClick={() => showToast('Trang sau')}
-                      >
-                        Trang sau
-                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* CỘT PHẢI: CHI TIẾT CẤU HÌNH DANH MỤC (DRAWER CONFIGURATION) */}
+                {/* CỘT PHẢI: PANEL "CHI TIẾT CẤU HÌNH DANH MỤC" — RÚT GỌN MẠNH */}
                 <div style={{ position: 'sticky', top: '1.5rem' }}>
                   <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
                     
-                    {/* TOP HEADER CỦA PANEL CẤU HÌNH */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem' }}>
+                    {/* TIÊU ĐỀ PANEL */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem' }}>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.06em' }}>
-                            CHI TIẾT CẤU HÌNH DANH MỤC
-                          </span>
-                        </div>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.2rem 0' }}>
-                          {editCatName}
-                        </h2>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.2rem 0' }}>
+                          Chi tiết danh mục
+                        </h3>
                         <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                          Mã hệ thống: <span style={{ fontWeight: 700, color: '#047857' }}>{selectedCatNodeId}</span>
+                          Chỉnh sửa thông tin danh mục hiển thị trên hệ thống
                         </div>
                       </div>
 
@@ -6566,18 +6398,18 @@ export default function AdminDashboard({ onNavigate }) {
                         <button
                           onClick={handleSaveCategoryConfig}
                           style={{
-                            background: '#065f46',
+                            background: '#047857',
                             color: '#ffffff',
                             border: 'none',
                             borderRadius: '8px',
-                            padding: '0.5rem 1rem',
+                            padding: '0.5rem 1.1rem',
                             fontSize: '0.82rem',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.4rem',
-                            boxShadow: '0 2px 6px rgba(6, 95, 70, 0.25)'
+                            boxShadow: '0 2px 6px rgba(4, 120, 87, 0.25)'
                           }}
                         >
                           <Check size={14} /> Lưu thay đổi
@@ -6585,159 +6417,74 @@ export default function AdminDashboard({ onNavigate }) {
                       </div>
                     </div>
 
-                    {/* FORM INPUTS */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* FORM RÚT GỌN CHỈ VỚI 4 TRƯỜNG CỐT LÕI */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
                       
-                      {/* TÊN TIẾNG VIỆT & ENGLISH SLUG */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                            Tên danh mục (Tiếng Việt) *
-                          </label>
-                          <input
-                            type="text"
-                            value={editCatName}
-                            onChange={(e) => setEditCatName(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '0.55rem 0.75rem',
-                              borderRadius: '8px',
-                              border: '1px solid #cbd5e1',
-                              fontSize: '0.84rem',
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                            English Slug (AI Multilingual)
-                          </label>
-                          <input
-                            type="text"
-                            value={editCatSlug}
-                            onChange={(e) => setEditCatSlug(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '0.55rem 0.75rem',
-                              borderRadius: '8px',
-                              border: '1px solid #cbd5e1',
-                              fontSize: '0.84rem',
-                              outline: 'none',
-                              color: '#64748b',
-                              fontFamily: 'monospace',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
+                      {/* TRƯỜNG 1: TÊN DANH MỤC */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          Tên danh mục (Tiếng Việt) *
+                        </label>
+                        <input
+                          type="text"
+                          value={editCatName}
+                          onChange={(e) => setEditCatName(e.target.value)}
+                          placeholder="Ví dụ: Món Giàu Đạm Thực Vật"
+                          style={{
+                            width: '100%',
+                            padding: '0.6rem 0.85rem',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
                       </div>
 
-                      {/* DANH MỤC CHA */}
+                      {/* TRƯỜNG 2: THUỘC DANH MỤC CHA */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                          Thuộc danh mục cha (Hierarchy Parent)
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          Thuộc danh mục cha
                         </label>
                         <select
                           value={editCatParentId}
                           onChange={(e) => setEditCatParentId(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '0.55rem 0.75rem',
+                            padding: '0.6rem 0.85rem',
                             borderRadius: '8px',
                             border: '1px solid #cbd5e1',
-                            fontSize: '0.84rem',
+                            fontSize: '0.86rem',
                             background: '#ffffff',
                             color: '#334155',
                             outline: 'none',
                             boxSizing: 'border-box'
                           }}
                         >
-                          <option value="">[Danh mục gốc - Cấp 1 cao nhất]</option>
-                          <option value="CAT-VEGAN-01">🌱 Thuần Chay Tuyệt Đối (Strict Vegan) (Cấp 1)</option>
-                          <option value="CAT-MACRO-01">🍲 Thực Dưỡng Ohsawa (Macrobiotic) (Cấp 1)</option>
-                          <option value="CAT-LACTO-OVO">🥛 Chay Có Trứng &amp; Sữa (Lacto-Ovo) (Cấp 1)</option>
-                          <option value="CAT-QUICK-15M">⏱️ Thực Đơn Chay Nhanh 15 Phút (Cấp 1)</option>
-                          <option value="CAT-MED-DIABETES">🩺 Hỗ Trợ Đường Huyết &amp; Tiểu Đường (Cấp 1)</option>
+                          <option value="">Không có (Danh mục cha gốc)</option>
+                          <option value="CAT-GRP-01">🌱 Trường phái ăn chay</option>
+                          <option value="CAT-GRP-02">🍲 Loại món ăn</option>
+                          <option value="CAT-GRP-03">💪 Nhóm dinh dưỡng nổi bật</option>
                         </select>
                       </div>
 
-                      {/* BIỂU TƯỢNG & VECTOR NHẬN DIỆN */}
+                      {/* TRƯỜNG 3: MÔ TẢ NGẮN */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                          Biểu tượng &amp; Vector nhận diện
-                        </label>
-                        <div style={{
-                          background: '#f0f9ff',
-                          border: '1px dashed #bae6fd',
-                          borderRadius: '10px',
-                          padding: '0.75rem 1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.75rem'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '46px',
-                              height: '46px',
-                              borderRadius: '10px',
-                              background: '#ffffff',
-                              border: '1px solid #e0f2fe',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '1.6rem',
-                              boxShadow: '0 2px 6px rgba(186, 230, 253, 0.5)'
-                            }}>
-                              {editCatIcon}
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0369a1' }}>
-                                Biểu tượng nhận diện
-                              </div>
-                              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                                Hiển thị trong Meal Planner mobile và nhãn nhận diện đồ thị AI.
-                              </div>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              const newIcon = prompt('Nhập Emoji biểu tượng đại diện mới cho danh mục:', editCatIcon);
-                              if (newIcon) setEditCatIcon(newIcon);
-                            }}
-                            style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '6px',
-                              padding: '0.4rem 0.75rem',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              color: '#334155',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Đổi SVG
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* MÔ TẢ DINH DƯỠNG CHI TIẾT */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                          Mô tả dinh dưỡng chi tiết
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          Mô tả ngắn
                         </label>
                         <textarea
                           rows={3}
                           value={editCatDesc}
                           onChange={(e) => setEditCatDesc(e.target.value)}
+                          placeholder="Mô tả để hiển thị cho user..."
                           style={{
                             width: '100%',
-                            padding: '0.6rem 0.75rem',
+                            padding: '0.65rem 0.85rem',
                             borderRadius: '8px',
                             border: '1px solid #cbd5e1',
-                            fontSize: '0.82rem',
+                            fontSize: '0.84rem',
                             lineHeight: 1.5,
                             outline: 'none',
                             fontFamily: 'inherit',
@@ -6747,184 +6494,51 @@ export default function AdminDashboard({ onNavigate }) {
                         />
                       </div>
 
-                      {/* KHUNG THIẾT LẬP AI VISION & RECOMMENDATION */}
-                      <div style={{
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        padding: '1rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.85rem'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Cpu size={15} color="#047857" />
-                            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', letterSpacing: '0.04em' }}>
-                              THIẾT LẬP AI VISION &amp; RECOMMENDATION
-                            </span>
+                      {/* TRƯỜNG 4: BIỂU TƯỢNG (CHỌN ICON CÓ SẴN) */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          Biểu tượng:
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '10px',
+                            background: '#f0fdf4',
+                            border: '1.5px solid #10b981',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.8rem'
+                          }}>
+                            {editCatIcon}
                           </div>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#047857', background: '#dcfce7', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                            v4.2-tuned
-                          </span>
-                        </div>
-
-                        {/* REQUIRED KEYWORDS */}
-                        <div>
-                          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
-                            Nhãn nguyên liệu bắt buộc (Required Keywords):
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                            {editCatRequiredKeywords.map(kw => (
-                              <span
-                                key={kw}
-                                style={{
-                                  background: '#ecfdf5',
-                                  border: '1px solid #a7f3d0',
-                                  color: '#065f46',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 600,
-                                  padding: '0.2rem 0.5rem',
-                                  borderRadius: '6px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.35rem'
-                                }}
-                              >
-                                {kw}
-                                <button
-                                  onClick={() => handleRemoveRequiredKw(kw)}
-                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#059669', padding: 0, display: 'flex', alignItems: 'center' }}
-                                >
-                                  <X size={11} />
-                                </button>
-                              </span>
-                            ))}
-
-                            {showAddKwInput ? (
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <input
-                                  type="text"
-                                  placeholder="Nhập từ khóa..."
-                                  value={newKeywordInput}
-                                  onChange={(e) => setNewKeywordInput(e.target.value)}
-                                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddRequiredKw(); }}
-                                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid #059669', width: '100px', outline: 'none' }}
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={handleAddRequiredKw}
-                                  style={{ background: '#059669', color: '#ffffff', border: 'none', borderRadius: '4px', padding: '0.2rem 0.4rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                                >
-                                  Lưu
-                                </button>
-                                <button
-                                  onClick={() => setShowAddKwInput(false)}
-                                  style={{ background: '#e2e8f0', border: 'none', borderRadius: '4px', padding: '0.2rem 0.4rem', fontSize: '0.72rem', cursor: 'pointer' }}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setShowAddKwInput(true)}
-                                style={{
-                                  background: '#ffffff',
-                                  border: '1px dashed #cbd5e1',
-                                  color: '#475569',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 600,
-                                  padding: '0.2rem 0.5rem',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                + Thêm từ khóa
-                              </button>
-                            )}
+                          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                            Chọn biểu tượng phù hợp từ danh sách icon có sẵn bên dưới:
                           </div>
                         </div>
 
-                        {/* EXCLUDED KEYWORDS */}
-                        <div>
-                          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
-                            Nguyên liệu loại trừ (Excluded Ingredients):
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                            {editCatExcludedKeywords.map(kw => (
-                              <span
-                                key={kw}
-                                style={{
-                                  background: '#fee2e2',
-                                  border: '1px solid #fecaca',
-                                  color: '#991b1b',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 600,
-                                  padding: '0.2rem 0.5rem',
-                                  borderRadius: '6px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.35rem'
-                                }}
-                              >
-                                {kw}
-                                <button
-                                  onClick={() => handleRemoveExcludedKw(kw)}
-                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#b91c1c', padding: 0, display: 'flex', alignItems: 'center' }}
-                                >
-                                  <X size={11} />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* MACRO VÀ TRỌNG SỐ SLIDER */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
-                          <div>
-                            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', marginBottom: '0.25rem' }}>
-                              Ngưỡng Macro tối thiểu
-                            </div>
-                            <input
-                              type="text"
-                              value={editCatMacroThreshold}
-                              onChange={(e) => setEditCatMacroThreshold(e.target.value)}
+                        {/* DANH SÁCH ICON CÓ SẴN ĐỂ CLICK CHỌN NHANH */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.4rem' }}>
+                          {PRESET_CAT_ICONS.map(icon => (
+                            <button
+                              key={icon}
+                              onClick={() => setEditCatIcon(icon)}
                               style={{
-                                width: '100%',
-                                padding: '0.4rem 0.6rem',
-                                borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
-                                fontSize: '0.78rem',
-                                fontWeight: 700,
-                                color: '#0f172a',
-                                background: '#ffffff',
-                                outline: 'none',
-                                boxSizing: 'border-box'
+                                background: editCatIcon === icon ? '#dcfce7' : '#f8fafc',
+                                border: editCatIcon === icon ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                padding: '0.45rem 0',
+                                fontSize: '1.25rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
                               }}
-                            />
-                          </div>
-
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>
-                                Trọng số thuật toán gợi ý
-                              </span>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#047857' }}>
-                                {editCatWeight}%
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="10"
-                              max="100"
-                              step="5"
-                              value={editCatWeight}
-                              onChange={(e) => setEditCatWeight(Number(e.target.value))}
-                              style={{ width: '100%', accentColor: '#047857', cursor: 'pointer' }}
-                            />
-                          </div>
+                              title={`Chọn icon ${icon}`}
+                            >
+                              {icon}
+                            </button>
+                          ))}
                         </div>
-
                       </div>
 
                     </div>
@@ -6933,7 +6547,7 @@ export default function AdminDashboard({ onNavigate }) {
 
               </div>
 
-              {/* MODAL TẠO MỚI CATEGORY */}
+              {/* MODAL THÊM CATEGORY MỚI (RÚT GỌN ĐỒNG BỘ) */}
               {showAddCatModal && (
                 <div style={{
                   position: 'fixed',
@@ -6946,10 +6560,10 @@ export default function AdminDashboard({ onNavigate }) {
                   zIndex: 9999,
                   padding: '1rem'
                 }}>
-                  <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '520px', width: '100%', padding: '1.75rem', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.75rem', boxShadow: '0 20px 50px rgba(0,0,0,0.25)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
                       <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                        Thêm Danh Mục / Phân Nhánh Dinh Dưỡng Mới
+                        Thêm Danh Mục Món Ăn Mới
                       </h3>
                       <button style={{ background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => setShowAddCatModal(false)}>
                         <X size={20} color="#64748b" />
@@ -6963,63 +6577,60 @@ export default function AdminDashboard({ onNavigate }) {
                         </label>
                         <input 
                           type="text" 
-                          placeholder="Ví dụ: Món Giàu Sắt &amp; Folate"
+                          placeholder="Ví dụ: Món Giàu Sắt &amp; Khoáng Chất"
                           value={newCatName}
                           onChange={(e) => setNewCatName(e.target.value)}
                           style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                         />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '0.75rem' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem', color: '#334155' }}>
-                            English Slug
-                          </label>
-                          <input 
-                            type="text" 
-                            placeholder="iron-folate-rich"
-                            value={newCatSlug}
-                            onChange={(e) => setNewCatSlug(e.target.value)}
-                            style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem', color: '#334155' }}>
-                            Biểu tượng
-                          </label>
-                          <input 
-                            type="text" 
-                            value={newCatIcon}
-                            onChange={(e) => setNewCatIcon(e.target.value)}
-                            style={{ width: '100%', padding: '0.55rem', textAlign: 'center', fontSize: '1.25rem', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                      </div>
-
                       <div>
                         <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem', color: '#334155' }}>
-                          Trực thuộc danh mục cha
+                          Thuộc danh mục cha
                         </label>
                         <select
                           value={newCatParentId}
                           onChange={(e) => setNewCatParentId(e.target.value)}
                           style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: '#ffffff', boxSizing: 'border-box' }}
                         >
-                          <option value="">[Tạo làm Danh mục Gốc - Cấp 1]</option>
-                          {categoriesTaxonomy.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
-                          ))}
+                          <option value="">Không có (Tạo nhóm cha mới)</option>
+                          <option value="CAT-GRP-01">🌱 Trường phái ăn chay</option>
+                          <option value="CAT-GRP-02">🍲 Loại món ăn</option>
+                          <option value="CAT-GRP-03">💪 Nhóm dinh dưỡng nổi bật</option>
                         </select>
                       </div>
 
                       <div>
                         <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem', color: '#334155' }}>
-                          Mô tả dinh dưỡng &amp; Hướng dẫn AI:
+                          Biểu tượng
+                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '0.35rem' }}>
+                          {PRESET_CAT_ICONS.map(icon => (
+                            <button
+                              key={icon}
+                              onClick={() => setNewCatIcon(icon)}
+                              style={{
+                                background: newCatIcon === icon ? '#dcfce7' : '#f8fafc',
+                                border: newCatIcon === icon ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                padding: '0.35rem 0',
+                                fontSize: '1.2rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {icon}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.35rem', color: '#334155' }}>
+                          Mô tả ngắn:
                         </label>
                         <textarea 
                           rows={3}
-                          placeholder="Mô tả nhóm món ăn và giá trị dinh dưỡng thuần thực vật..."
+                          placeholder="Mô tả danh mục để hiển thị cho người dùng..."
                           value={newCatDesc}
                           onChange={(e) => setNewCatDesc(e.target.value)}
                           style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
