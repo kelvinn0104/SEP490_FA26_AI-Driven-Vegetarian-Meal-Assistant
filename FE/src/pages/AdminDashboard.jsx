@@ -391,7 +391,7 @@ export default function AdminDashboard({ onNavigate }) {
         { id: 'lowSodium', label: 'Thực đơn hạn chế muối/nghiêm ngặt (Low Sodium)', checked: false }
       ],
       auditLogs: [
-        { time: '14:05 Hôm nay', author: 'Admin_Master', text: 'Điều chỉnh định lượng nước cốt dừa từ 300ml xuống 250ml.' },
+        { time: '14:05 Hôm nay', author: 'Admin', text: 'Điều chỉnh định lượng nước cốt dừa từ 300ml xuống 250ml.' },
         { time: '11:30 Hôm nay', author: 'BS. Lan Hương', text: 'Phê duyệt chỉ số dinh dưỡng lâm sàng và ký số bảo trợ.' },
         { time: '10:18 Hôm nay', author: 'VeggieAI Engine', text: 'Whisper STT và YOLOv8 hoàn tất bóc tách 7 nguyên liệu & 4 bước nấu.' }
       ]
@@ -1930,7 +1930,7 @@ export default function AdminDashboard({ onNavigate }) {
       model: 'Nutrition Chatbot',
       modelBg: '#ecfeff',
       modelColor: '#0891b2',
-      specialist: 'AI Operations Specialist (Hà Linh)',
+      specialist: 'Hà Linh (Mod)',
       overrideContent: 'Chỉnh công thức Protein Hạt Hemp: từ 20g/muỗng thành 11g/muỗng',
       status: 'Live & Đã Push Retrain',
       time: '13:45 (45p trước)'
@@ -1940,7 +1940,7 @@ export default function AdminDashboard({ onNavigate }) {
       model: 'AI Meal Planner',
       modelBg: '#ecfdf5',
       modelColor: '#059669',
-      specialist: 'Admin Master',
+      specialist: 'Admin',
       overrideContent: 'Thêm Rule: Thay mật ong thành mật hoa dừa cho User Thuần Chay',
       status: 'Live Guardrail Active',
       time: '11:20 (3h trước)'
@@ -1950,7 +1950,7 @@ export default function AdminDashboard({ onNavigate }) {
       model: 'Vision Extractor',
       modelBg: '#fff7ed',
       modelColor: '#ea580c',
-      specialist: 'MLOps Engineer (Thành Đạt)',
+      specialist: 'Thành Đạt (Mod)',
       overrideContent: 'Sửa nhãn củ cải trắng bị gán nhầm thành củ dền bạch tạng',
       status: 'Hoàn tất',
       time: '09:15 (5h trước)'
@@ -1964,7 +1964,7 @@ export default function AdminDashboard({ onNavigate }) {
       model: activeCase.model,
       modelBg: activeCase.model.includes('Vision') ? '#fff7ed' : activeCase.model.includes('Meal') ? '#ecfdf5' : '#ecfeff',
       modelColor: activeCase.model.includes('Vision') ? '#ea580c' : activeCase.model.includes('Meal') ? '#059669' : '#0891b2',
-      specialist: 'Admin Master',
+      specialist: 'Admin',
       overrideContent: `Ghi đè: [${activeCase.wrongLabel}] ➔ [${overrideCorrectTag}]`,
       status: actionCreateGuardrail ? 'Live Guardrail Active' : 'Hoàn tất',
       time: 'Vừa xong'
@@ -9306,11 +9306,11 @@ export default function AdminDashboard({ onNavigate }) {
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {[
-                          { id: '#REQ-98120', model: 'Nutrition Chatbot', admin: 'AI Operations Specialist (Hà Linh)', change: 'Chỉnh công thức Protein Hạt Hemp: 20g -> 11g', hash: 'sha256:7f4a...91b2', time: '13:45' },
-                          { id: '#REQ-98814', model: 'AI Meal Planner', admin: 'Admin Master', change: 'Thay mật ong thành mật hoa dừa cho User Thuần Chay', hash: 'sha256:3e1c...44a1', time: '11:20' },
-                          { id: '#REQ-97992', model: 'Vision Extractor', admin: 'MLOps Engineer (Thành Đạt)', change: 'Sửa nhãn củ cải trắng bị gán nhầm thành củ dền', hash: 'sha256:9a0b...88c3', time: '09:15' },
-                          { id: '#REQ-97811', model: 'AI Meal Planner', admin: 'Admin Master', change: 'Gỡ món chứa sữa bò cho hồ sơ dị ứng Lactose', hash: 'sha256:2d5e...11f4', time: '08:40' },
-                          { id: '#REQ-97740', model: 'NLP Moderation', admin: 'AI Operations Specialist (Hà Linh)', change: 'Mở khóa bình luận false-positive về nấm đông cô', hash: 'sha256:1a8c...77d2', time: '08:15' }
+                          { id: '#REQ-98120', model: 'Nutrition Chatbot', admin: 'Hà Linh (Mod)', change: 'Chỉnh công thức Protein Hạt Hemp: 20g -> 11g', hash: 'sha256:7f4a...91b2', time: '13:45' },
+                          { id: '#REQ-98814', model: 'AI Meal Planner', admin: 'Admin', change: 'Thay mật ong thành mật hoa dừa cho User Thuần Chay', hash: 'sha256:3e1c...44a1', time: '11:20' },
+                          { id: '#REQ-97992', model: 'Vision Extractor', admin: 'Thành Đạt (Mod)', change: 'Sửa nhãn củ cải trắng bị gán nhầm thành củ dền', hash: 'sha256:9a0b...88c3', time: '09:15' },
+                          { id: '#REQ-97811', model: 'AI Meal Planner', admin: 'Admin', change: 'Gỡ món chứa sữa bò cho hồ sơ dị ứng Lactose', hash: 'sha256:2d5e...11f4', time: '08:40' },
+                          { id: '#REQ-97740', model: 'NLP Moderation', admin: 'Hà Linh (Mod)', change: 'Mở khóa bình luận false-positive về nấm đông cô', hash: 'sha256:1a8c...77d2', time: '08:15' }
                         ].map((row, idx) => (
                           <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.85rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
