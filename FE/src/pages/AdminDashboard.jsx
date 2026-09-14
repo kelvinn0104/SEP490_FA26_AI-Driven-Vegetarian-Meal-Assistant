@@ -2137,7 +2137,7 @@ export default function AdminDashboard({ onNavigate }) {
                       Phân loại nhóm món chay: Thuần chay, Thực dưỡng, Giàu Protein, v.v.
                     </p>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857' }}>
-                      ● {categoriesList.length} danh mục ẩm thực đã chuẩn hóa
+                      ● 68 danh mục ẩm thực &amp; dinh dưỡng đã chuẩn hóa
                     </div>
                   </div>
 
