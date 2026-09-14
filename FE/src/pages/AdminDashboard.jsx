@@ -2484,7 +2484,7 @@ export default function AdminDashboard({ onNavigate }) {
                   <MessageSquare size={16} />
                   <span>Quản lý bình luận</span>
                 </div>
-                <span style={{ fontSize: '0.68rem', background: 'rgba(255, 255, 255, 0.22)', color: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: '10px', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.68rem', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.1rem 0.45rem', borderRadius: '10px', fontWeight: 700 }}>
                   {commentsList.length}
                 </span>
               </button>
