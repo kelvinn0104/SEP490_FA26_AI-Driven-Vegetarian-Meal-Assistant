@@ -21,7 +21,7 @@ export default function AdminDashboard({ onNavigate }) {
   // 2: 'content' - Quản lý blog & video
   // 3: 'content-detail' - Chi tiết bài viết/video
   // 4: 'comments' - Quản lý bình luận
-  // 5: 'categories' - Quản lý category
+  // 5: 'categories' - Quản lý danh mục món ăn
   // 6: 'ai-monitoring' - Giám sát mô hình AI (AI Monitoring)
   // 7: 'ai-override' - Can thiệp thủ công AI
   // 8: 'ai-flagged' - Nội dung bị AI gắn cờ (Flagged Content Review)
@@ -1690,7 +1690,7 @@ export default function AdminDashboard({ onNavigate }) {
                 </span>
               </button>
 
-              {/* 5. Quản lý category */}
+              {/* 5. Quản lý danh mục món ăn */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'categories' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('categories')}
@@ -1698,7 +1698,7 @@ export default function AdminDashboard({ onNavigate }) {
                 <div className="admin-menu-link-inner">
                   <span className="admin-menu-num">5</span>
                   <Layers size={16} />
-                  <span>Quản lý category</span>
+                  <span>Quản lý danh mục món ăn</span>
                 </div>
               </button>
             </div>
@@ -1791,7 +1791,7 @@ export default function AdminDashboard({ onNavigate }) {
               {activeMenu === 'content' && '2. Quản lý blog & video'}
               {activeMenu === 'content-detail' && '3. Chi tiết bài viết/video'}
               {activeMenu === 'comments' && '4. Quản lý bình luận'}
-              {activeMenu === 'categories' && '5. Quản lý category'}
+              {activeMenu === 'categories' && '5. Quản lý danh mục món ăn'}
               {activeMenu === 'ai-monitoring' && '6. Giám sát mô hình AI (AI Monitoring)'}
               {activeMenu === 'ai-override' && '7. Can thiệp thủ công AI'}
               {activeMenu === 'ai-flagged' && '8. Nội dung bị AI gắn cờ (Flagged Content Review)'}
@@ -2084,7 +2084,7 @@ export default function AdminDashboard({ onNavigate }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>5</div>
                         <Layers size={18} color="#059669" />
-                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý category</strong>
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý danh mục món ăn</strong>
                       </div>
                       <ChevronRight size={16} color="#94a3b8" />
                     </div>
