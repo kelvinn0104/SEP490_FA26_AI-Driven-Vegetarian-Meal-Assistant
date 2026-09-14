@@ -37,11 +37,11 @@ export default function AdminDashboard({ onNavigate }) {
   };
 
   // =========================================================================
-  // DỮ LIỆU MÀN HÌNH 9: HỒ SƠ & CÀI ĐẶT TÀI KHOẢN (ADMIN NGUYỄN VĂN MINH)
+  // DỮ LIỆU MÀN HÌNH 9: HỒ SƠ & CÀI ĐẶT TÀI KHOẢN (ADMIN)
   // =========================================================================
   const [profileTab, setProfileTab] = useState('info'); // 'info' | 'security' | 'notifications' | 'api' | 'sessions'
   const [adminProfileData, setAdminProfileData] = useState({
-    fullName: 'Nguyễn Văn Minh (Admin Trưởng)',
+    fullName: 'Admin',
     roleResponsibility: 'Hệ thống Dinh dưỡng & Kiểm duyệt AI',
     email: 'admin@veggie.ai',
     phone: '+84 (0) 908 721 999',
@@ -2622,7 +2622,7 @@ export default function AdminDashboard({ onNavigate }) {
             <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid #a7f3d0', flexShrink: 0 }}>
               <img 
                 src="/admin_minh_avatar.jpg" 
-                alt="Nguyễn Văn Minh" 
+                alt="Admin" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -2631,14 +2631,14 @@ export default function AdminDashboard({ onNavigate }) {
                   e.target.parentNode.style.display = 'flex';
                   e.target.parentNode.style.alignItems = 'center';
                   e.target.parentNode.style.justifyContent = 'center';
-                  e.target.parentNode.innerText = 'VM';
+                  e.target.parentNode.innerText = 'AD';
                 }}
               />
               <span style={{ position: 'absolute', bottom: '0px', right: '0px', width: '9px', height: '9px', borderRadius: '50%', background: '#10b981', border: '2px solid #ffffff' }}></span>
             </div>
             <div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>Nguyễn Văn Minh</div>
-              <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700 }}>Admin</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>Admin</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>admin@veggie.ai</div>
             </div>
           </div>
 
@@ -2718,11 +2718,11 @@ export default function AdminDashboard({ onNavigate }) {
             >
               <img 
                 src="/admin_minh_avatar.jpg" 
-                alt="Nguyễn Văn Minh" 
+                alt="Admin" 
                 style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
-              <span className="admin-profile-text">Nguyễn Văn Minh (Admin)</span>
+              <span className="admin-profile-text">Admin</span>
             </div>
           </div>
         </header>
@@ -10457,7 +10457,7 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =========================================================================
-              MÀN HÌNH 9: TRANG CÁ NHÂN & CÀI ĐẶT TÀI KHOẢN (ADMIN NGUYỄN VĂN MINH)
+              MÀN HÌNH 9: TRANG CÁ NHÂN & CÀI ĐẶT TÀI KHOẢN (ADMIN)
               ========================================================================= */}
           {(activeMenu === 'profile' || activeMenu === 'security') && (
             <section className="admin-profile-page">
@@ -10527,7 +10527,7 @@ export default function AdminDashboard({ onNavigate }) {
                     <div className="admin-profile-avatar-wrapper">
                       <img 
                         src="/admin_minh_avatar.jpg" 
-                        alt="Nguyễn Văn Minh" 
+                        alt="Admin" 
                         className="admin-profile-avatar-img"
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -10535,7 +10535,7 @@ export default function AdminDashboard({ onNavigate }) {
                       />
                       <span className="admin-profile-online-dot" title="Trực tuyến"></span>
                     </div>
-                    <h2 className="admin-profile-name">Nguyễn Văn Minh</h2>
+                    <h2 className="admin-profile-name">Admin</h2>
                     <span className="admin-profile-role-badge">Admin</span>
                     <div className="admin-profile-email">admin@veggie.ai</div>
 
@@ -11106,7 +11106,7 @@ export default function AdminDashboard({ onNavigate }) {
                       <div style={{ display: 'inline-flex', padding: '0.75rem', background: '#f8fafc', border: '2px dashed #059669', borderRadius: '12px', marginBottom: '1rem' }}>
                         <div style={{ width: '160px', height: '160px', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                           <span style={{ fontSize: '2.5rem' }}>📲</span>
-                          <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, marginTop: '0.35rem' }}>TOTP: VEGGIE-ADM-MINH</span>
+                          <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, marginTop: '0.35rem' }}>TOTP: VEGGIE-ADMIN</span>
                         </div>
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: '1rem' }}>
