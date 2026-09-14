@@ -8832,7 +8832,6 @@ export default function AdminDashboard({ onNavigate }) {
                       <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         <th style={{ padding: '0.75rem 0.85rem' }}>MÃ REQUEST</th>
                         <th style={{ padding: '0.75rem 0.85rem' }}>MÔ HÌNH AI</th>
-                        <th style={{ padding: '0.75rem 0.85rem' }}>CHUYÊN VIÊN CAN THIỆP</th>
                         <th style={{ padding: '0.75rem 0.85rem' }}>HIỆU CHỈNH GHI ĐÈ</th>
                         <th style={{ padding: '0.75rem 0.85rem' }}>TRẠNG THÁI ÁP DỤNG</th>
                         <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>THỜI GIAN</th>
@@ -8851,16 +8850,7 @@ export default function AdminDashboard({ onNavigate }) {
                             </span>
                           </td>
 
-                          <td style={{ padding: '0.85rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#047857', color: '#ffffff', fontSize: '0.62rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                OP
-                              </div>
-                              <span style={{ fontWeight: 700, color: '#334155', fontSize: '0.78rem' }}>{row.specialist}</span>
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '0.85rem', maxWidth: '300px' }}>
+                          <td style={{ padding: '0.85rem', maxWidth: '340px' }}>
                             <span style={{ color: '#1e293b', fontSize: '0.78rem' }}>{row.overrideContent}</span>
                           </td>
 
@@ -8977,7 +8967,6 @@ export default function AdminDashboard({ onNavigate }) {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                                 <strong style={{ color: '#0f172a', fontSize: '0.84rem' }}>{row.id}</strong>
                                 <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{row.model}</span>
-                                <span style={{ color: '#64748b', fontSize: '0.72rem' }}>• {row.admin}</span>
                               </div>
                               <div style={{ fontSize: '0.76rem', color: '#334155' }}>{row.change}</div>
                             </div>
