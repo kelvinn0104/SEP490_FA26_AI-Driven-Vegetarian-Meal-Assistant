@@ -7380,15 +7380,15 @@ export default function AdminDashboard({ onNavigate }) {
                     {/* Cluster Details List */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.78rem', marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.45rem' }}>
-                        <span style={{ color: '#64748b' }}>Kubernetes Pods</span>
-                        <strong style={{ color: '#0f172a' }}>4 Pods Running (Autoscale: 2 - 8)</strong>
+                        <span style={{ color: '#64748b' }}>Docker Containers</span>
+                        <strong style={{ color: '#0f172a' }}>4 Services Running (Docker Compose)</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.45rem' }}>
                         <span style={{ color: '#64748b' }}>Throughput trung bình</span>
                         <strong style={{ color: '#0f172a' }}>1,240 req/phút</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.45rem' }}>
-                        <span style={{ color: '#64748b' }}>Vector DB (Pinecone)</span>
+                        <span style={{ color: '#64748b' }}>PostgreSQL (pgvector)</span>
                         <strong style={{ color: '#059669' }}>Healthy (4.2ms query)</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
