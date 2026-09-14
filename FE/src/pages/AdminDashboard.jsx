@@ -8,7 +8,7 @@ import {
   Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
   Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart,
   EyeOff, Ban, MoreVertical, CornerDownRight, ChevronDown, ChevronUp,
-  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter, Maximize2, CheckSquare, Square
+  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter, Maximize2, CheckSquare, Square, Bot
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
