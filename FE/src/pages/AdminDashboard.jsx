@@ -8,7 +8,7 @@ import {
   Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
   Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart,
   EyeOff, Ban, MoreVertical, CornerDownRight, ChevronDown, ChevronUp,
-  SlidersHorizontal, ArrowUpDown
+  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,7 +19,7 @@ export default function AdminDashboard({ onNavigate }) {
   // 'overview' - Tổng quan Dashboard
   // 1: 'users' - Quản lý người dùng
   // 2: 'content' - Quản lý blog & video
-  // 3: 'content-detail' - Chi tiết bài viết/video
+  // 3: 'content-detail' - Quản lý bài viết/video
   // 4: 'comments' - Quản lý bình luận
   // 5: 'categories' - Quản lý danh mục món ăn
   // 6: 'ai-monitoring' - Giám sát mô hình AI (AI Monitoring)
@@ -1423,60 +1423,334 @@ export default function AdminDashboard({ onNavigate }) {
   };
 
   // =========================================================================
-  // DỮ LIỆU MÀN HÌNH 6: GIÁM SÁT MÔ HÌNH AI (AI MONITORING)
+  // DỮ LIỆU & TRẠNG THÁI MÀN HÌNH 6: GIÁM SÁT & QUẢN TRỊ MÔ HÌNH AI (MLOPS)
   // =========================================================================
-  const aiModels = [
+  const [mlopsTimeRange, setMlopsTimeRange] = useState('24h');
+  const [mlopsSearchQuery, setMlopsSearchQuery] = useState('');
+  const [mlopsModelFilter, setMlopsModelFilter] = useState('all');
+  const [mlopsLogLevelFilter, setMlopsLogLevelFilter] = useState('all');
+  const [mlopsStatusFilter, setMlopsStatusFilter] = useState('all');
+  const [isLiveStreaming, setIsLiveStreaming] = useState(true);
+  const [mlopsCurrentPage, setMlopsCurrentPage] = useState(1);
+
+  // Modals state
+  const [showThresholdModal, setShowThresholdModal] = useState(false);
+  const [thresholdConfig, setThresholdConfig] = useState({
+    latencyP95: 450,
+    driftRate: 3.0,
+    hallucinationRate: 0.2,
+    notifySlack: true,
+    notifyEmail: true,
+    autoRollback: true
+  });
+
+  const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
+  const [isBenchmarking, setIsBenchmarking] = useState(false);
+  const [benchmarkProgress, setBenchmarkProgress] = useState(0);
+  const [benchmarkResult, setBenchmarkResult] = useState(null);
+
+  const [showTestPromptModal, setShowTestPromptModal] = useState(false);
+  const [testPromptModel, setTestPromptModel] = useState('meal-planner');
+  const [testPromptInput, setTestPromptInput] = useState('Tủ lạnh có: đậu hũ non, nấm đùi gà, cải thìa, cà rốt. Cần bữa tối thuần chay giàu protein > 25g, calo < 480 kcal.');
+  const [isTestingPrompt, setIsTestingPrompt] = useState(false);
+  const [testPromptResult, setTestPromptResult] = useState(null);
+
+  const [showRetrainModal, setShowRetrainModal] = useState(false);
+  const [isRetraining, setIsRetraining] = useState(false);
+
+  const [showSampleDialogModal, setShowSampleDialogModal] = useState(false);
+  const [sampleDialogModel, setSampleDialogModel] = useState(null);
+
+  // 4 Core AI Models (Matching Mockup)
+  const [mlopsModels, setMlopsModels] = useState([
     {
-      id: 'vision',
-      name: 'Computer Vision YOLOv8',
-      type: 'Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi',
-      accuracy: '94.2%',
-      latency: '342ms',
-      throughput: '1,420 req/phút',
-      status: 'Operational',
-      trend: '+1.8% tuần qua'
+      id: 'meal-planner',
+      name: 'AI Meal Planner Engine',
+      version: 'v2.4',
+      badge: 'Tối ưu',
+      badgeType: 'optimal',
+      arch: 'Transformer Recommender v2.4',
+      desc: 'Cá nhân hóa thực đơn ăn chay linh hoạt theo chỉ số TDEE, tiền sử dị ứng thực phẩm và chỉ số đường huyết y khoa.',
+      metrics: [
+        { label: 'Accuracy', value: '99.2%', color: '#0f172a' },
+        { label: 'Latency', value: '320ms', color: '#0f172a' },
+        { label: 'Tokens / req', value: '850 tokens', color: '#0f172a' },
+        { label: 'Tỉ lệ lỗi (Error)', value: '0.04%', color: '#059669' }
+      ],
+      driftNote: null
     },
     {
-      id: 'recommender',
-      name: 'Hybrid Recommender Engine',
-      type: 'Collaborative Filtering + Content-Based',
-      accuracy: '91.8%',
-      latency: '118ms',
-      throughput: '3,890 req/phút',
-      status: 'Operational',
-      trend: '+0.5% tuần qua'
+      id: 'vision-extractor',
+      name: 'Vision Recipe Extractor',
+      version: 'v2.4',
+      badge: 'Drift Alert',
+      badgeType: 'drift',
+      arch: 'YOLOv8 + Whisper-v3',
+      desc: 'Nhận diện nguyên liệu trong tủ lạnh từ ảnh thực tế, bóc tách audio video TikTok/Reels thành công thức món chay.',
+      metrics: [
+        { label: 'IoU / F1-Score', value: '97.8%', color: '#0f172a' },
+        { label: 'Latency', value: '1.8s', color: '#0f172a' },
+        { label: 'Ảnh quét / ngày', value: '12,400 ảnh', color: '#0f172a' },
+        { label: 'Lệch nhận diện', value: '3.1%', color: '#ea580c' }
+      ],
+      driftNote: '* Nhầm rau dền đỏ với mồng tơi (3.1%) do phản quang đèn bếp.'
     },
     {
-      id: 'chatbot',
-      name: 'Nutrition Chatbot (RAG)',
-      type: 'LangChain + ChromaDB + Viện Dinh Dưỡng',
-      accuracy: '96.5%',
-      latency: '820ms',
-      throughput: '980 req/phút',
-      status: 'Operational',
-      trend: '+2.1% tuần qua'
+      id: 'nutrition-chatbot',
+      name: 'Nutrition Advisory Chatbot',
+      version: 'v2.4',
+      badge: 'Xuất sắc',
+      badgeType: 'optimal',
+      arch: 'Gemini-1.5-Pro Veg-Tuned',
+      desc: 'Tư vấn dinh dưỡng chuyên sâu, cân bằng vi chất (B12, Sắt, Kẽm), tương tác ngôn ngữ tự nhiên theo ngữ cảnh cá nhân.',
+      metrics: [
+        { label: 'Hallucination Rate', value: '0.12%', color: '#059669' },
+        { label: 'Latency TB', value: '680ms', color: '#0f172a' },
+        { label: 'Hài lòng người dùng', value: '4.9 / 5.0 ★', color: '#0f172a' },
+        { label: 'Phiên active', value: '1,432', color: '#0f172a' }
+      ],
+      driftNote: null
     },
     {
-      id: 'summarizer',
-      name: 'Video Step Summarizer',
-      type: 'Tóm tắt công đoạn video & trích xuất nguyên liệu',
-      accuracy: '89.2%',
-      latency: '1,450ms',
-      throughput: '320 req/phút',
-      status: 'Operational',
-      trend: '+3.4% tuần qua'
-    },
-    {
-      id: 'planner',
-      name: 'AI Meal Planner (PuLP + GenAI)',
-      type: 'Quy hoạch tuyến tính (LP Solver) & Cân bằng vi chất',
-      accuracy: '98.6%',
-      latency: '1,850ms',
-      throughput: '890 req/phút',
-      status: 'Operational',
-      trend: 'SLA NFR ≤10s (ĐẠT)'
+      id: 'nlp-moderation',
+      name: 'NLP Toxicity Moderation',
+      version: '2.0',
+      badge: 'Bảo vệ 24/7',
+      badgeType: 'optimal',
+      arch: 'DistilBERT-MedGuard 2.0',
+      desc: 'Tự động quét và phát hiện thông tin giả mạo về dinh dưỡng, phác đồ ăn chay cực đoan phi khoa học và bình luận độc hại.',
+      metrics: [
+        { label: 'Precision / Recall', value: '99.4% / 98.1%', color: '#0f172a' },
+        { label: 'Đã xử lý chặn', value: '1,840 mục', color: '#0f172a' },
+        { label: 'False Positive', value: '0.21%', color: '#059669' },
+        { label: 'Scan Time', value: '85ms', color: '#0f172a' }
+      ],
+      driftNote: null
     }
-  ];
+  ]);
+
+  // Backward-compatible alias
+  const aiModels = mlopsModels;
+
+  // Inference Logs matching mockup
+  const [mlopsLogs, setMlopsLogs] = useState([
+    {
+      id: 'REQ-98421',
+      timestamp: '14:28:12.410',
+      modelId: 'meal-planner',
+      modelName: 'Meal Planner',
+      modelIcon: 'utensils',
+      modelColor: '#059669',
+      modelBg: '#ecfdf5',
+      input: '“Tủ lạnh có: đậu hũ, nấm kim châm, cà chua, boa...”',
+      userMeta: 'User: #USR-4412 • Chế độ: Thuần chay Vegan',
+      output: 'Đậu hũ sốt cà chua nấm & Canh rong biển thanh ...',
+      latency: '290ms',
+      status: '200 OK',
+      statusCode: '200',
+      logLevel: 'INFO',
+      statusColor: '#059669',
+      statusBg: '#ecfdf5'
+    },
+    {
+      id: 'REQ-98420',
+      timestamp: '14:27:55.108',
+      modelId: 'vision-extractor',
+      modelName: 'Vision Extractor',
+      modelIcon: 'camera',
+      modelColor: '#ea580c',
+      modelBg: '#fff7ed',
+      input: '[Ảnh 1080x1920] Đĩa rau luộc sẫm màu có cọng ...',
+      userMeta: 'User: #USR-8902 • Camera Upload',
+      output: 'Phát hiện: Rau dền đỏ (78.5%) / Mồng tơi tím (6...',
+      latency: '1,720ms',
+      status: 'Drift Warn',
+      statusCode: 'warn',
+      logLevel: 'WARN',
+      statusColor: '#ea580c',
+      statusBg: '#fff7ed'
+    },
+    {
+      id: 'REQ-98419',
+      timestamp: '14:26:40.892',
+      modelId: 'nutrition-chatbot',
+      modelName: 'Nutrition Chatbot',
+      modelIcon: 'message-square',
+      modelColor: '#0891b2',
+      modelBg: '#ecfeff',
+      input: '“Tôi tập gym ăn chay thì bổ sung creatine và prot...”',
+      userMeta: 'User: #USR-1029 • Chat Trực tiếp',
+      output: 'Khuyên dùng đạm từ tempeh, pea protein kết hợ...',
+      latency: '610ms',
+      status: '200 OK',
+      statusCode: '200',
+      logLevel: 'INFO',
+      statusColor: '#059669',
+      statusBg: '#ecfdf5'
+    },
+    {
+      id: 'REQ-98418',
+      timestamp: '14:24:19.004',
+      modelId: 'nlp-moderation',
+      modelName: 'Moderation',
+      modelIcon: 'shield',
+      modelColor: '#dc2626',
+      modelBg: '#fef2f2',
+      input: '“Ăn kiêng 14 ngày chỉ uống nước ép để trị dứt điể...”',
+      userMeta: 'Community Post #POST-5591',
+      output: 'Tự động chặn: Thông tin y tế sai lệch nguy hại (H...',
+      latency: '74ms',
+      status: 'Blocked 403',
+      statusCode: '403',
+      logLevel: 'ERROR',
+      statusColor: '#dc2626',
+      statusBg: '#fef2f2'
+    },
+    {
+      id: 'REQ-98417',
+      timestamp: '14:22:05.612',
+      modelId: 'vision-extractor',
+      modelName: 'Vision Extractor',
+      modelIcon: 'camera',
+      modelColor: '#ea580c',
+      modelBg: '#fff7ed',
+      input: 'Video 45s: TikTok URL bóc tách quy trình nướng ...',
+      userMeta: 'Crawler Hook #CRW-901',
+      output: 'Trích xuất thành công 6 nguyên liệu & 4 bước nấu',
+      latency: '2,150ms',
+      status: '200 OK',
+      statusCode: '200',
+      logLevel: 'INFO',
+      statusColor: '#059669',
+      statusBg: '#ecfdf5'
+    },
+    {
+      id: 'REQ-98416',
+      timestamp: '14:20:02.155',
+      modelId: 'meal-planner',
+      modelName: 'Meal Planner',
+      modelIcon: 'utensils',
+      modelColor: '#059669',
+      modelBg: '#ecfdf5',
+      input: '“Tối ưu thực đơn chay giàu Sắt và Vitamin C cho mẹ bầu 3 tháng đầu...”',
+      userMeta: 'User: #USR-3012 • Khảo sát Dinh dưỡng',
+      output: 'Canh rau ngót đậu hũ non & Bông cải xanh áp chảo hạt điều',
+      latency: '340ms',
+      status: '200 OK',
+      statusCode: '200',
+      logLevel: 'INFO',
+      statusColor: '#059669',
+      statusBg: '#ecfdf5'
+    }
+  ]);
+
+  // Handlers for MLOps operations
+  const handleRunBenchmark = () => {
+    setShowBenchmarkModal(true);
+    setIsBenchmarking(true);
+    setBenchmarkProgress(18);
+    setTimeout(() => setBenchmarkProgress(52), 250);
+    setTimeout(() => setBenchmarkProgress(86), 500);
+    setTimeout(() => {
+      setBenchmarkProgress(100);
+      setIsBenchmarking(false);
+      setBenchmarkResult({
+        totalSamples: 1000,
+        passRate: '99.8%',
+        avgLatency: '418ms',
+        p95Latency: '420ms',
+        overallAccuracy: '98.6%',
+        driftStatus: 'Đã kiểm soát (0.8% sai số)',
+        timestamp: new Date().toLocaleTimeString('vi-VN')
+      });
+      showToast('🚀 Đã hoàn tất chạy benchmark đánh giá 1,000 requests. 4 cụm mô hình đều vượt chuẩn SLA!');
+    }, 750);
+  };
+
+  const handleExportMLOpsReport = () => {
+    try {
+      const csvHeader = "Request_ID,Timestamp,Model,Input_Snippet,Output_Decision,Latency,Status,Log_Level\n";
+      const csvRows = mlopsLogs.map(l => 
+        `"${l.id}","${l.timestamp}","${l.modelName}","${l.input.replace(/"/g, '""')}","${l.output.replace(/"/g, '""')}","${l.latency}","${l.status}","${l.logLevel}"`
+      ).join("\n");
+      const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `MLOps_Performance_Audit_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    }
+    showToast('📥 Đã xuất báo cáo MLOps (MLOps_Performance_Audit.csv) thành công!');
+  };
+
+  const handleStartRetrain = () => {
+    setIsRetraining(true);
+    setTimeout(() => {
+      setIsRetraining(false);
+      setShowRetrainModal(false);
+      setMlopsModels(prev => prev.map(m => m.id === 'vision-extractor' ? {
+        ...m,
+        badge: 'Tối ưu',
+        badgeType: 'optimal',
+        driftNote: null,
+        metrics: m.metrics.map(met => met.label === 'Lệch nhận diện' ? { ...met, value: '0.4%', color: '#059669' } : met)
+      } : m));
+      showToast('⚡ Huấn luyện lại hoàn tất! Đã tích hợp 350 mẫu rau tiến vua, măng tây, nấm tuyết vào weight v2.4.');
+    }, 1200);
+  };
+
+  const handleRunTestPrompt = () => {
+    setIsTestingPrompt(true);
+    setTimeout(() => {
+      setIsTestingPrompt(false);
+      if (testPromptModel === 'meal-planner') {
+        setTestPromptResult({
+          latency: '315ms',
+          tokens: '840 tokens',
+          decision: 'Quy hoạch tuyến tính PuLP: Đậu hũ sốt nấm đùi gà (18g Protein) + Canh cải thìa cà rốt (8g Protein) = 26g Protein thực vật, 440 kcal. Đạt chuẩn TDEE cá nhân hóa.',
+          rawJson: '{"recipe": "Đậu hũ sốt nấm đùi gà", "protein_g": 26, "calories": 440, "tdee_match": 0.992}'
+        });
+      } else if (testPromptModel === 'vision-extractor') {
+        setTestPromptResult({
+          latency: '1.2s',
+          tokens: 'N/A (YOLOv8 Bounding Boxes)',
+          decision: 'Nhận diện thành công 4 nhãn: [Đậu hũ: 98.2%], [Nấm đùi gà: 96.5%], [Cải thìa: 97.1%], [Cà rốt: 99.4%]. Không phát hiện concept drift.',
+          rawJson: '{"detected_objects": 4, "f1_score": 0.978, "drift_detected": false}'
+        });
+      } else if (testPromptModel === 'nutrition-chatbot') {
+        setTestPromptResult({
+          latency: '640ms',
+          tokens: '320 tokens',
+          decision: 'Tư vấn dinh dưỡng VeggieAI: Sự kết hợp đậu hũ và nấm đùi gà cung cấp đủ 9 axit amin thiết yếu. Khuyên dùng thêm mè rang hoặc hạt lanh để hấp thu tối đa kẽm và sắt tự nhiên.',
+          rawJson: '{"hallucination_score": 0.001, "sentiment": "positive_informative", "rag_sources": ["Viện Dinh Dưỡng Quốc Gia"]}'
+        });
+      } else {
+        setTestPromptResult({
+          latency: '78ms',
+          tokens: '60 tokens',
+          decision: 'NLP Filter PASS: Nội dung an toàn, không chứa thông tin y tế sai lệch hay ngôn từ công kích.',
+          rawJson: '{"toxic_prob": 0.002, "medical_misinfo": 0.001, "action": "ALLOW"}'
+        });
+      }
+      showToast('🧪 Đã thực thi suy luận test prompt thành công!');
+    }, 600);
+  };
+
+  const handleSaveThresholds = (e) => {
+    if (e) e.preventDefault();
+    setShowThresholdModal(false);
+    showToast('✅ Đã cập nhật cấu hình ngưỡng SLA & cảnh báo MLOps thành công!');
+  };
+
+  const handleOpenSampleDialog = (modelId) => {
+    setSampleDialogModel(modelId);
+    setShowSampleDialogModal(true);
+  };
 
   // =========================================================================
   // DỮ LIỆU MÀN HÌNH 7: CAN THIỆP THỦ CÔNG AI (MANUAL OVERRIDE)
@@ -1663,7 +1937,7 @@ export default function AdminDashboard({ onNavigate }) {
                 </div>
               </button>
 
-              {/* 3. Chi tiết bài viết/video */}
+              {/* 3. Quản lý bài viết/video */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'content-detail' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('content-detail')}
@@ -1671,7 +1945,7 @@ export default function AdminDashboard({ onNavigate }) {
                 <div className="admin-menu-link-inner">
                   <span className="admin-menu-num">3</span>
                   <Edit3 size={16} />
-                  <span>Chi tiết bài viết/video</span>
+                  <span>Quản lý bài viết/video</span>
                 </div>
               </button>
 
@@ -1789,7 +2063,7 @@ export default function AdminDashboard({ onNavigate }) {
               {activeMenu === 'overview' && 'Tổng quan Dashboard'}
               {activeMenu === 'users' && '1. Quản lý người dùng'}
               {activeMenu === 'content' && '2. Quản lý blog & video'}
-              {activeMenu === 'content-detail' && '3. Chi tiết bài viết/video'}
+              {activeMenu === 'content-detail' && '3. Quản lý bài viết/video'}
               {activeMenu === 'comments' && '4. Quản lý bình luận'}
               {activeMenu === 'categories' && '5. Quản lý danh mục món ăn'}
               {activeMenu === 'ai-monitoring' && '6. Giám sát mô hình AI (AI Monitoring)'}
@@ -2038,7 +2312,7 @@ export default function AdminDashboard({ onNavigate }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>3</div>
                         <Edit3 size={18} color="#059669" />
-                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Chi tiết bài viết/video</strong>
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>Quản lý bài viết/video</strong>
                       </div>
                       <ChevronRight size={16} color="#94a3b8" />
                     </div>
@@ -3918,7 +4192,7 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =====================================================================
-              MÀN HÌNH 3: CHI TIẾT BÀI VIẾT & VIDEO (HIGH FIDELITY)
+              MÀN HÌNH 3: QUẢN LÝ BÀI VIẾT & VIDEO (HIGH FIDELITY)
               ===================================================================== */}
           {activeMenu === 'content-detail' && currentEditingContent && (
             <section style={{ animation: 'fadeIn 0.2s ease', paddingBottom: '3rem' }}>
@@ -3937,7 +4211,7 @@ export default function AdminDashboard({ onNavigate }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                   <div>
                     <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', lineHeight: '1.3' }}>
-                      Chi tiết bài viết &amp; Video: {currentEditingContent.title}
+                      Quản lý bài viết &amp; Video: {currentEditingContent.title}
                     </h1>
                     
                     {/* BADGES ROW */}
@@ -6660,100 +6934,1118 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =====================================================================
-              MÀN HÌNH 6: GIÁM SÁT MÔ HÌNH AI (AI MONITORING)
+              MÀN HÌNH 6: GIÁM SÁT & QUẢN TRỊ HỆ THỐNG MÔ HÌNH AI (AI MONITORING & MLOPS)
               ===================================================================== */}
           {activeMenu === 'ai-monitoring' && (
-            <section style={{ animation: 'fadeIn 0.2s ease' }}>
-              <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                    6. Giám sát Mô hình AI (AI Monitoring)
-                  </h1>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                    Theo dõi thời gian thực độ chính xác, SLA độ trễ (NFR ≤10s) và nhật ký suy luận của 5 mô hình cốt lõi.
-                  </p>
-                </div>
-                <button 
-                  className="admin-btn-primary"
-                  onClick={() => showToast('🚀 Đã gửi lệnh kích hoạt Tái huấn luyện Batch (YOLOv8 + PuLP Solver + RAG)!')}
-                >
-                  <RefreshCw size={15} /> Kích hoạt Batch Retrain
-                </button>
+            <section style={{ animation: 'fadeIn 0.2s ease', paddingBottom: '3rem' }}>
+              {/* BREADCRUMB */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                <span style={{ cursor: 'pointer', color: '#047857', fontWeight: 600 }} onClick={() => setActiveMenu('overview')}>Admin Portal</span>
+                <ChevronRight size={13} />
+                <span>Điều hành &amp; AI Hub</span>
+                <ChevronRight size={13} />
+                <span style={{ color: '#047857', fontWeight: 700 }}>Giám sát AI &amp; Model Ops</span>
               </div>
 
-              {/* 5 AI MODEL CARDS */}
-              <div className="admin-models-grid">
-                {aiModels.map(model => (
-                  <div key={model.id} className="admin-model-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
-                        ● {model.status}
+              {/* TITLE & SUBTITLE */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', letterSpacing: '-0.02em' }}>
+                  Giám sát &amp; Quản trị Hệ thống Mô hình AI (AI Monitoring &amp; MLOps)
+                </h1>
+                <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0 0 0.85rem 0', lineHeight: 1.5, maxWidth: '1000px' }}>
+                  Theo dõi thời gian thực hiệu năng, độ trễ, độ chính xác và log suy luận của 4 cụm mô hình cốt lõi: AI Meal Planner, Vision Recipe Extractor, Nutrition Chatbot và NLP Content Moderation.
+                </p>
+
+                {/* INFRASTRUCTURE STATUS BADGE */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.4rem 0.95rem', borderRadius: '9999px', color: '#065f46', fontSize: '0.8rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)' }}></span>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, letterSpacing: '0.04em', color: '#047857' }}>TRẠNG THÁI HẠ TẦNG MLOPS:</span>
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>All 4 Models Healthy &amp; Serving</span>
+                </div>
+              </div>
+
+              {/* TIME FILTER & ACTION BUTTONS */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                {/* Time Range Pills */}
+                <div style={{ display: 'inline-flex', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.25rem', gap: '0.25rem' }}>
+                  {[
+                    { id: '24h', label: '24 Giờ qua' },
+                    { id: '7d', label: '7 Ngày qua' },
+                    { id: '30d', label: '30 Ngày' },
+                    { id: 'custom', label: 'Tùy chỉnh 📅' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setMlopsTimeRange(tab.id);
+                        showToast(`Đã lọc phạm vi dữ liệu: ${tab.label}`);
+                      }}
+                      style={{
+                        background: mlopsTimeRange === tab.id ? '#ecfdf5' : 'transparent',
+                        color: mlopsTimeRange === tab.id ? '#047857' : '#64748b',
+                        border: mlopsTimeRange === tab.id ? '1px solid #10b981' : '1px solid transparent',
+                        padding: '0.42rem 0.9rem',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: mlopsTimeRange === tab.id ? 700 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Right Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <button 
+                    onClick={() => setShowThresholdModal(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.52rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, color: '#334155', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#94a3b8'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                  >
+                    <SlidersHorizontal size={14} color="#64748b" /> Cấu hình Ngưỡng &amp; Cảnh báo
+                  </button>
+
+                  <button 
+                    onClick={handleRunBenchmark}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.52rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, color: '#047857', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                  >
+                    <RefreshCw size={14} color="#059669" /> Chạy Benchmark Đánh Giá
+                  </button>
+
+                  <button 
+                    onClick={handleExportMLOpsReport}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#047857', color: '#ffffff', border: 'none', padding: '0.52rem 1.1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#065f46'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#047857'}
+                  >
+                    <Download size={14} /> Xuất báo cáo MLOps
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 TOP KPI CARDS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+                {/* Card 1: Độ chính xác trung bình */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      ĐỘ CHÍNH XÁC TRUNG BÌNH
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ShieldCheck size={18} color="#059669" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>98.6%</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      ↑ +0.3%
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.6rem' }}>
+                    <div style={{ width: '98.6%', height: '100%', background: '#10b981', borderRadius: '3px' }}></div>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Đo lường trên 450,000 requests
+                  </div>
+                </div>
+
+                {/* Card 2: Thời gian phản hồi P95 */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      THỜI GIAN PHẢN HỒI P95
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Clock size={18} color="#64748b" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>420</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#64748b' }}>ms</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      ↓ -35ms
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '0.6rem' }}>
+                    <span style={{ width: '12px', height: '6px', background: '#10b981', borderRadius: '3px' }}></span>
+                    <span style={{ width: '12px', height: '6px', background: '#10b981', borderRadius: '3px' }}></span>
+                    <span style={{ width: '12px', height: '6px', background: '#10b981', borderRadius: '3px' }}></span>
+                    <span style={{ width: '12px', height: '6px', background: '#10b981', borderRadius: '3px' }}></span>
+                    <span style={{ width: '12px', height: '6px', background: '#cbd5e1', borderRadius: '3px' }}></span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Đã tối ưu hóa Redis Layer Cache
+                  </div>
+                </div>
+
+                {/* Card 3: Suy luận trong ngày */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      SUY LUẬN TRONG NGÀY
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Zap size={18} color="#ea580c" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>84,920</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c2410c', background: '#fff7ed', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      Peak 120 req/s
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.6rem' }}>
+                    <div style={{ width: '74%', height: '100%', background: '#f97316', borderRadius: '3px' }}></div>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Đỉnh lưu lượng: 11:30 - 12:45 sáng
+                  </div>
+                </div>
+
+                {/* Card 4: Cảnh báo lệch dữ liệu */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      CẢNH BÁO LỆCH DỮ LIỆU
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <AlertTriangle size={18} color="#ea580c" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.45rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#c2410c', letterSpacing: '-0.03em', lineHeight: 1 }}>2</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c2410c', background: '#fff7ed', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      Mức độ nhẹ
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#334155', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '0.2rem' }}>
+                    Dataset rau củ mùa hè n...
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Cần gắn nhãn kiểm tra 350 mẫu mới
+                  </div>
+                </div>
+              </div>
+
+              {/* MAIN 2-COLUMN SECTION */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.85fr) minmax(0, 1.15fr)', gap: '1.5rem', marginBottom: '2rem', alignItems: 'start' }}>
+                {/* LEFT COLUMN: TRẠNG THÁI 4 CỤM MÔ HÌNH AI */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                        Trạng thái 4 Cụm Mô hình AI
+                      </h3>
+                      <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                        Production v2.4
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{model.trend}</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Tự động đồng bộ mỗi 10 giây
+                    </span>
+                  </div>
+
+                  {/* 2x2 Model Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    {mlopsModels.map(model => (
+                      <div 
+                        key={model.id}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        <div>
+                          {/* Top row: Icon + Title + Status Badge */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                              <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '8px',
+                                background: model.id === 'meal-planner' ? '#ecfdf5' : model.id === 'vision-extractor' ? '#fff7ed' : model.id === 'nutrition-chatbot' ? '#ecfeff' : '#fef2f2',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                {model.id === 'meal-planner' && <Utensils size={18} color="#059669" />}
+                                {model.id === 'vision-extractor' && <Camera size={18} color="#ea580c" />}
+                                {model.id === 'nutrition-chatbot' && <MessageSquare size={18} color="#0891b2" />}
+                                {model.id === 'nlp-moderation' && <Shield size={18} color="#dc2626" />}
+                              </div>
+                              <div>
+                                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>{model.name}</h4>
+                                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{model.arch}</div>
+                              </div>
+                            </div>
+
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              color: model.badgeType === 'drift' ? '#c2410c' : '#047857',
+                              background: model.badgeType === 'drift' ? '#fff7ed' : '#ecfdf5',
+                              border: model.badgeType === 'drift' ? '1px solid #fed7aa' : '1px solid #a7f3d0',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              ● {model.badge}
+                            </span>
+                          </div>
+
+                          {/* Description */}
+                          <p style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.45, margin: '0 0 0.85rem 0', minHeight: '44px' }}>
+                            {model.desc}
+                          </p>
+
+                          {/* Metrics 2x2 */}
+                          <div style={{
+                            background: '#f8fafc',
+                            border: '1px solid #f1f5f9',
+                            borderRadius: '8px',
+                            padding: '0.65rem 0.75rem',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '0.6rem',
+                            marginBottom: model.driftNote ? '0.5rem' : '0.85rem'
+                          }}>
+                            {model.metrics.map((met, idx) => (
+                              <div key={idx}>
+                                <div style={{ fontSize: '0.66rem', color: '#94a3b8', fontWeight: 700 }}>{met.label}</div>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: met.color }}>{met.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Drift Warning Note (if any) */}
+                          {model.driftNote && (
+                            <div style={{ fontSize: '0.7rem', color: '#ea580c', fontStyle: 'italic', marginBottom: '0.85rem', lineHeight: 1.35 }}>
+                              {model.driftNote}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action buttons footer */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          {model.id === 'meal-planner' && (
+                            <>
+                              <button 
+                                onClick={() => {
+                                  setMlopsModelFilter('meal-planner');
+                                  showToast('🔍 Đã lọc log suy luận của AI Meal Planner!');
+                                }}
+                                style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                              >
+                                Xem Log Suy Luận
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setTestPromptModel('meal-planner');
+                                  setShowTestPromptModal(true);
+                                }}
+                                style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#047857', cursor: 'pointer' }}
+                              >
+                                🧪 Test Prompt
+                              </button>
+                            </>
+                          )}
+
+                          {model.id === 'vision-extractor' && (
+                            <>
+                              <button 
+                                onClick={() => {
+                                  setMlopsModelFilter('vision-extractor');
+                                  showToast('🔍 Đã lọc mẫu nhận diện Vision Extractor!');
+                                }}
+                                style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                              >
+                                Xem Mẫu Nhận Diện
+                              </button>
+                              <button 
+                                onClick={() => setShowRetrainModal(true)}
+                                style={{ background: '#c2410c', border: 'none', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                              >
+                                <RefreshCw size={12} /> Re-train Dataset
+                              </button>
+                            </>
+                          )}
+
+                          {model.id === 'nutrition-chatbot' && (
+                            <>
+                              <button 
+                                onClick={() => handleOpenSampleDialog('nutrition-chatbot')}
+                                style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                              >
+                                Hội thoại mẫu
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setActiveMenu('comments');
+                                  showToast('Đang điều hướng sang Quản lý Bình luận / Chặn từ khóa blacklist!');
+                                }}
+                                style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#dc2626', cursor: 'pointer' }}
+                              >
+                                🚫 Chặn từ khóa
+                              </button>
+                            </>
+                          )}
+
+                          {model.id === 'nlp-moderation' && (
+                            <>
+                              <button 
+                                onClick={() => {
+                                  setActiveMenu('comments');
+                                  showToast('Đang mở Cấu hình Blacklist từ khóa!');
+                                }}
+                                style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                              >
+                                Cấu hình Blacklist
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setActiveMenu('ai-flagged');
+                                  showToast('Đang chuyển đến Hàng đợi nội dung bị AI gắn cờ!');
+                                }}
+                                style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', cursor: 'pointer' }}
+                              >
+                                🚩 Flagged Queue (12)
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN: TÀI NGUYÊN MLOPS & CONCEPT DRIFT */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* CARD A: PHÂN BỔ TÀI NGUYÊN MLOPS */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                        Phân bổ Tài nguyên MLOps
+                      </h4>
+                      <Server size={18} color="#059669" />
                     </div>
 
-                    <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1.02rem', fontWeight: 800, color: '#0f172a' }}>{model.name}</h4>
-                    <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4', margin: '0 0 1rem 0', minHeight: '32px' }}>{model.type}</p>
-
-                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                      <div>
-                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>ĐỘ CHÍNH XÁC</div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#059669' }}>{model.accuracy}</div>
+                    {/* Hardware Box (Dark Slate) */}
+                    <div style={{ background: '#0f172a', borderRadius: '10px', padding: '1.15rem', color: '#ffffff', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Cpu size={16} color="#34d399" />
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc' }}>NVIDIA A10G Cluster</strong>
+                        </div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                          Node-04 Active
+                        </span>
                       </div>
+
+                      {/* VRAM Progress */}
+                      <div style={{ marginBottom: '0.85rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
+                          <span>VRAM đã cấp phát (16.3 GB / 24 GB)</span>
+                          <strong style={{ color: '#34d399' }}>68%</strong>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: '#334155', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: '68%', height: '100%', background: '#10b981', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+
+                      {/* GPU Compute Progress */}
                       <div>
-                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>ĐỘ TRỄ (LATENCY)</div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{model.latency}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
+                          <span>GPU Compute Utilization</span>
+                          <strong style={{ color: '#38bdf8' }}>84%</strong>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: '#334155', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: '84%', height: '100%', background: '#0284c7', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cluster Details List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.78rem', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.45rem' }}>
+                        <span style={{ color: '#64748b' }}>Kubernetes Pods</span>
+                        <strong style={{ color: '#0f172a' }}>4 Pods Running (Autoscale: 2 - 8)</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.45rem' }}>
+                        <span style={{ color: '#64748b' }}>Throughput trung bình</span>
+                        <strong style={{ color: '#0f172a' }}>1,240 req/phút</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.45rem' }}>
+                        <span style={{ color: '#64748b' }}>Vector DB (Pinecone)</span>
+                        <strong style={{ color: '#059669' }}>Healthy (4.2ms query)</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>Redis In-Memory Cache</span>
+                        <strong style={{ color: '#059669' }}>Hit Rate: 94.6%</strong>
+                      </div>
+                    </div>
+
+                    {/* Bottom Pipeline Notification */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                      <Zap size={15} color="#059669" />
+                      <div style={{ fontSize: '0.73rem', color: '#334155', lineHeight: 1.35 }}>
+                        <strong>Pipeline Huấn luyện Định kỳ:</strong> Tự động Fine-tune kế tiếp: <strong>Chủ Nhật lúc 02:00</strong>
                       </div>
                     </div>
                   </div>
-                ))}
+
+                  {/* CARD B: CẢNH BÁO CONCEPT DRIFT */}
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                        Cảnh báo Concept Drift
+                      </h4>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c' }}></span>
+                    </div>
+
+                    {/* Alert Content Box */}
+                    <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '8px', padding: '0.85rem 1rem', marginBottom: '0.85rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
+                        <AlertTriangle size={15} color="#d97706" />
+                        <strong style={{ fontSize: '0.84rem', color: '#92400e' }}>Rau Củ Nhiệt Đới Mùa Mới</strong>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#78350f', lineHeight: 1.45, margin: 0 }}>
+                        Model Vision phát hiện gia tăng ảnh chứa rau tiến vua tươi, măng tây xanh và nấm tuyết khô chưa có trong weight cốt lõi v2.4.
+                      </p>
+                    </div>
+
+                    {/* Action link */}
+                    <button 
+                      onClick={() => setShowRetrainModal(true)}
+                      style={{
+                        width: '100%',
+                        background: '#f1f5f9',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '0.55rem 0.85rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: '#1e293b',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#047857'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#1e293b'; }}
+                    >
+                      <span>Gắn nhãn kiểm chứng bổ sung (350 mẫu)</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* LOGS TABLE */}
-              <div className="admin-table-container">
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>Nhật ký Suy luận Mô hình AI (Inference Logs)</strong>
-                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>Cluster HCM-DC01 • 100% SLA PASS</span>
+              {/* BOTTOM SECTION: LIVE STREAMING INFERENCE LOGS TABLE */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                      Nhật ký Suy luận &amp; Bắt lỗi Thời gian thực
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                      Cập nhật luồng dữ liệu stream trực tiếp từ Kafka Ingestion Log
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <button 
+                      onClick={() => {
+                        setIsLiveStreaming(!isLiveStreaming);
+                        showToast(isLiveStreaming ? '⏸️ Đã tạm dừng Live Stream Logs' : '▶️ Đã bật lại Live Streaming Logs');
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        background: isLiveStreaming ? '#ecfdf5' : '#f1f5f9',
+                        border: isLiveStreaming ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: isLiveStreaming ? '#047857' : '#64748b',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isLiveStreaming ? '#10b981' : '#94a3b8' }}></span>
+                      <span>{isLiveStreaming ? 'Live Streaming Logs' : 'Stream Paused'}</span>
+                    </button>
+
+                    <button 
+                      onClick={() => showToast('🔄 Đã làm mới luồng log suy luận từ Kafka!')}
+                      style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      title="Làm mới log"
+                    >
+                      <RefreshCw size={14} color="#64748b" />
+                    </button>
+                  </div>
                 </div>
-                <table className="admin-data-table">
-                  <thead>
-                    <tr>
-                      <th>TIMESTAMP</th>
-                      <th>MÔ HÌNH AI</th>
-                      <th>LOẠI TÁC VỤ</th>
-                      <th>THỜI GIAN XỬ LÝ</th>
-                      <th>ĐỘ TỰ TIN</th>
-                      <th>TRẠNG THÁI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>18:14:02</td>
-                      <td><strong>AI Meal Planner</strong></td>
-                      <td>Quy hoạch tuyến tính PuLP (Tối ưu B12 + Sắt)</td>
-                      <td>1.82s (NFR ≤10s)</td>
-                      <td>98.9%</td>
-                      <td><span style={{ color: '#059669', fontWeight: 700 }}>200 OK</span></td>
-                    </tr>
-                    <tr>
-                      <td>18:12:45</td>
-                      <td><strong>YOLOv8 Vision</strong></td>
-                      <td>Phát hiện cà rốt, nấm hương, bí đỏ</td>
-                      <td>320ms</td>
-                      <td>95.4%</td>
-                      <td><span style={{ color: '#059669', fontWeight: 700 }}>200 OK</span></td>
-                    </tr>
-                    <tr>
-                      <td>18:09:12</td>
-                      <td><strong>Nutrition Chatbot</strong></td>
-                      <td>RAG Query: &quot;Bổ sung kẽm cho bé ăn chay&quot;</td>
-                      <td>810ms</td>
-                      <td>96.8%</td>
-                      <td><span style={{ color: '#059669', fontWeight: 700 }}>200 OK</span></td>
-                    </tr>
-                  </tbody>
-                </table>
+
+                {/* Filter Toolbar */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem', marginBottom: '1rem' }}>
+                  {/* Search Input */}
+                  <div style={{ position: 'relative', flex: '1 1 280px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm kiếm theo Request ID (REQ-xxx), User ID hoặc từ khóa..."
+                      value={mlopsSearchQuery}
+                      onChange={(e) => setMlopsSearchQuery(e.target.value)}
+                      style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', color: '#0f172a', background: '#ffffff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Model Dropdown */}
+                  <select 
+                    value={mlopsModelFilter}
+                    onChange={(e) => setMlopsModelFilter(e.target.value)}
+                    style={{ padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', color: '#334155', background: '#ffffff', cursor: 'pointer' }}
+                  >
+                    <option value="all">Tất cả Mô hình (4/4)</option>
+                    <option value="meal-planner">AI Meal Planner</option>
+                    <option value="vision-extractor">Vision Extractor</option>
+                    <option value="nutrition-chatbot">Nutrition Chatbot</option>
+                    <option value="nlp-moderation">NLP Moderation</option>
+                  </select>
+
+                  {/* Log Level Dropdown */}
+                  <select 
+                    value={mlopsLogLevelFilter}
+                    onChange={(e) => setMlopsLogLevelFilter(e.target.value)}
+                    style={{ padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', color: '#334155', background: '#ffffff', cursor: 'pointer' }}
+                  >
+                    <option value="all">Mức độ Log: Tất cả</option>
+                    <option value="INFO">INFO (Thành công)</option>
+                    <option value="WARN">WARN (Drift / Chậm)</option>
+                    <option value="ERROR">ERROR (Chặn 403)</option>
+                  </select>
+
+                  {/* Status Dropdown */}
+                  <select 
+                    value={mlopsStatusFilter}
+                    onChange={(e) => setMlopsStatusFilter(e.target.value)}
+                    style={{ padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', color: '#334155', background: '#ffffff', cursor: 'pointer' }}
+                  >
+                    <option value="all">Trạng thái: Tất cả</option>
+                    <option value="200">200 OK</option>
+                    <option value="warn">Drift Warn</option>
+                    <option value="403">Blocked 403</option>
+                  </select>
+
+                  {/* Reset Button */}
+                  <button 
+                    onClick={() => {
+                      setMlopsSearchQuery('');
+                      setMlopsModelFilter('all');
+                      setMlopsLogLevelFilter('all');
+                      setMlopsStatusFilter('all');
+                      showToast('Đã đặt lại bộ lọc log suy luận.');
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', color: '#64748b', background: '#ffffff', cursor: 'pointer' }}
+                  >
+                    <RotateCcw size={13} /> Đặt lại
+                  </button>
+                </div>
+
+                {/* Table */}
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>MÃ REQUEST / THỜI GIAN</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>CỤM MODEL</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>DỮ LIỆU ĐẦU VÀO (INPUT SNIPPET)</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>KẾT QUẢ ĐẦU RA (OUTPUT / DECISION)</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>ĐỘ TRỄ / TRẠNG THÁI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mlopsLogs
+                        .filter(log => {
+                          if (mlopsModelFilter !== 'all' && log.modelId !== mlopsModelFilter) return false;
+                          if (mlopsLogLevelFilter !== 'all' && log.logLevel !== mlopsLogLevelFilter) return false;
+                          if (mlopsStatusFilter !== 'all' && log.statusCode !== mlopsStatusFilter) return false;
+                          if (mlopsSearchQuery.trim()) {
+                            const q = mlopsSearchQuery.toLowerCase();
+                            return log.id.toLowerCase().includes(q) || log.input.toLowerCase().includes(q) || log.userMeta.toLowerCase().includes(q) || log.output.toLowerCase().includes(q);
+                          }
+                          return true;
+                        })
+                        .map((row, idx) => (
+                          <tr key={row.id || idx} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                            {/* Request ID / Time */}
+                            <td style={{ padding: '0.85rem' }}>
+                              <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.82rem' }}>{row.id}</strong>
+                              <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{row.timestamp}</span>
+                            </td>
+
+                            {/* Model */}
+                            <td style={{ padding: '0.85rem' }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '12px',
+                                fontSize: '0.73rem',
+                                fontWeight: 700,
+                                color: row.modelColor,
+                                background: row.modelBg
+                              }}>
+                                {row.modelIcon === 'utensils' && <Utensils size={12} />}
+                                {row.modelIcon === 'camera' && <Camera size={12} />}
+                                {row.modelIcon === 'message-square' && <MessageSquare size={12} />}
+                                {row.modelIcon === 'shield' && <Shield size={12} />}
+                                <span>{row.modelName}</span>
+                              </span>
+                            </td>
+
+                            {/* Input snippet */}
+                            <td style={{ padding: '0.85rem', maxWidth: '320px' }}>
+                              <div style={{ color: '#1e293b', fontWeight: 600, fontSize: '0.78rem', marginBottom: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {row.input}
+                              </div>
+                              <div style={{ color: '#64748b', fontSize: '0.71rem' }}>
+                                {row.userMeta}
+                              </div>
+                            </td>
+
+                            {/* Output / decision */}
+                            <td style={{ padding: '0.85rem', maxWidth: '320px' }}>
+                              <div style={{ color: '#334155', fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {row.output}
+                              </div>
+                            </td>
+
+                            {/* Latency / Status */}
+                            <td style={{ padding: '0.85rem', textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.2rem' }}>
+                                {row.latency}
+                              </div>
+                              <span style={{
+                                display: 'inline-block',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: row.statusColor,
+                                background: row.statusBg,
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: '6px'
+                              }}>
+                                {row.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '0.85rem', borderTop: '1px solid #f1f5f9', fontSize: '0.78rem', color: '#64748b' }}>
+                  <div>
+                    Hiển thị <strong>1 - 5</strong> trên tổng số <strong>84,920</strong> lượt suy luận hôm nay
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>|&lt;</button>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>&lt;</button>
+                    <button style={{ border: 'none', background: '#047857', color: '#ffffff', borderRadius: '6px', width: '28px', height: '28px', fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem' }}>1</button>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontSize: '0.75rem' }}>2</button>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', width: '28px', height: '28px', cursor: 'pointer', fontSize: '0.75rem' }}>3</button>
+                    <span style={{ padding: '0 0.2rem' }}>...</span>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>16,984</button>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>&gt;</button>
+                    <button style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '6px', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>&gt;|</button>
+                  </div>
+                </div>
               </div>
+
+              {/* =========================================================================
+                  MODALS FOR MLOPS SCREEN
+                  ========================================================================= */}
+              {/* 1. THRESHOLDS & ALERTS MODAL */}
+              {showThresholdModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '540px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <SlidersHorizontal size={18} color="#059669" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Cấu hình Ngưỡng &amp; Cảnh báo MLOps</h3>
+                      </div>
+                      <button onClick={() => setShowThresholdModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveThresholds} style={{ padding: '1.5rem' }}>
+                      <div style={{ marginBottom: '1.15rem' }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          <span>Ngưỡng cảnh báo Độ trễ P95 (SLA limit):</span>
+                          <strong style={{ color: '#059669' }}>{thresholdConfig.latencyP95} ms</strong>
+                        </label>
+                        <input 
+                          type="range" 
+                          min="200" 
+                          max="2000" 
+                          step="50"
+                          value={thresholdConfig.latencyP95}
+                          onChange={(e) => setThresholdConfig({ ...thresholdConfig, latencyP95: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: '#059669' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <span>200 ms</span>
+                          <span>Chuẩn NFR: ≤10,000 ms</span>
+                          <span>2,000 ms</span>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '1.15rem' }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          <span>Ngưỡng sai lệch nhận diện (Concept Drift):</span>
+                          <strong style={{ color: '#ea580c' }}>{thresholdConfig.driftRate}%</strong>
+                        </label>
+                        <input 
+                          type="range" 
+                          min="1.0" 
+                          max="10.0" 
+                          step="0.5"
+                          value={thresholdConfig.driftRate}
+                          onChange={(e) => setThresholdConfig({ ...thresholdConfig, driftRate: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: '#ea580c' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <span>1.0% (Khắt khe)</span>
+                          <span>Hiện tại: 3.1% (Cảnh báo nhẹ)</span>
+                          <span>10.0%</span>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                          <span>Ngưỡng ảo giác Chatbot (Hallucination Limit):</span>
+                          <strong style={{ color: '#059669' }}>{thresholdConfig.hallucinationRate}%</strong>
+                        </label>
+                        <input 
+                          type="range" 
+                          min="0.05" 
+                          max="2.0" 
+                          step="0.05"
+                          value={thresholdConfig.hallucinationRate}
+                          onChange={(e) => setThresholdConfig({ ...thresholdConfig, hallucinationRate: Number(e.target.value) })}
+                          style={{ width: '100%', accentColor: '#059669' }}
+                        />
+                      </div>
+
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.85rem', marginBottom: '1.25rem' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Kênh nhận cảnh báo sự cố:</div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#334155', marginBottom: '0.4rem', cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={thresholdConfig.notifySlack} 
+                            onChange={(e) => setThresholdConfig({ ...thresholdConfig, notifySlack: e.target.checked })} 
+                            style={{ accentColor: '#059669' }} 
+                          />
+                          <span>Webhook Discord / Slack Dev Channel (#alerts-mlops)</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#334155', cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={thresholdConfig.notifyEmail} 
+                            onChange={(e) => setThresholdConfig({ ...thresholdConfig, notifyEmail: e.target.checked })} 
+                            style={{ accentColor: '#059669' }} 
+                          />
+                          <span>Email khẩn cấp tới Quản trị viên (admin@veggieai.vn)</span>
+                        </label>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                        <button type="button" onClick={() => setShowThresholdModal(false)} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                          Hủy
+                        </button>
+                        <button type="submit" style={{ background: '#047857', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer' }}>
+                          Lưu Cấu Hình
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. BENCHMARK MODAL */}
+              {showBenchmarkModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '580px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <RefreshCw size={18} color="#059669" className={isBenchmarking ? 'animate-spin' : ''} />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                          {isBenchmarking ? 'Đang chạy Benchmark Đánh giá...' : 'Kết quả Benchmark 4 Mô hình AI'}
+                        </h3>
+                      </div>
+                      {!isBenchmarking && (
+                        <button onClick={() => setShowBenchmarkModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ padding: '1.5rem' }}>
+                      {isBenchmarking ? (
+                        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
+                            Đang kiểm thử song song 1,000 requests trên Cluster NVIDIA A10G...
+                          </div>
+                          <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                            <div style={{ width: `${benchmarkProgress}%`, height: '100%', background: '#059669', transition: 'width 0.2s ease' }}></div>
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tiến độ: {benchmarkProgress}% (Batch 24/32)</span>
+                        </div>
+                      ) : benchmarkResult ? (
+                        <div>
+                          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                            <CheckCircle2 size={20} color="#059669" />
+                            <div>
+                              <strong style={{ color: '#065f46', fontSize: '0.86rem', display: 'block' }}>Toàn bộ 4 cụm mô hình vượt chuẩn SLA &amp; NFR!</strong>
+                              <span style={{ color: '#047857', fontSize: '0.75rem' }}>Thời điểm hoàn tất: {benchmarkResult.timestamp}</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>TỔNG MẪU KIỂM TRA</div>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{benchmarkResult.totalSamples} reqs</div>
+                            </div>
+                            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>TỈ LỆ ĐẠT (PASS RATE)</div>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>{benchmarkResult.passRate}</div>
+                            </div>
+                            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>ĐỘ TRỄ P95 THỰC TẾ</div>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{benchmarkResult.p95Latency}</div>
+                            </div>
+                            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>TRẠNG THÁI DRIFT</div>
+                              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ea580c' }}>{benchmarkResult.driftStatus}</div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                            <button onClick={() => setShowBenchmarkModal(false)} style={{ background: '#047857', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer' }}>
+                              Đóng
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. TEST PROMPT MODAL */}
+              {showTestPromptModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '620px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Terminal size={18} color="#059669" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Interactive Test Prompt - Playground</h3>
+                      </div>
+                      <button onClick={() => setShowTestPromptModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.5rem' }}>
+                      {/* Select Model Tabs */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>Chọn Mô hình kiểm thử:</label>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {[
+                            { id: 'meal-planner', label: 'AI Meal Planner' },
+                            { id: 'vision-extractor', label: 'Vision Extractor' },
+                            { id: 'nutrition-chatbot', label: 'Nutrition Chatbot' },
+                            { id: 'nlp-moderation', label: 'NLP Moderation' }
+                          ].map(m => (
+                            <button
+                              key={m.id}
+                              onClick={() => {
+                                setTestPromptModel(m.id);
+                                setTestPromptResult(null);
+                                if (m.id === 'meal-planner') setTestPromptInput('Tủ lạnh có: đậu hũ non, nấm đùi gà, cải thìa, cà rốt. Cần bữa tối thuần chay giàu protein > 25g, calo < 480 kcal.');
+                                if (m.id === 'vision-extractor') setTestPromptInput('Simulate Image Upload: [Plate_Vegetables_Dinner_Kitchen_Light.jpg - 1080x1920]');
+                                if (m.id === 'nutrition-chatbot') setTestPromptInput('Người ăn chay trường thì bổ sung vi chất B12 và Sắt bằng thực phẩm nào tốt nhất?');
+                                if (m.id === 'nlp-moderation') setTestPromptInput('Ăn chay tuyệt đối không uống thuốc tây sẽ tự khỏi bệnh tiểu đường sau 1 tuần.');
+                              }}
+                              style={{
+                                background: testPromptModel === m.id ? '#ecfdf5' : '#f8fafc',
+                                color: testPromptModel === m.id ? '#047857' : '#475569',
+                                border: testPromptModel === m.id ? '1px solid #10b981' : '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                padding: '0.35rem 0.65rem',
+                                fontSize: '0.78rem',
+                                fontWeight: testPromptModel === m.id ? 700 : 500,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Prompt Input */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '0.4rem' }}>Nội dung đầu vào (Input Snippet / Prompt):</label>
+                        <textarea 
+                          rows={3}
+                          value={testPromptInput}
+                          onChange={(e) => setTestPromptInput(e.target.value)}
+                          style={{ width: '100%', padding: '0.65rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.82rem', color: '#0f172a', resize: 'vertical', boxSizing: 'border-box' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                        <button 
+                          onClick={handleRunTestPrompt}
+                          disabled={isTestingPrompt}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#047857', border: 'none', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: isTestingPrompt ? 'not-allowed' : 'pointer' }}
+                        >
+                          <Zap size={14} /> {isTestingPrompt ? 'Đang suy luận...' : 'Thực thi suy luận'}
+                        </button>
+                      </div>
+
+                      {/* Result Box */}
+                      {testPromptResult && (
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.4rem' }}>
+                            <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>KẾT QUẢ SUY LUẬN (INFERENCE OUTPUT):</strong>
+                            <div style={{ display: 'flex', gap: '0.65rem', fontSize: '0.72rem', color: '#64748b' }}>
+                              <span>Độ trễ: <strong style={{ color: '#059669' }}>{testPromptResult.latency}</strong></span>
+                              <span>Tokens: <strong style={{ color: '#0f172a' }}>{testPromptResult.tokens}</strong></span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#334155', lineHeight: 1.5, marginBottom: '0.6rem' }}>
+                            {testPromptResult.decision}
+                          </div>
+                          <pre style={{ background: '#0f172a', color: '#38bdf8', padding: '0.6rem', borderRadius: '6px', fontSize: '0.72rem', margin: 0, overflowX: 'auto' }}>
+                            {testPromptResult.rawJson}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. RETRAIN MODAL */}
+              {showRetrainModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '520px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <RefreshCw size={18} color="#c2410c" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Tái huấn luyện Vision Dataset</h3>
+                      </div>
+                      {!isRetraining && (
+                        <button onClick={() => setShowRetrainModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ padding: '1.5rem' }}>
+                      <div style={{ background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '8px', padding: '0.85rem', marginBottom: '1.15rem' }}>
+                        <strong style={{ fontSize: '0.84rem', color: '#c2410c', display: 'block', marginBottom: '0.35rem' }}>
+                          ⚠️ Xử lý Cảnh báo Concept Drift (350 mẫu mới)
+                        </strong>
+                        <p style={{ fontSize: '0.76rem', color: '#9a3412', margin: 0, lineHeight: 1.45 }}>
+                          Model Vision YOLOv8 hiện đang ghi nhận 3.1% sai lệch khi người dùng chụp rau tiến vua tươi, măng tây xanh và nấm tuyết khô do chưa có nhãn trong core weight v2.4.
+                        </p>
+                      </div>
+
+                      <div style={{ fontSize: '0.8rem', color: '#334155', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                        <div>● Cụm GPU thực thi: <strong>NVIDIA A10G (Node-04 Active)</strong></div>
+                        <div>● Phương pháp: <strong>Transfer Learning LoRA Fine-tune (10 Epochs)</strong></div>
+                        <div>● Dự kiến thời gian: <strong>~45 giây</strong> (không làm gián đoạn luồng suy luận)</div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                        <button 
+                          disabled={isRetraining}
+                          onClick={() => setShowRetrainModal(false)} 
+                          style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 600, color: '#475569', cursor: isRetraining ? 'not-allowed' : 'pointer' }}
+                        >
+                          Hủy bỏ
+                        </button>
+                        <button 
+                          disabled={isRetraining}
+                          onClick={handleStartRetrain}
+                          style={{ background: '#c2410c', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: isRetraining ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                        >
+                          <RefreshCw size={14} className={isRetraining ? 'animate-spin' : ''} />
+                          {isRetraining ? 'Đang Fine-tune weight...' : 'Kích hoạt Fine-tune ngay'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. SAMPLE DIALOG MODAL */}
+              {showSampleDialogModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '580px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <MessageSquare size={18} color="#0891b2" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Hội thoại mẫu - Nutrition Advisory Chatbot</h3>
+                      </div>
+                      <button onClick={() => setShowSampleDialogModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                        <div style={{ background: '#f1f5f9', padding: '0.75rem 1rem', borderRadius: '12px 12px 12px 2px', maxWidth: '85%', fontSize: '0.8rem', color: '#1e293b' }}>
+                          <strong>Người dùng (#USR-1029):</strong> Tôi tập gym ăn thuần chay thì bổ sung creatine và protein thế nào để tăng cơ không bị thiếu hụt vi chất?
+                        </div>
+                        <div style={{ background: '#ecfeff', border: '1px solid #cffafe', padding: '0.75rem 1rem', borderRadius: '12px 12px 2px 12px', maxWidth: '90%', marginLeft: 'auto', fontSize: '0.8rem', color: '#155e75' }}>
+                          <strong>Nutrition Chatbot (Gemini-1.5-Pro):</strong> Chào bạn! Đối với người tập gym ăn thuần chay, nguồn đạm chất lượng cao có thể kết hợp giữa tempeh, đậu hũ non và bột protein đậu Hà Lan (Pea Protein) để đảm bảo đầy đủ axit amin thiết yếu. Creatine thực vật có thể bổ sung qua thực phẩm bổ sung thuần chay được chứng nhận. Đồng thời hãy bổ sung thêm Vitamin B12 (2.4 mcg/ngày) để duy trì năng lượng tập luyện!
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#64748b' }}>
+                        <span>Đánh giá người dùng: <strong style={{ color: '#0f172a' }}>5.0 / 5.0 ★</strong></span>
+                        <button onClick={() => setShowSampleDialogModal(false)} style={{ background: '#0891b2', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.45rem 1rem', fontWeight: 700, cursor: 'pointer' }}>
+                          Đóng
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
