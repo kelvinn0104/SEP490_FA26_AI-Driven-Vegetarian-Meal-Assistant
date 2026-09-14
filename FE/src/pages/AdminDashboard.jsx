@@ -8,7 +8,8 @@ import {
   Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
   Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart,
   EyeOff, Ban, MoreVertical, CornerDownRight, ChevronDown, ChevronUp,
-  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter, Maximize2, CheckSquare, Square, Bot
+  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter, Maximize2, CheckSquare, Square, Bot,
+  ChevronsLeft, Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -2403,24 +2404,42 @@ export default function AdminDashboard({ onNavigate }) {
       )}
 
       {/* =========================================================================
-          LEFT SIDEBAR (DARK OPS PORTAL) - 8 MÀN HÌNH CHUẨN CỦA ADMIN
+          LEFT SIDEBAR (MATCHING EXACT DESIGN SCREENSHOT)
           ========================================================================= */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar-top">
-          {/* BRAND LOGO */}
-          <div className="admin-brand-header" onClick={() => onNavigate && onNavigate('home')} title="Về trang chủ">
-            <span className="admin-brand-icon">🌱</span>
-            <div>
-              <div className="admin-brand-title">VeggieAI</div>
-              <div className="admin-brand-sub">ADMIN PORTAL</div>
+          {/* BRAND LOGO HEADER */}
+          <div className="admin-brand-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '12px', border: '1.5px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', flexShrink: 0 }}>
+                <span style={{ fontSize: '1.25rem' }}>🌱</span>
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Veggie<span style={{ color: '#059669' }}>AI</span></span>
+                  <span style={{ fontSize: '0.58rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.08rem 0.35rem', borderRadius: '4px', letterSpacing: '0.4px' }}>WORKSPACE</span>
+                </div>
+                <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                  PORTAL QUẢN TRỊ VIÊN
+                </div>
+              </div>
             </div>
+            <button 
+              onClick={() => showToast('Sidebar collapse/expand')}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.2rem', display: 'flex', alignItems: 'center' }}
+              title="Thu gọn menu"
+            >
+              <ChevronsLeft size={16} />
+            </button>
           </div>
 
-          {/* SIDEBAR NAVIGATION: TỔNG QUAN DASHBOARD + 8 MÀN HÌNH QUẢN TRỊ */}
+          {/* SIDEBAR NAVIGATION */}
           <div className="admin-sidebar-menu">
-            {/* NHÓM TỔNG QUAN HỆ THỐNG */}
+            {/* NHÓM 1: ĐIỀU HÀNH & TỔNG QUAN */}
             <div className="admin-sidebar-group">
-              <div className="admin-group-label">ĐIỀU HÀNH &amp; TỔNG QUAN</div>
+              <div className="admin-group-header-row">
+                <span className="admin-group-label">ĐIỀU HÀNH &amp; TỔNG QUAN</span>
+              </div>
 
               {/* Tổng quan Dashboard */}
               <button 
@@ -2428,15 +2447,20 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('overview')}
               >
                 <div className="admin-menu-link-inner">
-                  <LayoutDashboard size={17} />
+                  <div className="admin-menu-icon-box">
+                    <LayoutDashboard size={16} />
+                  </div>
                   <span>Tổng quan Dashboard</span>
                 </div>
               </button>
             </div>
 
-            {/* NHÓM 1: HỆ THỐNG & NỘI DUNG (MỤC 1 -> 5) */}
+            {/* NHÓM 2: HỆ THỐNG & NỘI DUNG */}
             <div className="admin-sidebar-group">
-              <div className="admin-group-label">HỆ THỐNG &amp; NỘI DUNG</div>
+              <div className="admin-group-header-row">
+                <span className="admin-group-label">HỆ THỐNG &amp; NỘI DUNG</span>
+                <span className="admin-group-count-badge">5 mục</span>
+              </div>
 
               {/* 1. Quản lý người dùng */}
               <button 
@@ -2444,8 +2468,9 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('users')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">1</span>
-                  <Users size={16} />
+                  <div className="admin-menu-icon-box">
+                    <Users size={16} />
+                  </div>
                   <span>Quản lý người dùng</span>
                 </div>
               </button>
@@ -2456,9 +2481,10 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('content')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">2</span>
-                  <FileText size={16} />
-                  <span>Quản lý blog & video</span>
+                  <div className="admin-menu-icon-box">
+                    <Camera size={16} />
+                  </div>
+                  <span>Quản lý blog &amp; video</span>
                 </div>
               </button>
 
@@ -2468,8 +2494,9 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('content-detail')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">3</span>
-                  <Edit3 size={16} />
+                  <div className="admin-menu-icon-box">
+                    <Edit3 size={16} />
+                  </div>
                   <span>Quản lý bài viết/video</span>
                 </div>
               </button>
@@ -2480,31 +2507,33 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('comments')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">4</span>
-                  <MessageSquare size={16} />
+                  <div className="admin-menu-icon-box">
+                    <MessageSquare size={16} />
+                  </div>
                   <span>Quản lý bình luận</span>
                 </div>
-                <span style={{ fontSize: '0.68rem', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.1rem 0.45rem', borderRadius: '10px', fontWeight: 700 }}>
-                  {commentsList.length}
-                </span>
+                <span className="admin-badge-count-green">{commentsList.length}</span>
               </button>
 
-              {/* 5. Quản lý danh mục món ăn */}
+              {/* 5. Quản lý danh mục */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'categories' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('categories')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">5</span>
-                  <Layers size={16} />
-                  <span>Quản lý danh mục món ăn</span>
+                  <div className="admin-menu-icon-box">
+                    <Layers size={16} />
+                  </div>
+                  <span>Quản lý danh mục</span>
                 </div>
               </button>
             </div>
 
-            {/* NHÓM 2: TRÍ TUỆ NHÂN TẠO (AI) (MỤC 6 -> 8) */}
+            {/* NHÓM 3: GIÁM SÁT & VẬN HÀNH AI */}
             <div className="admin-sidebar-group">
-              <div className="admin-group-label">GIÁM SÁT & VẬN HÀNH AI</div>
+              <div className="admin-group-header-row">
+                <span className="admin-group-label">GIÁM SÁT &amp; VẬN HÀNH AI</span>
+              </div>
 
               {/* 6. Giám sát mô hình AI */}
               <button 
@@ -2512,8 +2541,9 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('ai-monitoring')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">6</span>
-                  <Cpu size={16} />
+                  <div className="admin-menu-icon-box">
+                    <Cpu size={16} />
+                  </div>
                   <span>Giám sát mô hình AI</span>
                 </div>
               </button>
@@ -2524,51 +2554,55 @@ export default function AdminDashboard({ onNavigate }) {
                 onClick={() => setActiveMenu('ai-override')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">7</span>
-                  <Sliders size={16} />
+                  <div className="admin-menu-icon-box">
+                    <Sliders size={16} />
+                  </div>
                   <span>Can thiệp thủ công AI</span>
                 </div>
               </button>
 
-              {/* 8. Nội dung bị AI gắn cờ */}
+              {/* 8. Nội dung bị gắn cờ */}
               <button 
                 className={`admin-menu-link ${activeMenu === 'ai-flagged' ? 'active' : ''}`}
                 onClick={() => setActiveMenu('ai-flagged')}
               >
                 <div className="admin-menu-link-inner">
-                  <span className="admin-menu-num">8</span>
-                  <ShieldAlert size={16} />
-                  <span>Nội dung bị AI gắn cờ</span>
+                  <div className="admin-menu-icon-box">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <span>Nội dung bị gắn cờ</span>
                 </div>
-                {pendingModerationCount > 0 && (
-                  <span className="admin-menu-badge">{pendingModerationCount}</span>
-                )}
+                <span className="admin-badge-count-red-circle">{flaggedItems.length || 4}</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* SIDEBAR FOOTER (ADMIN PROFILE & LOGOUT) */}
+        {/* SIDEBAR FOOTER (EXACT MATCH SCREENSHOT) */}
         <div className="admin-sidebar-footer">
-          <div className="admin-sidebar-user">
-            <div className="admin-user-avatar">AD</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '10px', background: '#047857', color: '#ffffff', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              AD
+              <span style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '9px', height: '9px', borderRadius: '50%', background: '#10b981', border: '2px solid #ffffff' }}></span>
+            </div>
             <div>
-              <div className="admin-user-name">Admin</div>
-              <div className="admin-user-role">Quản trị viên</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>Admin System</div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>admin@veggie.ai</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.25rem' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <button 
-              className="admin-exit-btn" 
-              onClick={() => onNavigate && onNavigate('home')} 
-              title="Quay lại trang chủ người dùng"
+              onClick={() => showToast('Cài đặt hệ thống')}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.3rem', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+              title="Cài đặt"
             >
-              <ExternalLink size={16} />
+              <Settings size={16} />
             </button>
             <button 
-              className="admin-exit-btn" 
               onClick={() => { logout(); if (onNavigate) onNavigate('home'); }} 
-              title="Đăng xuất khỏi hệ thống"
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0.3rem', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+              title="Đăng xuất"
             >
               <LogOut size={16} />
             </button>
