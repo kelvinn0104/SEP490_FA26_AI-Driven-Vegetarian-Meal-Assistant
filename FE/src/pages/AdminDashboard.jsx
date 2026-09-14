@@ -8,7 +8,7 @@ import {
   Trash2, Edit3, Lock, Unlock, ArrowLeft, Video, Shield, UserCheck,
   Play, Tag, RotateCcw, Star, Share2, ListOrdered, List, Quote, PieChart,
   EyeOff, Ban, MoreVertical, CornerDownRight, ChevronDown, ChevronUp,
-  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter
+  SlidersHorizontal, ArrowUpDown, Server, Camera, Calendar, Terminal, Send, Filter, Maximize2, CheckSquare, Square
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -1753,39 +1753,248 @@ export default function AdminDashboard({ onNavigate }) {
   };
 
   // =========================================================================
-  // DỮ LIỆU MÀN HÌNH 7: CAN THIỆP THỦ CÔNG AI (MANUAL OVERRIDE)
+  // DỮ LIỆU & TRẠNG THÁI MÀN HÌNH 7: CAN THIỆP & GHI ĐÈ KẾT QUẢ AI (MANUAL OVERRIDE)
   // =========================================================================
-  const [overrideData, setOverrideData] = useState({
-    recipeName: 'Cà Rốt Nấu Nước Cốt Dừa & Nấm Hương',
-    originalProtein: '12g (AI tính thiếu)',
-    overrideProtein: '21g',
-    originalCalories: '510 kcal',
-    overrideCalories: '420 kcal',
-    originalB12: '0.2 mcg (AI nhận nhầm)',
-    overrideB12: '1.8 mcg',
-    reason: 'Bổ sung hàm lượng protein và vi chất từ 150g nấm hương tươi hữu cơ'
+  const [overrideFilterTab, setOverrideFilterTab] = useState('all'); // 'all', 'vision', 'planner'
+  const [overrideSearch, setOverrideSearch] = useState('');
+  const [overrideRiskSort, setOverrideRiskSort] = useState('highest');
+  const [overrideDateFilter, setOverrideDateFilter] = useState('today');
+  const [selectedCaseId, setSelectedCaseId] = useState('REQ-98310');
+
+  // Modals for Screen 7
+  const [showGuardrailModal, setShowGuardrailModal] = useState(false);
+  const [showFullAuditModal, setShowFullAuditModal] = useState(false);
+  const [showPushDatasetModal, setShowPushDatasetModal] = useState(false);
+  const [showImageFullModal, setShowImageFullModal] = useState(false);
+
+  // New Guardrail Form
+  const [newGuardrail, setNewGuardrail] = useState({
+    modelTarget: 'vision',
+    ruleName: 'Khóa vĩnh viễn nhãn Mỡ động vật trong ảnh tủ lạnh món Chay',
+    actionType: 'block',
+    ruleScope: 'Global System',
+    reason: 'Tránh nhận diện nhầm bề mặt nấm mỡ có độ bóng quang học LED'
   });
 
-  const [overrideHistory, setOverrideHistory] = useState([
-    { id: 'OVR-89', target: 'Thực đơn 7 ngày cho người tiểu đường', field: 'Lượng Đường Tự Nhiên', oldVal: '48g/ngày', newVal: '22g/ngày', admin: 'Admin', time: 'Hôm nay 14:20', status: 'Đã áp dụng' },
-    { id: 'OVR-88', target: 'Món: Đậu Hũ Sốt Nấm Đông Cô', field: 'Hàm lượng Sắt Thực Vật', oldVal: '2.1 mg', newVal: '4.8 mg', admin: 'Admin', time: 'Hôm qua 09:15', status: 'Đã áp dụng' },
-    { id: 'OVR-87', target: 'Nhận diện ảnh: Củ Dền Tươi', field: 'Nhãn YOLOv8', oldVal: 'Khoai lang tím (82%)', newVal: 'Củ dền đỏ (100%)', admin: 'Admin', time: '10/09/2026', status: 'Đã áp dụng' }
+  // 4 Pending Override Cases (Matching Mockup)
+  const [overrideCases, setOverrideCases] = useState([
+    {
+      id: 'REQ-98310',
+      risk: 'Nghiêm trọng (High Risk)',
+      riskType: 'high',
+      time: '8 phút trước',
+      model: 'Vision Recipe Extractor',
+      modelArch: 'YOLOv8 + Whisper-v3',
+      user: '@hoanganh_vegan',
+      confidence: '64.2% (Thấp)',
+      confidenceVal: 64.2,
+      quote: '“Nhận diện nhầm nấm mỡ thành mỡ heo trong ảnh tủ lạnh làm user hoang mang!”',
+      actionText: '🎯 Cần hiệu chuẩn nhãn & Bounding Box',
+      appVersion: 'WebApp v3.2',
+      timestamp: '14:32:09 Hôm nay',
+      boxTarget: 'BOX_01 (Tọa độ X: 12%, Y: 22%, W: 38%, H: 42%)',
+      wrongLabel: 'Pork Fat (Mỡ lợn)',
+      wrongConf: '64.2%',
+      consequence: 'Nhãn phân loại sai Pork Fat khiến Pipeline từ chối toàn bộ thực đơn Chay, gây lỗi hệ thống cho tài khoản người dùng thuần chay.',
+      correctTag: 'Nấm mỡ tươi (White Button)',
+      category: 'Thuần Chay (Vegan Safe)',
+      newConfidence: '100% (Human Verified)',
+      diagnosticNote: 'Ánh sáng đèn LED góc tủ lạnh phản quang làm bề mặt nấm mỡ có lớp bóng trắng ngả mỡ trong 2 khung hình...',
+      actionNotifyUser: true,
+      actionCreateGuardrail: true,
+      actionPushActiveLearning: true
+    },
+    {
+      id: 'REQ-98285',
+      risk: 'Trung bình',
+      riskType: 'medium',
+      time: '25 phút trước',
+      model: 'AI Meal Planner Pro',
+      modelArch: 'PuLP Linear Solver + RAG',
+      user: '@tran_nutrition',
+      confidence: '82.0%',
+      confidenceVal: 82.0,
+      quote: 'Gợi ý món xào nấm sử dụng bơ động vật (Clarified Ghee) thay vì bơ hạt thực vật do sai ta...',
+      tags: ['Nguồn: Quy tắc lọc dị ứng & Vi phạm nhãn', 'Chờ gắn Rule mới'],
+      appVersion: 'Mobile App v2.8',
+      timestamp: '14:15:20 Hôm nay',
+      boxTarget: 'Rule: Cooking Fat Selection',
+      wrongLabel: 'Bơ động vật (Ghee)',
+      wrongConf: '82.0%',
+      consequence: 'Công thức chứa bơ động vật vi phạm nguyên tắc Thuần Chay Tuyệt Đối của người dùng.',
+      correctTag: 'Bơ hạt thực vật (Bơ hạt điều / Dầu dừa)',
+      category: 'Thuần Chay Tuyệt Đối (Strict Vegan)',
+      newConfidence: '100% (Human Verified)',
+      diagnosticNote: 'Từ điển nguyên liệu gắn nhãn nhầm từ khóa Ghee thành chất béo trung tính ăn chay do nhầm lẫn chế độ Lacto-vegetarian.',
+      actionNotifyUser: true,
+      actionCreateGuardrail: true,
+      actionPushActiveLearning: true
+    },
+    {
+      id: 'REQ-98190',
+      risk: 'Nghiêm trọng',
+      riskType: 'high',
+      time: '1 giờ trước',
+      model: 'Nutrition Advisory Chatbot',
+      modelArch: 'Gemini-1.5-Pro Veg-Tuned',
+      user: '@le_van',
+      confidence: 'Độ lệch: 10x Vi lượng',
+      confidenceVal: 35.0,
+      quote: 'Tư vấn sai hàm lượng Vitamin B12 trong men dinh dưỡng: trả lời 120 mcg/15g thay vì 12mcg/15g...',
+      tags: ['Nguồn: User Báo sai & Chuyên gia gắn cờ', 'Hallucination'],
+      appVersion: 'WebApp v3.2',
+      timestamp: '13:30:11 Hôm nay',
+      boxTarget: 'Chatbot Response Generation',
+      wrongLabel: 'B12: 120 mcg / 15g (Ảo giác 10x)',
+      wrongConf: 'Hallucination Detected',
+      consequence: 'Thông số vượt quá 5,000% RDA khuyến nghị, có thể gây tâm lý hoang mang cho người dùng khi đối chiếu nhãn sản phẩm.',
+      correctTag: 'Men dinh dưỡng bổ sung: 12 mcg B12 / 15g (500% RDA an toàn)',
+      category: 'Tư vấn Chuẩn Khoa học',
+      newConfidence: '100% (Human Verified)',
+      diagnosticNote: 'Lỗi parse đơn vị dấu thập phân từ tài liệu bảng thành phần dinh dưỡng USDA 2024.',
+      actionNotifyUser: true,
+      actionCreateGuardrail: true,
+      actionPushActiveLearning: true
+    },
+    {
+      id: 'REQ-98042',
+      risk: 'Nhẹ',
+      riskType: 'low',
+      time: '2 giờ trước',
+      model: 'Vision Recipe Extractor',
+      modelArch: 'YOLOv8 + Whisper-v3',
+      user: '@kim_culinary',
+      confidence: 'Tự động: Góc chụp thiếu sáng',
+      confidenceVal: 24.0,
+      quote: 'Nhận diện rau diếp cá nhầm thành rau má do cuống lá bị khuất bóng tối trong rổ rau sống.',
+      tags: ['Nguồn: Confidence Filter (24%)', 'Dễ xử lý'],
+      appVersion: 'Mobile App v2.8',
+      timestamp: '12:22:45 Hôm nay',
+      boxTarget: 'BOX_04 (Rổ rau sống)',
+      wrongLabel: 'Rau má (Pennywort)',
+      wrongConf: '24.0%',
+      consequence: 'Gợi ý sai công thức nước ép thanh nhiệt thay vì món gỏi trộn gia đình.',
+      correctTag: 'Rau diếp cá tươi (Fish Mint)',
+      category: 'Rau Gia Vị Ăn Kèm',
+      newConfidence: '100% (Human Verified)',
+      diagnosticNote: 'Độ sáng dưới 40 lux khiến mạng nơ-ron nhận nhầm hình dạng răng cưa mép lá.',
+      actionNotifyUser: true,
+      actionCreateGuardrail: false,
+      actionPushActiveLearning: true
+    }
   ]);
 
-  const handleApplyOverride = (e) => {
-    e.preventDefault();
-    const newRecord = {
-      id: `OVR-${overrideHistory.length + 90}`,
-      target: overrideData.recipeName,
-      field: `Protein (${overrideData.overrideProtein}) & Calories (${overrideData.overrideCalories})`,
-      oldVal: `${overrideData.originalProtein}, ${overrideData.originalCalories}`,
-      newVal: `${overrideData.overrideProtein}, ${overrideData.overrideCalories}`,
-      admin: 'Admin',
-      time: 'Vừa xong',
-      status: 'Đã áp dụng'
+  // Current active case
+  const activeCase = overrideCases.find(c => c.id === selectedCaseId) || overrideCases[0] || {
+    id: 'REQ-98310',
+    risk: 'Nghiêm trọng (High Risk)',
+    riskType: 'high',
+    model: 'Vision Recipe Extractor',
+    modelArch: 'YOLOv8 + Whisper-v3',
+    user: '@hoanganh_vegan',
+    confidence: '64.2% (Thấp)',
+    boxTarget: 'BOX_01 (Tọa độ X: 12%, Y: 22%, W: 38%, H: 42%)',
+    wrongLabel: 'Pork Fat (Mỡ lợn)',
+    wrongConf: '64.2%',
+    consequence: 'Nhãn phân loại sai Pork Fat khiến Pipeline từ chối toàn bộ thực đơn Chay, gây lỗi hệ thống cho tài khoản người dùng thuần chay.',
+    correctTag: 'Nấm mỡ tươi (White Button)',
+    category: 'Thuần Chay (Vegan Safe)',
+    newConfidence: '100% (Human Verified)',
+    diagnosticNote: 'Ánh sáng đèn LED góc tủ lạnh phản quang làm bề mặt nấm mỡ có lớp bóng trắng ngả mỡ trong 2 khung hình...',
+    appVersion: 'WebApp v3.2',
+    timestamp: '14:32:09 Hôm nay'
+  };
+
+  // Editable Form Inputs for active case
+  const [overrideCorrectTag, setOverrideCorrectTag] = useState(activeCase.correctTag || 'Nấm mỡ tươi (White Button)');
+  const [overrideCategory, setOverrideCategory] = useState(activeCase.category || 'Thuần Chay (Vegan Safe)');
+  const [overrideDiagnosticNote, setOverrideDiagnosticNote] = useState(activeCase.diagnosticNote || 'Ánh sáng đèn LED góc tủ lạnh phản quang làm bề mặt nấm mỡ có lớp bóng trắng ngả mỡ trong 2 khung hình...');
+  const [actionNotifyUser, setActionNotifyUser] = useState(true);
+  const [actionCreateGuardrail, setActionCreateGuardrail] = useState(true);
+  const [actionPushActiveLearning, setActionPushActiveLearning] = useState(true);
+
+  // Sync inputs when active case changes
+  useEffect(() => {
+    if (activeCase) {
+      setOverrideCorrectTag(activeCase.correctTag || '');
+      setOverrideCategory(activeCase.category || 'Thuần Chay (Vegan Safe)');
+      setOverrideDiagnosticNote(activeCase.diagnosticNote || '');
+    }
+  }, [selectedCaseId]);
+
+  // Audit Trail History
+  const [overrideAuditTrail, setOverrideAuditTrail] = useState([
+    {
+      id: '#REQ-98120',
+      model: 'Nutrition Chatbot',
+      modelBg: '#ecfeff',
+      modelColor: '#0891b2',
+      specialist: 'AI Operations Specialist (Hà Linh)',
+      overrideContent: 'Chỉnh công thức Protein Hạt Hemp: từ 20g/muỗng thành 11g/muỗng',
+      status: 'Live & Đã Push Retrain',
+      time: '13:45 (45p trước)'
+    },
+    {
+      id: '#REQ-98814',
+      model: 'AI Meal Planner',
+      modelBg: '#ecfdf5',
+      modelColor: '#059669',
+      specialist: 'Admin Master',
+      overrideContent: 'Thêm Rule: Thay mật ong thành mật hoa dừa cho User Thuần Chay',
+      status: 'Live Guardrail Active',
+      time: '11:20 (3h trước)'
+    },
+    {
+      id: '#REQ-97992',
+      model: 'Vision Extractor',
+      modelBg: '#fff7ed',
+      modelColor: '#ea580c',
+      specialist: 'MLOps Engineer (Thành Đạt)',
+      overrideContent: 'Sửa nhãn củ cải trắng bị gán nhầm thành củ dền bạch tạng',
+      status: 'Hoàn tất',
+      time: '09:15 (5h trước)'
+    }
+  ]);
+
+  // Handlers for Screen 7
+  const handleConfirmOverride = () => {
+    const newAudit = {
+      id: `#${activeCase.id}`,
+      model: activeCase.model,
+      modelBg: activeCase.model.includes('Vision') ? '#fff7ed' : activeCase.model.includes('Meal') ? '#ecfdf5' : '#ecfeff',
+      modelColor: activeCase.model.includes('Vision') ? '#ea580c' : activeCase.model.includes('Meal') ? '#059669' : '#0891b2',
+      specialist: 'Admin Master',
+      overrideContent: `Ghi đè: [${activeCase.wrongLabel}] ➔ [${overrideCorrectTag}]`,
+      status: actionCreateGuardrail ? 'Live Guardrail Active' : 'Hoàn tất',
+      time: 'Vừa xong'
     };
-    setOverrideHistory([newRecord, ...overrideHistory]);
-    showToast('🚀 Đã lưu và kích hoạt Ghi đè kết quả AI thành công vào Cơ sở Dữ liệu!');
+    setOverrideAuditTrail([newAudit, ...overrideAuditTrail]);
+    setOverrideCases(prev => prev.filter(c => c.id !== activeCase.id));
+    if (overrideCases.length > 1) {
+      const remaining = overrideCases.filter(c => c.id !== activeCase.id);
+      setSelectedCaseId(remaining[0].id);
+    }
+    showToast(`✅ Đã xác nhận ghi đè & cập nhật nhãn [${overrideCorrectTag}] thành công!`);
+  };
+
+  const handleMarkFalseAlarm = () => {
+    setOverrideCases(prev => prev.filter(c => c.id !== activeCase.id));
+    if (overrideCases.length > 1) {
+      const remaining = overrideCases.filter(c => c.id !== activeCase.id);
+      setSelectedCaseId(remaining[0].id);
+    }
+    showToast(`❌ Đã đánh dấu ca ${activeCase.id} là False Alarm (Không phải lỗi AI).`);
+  };
+
+  const handleSaveNewGuardrail = (e) => {
+    if (e) e.preventDefault();
+    setShowGuardrailModal(false);
+    showToast(`🛡️ Đã tạo thành công Guardrail cứng: "${newGuardrail.ruleName}"`);
+  };
+
+  const handlePushDataset = () => {
+    setShowPushDatasetModal(false);
+    showToast(`🚀 Đã chuyển 18 mẫu đã gán nhãn kiểm chứng vào Active Learning Feedback Loop v2.4.1!`);
   };
 
   // =========================================================================
@@ -8050,162 +8259,831 @@ export default function AdminDashboard({ onNavigate }) {
           )}
 
           {/* =====================================================================
-              MÀN HÌNH 7: CAN THIỆP THỦ CÔNG AI (AI OVERRIDE)
+              MÀN HÌNH 7: CAN THIỆP & GHI ĐÈ KẾT QUẢ AI (MANUAL AI OVERRIDE & CORRECTION)
               ===================================================================== */}
           {activeMenu === 'ai-override' && (
-            <section style={{ animation: 'fadeIn 0.2s ease' }}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0' }}>
-                  7. Can thiệp Thủ công AI (Manual Intervention)
-                </h1>
-                <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
-                  Cho phép Admin ghi đè trực tiếp kết quả vi chất, khẩu phần hoặc nhãn AI khi phát hiện sai lệch trước khi người dùng nhìn thấy.
-                </p>
+            <section style={{ animation: 'fadeIn 0.2s ease', paddingBottom: '3rem' }}>
+              {/* BREADCRUMB */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                <span style={{ cursor: 'pointer', color: '#047857', fontWeight: 600 }} onClick={() => setActiveMenu('overview')}>Admin Portal</span>
+                <ChevronRight size={13} />
+                <span>Điều hành &amp; AI Hub</span>
+                <ChevronRight size={13} />
+                <span style={{ color: '#047857', fontWeight: 700 }}>Can thiệp thủ công AI &amp; Model Override</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-                {/* FORM GHI ĐÈ TRỰC TIẾP */}
-                <form onSubmit={handleApplyOverride} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem' }}>
-                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Sliders size={18} color="#059669" /> Biểu Mẫu Ghi Đè Chỉ Số AI
-                  </h3>
+              {/* HEADER & TOP ACTION BUTTONS */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', letterSpacing: '-0.02em' }}>
+                    Can thiệp &amp; Ghi đè Kết quả AI (Manual AI Override &amp; Correction)
+                  </h1>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0, lineHeight: 1.5, maxWidth: '980px' }}>
+                    Khu vực kiểm soát và hiệu chỉnh kết quả suy luận sai lệch từ 4 cụm mô hình AI. Dữ liệu ghi đè có hiệu lực tức thì đối với phiên trải nghiệm người dùng và tự động gắn nhãn đưa vào Active Learning Feedback Loop v2.4.
+                  </p>
+                </div>
 
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                      Đối tượng / Món ăn cần can thiệp:
-                    </label>
-                    <input 
-                      type="text" 
-                      value={overrideData.recipeName}
-                      onChange={(e) => setOverrideData({ ...overrideData, recipeName: e.target.value })}
-                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.25rem' }}>
-                        Hàm lượng Protein Gốc (AI):
-                      </label>
-                      <input 
-                        type="text" 
-                        readOnly 
-                        value={overrideData.originalProtein}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#64748b', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#047857', marginBottom: '0.25rem' }}>
-                        Ghi đè Protein Đúng (Admin):
-                      </label>
-                      <input 
-                        type="text" 
-                        value={overrideData.overrideProtein}
-                        onChange={(e) => setOverrideData({ ...overrideData, overrideProtein: e.target.value })}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#ffffff', border: '1px solid #059669', fontSize: '0.82rem', fontWeight: 700, color: '#047857', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.25rem' }}>
-                        Calories Gốc (AI):
-                      </label>
-                      <input 
-                        type="text" 
-                        readOnly 
-                        value={overrideData.originalCalories}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#64748b', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#047857', marginBottom: '0.25rem' }}>
-                        Ghi đè Calories Đúng (Admin):
-                      </label>
-                      <input 
-                        type="text" 
-                        value={overrideData.overrideCalories}
-                        onChange={(e) => setOverrideData({ ...overrideData, overrideCalories: e.target.value })}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', background: '#ffffff', border: '1px solid #059669', fontSize: '0.82rem', fontWeight: 700, color: '#047857', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                      Lý do can thiệp (Bắt buộc cho Audit Trail):
-                    </label>
-                    <textarea 
-                      rows={3}
-                      value={overrideData.reason}
-                      onChange={(e) => setOverrideData({ ...overrideData, reason: e.target.value })}
-                      style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <button type="submit" className="admin-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                    <Check size={16} /> Lưu &amp; Áp Dụng Ghi Đè Vào Hệ Thống
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <button 
+                    onClick={() => setShowFullAuditModal(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.52rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, color: '#334155', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#94a3b8'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                  >
+                    <Clock size={14} color="#64748b" /> Lịch sử &amp; Audit Logs
                   </button>
-                </form>
 
-                {/* THÔNG TIN NGUYÊN TẮC CAN THIỆP */}
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                      Nguyên Tắc Can Thiệp &amp; Ghi Đè (Override Policy)
-                    </h3>
-                    <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.6', margin: '0 0 1rem 0' }}>
-                      Theo đặc tả yêu cầu Functional Requirements (FR), Admin chỉ được phép can thiệp khi:
-                    </p>
-                    <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#334155', lineHeight: '1.8' }}>
-                      <li>Mô hình Computer Vision YOLOv8 nhận diện nhầm loại hạt/nguyên liệu (sai lệch &gt; 15%).</li>
-                      <li>Thuật toán quy hoạch tuyến tính PuLP tính dư hoặc thiếu vi chất B12, Kẽm, Canxi so với chuẩn RNI Việt Nam.</li>
-                      <li>Người dùng gửi khiếu nại về công thức tính Calo không chính xác.</li>
-                    </ul>
+                  <button 
+                    onClick={() => setShowGuardrailModal(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.52rem 0.95rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, color: '#047857', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#10b981'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                  >
+                    <Shield size={14} color="#059669" /> Tạo Guardrail cứng
+                  </button>
+
+                  <button 
+                    onClick={() => setShowPushDatasetModal(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#047857', color: '#ffffff', border: 'none', padding: '0.52rem 1.1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 4px rgba(4, 120, 87, 0.2)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#065f46'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#047857'}
+                  >
+                    <Zap size={14} />
+                    <span>Đẩy vào Dataset Huấn luyện</span>
+                    <span style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.1rem 0.45rem', borderRadius: '10px', fontSize: '0.72rem' }}>18 mẫu</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 TOP KPI METRICS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                {/* Card 1: Tổng ca cần rà soát */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      TỔNG CA CẦN RÀ SOÁT
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Flag size={17} color="#dc2626" />
+                    </div>
                   </div>
-
-                  <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '1rem', marginTop: '1rem' }}>
-                    <strong style={{ color: '#065f46', fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>
-                      🛡️ Bảo Toàn Tính Toàn Vẹn Hệ Thống
-                    </strong>
-                    <span style={{ fontSize: '0.78rem', color: '#047857' }}>
-                      Mọi hành động can thiệp đều được tự động gắn mã hash SHA-256 vào Audit Log để đối soát kiểm thử đồ án Capstone.
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.45rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>28</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      +6 ca mới
                     </span>
                   </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    ● 12 ca User báo sai • 16 ca Conf. &lt; 80%
+                  </div>
+                </div>
+
+                {/* Card 2: Đã ghi đè hôm nay */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      ĐÃ GHI ĐÈ HÔM NAY
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <RotateCcw size={17} color="#059669" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.45rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>14</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      SLA: 12 phút
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Đạt 85.7% giải quyết trong cam kết SLA
+                  </div>
+                </div>
+
+                {/* Card 3: Tỷ lệ can thiệp (Override) */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      TỶ LỆ CAN THIỆP (OVERRIDE)
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TrendingUp size={17} color="#0284c7" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.45rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>0.03%</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      Tối ưu xuất sắc
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Tổng 84,920 lượt suy luận 24h qua
+                  </div>
+                </div>
+
+                {/* Card 4: Hiệu chuẩn gắn nhãn */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      HIỆU CHUẨN GẮN NHÃN
+                    </span>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Database size={17} color="#059669" />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.45rem' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', lineHeight: 1 }}>1,240</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                      Chu kỳ CN
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Sẵn sàng fine-tune checkpoint v2.4.1
+                  </div>
                 </div>
               </div>
 
-              {/* BẢNG LỊCH SỬ GHI ĐÈ */}
-              <div className="admin-table-container">
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
-                  <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>Nhật Ký Can Thiệp Gần Đây (Audit History)</strong>
+              {/* FILTER PILLS & SEARCH BAR */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'Tất cả yêu cầu can thiệp (28)' },
+                    { id: 'vision', label: 'Vision bóc tách nhầm (11)' },
+                    { id: 'planner', label: 'Meal Planner vi...' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setOverrideFilterTab(tab.id);
+                        showToast(`Đã lọc danh sách: ${tab.label}`);
+                      }}
+                      style={{
+                        background: overrideFilterTab === tab.id ? '#047857' : '#ffffff',
+                        color: overrideFilterTab === tab.id ? '#ffffff' : '#475569',
+                        border: overrideFilterTab === tab.id ? 'none' : '1px solid #cbd5e1',
+                        borderRadius: '9999px',
+                        padding: '0.42rem 0.95rem',
+                        fontSize: '0.8rem',
+                        fontWeight: overrideFilterTab === tab.id ? 700 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
-                <table className="admin-data-table">
-                  <thead>
-                    <tr>
-                      <th>MÃ SỰ KIỆN</th>
-                      <th>ĐỐI TƯỢNG CAN THIỆP</th>
-                      <th>GIÁ TRỊ CŨ (AI)</th>
-                      <th>GIÁ TRỊ MỚI (ADMIN)</th>
-                      <th>THỜI GIAN</th>
-                      <th>TRẠNG THÁI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {overrideHistory.map(item => (
-                      <tr key={item.id}>
-                        <td><strong style={{ color: '#059669' }}>{item.id}</strong></td>
-                        <td>{item.target}</td>
-                        <td><span style={{ color: '#ef4444' }}>{item.oldVal}</span></td>
-                        <td><strong style={{ color: '#059669' }}>{item.newVal}</strong></td>
-                        <td><small style={{ color: '#64748b' }}>{item.time}</small></td>
-                        <td><span style={{ color: '#059669', fontWeight: 700, fontSize: '0.75rem' }}>● {item.status}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: '1 1 340px', justifyContent: 'flex-end' }}>
+                  {/* Search Input */}
+                  <div style={{ position: 'relative', width: '220px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input 
+                      type="text" 
+                      placeholder="User ID, Req ID, nhãn..."
+                      value={overrideSearch}
+                      onChange={(e) => setOverrideSearch(e.target.value)}
+                      style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', color: '#0f172a', background: '#ffffff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Sort Pill */}
+                  <button 
+                    onClick={() => {
+                      setOverrideRiskSort(overrideRiskSort === 'highest' ? 'lowest' : 'highest');
+                      showToast(`Đã sắp xếp: Rủi ro ${overrideRiskSort === 'highest' ? 'thấp nhất' : 'cao nhất'}`);
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.45rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', color: '#334155', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    <SlidersHorizontal size={13} color="#64748b" />
+                    <span>Rủi ro: {overrideRiskSort === 'highest' ? 'Cao nhất' : 'Thấp nhất'}</span>
+                  </button>
+
+                  {/* Date Pill */}
+                  <button 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '0.45rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', color: '#334155', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    <Calendar size={13} color="#64748b" />
+                    <span>Hôm nay</span>
+                  </button>
+                </div>
               </div>
+
+              {/* MAIN 2-COLUMN INSPECTION WORKSPACE */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 2fr)', gap: '1.25rem', marginBottom: '2rem', alignItems: 'start' }}>
+                {/* LEFT COLUMN: DANH SÁCH CA CHỜ RÀ SOÁT */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                      DANH SÁCH CA CHỜ RÀ SOÁT
+                    </h3>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      Sắp xếp theo độ rủi ro &amp; thời gian
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {overrideCases
+                      .filter(item => {
+                        if (overrideFilterTab === 'vision') return item.model.includes('Vision');
+                        if (overrideFilterTab === 'planner') return item.model.includes('Meal');
+                        if (overrideSearch.trim()) {
+                          const q = overrideSearch.toLowerCase();
+                          return item.id.toLowerCase().includes(q) || item.user.toLowerCase().includes(q) || item.quote.toLowerCase().includes(q) || item.wrongLabel.toLowerCase().includes(q);
+                        }
+                        return true;
+                      })
+                      .map(item => {
+                        const isSelected = item.id === selectedCaseId;
+                        return (
+                          <div 
+                            key={item.id}
+                            onClick={() => setSelectedCaseId(item.id)}
+                            style={{
+                              background: '#ffffff',
+                              border: isSelected ? '2px solid #ea580c' : '1px solid #e2e8f0',
+                              borderRadius: '12px',
+                              padding: '1.1rem',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 4px 12px rgba(234, 88, 12, 0.12)' : '0 1px 3px rgba(0,0,0,0.02)',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {/* Top row: ID + Risk Badge + Time */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                <strong style={{ fontSize: '0.86rem', color: '#0f172a' }}>#{item.id}</strong>
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  color: item.riskType === 'high' ? '#dc2626' : item.riskType === 'medium' ? '#2563eb' : '#64748b',
+                                  background: item.riskType === 'high' ? '#fee2e2' : item.riskType === 'medium' ? '#eff6ff' : '#f1f5f9',
+                                  padding: '0.15rem 0.45rem',
+                                  borderRadius: '6px'
+                                }}>
+                                  {item.risk}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{item.time}</span>
+                            </div>
+
+                            {/* Model name */}
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                              {item.model}
+                            </div>
+
+                            {/* User & Meta */}
+                            <div style={{ fontSize: '0.73rem', color: '#64748b', marginBottom: '0.45rem' }}>
+                              <span>User: <strong>{item.user}</strong></span>
+                              <span style={{ margin: '0 0.35rem' }}>•</span>
+                              <span style={{ color: item.riskType === 'high' ? '#dc2626' : '#047857', fontWeight: 600 }}>{item.confidence}</span>
+                            </div>
+
+                            {/* Quote snippet */}
+                            <div style={{ fontSize: '0.75rem', color: '#1e293b', fontStyle: 'italic', lineHeight: 1.4, marginBottom: '0.65rem' }}>
+                              {item.quote}
+                            </div>
+
+                            {/* Bottom action tag */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.72rem', color: '#c2410c', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {item.actionText || '🎯 Cần rà soát & hiệu chuẩn'}
+                              </span>
+                              <ArrowRight size={14} color={isSelected ? '#ea580c' : '#94a3b8'} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN: REVIEW & LIVE OVERRIDE WORKSPACE */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.4rem', boxShadow: '0 1px 4px rgba(0,0,0,0.03)' }}>
+                  {/* Header Card */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.95rem', marginBottom: '1.15rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ background: '#dc2626', color: '#ffffff', fontWeight: 900, fontSize: '0.78rem', padding: '0.35rem 0.65rem', borderRadius: '8px', letterSpacing: '0.02em' }}>
+                        {activeCase.id}
+                      </span>
+                      <div>
+                        <h3 style={{ margin: '0 0 0.2rem 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                          {activeCase.model} ({activeCase.modelArch || 'YOLOv8 + Whisper-v3'})
+                        </h3>
+                        <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                          <span>Người dùng: <strong>{activeCase.user}</strong></span>
+                          <span style={{ margin: '0 0.4rem' }}>•</span>
+                          <span>Phiên: {activeCase.appVersion || 'WebApp v3.2'}</span>
+                          <span style={{ margin: '0 0.4rem' }}>•</span>
+                          <span>Thời điểm: {activeCase.timestamp || '14:32:09 Hôm nay'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setShowImageFullModal(true)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                    >
+                      <Maximize2 size={13} color="#64748b" /> Ảnh full-HD
+                    </button>
+                  </div>
+
+                  {/* 2 SUB-COLUMNS: SUY LUẬN AI BAN ĐẦU vs GHI ĐÈ THỦ CÔNG */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                    {/* SUB-COLUMN 1: SUY LUẬN AI BAN ĐẦU */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
+                          <Bot size={15} color="#64748b" />
+                          <span>Suy luận AI ban đầu</span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', background: '#fee2e2', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                          Sai lệch nghiêm trọng
+                        </span>
+                      </div>
+
+                      {/* Simulated Bounding Box Viewer */}
+                      <div style={{ position: 'relative', height: '170px', background: '#0f172a', borderRadius: '10px', overflow: 'hidden', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {/* Background photo placeholder */}
+                        <div style={{ position: 'absolute', inset: 0, opacity: 0.25, background: 'radial-gradient(circle at 50% 50%, #334155, #020617)' }}></div>
+                        
+                        {/* Simulated Bounding Boxes */}
+                        <div style={{ position: 'absolute', top: '20%', left: '10%', width: '38%', height: '48%', border: '2px dashed #ef4444', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '6px', padding: '0.3rem', boxSizing: 'border-box' }}>
+                          <div style={{ background: '#ef4444', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, padding: '0.1rem 0.35rem', borderRadius: '4px', display: 'inline-block' }}>
+                            Pork Fat (Mỡ lợn) 64.2%
+                          </div>
+                          <div style={{ fontSize: '0.6rem', color: '#fecaca', marginTop: '0.2rem', fontWeight: 700 }}>BOX_01</div>
+                        </div>
+
+                        <div style={{ position: 'absolute', top: '15%', right: '12%', width: '32%', height: '36%', border: '1.5px dashed #10b981', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '6px', padding: '0.25rem', boxSizing: 'border-box' }}>
+                          <div style={{ background: '#10b981', color: '#ffffff', fontSize: '0.62rem', fontWeight: 700, padding: '0.1rem 0.3rem', borderRadius: '4px', display: 'inline-block' }}>
+                            Cà chua 98.4%
+                          </div>
+                        </div>
+
+                        <div style={{ position: 'absolute', bottom: '12%', right: '18%', width: '35%', height: '32%', border: '1.5px dashed #10b981', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '6px', padding: '0.25rem', boxSizing: 'border-box' }}>
+                          <div style={{ background: '#10b981', color: '#ffffff', fontSize: '0.62rem', fontWeight: 700, padding: '0.1rem 0.3rem', borderRadius: '4px', display: 'inline-block' }}>
+                            Đậu phụ mơ 96.1%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* System Consequence Callout */}
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.75rem 0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#b91c1c', fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.25rem' }}>
+                          <AlertTriangle size={13} /> Hậu quả hệ thống:
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.73rem', color: '#991b1b', lineHeight: 1.4 }}>
+                          {activeCase.consequence || 'Nhãn phân loại sai Pork Fat khiến Pipeline từ chối toàn bộ thực đơn Chay, gây lỗi hệ thống cho tài khoản người dùng thuần chay.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* SUB-COLUMN 2: GHI ĐÈ THỦ CÔNG */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
+                          <SlidersHorizontal size={15} color="#047857" />
+                          <span>Ghi đè thủ công (Admin Workspace)</span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#047857', background: '#ecfdf5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                          Live Override
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {/* Target Box Field */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>
+                            Mục tiêu hiệu chỉnh (Target Bounding Box):
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.45rem 0.65rem', fontSize: '0.78rem', color: '#0f172a' }}>
+                            <span>{activeCase.boxTarget || 'BOX_01 (Tọa độ X: 12%, Y: 22%, W: 38%, H: 42%)'}</span>
+                            <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.65rem', fontWeight: 800, padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                              Cung sai
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Ground Truth Tag Field */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>
+                            Nhãn thực phẩm chuẩn xác (Ground Truth Tag):
+                          </label>
+                          <input 
+                            type="text" 
+                            value={overrideCorrectTag}
+                            onChange={(e) => setOverrideCorrectTag(e.target.value)}
+                            style={{ width: '100%', padding: '0.48rem 0.65rem', borderRadius: '6px', border: '1px solid #059669', fontSize: '0.82rem', fontWeight: 700, color: '#047857', background: '#ffffff', boxSizing: 'border-box' }}
+                          />
+                        </div>
+
+                        {/* 2 Pills: Category & Confidence */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.2rem' }}>
+                              Chuẩn phân loại:
+                            </label>
+                            <span style={{ display: 'inline-block', width: '100%', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: '0.73rem', fontWeight: 700, padding: '0.35rem 0.5rem', borderRadius: '6px', boxSizing: 'border-box', textAlign: 'center' }}>
+                              {overrideCategory}
+                            </span>
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.2rem' }}>
+                              Độ tin cậy gán mới:
+                            </label>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', width: '100%', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: '0.73rem', fontWeight: 700, padding: '0.35rem 0.5rem', borderRadius: '6px', boxSizing: 'border-box' }}>
+                              <Lock size={12} /> 100% (Human Verified)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Diagnostic Note */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '0.25rem' }}>
+                            Nguyên nhân sai lệch (MLOps Diagnostic Note):
+                          </label>
+                          <textarea 
+                            rows={2}
+                            value={overrideDiagnosticNote}
+                            onChange={(e) => setOverrideDiagnosticNote(e.target.value)}
+                            style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', color: '#334155', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.35 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CHECKLIST: HÀNH ĐỘNG LAN TỎA & THIẾT LẬP GUARDRAIL */}
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '1rem 1.15rem', marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#065f46', marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Zap size={14} color="#059669" />
+                      <span>Hành động lan tỏa &amp; Thiết lập Guardrail</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.78rem' }}>
+                      {/* Checkbox 1 */}
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={actionNotifyUser}
+                          onChange={(e) => setActionNotifyUser(e.target.checked)}
+                          style={{ marginTop: '0.15rem', accentColor: '#059669' }}
+                        />
+                        <div>
+                          <strong style={{ color: '#0f172a' }}>Cập nhật kết quả tức thì đến tài khoản User {activeCase.user}</strong>
+                          <div style={{ color: '#065f46', fontSize: '0.72rem', lineHeight: 1.35 }}>
+                            Tự động kích hoạt lại bộ gợi ý món chay và gửi tin nhắn xin lỗi hệ thống kèm tặng 50 điểm VeggiePoint.
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Checkbox 2 */}
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={actionCreateGuardrail}
+                          onChange={(e) => setActionCreateGuardrail(e.target.checked)}
+                          style={{ marginTop: '0.15rem', accentColor: '#059669' }}
+                        />
+                        <div>
+                          <strong style={{ color: '#0f172a' }}>Tạo Rule ngoại lệ vĩnh viễn (Global System Guardrail)</strong>
+                          <div style={{ color: '#065f46', fontSize: '0.72rem', lineHeight: 1.35 }}>
+                            Khóa vĩnh viễn nhãn &quot;Mỡ động vật&quot; trong các ảnh thuộc luồng bóc tách tủ lạnh gia đình người dùng Chay.
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Checkbox 3 */}
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={actionPushActiveLearning}
+                          onChange={(e) => setActionPushActiveLearning(e.target.checked)}
+                          style={{ marginTop: '0.15rem', accentColor: '#059669' }}
+                        />
+                        <div>
+                          <strong style={{ color: '#0f172a' }}>Gắn cờ đẩy vào Active Learning Set v2.4.1 (Trọng số huấn luyện x3)</strong>
+                          <div style={{ color: '#065f46', fontSize: '0.72rem', lineHeight: 1.35 }}>
+                            Ưu tiên bổ sung mẫu nấm mỡ vào Dataset Retrain kỳ tới để triệt tiêu false-positive tương tự.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* ACTION FOOTER BUTTONS */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.65rem' }}>
+                    <button 
+                      onClick={() => showToast('Đã hủy bỏ thao tác chỉnh sửa hiện tại.')}
+                      style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.55rem 1.1rem', fontSize: '0.82rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+                    >
+                      Hủy bỏ
+                    </button>
+
+                    <button 
+                      onClick={handleMarkFalseAlarm}
+                      style={{ background: '#ffffff', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.55rem 1.1rem', fontSize: '0.82rem', fontWeight: 700, color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <X size={14} /> Đánh dấu Không phải lỗi AI (False Alarm)
+                    </button>
+
+                    <button 
+                      onClick={handleConfirmOverride}
+                      style={{ background: '#047857', border: 'none', borderRadius: '8px', padding: '0.55rem 1.35rem', fontSize: '0.84rem', fontWeight: 800, color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem', boxShadow: '0 2px 5px rgba(4, 120, 87, 0.25)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#065f46'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#047857'}
+                    >
+                      <Check size={16} /> Xác nhận Ghi đè &amp; Cập nhật Dữ liệu
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTTOM SECTION: LỊCH SỬ CAN THIỆP GẦN NHẤT (AUDIT TRAIL) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Clock size={16} color="#059669" />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                        Lịch sử can thiệp gần nhất (Audit Trail)
+                      </h3>
+                      <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                        Ghi nhận minh bạch mọi thao tác can thiệp dữ liệu AI theo thời gian thực
+                      </div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setShowFullAuditModal(true)}
+                    style={{ background: 'transparent', border: 'none', color: '#047857', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    <span>Xem toàn bộ 14 ca hôm nay</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+
+                {/* Table */}
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>MÃ REQUEST</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>MÔ HÌNH AI</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>CHUYÊN VIÊN CAN THIỆP</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>HIỆU CHỈNH GHI ĐÈ</th>
+                        <th style={{ padding: '0.75rem 0.85rem' }}>TRẠNG THÁI ÁP DỤNG</th>
+                        <th style={{ padding: '0.75rem 0.85rem', textAlign: 'right' }}>THỜI GIAN</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overrideAuditTrail.map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                          <td style={{ padding: '0.85rem' }}>
+                            <strong style={{ color: '#0f172a' }}>{row.id}</strong>
+                          </td>
+
+                          <td style={{ padding: '0.85rem' }}>
+                            <span style={{ background: row.modelBg, color: row.modelColor, padding: '0.2rem 0.55rem', borderRadius: '12px', fontSize: '0.73rem', fontWeight: 700 }}>
+                              {row.model}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '0.85rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#047857', color: '#ffffff', fontSize: '0.62rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                OP
+                              </div>
+                              <span style={{ fontWeight: 700, color: '#334155', fontSize: '0.78rem' }}>{row.specialist}</span>
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '0.85rem', maxWidth: '300px' }}>
+                            <span style={{ color: '#1e293b', fontSize: '0.78rem' }}>{row.overrideContent}</span>
+                          </td>
+
+                          <td style={{ padding: '0.85rem' }}>
+                            <span style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              ● {row.status}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '0.85rem', textAlign: 'right', color: '#64748b', fontSize: '0.74rem' }}>
+                            {row.time}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* =========================================================================
+                  MODALS FOR SCREEN 7
+                  ========================================================================= */}
+              {/* 1. GUARDRAIL CREATOR MODAL */}
+              {showGuardrailModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '540px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Shield size={18} color="#059669" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Tạo Rule Ngoại Lệ Vĩnh Viễn (Guardrail)</h3>
+                      </div>
+                      <button onClick={() => setShowGuardrailModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveNewGuardrail} style={{ padding: '1.5rem' }}>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>Mô hình AI áp dụng:</label>
+                        <select 
+                          value={newGuardrail.modelTarget}
+                          onChange={(e) => setNewGuardrail({ ...newGuardrail, modelTarget: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#0f172a' }}
+                        >
+                          <option value="vision">Vision Recipe Extractor (Computer Vision YOLOv8)</option>
+                          <option value="planner">AI Meal Planner (Transformer &amp; PuLP Solver)</option>
+                          <option value="chatbot">Nutrition Advisory Chatbot (Gemini RAG)</option>
+                          <option value="moderation">NLP Toxicity Moderation (DistilBERT)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>Tên quy tắc Guardrail:</label>
+                        <input 
+                          type="text" 
+                          value={newGuardrail.ruleName}
+                          onChange={(e) => setNewGuardrail({ ...newGuardrail, ruleName: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#0f172a', boxSizing: 'border-box' }}
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>Lý do &amp; Phạm vi kích hoạt:</label>
+                        <textarea 
+                          rows={3}
+                          value={newGuardrail.reason}
+                          onChange={(e) => setNewGuardrail({ ...newGuardrail, reason: e.target.value })}
+                          style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', color: '#0f172a', resize: 'vertical', boxSizing: 'border-box' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                        <button type="button" onClick={() => setShowGuardrailModal(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                          Hủy
+                        </button>
+                        <button type="submit" style={{ background: '#047857', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer' }}>
+                          Lưu Guardrail
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. FULL AUDIT TRAIL MODAL */}
+              {showFullAuditModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '720px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Clock size={18} color="#059669" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Toàn Bộ Nhật Ký Can Thiệp (Audit Trail 14 Ca Hôm Nay)</h3>
+                      </div>
+                      <button onClick={() => setShowFullAuditModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1 }}>
+                      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.78rem', color: '#065f46', marginBottom: '1rem' }}>
+                        🛡️ Mọi bản ghi can thiệp đều được tự động băm mã hash SHA-256 đối soát trực tiếp, đảm bảo tính toàn vẹn hệ thống AI.
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {[
+                          { id: '#REQ-98120', model: 'Nutrition Chatbot', admin: 'AI Operations Specialist (Hà Linh)', change: 'Chỉnh công thức Protein Hạt Hemp: 20g -> 11g', hash: 'sha256:7f4a...91b2', time: '13:45' },
+                          { id: '#REQ-98814', model: 'AI Meal Planner', admin: 'Admin Master', change: 'Thay mật ong thành mật hoa dừa cho User Thuần Chay', hash: 'sha256:3e1c...44a1', time: '11:20' },
+                          { id: '#REQ-97992', model: 'Vision Extractor', admin: 'MLOps Engineer (Thành Đạt)', change: 'Sửa nhãn củ cải trắng bị gán nhầm thành củ dền', hash: 'sha256:9a0b...88c3', time: '09:15' },
+                          { id: '#REQ-97811', model: 'AI Meal Planner', admin: 'Admin Master', change: 'Gỡ món chứa sữa bò cho hồ sơ dị ứng Lactose', hash: 'sha256:2d5e...11f4', time: '08:40' },
+                          { id: '#REQ-97740', model: 'NLP Moderation', admin: 'AI Operations Specialist (Hà Linh)', change: 'Mở khóa bình luận false-positive về nấm đông cô', hash: 'sha256:1a8c...77d2', time: '08:15' }
+                        ].map((row, idx) => (
+                          <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.85rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                <strong style={{ color: '#0f172a', fontSize: '0.84rem' }}>{row.id}</strong>
+                                <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{row.model}</span>
+                                <span style={{ color: '#64748b', fontSize: '0.72rem' }}>• {row.admin}</span>
+                              </div>
+                              <div style={{ fontSize: '0.76rem', color: '#334155' }}>{row.change}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.72rem', color: '#059669', fontFamily: 'monospace', fontWeight: 700 }}>{row.hash}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{row.time}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setShowFullAuditModal(false)} style={{ background: '#047857', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. PUSH ACTIVE LEARNING MODAL */}
+              {showPushDatasetModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '520px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Zap size={18} color="#059669" />
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Đẩy vào Dataset Huấn luyện (Active Learning)</h3>
+                      </div>
+                      <button onClick={() => setShowPushDatasetModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '1.5rem' }}>
+                      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '0.85rem', marginBottom: '1.15rem' }}>
+                        <strong style={{ fontSize: '0.84rem', color: '#065f46', display: 'block', marginBottom: '0.35rem' }}>
+                          ⚡ 18 mẫu đã được Admin &amp; Chuyên gia hiệu chuẩn chính xác
+                        </strong>
+                        <p style={{ fontSize: '0.76rem', color: '#047857', margin: 0, lineHeight: 1.45 }}>
+                          Toàn bộ 18 mẫu này sẽ được gán nhãn Ground Truth (Human Verified) và đẩy vào hàng đợi Active Learning Set v2.4.1 để tự động tối ưu hóa trọng số mô hình.
+                        </p>
+                      </div>
+
+                      <div style={{ fontSize: '0.8rem', color: '#334155', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+                        <div>● Vision Recipe Extractor: <strong>11 mẫu ảnh Bounding Box</strong></div>
+                        <div>● AI Meal Planner Engine: <strong>4 mẫu quy tắc dinh dưỡng</strong></div>
+                        <div>● Nutrition Advisory Chatbot: <strong>3 mẫu đối thoại RAG</strong></div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                        <button onClick={() => setShowPushDatasetModal(false)} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                          Hủy
+                        </button>
+                        <button onClick={handlePushDataset} style={{ background: '#047857', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.82rem', fontWeight: 700, color: '#ffffff', cursor: 'pointer' }}>
+                          Xác nhận Đẩy Dữ liệu
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. FULL IMAGE PREVIEW MODAL */}
+              {showImageFullModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                  <div style={{ background: '#0f172a', borderRadius: '14px', width: '100%', maxWidth: '780px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #334155', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+                        Ảnh tải lên từ User @hoanganh_vegan • [1080x1920 Full HD]
+                      </div>
+                      <button onClick={() => setShowImageFullModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div style={{ position: 'relative', height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'radial-gradient(circle at 50% 50%, #1e293b, #020617)' }}>
+                      <div style={{ position: 'absolute', top: '18%', left: '15%', width: '38%', height: '48%', border: '2.5px dashed #ef4444', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '8px', padding: '0.5rem' }}>
+                        <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                          Pork Fat (Mỡ lợn) 64.2% ➔ Đã sửa: Nấm mỡ tươi (100%)
+                        </span>
+                      </div>
+
+                      <div style={{ position: 'absolute', top: '15%', right: '15%', width: '30%', height: '35%', border: '2px dashed #10b981', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '8px', padding: '0.4rem' }}>
+                        <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                          Cà chua 98.4%
+                        </span>
+                      </div>
+
+                      <div style={{ position: 'absolute', bottom: '12%', right: '20%', width: '32%', height: '32%', border: '2px dashed #10b981', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '8px', padding: '0.4rem' }}>
+                        <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                          Đậu phụ mơ 96.1%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Trạng thái: Bounding Box BOX_01 đã được cập nhật nhãn Nấm mỡ tươi</span>
+                      <button onClick={() => setShowImageFullModal(false)} style={{ background: '#047857', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '0.45rem 1.1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
