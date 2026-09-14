@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Cpu, ShieldAlert, Utensils, Users, Layers, 
   MessageSquare, LogOut, Search, Bell, Download, Sliders, Sparkles, 
@@ -40,12 +40,22 @@ export default function AdminDashboard({ onNavigate }) {
   // DỮ LIỆU MÀN HÌNH 9: HỒ SƠ & CÀI ĐẶT TÀI KHOẢN (ADMIN)
   // =========================================================================
   const [profileTab, setProfileTab] = useState('info'); // 'info' | 'security' | 'notifications' | 'api' | 'sessions'
+  const [adminAvatar, setAdminAvatar] = useState('/admin_minh_avatar.jpg');
+  const avatarInputRef = useRef(null);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAdminAvatar(url);
+      showToast('📸 Đã cập nhật ảnh đại diện Admin thành công!');
+    }
+  };
+
   const [adminProfileData, setAdminProfileData] = useState({
     fullName: 'Admin',
-    roleResponsibility: 'Hệ thống Dinh dưỡng & Kiểm duyệt AI',
     email: 'admin@veggie.ai',
-    phone: '+84 (0) 908 721 999',
-    timezone: '(GMT+07:00) Hà Nội, Bangkok, Jakarta',
+    phone: '(+84) 908 721 999',
     language: 'Tiếng Việt (Mặc định)'
   });
   const [passwordState, setPasswordState] = useState({
@@ -2621,7 +2631,7 @@ export default function AdminDashboard({ onNavigate }) {
           >
             <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid #a7f3d0', flexShrink: 0 }}>
               <img 
-                src="/admin_minh_avatar.jpg" 
+                src={adminAvatar} 
                 alt="Admin" 
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {
@@ -2717,7 +2727,7 @@ export default function AdminDashboard({ onNavigate }) {
               title="Xem trang cá nhân & Cài đặt"
             >
               <img 
-                src="/admin_minh_avatar.jpg" 
+                src={adminAvatar} 
                 alt="Admin" 
                 style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
@@ -10524,9 +10534,14 @@ export default function AdminDashboard({ onNavigate }) {
                 <div className="admin-profile-left-col">
                   {/* PROFILE CARD */}
                   <div className="admin-profile-card">
-                    <div className="admin-profile-avatar-wrapper">
+                    <div 
+                      className="admin-profile-avatar-wrapper"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => avatarInputRef.current?.click()}
+                      title="Bấm để tải ảnh đại diện mới"
+                    >
                       <img 
-                        src="/admin_minh_avatar.jpg" 
+                        src={adminAvatar} 
                         alt="Admin" 
                         className="admin-profile-avatar-img"
                         onError={(e) => {
@@ -10534,23 +10549,52 @@ export default function AdminDashboard({ onNavigate }) {
                         }}
                       />
                       <span className="admin-profile-online-dot" title="Trực tuyến"></span>
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          bottom: '0px',
+                          left: '0px',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: '#047857',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid #ffffff',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.15)'
+                        }}
+                        title="Đổi ảnh đại diện"
+                      >
+                        <Camera size={13} />
+                      </div>
                     </div>
+                    <input 
+                      type="file" 
+                      ref={avatarInputRef} 
+                      onChange={handleAvatarChange} 
+                      accept="image/*" 
+                      style={{ display: 'none' }} 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => avatarInputRef.current?.click()}
+                      style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Camera size={13} />
+                      Đổi ảnh đại diện
+                    </button>
                     <h2 className="admin-profile-name">Admin</h2>
                     <span className="admin-profile-role-badge">Admin</span>
-                    <div className="admin-profile-email">admin@veggie.ai</div>
+                    <div className="admin-profile-email">{adminProfileData.email}</div>
 
-                    <div className="admin-profile-meta-grid">
-                      <div className="admin-profile-meta-item">
-                        <span className="admin-profile-meta-label">Gia nhập</span>
-                        <span className="admin-profile-meta-val">14/03/2023</span>
-                      </div>
-                      <div className="admin-profile-meta-item">
-                        <span className="admin-profile-meta-label">Trạng thái 2FA</span>
-                        <span className="admin-profile-meta-val" style={{ color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-                          Đang Bật
-                        </span>
-                      </div>
+                    <div style={{ width: '100%', background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Trạng thái 2FA</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+                        Đang Bật
+                      </span>
                     </div>
                   </div>
 
@@ -10657,27 +10701,13 @@ export default function AdminDashboard({ onNavigate }) {
                       </div>
 
                       <div className="admin-form-group">
-                        <label className="admin-form-label">Chức danh / Trách nhiệm</label>
-                        <input 
-                          type="text" 
-                          className="admin-form-input" 
-                          value={adminProfileData.roleResponsibility}
-                          onChange={(e) => setAdminProfileData({ ...adminProfileData, roleResponsibility: e.target.value })}
-                        />
-                      </div>
-
-                      <div className="admin-form-group">
                         <label className="admin-form-label">Địa chỉ Email Quản Trị</label>
-                        <div className="admin-input-wrap">
-                          <input 
-                            type="email" 
-                            className="admin-form-input" 
-                            value={adminProfileData.email}
-                            disabled
-                          />
-                          <Lock size={15} color="#94a3b8" style={{ position: 'absolute', right: '12px' }} />
-                        </div>
-                        <span className="admin-input-hint">Liên hệ DevOps để đổi email định danh hệ thống</span>
+                        <input 
+                          type="email" 
+                          className="admin-form-input" 
+                          value={adminProfileData.email}
+                          onChange={(e) => setAdminProfileData({ ...adminProfileData, email: e.target.value })}
+                        />
                       </div>
 
                       <div className="admin-form-group">
@@ -10688,20 +10718,6 @@ export default function AdminDashboard({ onNavigate }) {
                           value={adminProfileData.phone}
                           onChange={(e) => setAdminProfileData({ ...adminProfileData, phone: e.target.value })}
                         />
-                      </div>
-
-                      <div className="admin-form-group">
-                        <label className="admin-form-label">Múi giờ vận hành</label>
-                        <select 
-                          className="admin-form-input"
-                          value={adminProfileData.timezone}
-                          onChange={(e) => setAdminProfileData({ ...adminProfileData, timezone: e.target.value })}
-                        >
-                          <option>(GMT+07:00) Hà Nội, Bangkok, Jakarta</option>
-                          <option>(GMT+08:00) Singapore, Kuala Lumpur</option>
-                          <option>(GMT+09:00) Tokyo, Seoul</option>
-                          <option>(GMT+00:00) UTC / London</option>
-                        </select>
                       </div>
 
                       <div className="admin-form-group">
@@ -10969,30 +10985,20 @@ export default function AdminDashboard({ onNavigate }) {
                   </div>
 
                   {/* BOTTOM ACTIONS BAR */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <button 
-                      onClick={() => showToast('Đã kích hoạt thu hồi toàn bộ token đăng nhập trên tất cả thiết bị!')}
-                      style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                      onClick={() => showToast('Đã hủy các thay đổi chưa lưu.')}
+                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '0.55rem 1.25rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
                     >
-                      <LogOut size={16} />
-                      Đăng xuất khỏi tất cả thiết bị
+                      Hủy bỏ
                     </button>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <button 
-                        onClick={() => showToast('Đã hủy các thay đổi chưa lưu.')}
-                        style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '0.55rem 1.25rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        Hủy bỏ
-                      </button>
-                      <button 
-                        onClick={handleSaveAdminProfile}
-                        style={{ background: '#047857', border: 'none', color: '#ffffff', padding: '0.55rem 1.45rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem', boxShadow: '0 2px 6px rgba(4, 120, 87, 0.25)' }}
-                      >
-                        <Check size={16} />
-                        Lưu thay đổi
-                      </button>
-                    </div>
+                    <button 
+                      onClick={handleSaveAdminProfile}
+                      style={{ background: '#047857', border: 'none', color: '#ffffff', padding: '0.55rem 1.45rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem', boxShadow: '0 2px 6px rgba(4, 120, 87, 0.25)' }}
+                    >
+                      <Check size={16} />
+                      Lưu thay đổi
+                    </button>
                   </div>
                 </div>
               </div>
