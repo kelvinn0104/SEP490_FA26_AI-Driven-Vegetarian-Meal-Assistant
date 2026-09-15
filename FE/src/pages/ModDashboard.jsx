@@ -552,19 +552,25 @@ export default function ModDashboard({ onNavigate }) {
               className={`mod-nav-link ${activeModTab === 'dashboard' ? 'active' : ''}`}
               onClick={() => setActiveModTab('dashboard')}
             >
-              <LayoutDashboard size={18} />
-              <span>Dashboard</span>
+              <div className="mod-nav-link-inner">
+                <div className="mod-nav-icon-box">
+                  <LayoutDashboard size={16} />
+                </div>
+                <span className="mod-nav-text">Dashboard</span>
+              </div>
             </button>
 
             {/* GROUP 2: KIỂM DUYỆT */}
-            <div className="mod-nav-group-label" style={{ marginTop: '1.25rem' }}>KIỂM DUYỆT</div>
+            <div className="mod-nav-group-label" style={{ marginTop: '0.85rem' }}>KIỂM DUYỆT</div>
             <button 
               className={`mod-nav-link ${activeModTab === 'queue' ? 'active' : ''}`}
               onClick={() => setActiveModTab('queue')}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <CheckCircle size={18} />
-                <span>Hàng đợi duyệt bài</span>
+              <div className="mod-nav-link-inner">
+                <div className="mod-nav-icon-box">
+                  <CheckCircle size={16} />
+                </div>
+                <span className="mod-nav-text">Hàng đợi duyệt bài</span>
               </div>
               <span className="mod-badge-count">{moderationItems.length}</span>
             </button>
@@ -578,34 +584,50 @@ export default function ModDashboard({ onNavigate }) {
                 setActiveModTab('detail');
               }}
             >
-              <FileText size={18} />
-              <span>Chi tiết bài viết</span>
+              <div className="mod-nav-link-inner">
+                <div className="mod-nav-icon-box">
+                  <FileText size={16} />
+                </div>
+                <span className="mod-nav-text">Chi tiết bài viết</span>
+              </div>
             </button>
 
             <button 
               className={`mod-nav-link ${activeModTab === 'history' ? 'active' : ''}`}
               onClick={() => setActiveModTab('history')}
             >
-              <History size={18} />
-              <span>Lịch sử duyệt bài</span>
+              <div className="mod-nav-link-inner">
+                <div className="mod-nav-icon-box">
+                  <History size={16} />
+                </div>
+                <span className="mod-nav-text">Lịch sử duyệt bài</span>
+              </div>
             </button>
 
             {/* GROUP 3: CÀI ĐẶT & TÀI KHOẢN */}
-            <div className="mod-nav-group-label" style={{ marginTop: '1.25rem' }}>CÀI ĐẶT & TÀI KHOẢN</div>
+            <div className="mod-nav-group-label" style={{ marginTop: '0.85rem' }}>CÀI ĐẶT & TÀI KHOẢN</div>
             <button 
               className={`mod-nav-link ${activeModTab === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveModTab('profile')}
             >
-              <User size={18} />
-              <span>Trang cá nhân &amp; Cài đặt</span>
+              <div className="mod-nav-link-inner">
+                <div className="mod-nav-icon-box">
+                  <User size={16} />
+                </div>
+                <span className="mod-nav-text">Trang cá nhân &amp; Cài đặt</span>
+              </div>
             </button>
 
             <button 
               className={`mod-nav-link ${activeModTab === 'security' ? 'active' : ''}`}
               onClick={() => setActiveModTab('security')}
             >
-              <ShieldCheck size={18} />
-              <span>Bảo mật</span>
+              <div className="mod-nav-link-inner">
+                <div className="mod-nav-icon-box">
+                  <ShieldCheck size={16} />
+                </div>
+                <span className="mod-nav-text">Bảo mật</span>
+              </div>
             </button>
           </nav>
         </div>
