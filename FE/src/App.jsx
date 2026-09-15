@@ -11,6 +11,7 @@ import CommunityPage from './pages/CommunityPage';
 import BlogPage from './pages/BlogPage';
 import VideosPage from './pages/VideosPage';
 import AdminDashboard from './pages/AdminDashboard';
+import ModDashboard from './pages/ModDashboard';
 import ModerationQueue from './pages/ModerationQueue';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
@@ -132,6 +133,11 @@ export default function App() {
   // NẾU ADMIN ĐANG XEM ADMIN DASHBOARD: HIỂN THỊ TRỌN VẸN GIAO DIỆN OPS PORTAL CHUYÊN NGHIỆP
   if (activeTab === 'admin' && user && user.role === 'Admin') {
     return <AdminDashboard onNavigate={handleNavigate} />;
+  }
+
+  // NẾU MODERATOR/ADMIN ĐANG XEM MODERATION WORKSPACE: HIỂN THỊ TRỌN VẸN GIAO DIỆN MOD PORTAL CHUYÊN NGHIỆP
+  if (activeTab === 'moderation' && user && (user.role === 'Moderator' || user.role === 'Admin')) {
+    return <ModDashboard onNavigate={handleNavigate} />;
   }
 
   return (

@@ -37,10 +37,10 @@ export function AuthProvider({ children }) {
 
   const loginAsMod = () => {
     login({
-      name: 'Kiểm Duyệt Viên Cộng Đồng',
+      name: 'Lê Minh Trí',
       email: 'mod@veggieai.vn',
       role: 'Moderator',
-      roleLabel: 'Kiểm duyệt viên (Mod)'
+      roleLabel: 'Moderator'
     });
   };
 
