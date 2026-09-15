@@ -1234,18 +1234,6 @@ export default function ModDashboard({ onNavigate }) {
                 <span className="mod-nav-text">Trang cá nhân &amp; Cài đặt</span>
               </div>
             </button>
-
-            <button 
-              className={`mod-nav-link ${activeModTab === 'security' ? 'active' : ''}`}
-              onClick={() => setActiveModTab('security')}
-            >
-              <div className="mod-nav-link-inner">
-                <div className="mod-nav-icon-box">
-                  <ShieldCheck size={16} />
-                </div>
-                <span className="mod-nav-text">Bảo mật</span>
-              </div>
-            </button>
           </nav>
         </div>
 
@@ -1971,17 +1959,16 @@ export default function ModDashboard({ onNavigate }) {
                     )}
                   </div>
                   <button 
-                    className="mod-queue-cat-pill-btn" 
-                    title="Tuỳ chọn bộ lọc"
-                    style={{ padding: '0.45rem 0.65rem' }}
+                    className="mod-queue-search-filter-btn" 
+                    title="Tuỳ chọn bộ lọc nâng cao"
                   >
-                    <SlidersHorizontal size={14} />
+                    <SlidersHorizontal size={15} />
                   </button>
                 </div>
 
                 <div className="mod-queue-cat-row">
                   <div className="mod-queue-cat-pills">
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginRight: '0.25rem' }}>Danh mục:</span>
+                    <span className="mod-queue-cat-label">Danh mục:</span>
                     <button 
                       className={`mod-queue-cat-pill-btn ${queueCategory === 'all' ? 'active' : ''}`}
                       onClick={() => { setQueueCategory('all'); setQueueCurrentPage(1); }}
@@ -2014,8 +2001,8 @@ export default function ModDashboard({ onNavigate }) {
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Bộ lọc AI:</span>
+                  <div className="mod-queue-ai-filter-wrap">
+                    <span className="mod-queue-ai-filter-label">Bộ lọc AI:</span>
                     <select 
                       className="mod-queue-ai-filter-select"
                       value={queueAiFilter}
@@ -2061,7 +2048,9 @@ export default function ModDashboard({ onNavigate }) {
                                 <span className="mod-post-thumb-label">{item.typeTag || 'Công thức'}</span>
                               </div>
                               <div>
-                                <span className="mod-post-cat-badge">{item.type}</span>
+                                <span className={`mod-post-cat-badge ${item.category || item.typeCode}`}>
+                                  {item.type}
+                                </span>
                                 <h4 
                                   className="mod-post-name"
                                   onClick={() => {
@@ -2145,13 +2134,26 @@ export default function ModDashboard({ onNavigate }) {
                                 {item.actionType === 'handle' ? 'Xem & Xử lý' : 'Xem & Duyệt'}
                               </button>
                               
-                              <button 
-                                className="mod-tbl-btn-quick-check" 
-                                title="Duyệt nhanh bài viết"
-                                onClick={() => handleApproveItem(item)}
-                              >
-                                <Check size={14} />
-                              </button>
+                              {item.actionType === 'handle' ? (
+                                <button 
+                                  className="mod-tbl-btn-quick-action warning" 
+                                  title="Xem chi tiết và xử lý vi phạm"
+                                  onClick={() => {
+                                    setInspectingItem(item);
+                                    setActiveModTab('detail');
+                                  }}
+                                >
+                                  <MessageSquare size={14} />
+                                </button>
+                              ) : (
+                                <button 
+                                  className="mod-tbl-btn-quick-check" 
+                                  title="Duyệt nhanh bài viết"
+                                  onClick={() => handleApproveItem(item)}
+                                >
+                                  <Check size={14} />
+                                </button>
+                              )}
 
                               <button 
                                 className="mod-tbl-btn-more" 
@@ -3104,127 +3106,6 @@ export default function ModDashboard({ onNavigate }) {
                         <span>Lưu Cấu Hình</span>
                       </button>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              VIEW 6: BẢO MẬT & 2FA MODERATOR
-              ========================================================================= */}
-          {activeModTab === 'security' && (
-            <div className="mod-security-view">
-              <div className="mod-view-header">
-                <div>
-                  <h1 className="mod-view-title">Bảo Mật Tài Khoản Kiểm Duyệt</h1>
-                  <p className="mod-view-sub">Bảo vệ quyền can thiệp nội dung cộng đồng với xác thực hai yếu tố (2FA).</p>
-                </div>
-              </div>
-
-              <div className="mod-panel-card" style={{ marginTop: '1rem', maxWidth: '720px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#ecfdf5', borderRadius: '10px', border: '1px solid #a7f3d0', marginBottom: '1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <ShieldCheck size={24} color="#059669" />
-                    <div>
-                      <strong style={{ fontSize: '0.88rem', color: '#065f46' }}>Xác thực hai bước (2FA) - Đã kích hoạt</strong>
-                      <div style={{ fontSize: '0.75rem', color: '#047857' }}>Bảo vệ tài khoản qua ứng dụng Google Authenticator</div>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#047857', background: '#ffffff', padding: '0.2rem 0.65rem', borderRadius: '9999px' }}>
-                    ĐANG BẬT
-                  </span>
-                </div>
-
-                <div>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.85rem' }}>Đổi mật khẩu tài khoản</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Mật khẩu hiện tại</label>
-                      <input type="password" placeholder="••••••••" className="mod-form-input" />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Mật khẩu mới</label>
-                      <input type="password" placeholder="Tối thiểu 8 ký tự" className="mod-form-input" />
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button 
-                      className="mod-batch-approve-btn"
-                      onClick={() => showToast('🔒 Đã cập nhật mật khẩu mới cho tài khoản kiểm duyệt!')}
-                    >
-                      Cập nhật mật khẩu
-                    </button>
-                  </div>
-                </div>
-
-                {/* PHIÊN ĐĂNG NHẬP & THIẾT BỊ HOẠT ĐỘNG */}
-                <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div>
-                      <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block' }}>Phiên đăng nhập &amp; Thiết bị hoạt động</strong>
-                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Quản lý các thiết bị đang đăng nhập tài khoản kiểm duyệt của bạn</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <button 
-                        type="button"
-                        onClick={handleLogoutAllOtherDevices}
-                        style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <LogOut size={13} />
-                        <span>Đăng xuất thiết bị khác</span>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={handleLogoutAllDevices}
-                        style={{ background: '#dc2626', border: 'none', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.85rem', borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)' }}
-                      >
-                        <LogOut size={13} />
-                        <span>Đăng xuất khỏi tất cả thiết bị</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {modSessions.map(session => (
-                      <div key={session.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {session.device.includes('iPhone') ? <Smartphone size={17} /> : <Laptop size={17} />}
-                          </div>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{session.device}</strong>
-                              {session.isCurrent && (
-                                <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.65rem', fontWeight: 800, padding: '0.08rem 0.45rem', borderRadius: '4px' }}>
-                                  Phiên này
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
-                              {session.location} • IP: {session.ip} • {session.time}
-                            </div>
-                          </div>
-                        </div>
-
-                        {session.isCurrent ? (
-                          <CheckCircle2 size={18} color="#10b981" />
-                        ) : (
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              setModSessions(prev => prev.filter(s => s.id !== session.id));
-                              showToast(`Đã ngắt phiên thiết bị: ${session.device}`);
-                            }}
-                            style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                            title="Đăng xuất thiết bị này"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
