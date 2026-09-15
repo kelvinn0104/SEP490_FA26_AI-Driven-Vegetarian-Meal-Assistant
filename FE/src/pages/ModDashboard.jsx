@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ShieldCheck, History, Settings, LogOut, Sun, Bell,
   ChevronRight, Play, Check, Slash, Zap, Download, Send, AlertCircle,
   HelpCircle, MoreVertical, Lock, Shield, Camera, Plus, Trash2, Edit2,
-  Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag
+  Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag, Laptop
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,7 +38,7 @@ export default function ModDashboard({ onNavigate }) {
   const [autoReviewStep, setAutoReviewStep] = useState(0);
 
   // =========================================================================
-  // MOD PROFILE STATE & AVATAR UPLOAD (MATCHING IMAGE 2 & FEEDBACK RULES)
+  // MOD PROFILE STATE & AVATAR UPLOAD (MATCHING EXACT MOD USER REQUIREMENTS)
   // =========================================================================
   const modAvatarInputRef = useRef(null);
   // Default image matching mockup
@@ -54,12 +54,10 @@ export default function ModDashboard({ onNavigate }) {
   };
 
   // Profile data state
-  // Rule 3: Bỏ "Senior" trong "Senior Content Moderator" -> chỉ giữ "Content Moderator"
-  // Rule 4 & 5: Bỏ "Nutritionist Master" & "Top Mentor 2024" -> chỉ giữ "Food Safety ISO" & "Tiêu chuẩn Thuần Chay VeggieAI"
+  // Yêu cầu: Tất cả đều để là Moderator hoặc Mod (không để Content Moderator), bỏ danh hiệu
   const [modProfileData, setModProfileData] = useState({
     fullName: 'Lê Tuệ Tâm',
-    roleTitle: 'Content Moderator', // BỎ "Senior"
-    bio: 'Chuyên gia Ẩm thực Thực dưỡng & Lên men Sinh thái',
+    roleTitle: 'Moderator',
     email: 'mod.tuetam@veggie.ai',
     phone: '+84 912 348 765',
     culturalRegion: 'Đông Nam Á & Đông Á (Việt, Thái...)',
@@ -67,6 +65,47 @@ export default function ModDashboard({ onNavigate }) {
     passwords: { current: '••••••••••••', newPass: '', confirmPass: '' },
     lastSaved: 'Hôm nay lúc 14:28'
   });
+
+  // Active login sessions & devices (like Admin)
+  const [modSessions, setModSessions] = useState([
+    {
+      id: 'SES-01',
+      device: 'Windows PC • Chrome v128',
+      location: 'TP. Hồ Chí Minh, Việt Nam',
+      ip: '118.69.182.45',
+      time: 'Đang hoạt động (Phiên này)',
+      isCurrent: true
+    },
+    {
+      id: 'SES-02',
+      device: 'iPhone 15 Pro • Safari iOS 17.5',
+      location: 'TP. Hồ Chí Minh, Việt Nam',
+      ip: '118.69.182.45',
+      time: '12 phút trước',
+      isCurrent: false
+    },
+    {
+      id: 'SES-03',
+      device: 'MacBook Air M2 • Firefox 129',
+      location: 'Hà Nội, Việt Nam',
+      ip: '14.162.144.12',
+      time: 'Hôm qua lúc 18:30',
+      isCurrent: false
+    }
+  ]);
+
+  const handleLogoutAllOtherDevices = () => {
+    setModSessions(prev => prev.filter(s => s.isCurrent));
+    showToast('🔒 Đã đăng xuất khỏi tất cả các thiết bị khác thành công!');
+  };
+
+  const handleLogoutAllDevices = () => {
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi TẤT CẢ các thiết bị bao gồm phiên hiện tại?')) {
+      logout();
+      if (onNavigate) onNavigate('login');
+      showToast('🔒 Đã đăng xuất khỏi tất cả thiết bị.');
+    }
+  };
 
   const [profileSubTab, setProfileSubTab] = useState('account'); // 'account' | 'filters' | 'notifications' | 'security'
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
@@ -632,14 +671,14 @@ export default function ModDashboard({ onNavigate }) {
           </nav>
         </div>
 
-        {/* BOTTOM USER PILL: Lê Minh Trí — Moderator (Removed 'Lead') */}
+        {/* BOTTOM USER PILL: Lê Tuệ Tâm — Moderator */}
         <div className="mod-sidebar-footer">
           <div className="mod-user-card">
-            <div className="mod-user-avatar">
-              <User size={18} color="#ffffff" />
+            <div className="mod-user-avatar" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#ffffff' }}>
+              TT
             </div>
             <div className="mod-user-info">
-              <div className="mod-user-name">Lê Minh Trí</div>
+              <div className="mod-user-name">Lê Tuệ Tâm</div>
               <div className="mod-user-role">Moderator</div>
             </div>
             <button 
@@ -720,10 +759,10 @@ export default function ModDashboard({ onNavigate }) {
             {/* User Avatar Circle */}
             <div 
               className="mod-avatar-circle"
-              title="Lê Minh Trí (Moderator)"
+              title="Lê Tuệ Tâm (Moderator)"
               onClick={() => setActiveModTab('profile')}
             >
-              <span>MT</span>
+              <span>TT</span>
             </div>
           </div>
         </header>
@@ -1608,14 +1647,10 @@ export default function ModDashboard({ onNavigate }) {
                       <CheckCircle2 size={16} color="#0284c7" fill="#e0f2fe" />
                     </h2>
 
-                    {/* Rule 3: BỎ "Senior", chỉ giữ "Content Moderator" */}
+                    {/* Role badge: Moderator */}
                     <div className="mod-profile-role-badge">
                       {modProfileData.roleTitle}
                     </div>
-
-                    <p className="mod-profile-bio">
-                      {modProfileData.bio}
-                    </p>
 
                     {/* Stats 2-Column */}
                     <div className="mod-profile-stats-row">
@@ -2078,6 +2113,75 @@ export default function ModDashboard({ onNavigate }) {
                         <span>Đã thiết lập</span>
                       </button>
                     </div>
+
+                    {/* PHIÊN ĐĂNG NHẬP & THIẾT BỊ HOẠT ĐỘNG (GIỐNG ADMIN) */}
+                    <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div>
+                          <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block' }}>Phiên đăng nhập &amp; Thiết bị hoạt động</strong>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Quản lý các thiết bị đang đăng nhập tài khoản kiểm duyệt của bạn</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <button 
+                            type="button"
+                            onClick={handleLogoutAllOtherDevices}
+                            style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', transition: 'all 0.15s ease' }}
+                          >
+                            <LogOut size={13} />
+                            <span>Đăng xuất thiết bị khác</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={handleLogoutAllDevices}
+                            style={{ background: '#dc2626', border: 'none', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.85rem', borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)' }}
+                          >
+                            <LogOut size={13} />
+                            <span>Đăng xuất khỏi tất cả thiết bị</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {modSessions.map(session => (
+                          <div key={session.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                {session.device.includes('iPhone') ? <Smartphone size={17} /> : <Laptop size={17} />}
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{session.device}</strong>
+                                  {session.isCurrent && (
+                                    <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.65rem', fontWeight: 800, padding: '0.08rem 0.45rem', borderRadius: '4px' }}>
+                                      Phiên này
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                  {session.location} • IP: {session.ip} • {session.time}
+                                </div>
+                              </div>
+                            </div>
+
+                            {session.isCurrent ? (
+                              <CheckCircle2 size={18} color="#10b981" />
+                            ) : (
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  setModSessions(prev => prev.filter(s => s.id !== session.id));
+                                  showToast(`Đã ngắt phiên thiết bị: ${session.device}`);
+                                }}
+                                style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                title="Đăng xuất thiết bị này"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {/* BOTTOM ACTION BAR */}
@@ -2160,6 +2264,75 @@ export default function ModDashboard({ onNavigate }) {
                     >
                       Cập nhật mật khẩu
                     </button>
+                  </div>
+                </div>
+
+                {/* PHIÊN ĐĂNG NHẬP & THIẾT BỊ HOẠT ĐỘNG */}
+                <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block' }}>Phiên đăng nhập &amp; Thiết bị hoạt động</strong>
+                      <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Quản lý các thiết bị đang đăng nhập tài khoản kiểm duyệt của bạn</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <button 
+                        type="button"
+                        onClick={handleLogoutAllOtherDevices}
+                        style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <LogOut size={13} />
+                        <span>Đăng xuất thiết bị khác</span>
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={handleLogoutAllDevices}
+                        style={{ background: '#dc2626', border: 'none', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700, padding: '0.35rem 0.85rem', borderRadius: '7px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)' }}
+                      >
+                        <LogOut size={13} />
+                        <span>Đăng xuất khỏi tất cả thiết bị</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {modSessions.map(session => (
+                      <div key={session.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {session.device.includes('iPhone') ? <Smartphone size={17} /> : <Laptop size={17} />}
+                          </div>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{session.device}</strong>
+                              {session.isCurrent && (
+                                <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.65rem', fontWeight: 800, padding: '0.08rem 0.45rem', borderRadius: '4px' }}>
+                                  Phiên này
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.15rem' }}>
+                              {session.location} • IP: {session.ip} • {session.time}
+                            </div>
+                          </div>
+                        </div>
+
+                        {session.isCurrent ? (
+                          <CheckCircle2 size={18} color="#10b981" />
+                        ) : (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setModSessions(prev => prev.filter(s => s.id !== session.id));
+                              showToast(`Đã ngắt phiên thiết bị: ${session.device}`);
+                            }}
+                            style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="Đăng xuất thiết bị này"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
