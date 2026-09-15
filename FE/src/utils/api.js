@@ -90,7 +90,7 @@ export async function mockLoginApi({ identifier, password }) {
     throw new Error('Vui lòng nhập Mật khẩu.');
   }
 
-  // Khớp với 1 trong 3 tài khoản mẫu
+  // 1. Khớp với 1 trong các tài khoản hệ thống (Admin, Mod, User mẫu)
   const matched = MOCK_ACCOUNTS.find(acc => 
     acc.email.toLowerCase() === cleanId || 
     acc.username.toLowerCase() === cleanId
@@ -98,7 +98,7 @@ export async function mockLoginApi({ identifier, password }) {
 
   if (matched) {
     if (!matched.passwords.includes(cleanPass)) {
-      throw new Error(`Mật khẩu không chính xác cho tài khoản ${matched.email}. (Gợi ý: ${matched.password})`);
+      throw new Error(`Mật khẩu không chính xác cho tài khoản ${matched.email}. (Gợi ý mật khẩu mẫu: ${matched.password})`);
     }
     return {
       success: true,
@@ -112,15 +112,36 @@ export async function mockLoginApi({ identifier, password }) {
     };
   }
 
-  // Cho phép đăng nhập linh hoạt với tài khoản tự do (mặc định role AuthorizedUser)
-  return {
-    success: true,
-    token: `mock-jwt-token-custom-${Date.now()}`,
-    user: {
-      name: cleanId.includes('@') ? cleanId.split('@')[0] : cleanId,
-      email: cleanId.includes('@') ? cleanId : `${cleanId}@veggieai.vn`,
-      role: 'AuthorizedUser',
-      roleLabel: 'Thành viên chính thức (User)'
+  // 2. Khớp với tài khoản người dùng đã tự đăng ký qua trang Đăng Ký (lưu trong localStorage)
+  try {
+    const registeredStr = localStorage.getItem('veggieai_registered_users');
+    const registeredUsers = registeredStr ? JSON.parse(registeredStr) : [];
+    const registeredMatch = registeredUsers.find(u => 
+      (u.email && u.email.toLowerCase() === cleanId) || 
+      (u.phone && u.phone.trim() === cleanId)
+    );
+
+    if (registeredMatch) {
+      if (registeredMatch.password !== cleanPass) {
+        throw new Error('Mật khẩu không chính xác. Vui lòng thử lại.');
+      }
+      return {
+        success: true,
+        token: `mock-jwt-token-registered-${Date.now()}`,
+        user: {
+          name: registeredMatch.name,
+          email: registeredMatch.email,
+          role: registeredMatch.role || 'AuthorizedUser',
+          roleLabel: registeredMatch.roleLabel || 'Thành viên chính thức (User)'
+        }
+      };
     }
-  };
+  } catch (err) {
+    if (err.message && err.message.includes('Mật khẩu không chính xác')) {
+      throw err;
+    }
+  }
+
+  // 3. Nếu tài khoản không có thật trong danh sách và chưa từng đăng ký: TỪ CHỐI ĐĂNG NHẬP
+  throw new Error('Tài khoản không tồn tại trên hệ thống. Vui lòng kiểm tra lại thông tin hoặc Đăng ký tài khoản mới.');
 }

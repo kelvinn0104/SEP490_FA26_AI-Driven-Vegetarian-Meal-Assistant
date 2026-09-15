@@ -36,8 +36,41 @@ export default function RegisterPage({ onNavigate }) {
 
   const handleRegisterSubmit = (e) => {
     e.preventDefault();
-    alert(`Chào mừng ${fullName || 'bạn'} gia nhập VeggieAI! Đang chuyển hướng đến khảo sát dinh dưỡng...`);
-    if (onNavigate) onNavigate('planner');
+    if (!email || !password) {
+      alert('Vui lòng điền đầy đủ Email và Mật khẩu.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    try {
+      const existingStr = localStorage.getItem('veggieai_registered_users');
+      const existingList = existingStr ? JSON.parse(existingStr) : [];
+      
+      const isExisted = existingList.some(u => u.email.toLowerCase() === email.trim().toLowerCase());
+      if (isExisted) {
+        alert('Email này đã được đăng ký trên hệ thống. Vui lòng đăng nhập!');
+        if (onNavigate) onNavigate('login');
+        return;
+      }
+
+      const newUser = {
+        name: fullName.trim() || email.split('@')[0],
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password: password,
+        role: 'AuthorizedUser',
+        roleLabel: 'Thành viên chính thức'
+      };
+
+      existingList.push(newUser);
+      localStorage.setItem('veggieai_registered_users', JSON.stringify(existingList));
+    } catch (err) {}
+
+    alert(`Chào mừng ${fullName || 'bạn'} gia nhập VeggieAI! Đăng ký thành công, vui lòng đăng nhập.`);
+    if (onNavigate) onNavigate('login');
   };
 
   return (
