@@ -15,6 +15,7 @@ import ModDashboard from './pages/ModDashboard';
 import ModerationQueue from './pages/ModerationQueue';
 import UserAccountPage from './pages/UserAccountPage';
 import HealthProfilePage from './pages/HealthProfilePage';
+import CreateMealPlanPage from './pages/CreateMealPlanPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -166,6 +167,26 @@ export default function App() {
               </p>
               <Button variant="primary" onClick={() => handleNavigate('register')}>
                 🚀 Bắt đầu quy trình đăng ký & khảo sát dinh dưỡng
+              </Button>
+            </Card>
+          )
+        )}
+
+        {/* TRANG TẠO THỰC ĐƠN TUẦN CÁ NHÂN HÓA VỚI TRỢ LÝ AI (WF02) */}
+        {activeTab === 'create-plan' && (
+          user ? (
+            <CreateMealPlanPage onNavigate={handleNavigate} />
+          ) : (
+            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Sparkles size={32} color="#059669" />
+              </div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Lập Thực Đơn AI</h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Vui lòng đăng nhập hoặc hoàn tất khảo sát dinh dưỡng để Trợ lý AI có thể tối ưu hóa thực đơn cá nhân theo đúng thể trạng của bạn.
+              </p>
+              <Button variant="primary" onClick={() => handleNavigate('login')}>
+                🚀 Đăng nhập ngay
               </Button>
             </Card>
           )

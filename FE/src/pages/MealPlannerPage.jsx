@@ -287,7 +287,7 @@ export default function MealPlannerPage({ onNavigate }) {
 
             <button
               type="button"
-              onClick={() => setShowNewPlanModal(true)}
+              onClick={() => onNavigate ? onNavigate('create-plan') : setShowNewPlanModal(true)}
               style={{
                 background: '#046a47',
                 border: 'none',
@@ -888,7 +888,7 @@ export default function MealPlannerPage({ onNavigate }) {
 
           <button
             type="button"
-            onClick={() => setShowNewPlanModal(true)}
+            onClick={() => onNavigate ? onNavigate('create-plan') : setShowNewPlanModal(true)}
             style={{
               background: '#046a47',
               border: 'none',
