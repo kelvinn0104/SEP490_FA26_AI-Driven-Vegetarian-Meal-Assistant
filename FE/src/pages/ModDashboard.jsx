@@ -6,7 +6,8 @@ import {
   LayoutDashboard, ShieldCheck, History, Settings, LogOut, Sun, Bell,
   ChevronRight, Play, Check, Slash, Zap, Download, Send, AlertCircle,
   HelpCircle, MoreVertical, Lock, Shield, Camera, Plus, Trash2, Edit2,
-  Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag, Laptop
+  Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag, Laptop,
+  Bot, SlidersHorizontal, ChevronLeft, CheckSquare, Sprout
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,6 +28,13 @@ export default function ModDashboard({ onNavigate }) {
   // Search in topbar
   const [topSearchQuery, setTopSearchQuery] = useState('');
   const [isAiFlagFilterActive, setIsAiFlagFilterActive] = useState(false);
+
+  // Moderation Queue Interactive Filters & State
+  const [queueTab, setQueueTab] = useState('all'); // 'all' | 'new' | 'flagged' | 'revision'
+  const [queueSearch, setQueueSearch] = useState('');
+  const [queueCategory, setQueueCategory] = useState('all'); // 'all' | 'nutrition' | 'cooking' | 'seasonal' | 'video'
+  const [queueAiFilter, setQueueAiFilter] = useState('all'); // 'all' | 'safe' | 'warning'
+  const [queueCurrentPage, setQueueCurrentPage] = useState(1);
 
   // Modals state
   const [inspectingItem, setInspectingItem] = useState(null);
@@ -213,143 +221,669 @@ export default function ModDashboard({ onNavigate }) {
   };
 
   // Core Data: Priority & Pending Moderation Queue (Items)
-  // Authors have pure name + numeric "Điểm uy tín: XX/100" (no titles/ranks like "Cấp 3" or "Chuyên gia")
+  // Authors have pure name + objective stats "XX bài duyệt • X vi phạm" (NO chef/doctor titles, NO tier badges)
   const [moderationItems, setModerationItems] = useState([
     {
-      id: 'MOD-8801',
-      title: 'Bún Nấm Riêu Chay Cốt Đậu Hũ Non',
-      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
-      author: 'Đầu bếp An Nhiên',
-      authorEmail: 'annhien.chef@gmail.com',
-      trustScore: 96,
-      type: 'Công thức nấu ăn',
-      typeCode: 'recipe',
-      submittedAt: '12 phút trước',
-      aiConfidence: 98.4,
-      aiStatus: 'safe',
-      aiSummary: '100% Nguyên liệu thực vật thuần chay. Không phát hiện chất cấm hoặc từ ngữ vi phạm.',
-      warningTag: null,
-      priority: 'high',
-      isNew: true,
-      hasFiveSpices: false,
-      ingredients: [
-        { name: 'Đậu hũ non', amount: '2 bìa (300g)', status: 'safe' },
-        { name: 'Cà chua chín mọng', amount: '3 quả (250g)', status: 'safe' },
-        { name: 'Nấm rơm & nấm đùi gà', amount: '200g', status: 'safe' },
-        { name: 'Sữa đậu nành nguyên chất', amount: '400ml', status: 'safe' },
-        { name: 'Dấm bỗng nếp cái hoa vàng', amount: '3 thìa canh', status: 'safe' }
-      ],
-      macros: { calo: '380 kcal', protein: '18.5g', carbs: '45g', fat: '11.2g' },
-      instructions: 'Đun sôi nước dùng cà chua phi thơm hành baro, cho sữa đậu nành và dấm bỗng vào tạo riêu bông mịn, cho nấm và đậu hũ non vào nấu lửa nhỏ 10 phút.',
-      status: 'pending'
-    },
-    {
-      id: 'MOD-8802',
-      title: 'Thịt Nguội Thực Vật Xào Tỏi Ớt & Hẹ',
+      id: 'MOD-8811',
+      title: 'Salad Cầu Vồng Rau Củ Mùa Hè',
       thumbnail: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
-      author: 'GreenFoodie_92',
-      authorEmail: 'greenfoodie92@yahoo.com',
-      trustScore: 72,
-      type: 'Công thức nấu ăn',
-      typeCode: 'recipe',
-      submittedAt: '28 phút trước',
-      aiConfidence: 86.2,
-      aiStatus: 'warning',
-      aiSummary: 'AI phát hiện thành phần Ngũ vị tân: Tỏi và Hẹ lá. Tác giả đã tích chọn "Thuần chay có ngũ vị tân".',
-      warningTag: 'Có Ngũ Vị Tân (Tỏi, Hẹ)',
-      priority: 'high',
-      isNew: true,
-      hasFiveSpices: true,
-      ingredients: [
-        { name: 'Thịt nguội chay từ đậu nành', amount: '250g', status: 'safe' },
-        { name: 'Hẹ lá cắt khúc', amount: '100g', status: 'warning' },
-        { name: 'Tỏi băm nhuyễn', amount: '3 tép', status: 'warning' },
-        { name: 'Ớt sừng trâu tỉa hoa', amount: '1 quả', status: 'safe' },
-        { name: 'Nước tương đậu nành lên men', amount: '2 thìa canh', status: 'safe' }
-      ],
-      macros: { calo: '310 kcal', protein: '22.0g', carbs: '14g', fat: '8.5g' },
-      instructions: 'Thái lát thịt nguội chay, áp chảo vàng nhẹ hai mặt. Phi thơm tỏi băm và ớt, cho hẹ vào đảo nhanh tay với lửa lớn 1 phút rồi trút thịt nguội vào đảo đều.',
-      status: 'pending'
-    },
-    {
-      id: 'MOD-8803',
-      title: 'Smoothie Bowl Cải Xoăn & Quả Mọng Siêu Chống Oxy Hóa',
-      thumbnail: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=300',
-      author: 'Bác Sĩ Dinh Dưỡng Mai Anh',
-      authorEmail: 'maianh.nutrition@gmail.com',
-      trustScore: 99,
-      type: 'Thức uống dinh dưỡng',
-      typeCode: 'drink',
-      submittedAt: '45 phút trước',
-      aiConfidence: 99.1,
+      author: 'Trần Thanh Nhã',
+      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+      authorEmail: 'thanhnha.tran@gmail.com',
+      isVerified: true,
+      authorStats: '18 bài duyệt • 0 vi phạm',
+      trustScore: 98,
+      type: 'Công thức theo mùa',
+      typeTag: 'Công thức',
+      typeCode: 'seasonal',
+      category: 'seasonal',
+      excerpt: 'Công thức giàu chất chống oxy hóa tự...',
+      submittedAt: '25 phút trước',
+      slaRemaining: 'Còn 35 phút SLA',
+      slaStatus: 'normal',
+      aiConfidence: 98,
       aiStatus: 'safe',
-      aiSummary: 'Nguyên liệu 100% Organic sạch, định lượng gram chuẩn xác, giàu Vitamin C và chất chống oxy hóa.',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: 'Nguyên liệu thuần thực vật 100%, không phát hiện dị nguyên ẩn.',
       warningTag: null,
       priority: 'high',
       isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
       hasFiveSpices: false,
       ingredients: [
-        { name: 'Cải xoăn Kale xoăn non', amount: '80g', status: 'safe' },
-        { name: 'Việt quất & mâm xôi đông lạnh', amount: '120g', status: 'safe' },
-        { name: 'Chuối già chín đông lạnh', amount: '1 quả (100g)', status: 'safe' },
-        { name: 'Hạt chia & hạt lanh xay mịn', amount: '15g', status: 'safe' },
-        { name: 'Sữa yến mạch không đường', amount: '150ml', status: 'safe' }
+        { name: 'Xà lách Romaine & Bắp cải tím', amount: '200g', status: 'safe' },
+        { name: 'Ớt chuông đỏ vàng', amount: '100g', status: 'safe' },
+        { name: 'Hạt mè rang hữu cơ', amount: '2 thìa canh', status: 'safe' },
+        { name: 'Xốt mè rang thuần chay', amount: '30ml', status: 'safe' }
       ],
-      macros: { calo: '285 kcal', protein: '9.8g', carbs: '52g', fat: '5.1g' },
-      instructions: 'Cho tất cả nguyên liệu vào máy xay công suất lớn, xay nhuyễn mịn trong 60 giây. Đổ ra bát sứ và trang trí thêm hạt chia, dừa sấy giòn lên bề mặt.',
+      macros: { calo: '210 kcal', protein: '5.2g', carbs: '18g', fat: '12g' },
+      instructions: 'Rửa sạch rau củ quả, để ráo. Thái sợi mỏng bắp cải tím và ớt chuông. Trộn đều cùng xốt mè rang hữu cơ và thưởng thức.',
       status: 'pending'
     },
     {
-      id: 'MOD-8804',
-      title: 'Canh Chua Bạc Hà Nấu Nấm Đùi Gà & Đậu Bắp',
+      id: 'MOD-8812',
+      title: 'Trà Thảo Mộc Dưỡng Nhan Mùa Thu',
+      thumbnail: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=300',
+      author: 'Đỗ Khang Huy',
+      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+      authorEmail: 'khanghuy.do@gmail.com',
+      isVerified: false,
+      authorStats: '2 bài duyệt • 0 vi phạm',
+      trustScore: 74,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Blog',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Hướng dẫn cách ủ trà hoa cúc kết hợp bán...',
+      submittedAt: '48 phút trước',
+      slaRemaining: 'Còn 12 phút SLA',
+      slaStatus: 'warning',
+      aiConfidence: 74,
+      aiStatus: 'warning',
+      aiBadgeLabel: 'Cảnh báo: Phát hiện mật ong',
+      aiSummary: 'Có thành phần từ động vật trong công thức gắn mác Thuần Chay (Vegan).',
+      warningTag: 'Chứa mật ong (Phi thuần chay)',
+      priority: 'high',
+      isNew: false,
+      queueStatus: 'flagged',
+      actionType: 'handle',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Hoa cúc vàng sấy lạnh', amount: '10g', status: 'safe' },
+        { name: 'Kỷ tử đỏ hữu cơ', amount: '15g', status: 'safe' },
+        { name: 'Mật ong hoa rừng tự nhiên', amount: '20ml', status: 'violation' }
+      ],
+      macros: { calo: '85 kcal', protein: '0.8g', carbs: '20g', fat: '0.1g' },
+      instructions: 'Hãm hoa cúc và kỷ tử với nước sôi 90 độ C trong 10 phút, để nguội bớt rồi hòa mật ong hoa rừng vào khuấy đều...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8813',
+      title: 'Bí Quyết Hầm Nước Dùng Chay Umami',
       thumbnail: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=300',
-      author: 'Võ Minh Quân',
-      authorEmail: 'minhquan.vo@outlook.com',
-      trustScore: 84,
-      type: 'Công thức nấu ăn',
-      typeCode: 'recipe',
+      author: 'Võ Quốc Anh',
+      authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+      authorEmail: 'quocanh.vo@gmail.com',
+      isVerified: true,
+      authorStats: '42 bài duyệt • 0 vi phạm',
+      trustScore: 96,
+      type: 'Video thực hành',
+      typeTag: 'Video HD',
+      typeCode: 'video',
+      category: 'video',
+      excerpt: 'Kỹ thuật nướng củ quả tạo vị ngọt umami sắ...',
       submittedAt: '1 giờ trước',
-      aiConfidence: 97.5,
+      slaRemaining: 'Còn 50 phút SLA',
+      slaStatus: 'normal',
+      aiConfidence: 96,
       aiStatus: 'safe',
-      aiSummary: 'Nước dùng me chua tự nhiên, không hạt nêm thịt, rau củ quả thuần chay đạt chuẩn an toàn.',
+      aiBadgeLabel: 'An toàn - Chuẩn kỹ thuật',
+      aiSummary: 'Hình ảnh và âm thanh chất lượng cao, đúng quy chuẩn bản quyền.',
       warningTag: null,
       priority: 'normal',
       isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
       hasFiveSpices: false,
       ingredients: [
-        { name: 'Nấm đùi gà cắt xéo', amount: '200g', status: 'safe' },
-        { name: 'Cốt me chua dầm nước ấm', amount: '50g', status: 'safe' },
-        { name: 'Đậu bắp non & bạc hà (dọc mùng)', amount: '150g', status: 'safe' },
-        { name: 'Giá đỗ sạch & ngò gai, rau om', amount: '80g', status: 'safe' }
+        { name: 'Củ cải trắng và cà rốt nướng sém cạnh', amount: '500g', status: 'safe' },
+        { name: 'Mía lau róc vỏ chẻ đôi', amount: '2 khúc', status: 'safe' },
+        { name: 'Nấm hương rừng khô', amount: '80g', status: 'safe' },
+        { name: 'Hành baro nướng thơm', amount: '2 cây', status: 'safe' }
       ],
-      macros: { calo: '160 kcal', protein: '6.2g', carbs: '28g', fat: '2.0g' },
-      instructions: 'Đun sôi nước me lọc bỏ hạt, cho nấm đùi gà vào nấu chín, thả đậu bắp và bạc hà vào đun sôi bùng, tắt bếp rồi cho giá và rau thơm vào.',
+      macros: { calo: '120 kcal', protein: '4.5g', carbs: '26g', fat: '0.5g' },
+      instructions: 'Nướng các loại củ quả trên than hồng cho dậy mùi thơm caramel hóa. Cho vào nồi áp suất hầm cùng mía và nấm hương trong 45 phút để lấy nước ngọt tự nhiên.',
       status: 'pending'
     },
     {
-      id: 'MOD-8805',
-      title: 'Bí Quyết Nước Dùng Phở Bò Chay Hầm Xương Thảo Mộc',
-      thumbnail: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=300',
-      author: 'Hương Vị Cổ Truyền',
-      authorEmail: 'huongvi.cotruyen@gmail.com',
-      trustScore: 48,
-      type: 'Công thức nấu ăn',
-      typeCode: 'recipe',
-      submittedAt: '2 giờ trước',
-      aiConfidence: 45.0,
-      aiStatus: 'danger',
-      aiSummary: 'CẢNH BÁO ĐỎ: Phát hiện đoạn văn bản hướng dẫn cho 200g xương ống hầm lấy nước ngọt, vi phạm cấm thịt động vật.',
-      warningTag: 'Vi phạm: Chứa xương động vật',
-      priority: 'urgent',
+      id: 'MOD-8814',
+      title: 'Bổ Sung Vitamin B12 Tự Nhiên Cho Người Ăn Chay',
+      thumbnail: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300',
+      author: 'Hoàng Yến',
+      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      authorEmail: 'hoangyen@gmail.com',
+      isVerified: true,
+      authorStats: '15 bài duyệt • 0 vi phạm',
+      trustScore: 99,
+      type: 'Dinh dưỡng & Vi chất',
+      typeTag: 'Dinh dưỡng',
+      typeCode: 'nutrition',
+      category: 'nutrition',
+      excerpt: 'Tổng hợp nguồn thực phẩm lên men và liều...',
+      submittedAt: '1.5 giờ trước',
+      slaRemaining: 'Còn 1 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 99,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'Đạt chuẩn dữ liệu',
+      aiSummary: 'Thành phần dinh dưỡng khớp cơ sở dữ liệu VeggieAI, không phát hiện sai lệch',
+      warningTag: null,
+      priority: 'normal',
       isNew: false,
+      queueStatus: 'all',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Men dinh dưỡng (Nutritional Yeast) bổ sung B12', amount: '15g', status: 'safe' },
+        { name: 'Tempeh đậu nành lên men', amount: '150g', status: 'safe' },
+        { name: 'Nấm đông cô hữu cơ', amount: '60g', status: 'safe' }
+      ],
+      macros: { calo: '280 kcal', protein: '24g', carbs: '18g', fat: '6.5g' },
+      instructions: 'Hướng dẫn bổ sung men dinh dưỡng chứa B12 vào khẩu phần hàng ngày và cách kết hợp với các thực phẩm lên men truyền thống.',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8815',
+      title: 'Bún Nấm Riêu Chay Cốt Đậu Hũ Non',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+      author: 'Đậu Bắp Xanh',
+      authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+      authorEmail: 'daubapxanh@gmail.com',
+      isVerified: true,
+      authorStats: '9 bài duyệt • 0 vi phạm',
+      trustScore: 95,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Công thức',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Bí quyết nấu riêu đậu nành béo mềm cùng nước cà chua dấm bỗng thanh dịu...',
+      submittedAt: '2 giờ trước',
+      slaRemaining: 'Còn 1.2 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 98,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: '100% Nguyên liệu thực vật thuần chay. Không phát hiện chất cấm.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Đậu hũ non', amount: '2 bìa (300g)', status: 'safe' },
+        { name: 'Cà chua chín mọng', amount: '3 quả', status: 'safe' },
+        { name: 'Nấm rơm', amount: '200g', status: 'safe' }
+      ],
+      macros: { calo: '380 kcal', protein: '18.5g', carbs: '45g', fat: '11.2g' },
+      instructions: 'Đun sôi nước dùng cà chua, cho sữa đậu nành và dấm bỗng vào tạo riêu bông mịn...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8816',
+      title: 'Thịt Nguội Thực Vật Xào Tỏi Ớt & Hẹ',
+      thumbnail: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
+      author: 'GreenFoodie',
+      authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+      authorEmail: 'greenfoodie@yahoo.com',
+      isVerified: false,
+      authorStats: '5 bài duyệt • 1 vi phạm',
+      trustScore: 72,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Công thức',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Món xào thơm cay đậm vị với thịt nguội chay và hẹ tươi...',
+      submittedAt: '2.5 giờ trước',
+      slaRemaining: 'Còn 45 phút SLA',
+      slaStatus: 'warning',
+      aiConfidence: 86,
+      aiStatus: 'warning',
+      aiBadgeLabel: 'Cảnh báo: Ngũ vị tân',
+      aiSummary: 'AI phát hiện thành phần Ngũ vị tân: Tỏi và Hẹ lá trong công thức.',
+      warningTag: 'Có Ngũ Vị Tân (Tỏi, Hẹ)',
+      priority: 'high',
+      isNew: false,
+      queueStatus: 'flagged',
+      actionType: 'handle',
       hasFiveSpices: true,
       ingredients: [
-        { name: 'Xương ống hầm nhừ', amount: '200g', status: 'violation' },
-        { name: 'Quế hồi, thảo quả nướng thơm', amount: '20g', status: 'safe' },
-        { name: 'Hành tây nướng cháy cạnh', amount: '1 củ', status: 'warning' }
+        { name: 'Thịt nguội chay đậu nành', amount: '250g', status: 'safe' },
+        { name: 'Hẹ lá cắt khúc', amount: '100g', status: 'warning' },
+        { name: 'Tỏi băm nhuyễn', amount: '3 tép', status: 'warning' }
       ],
-      macros: { calo: '420 kcal', protein: '25.0g', carbs: '30g', fat: '18.0g' },
-      instructions: 'Bí quyết nước ngọt đậm đà như ngoài hàng là hầm xương ống kỹ trong 2 tiếng...',
+      macros: { calo: '310 kcal', protein: '22g', carbs: '14g', fat: '8.5g' },
+      instructions: 'Thái lát thịt nguội chay áp chảo vàng đều, phi thơm tỏi và hẹ rồi cho vào xào nhanh...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8817',
+      title: 'Cơm Chiên Hạt Sen & Nấm Tươi Mùa Thu',
+      thumbnail: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300',
+      author: 'Mai Tuấn',
+      authorAvatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100',
+      authorEmail: 'maituan@gmail.com',
+      isVerified: true,
+      authorStats: '12 bài duyệt • 0 vi phạm',
+      trustScore: 97,
+      type: 'Công thức theo mùa',
+      typeTag: 'Công thức',
+      typeCode: 'seasonal',
+      category: 'seasonal',
+      excerpt: 'Cơm chiên hạt sen Huế bùi béo kết hợp nấm bào ngư xé sợi giòn rụm...',
+      submittedAt: '3 giờ trước',
+      slaRemaining: 'Còn 2 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 97,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: 'Công thức thuần chay tự nhiên, cân đối chất xơ và đạm thực vật.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Cơm gạo lứt huyết rồng', amount: '2 chén', status: 'safe' },
+        { name: 'Hạt sen Huế tươi', amount: '80g', status: 'safe' },
+        { name: 'Nấm đùi gà', amount: '100g', status: 'safe' }
+      ],
+      macros: { calo: '340 kcal', protein: '11g', carbs: '58g', fat: '6g' },
+      instructions: 'Hấp chín hạt sen, chiên cơm săn hạt với dầu mè rồi trộn cùng hạt sen và nấm...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8818',
+      title: 'Súp Bí Đỏ Hạt Điều Kem Béo Thực Vật',
+      thumbnail: 'https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=300',
+      author: 'Bảo Trâm',
+      authorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100',
+      authorEmail: 'baotram@gmail.com',
+      isVerified: true,
+      authorStats: '7 bài duyệt • 0 vi phạm',
+      trustScore: 95,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Công thức',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Món súp kem mịn sánh từ bí đỏ nướng và sữa hạt điều béo ngậy...',
+      submittedAt: '3.5 giờ trước',
+      slaRemaining: 'Còn 2.5 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 95,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: 'Nguyên liệu hoàn toàn từ hạt và củ quả tươi, không chứa phụ gia.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Bí đỏ mật nướng chín', amount: '350g', status: 'safe' },
+        { name: 'Hạt điều ngâm mềm', amount: '60g', status: 'safe' },
+        { name: 'Nước hầm rau củ', amount: '300ml', status: 'safe' }
+      ],
+      macros: { calo: '230 kcal', protein: '6.5g', carbs: '32g', fat: '9g' },
+      instructions: 'Xay nhuyễn bí đỏ và hạt điều với nước dùng củ quả ấm nóng, đun nhỏ lửa nêm chút muối hồng...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8819',
+      title: 'Bánh Mì Chay Pate Nấm Đậu Gà',
+      thumbnail: 'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=300',
+      author: 'Lê Quân',
+      authorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+      authorEmail: 'lequan@gmail.com',
+      isVerified: true,
+      authorStats: '8 bài duyệt • 0 vi phạm',
+      trustScore: 98,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Blog',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Cách làm pate chay béo ngậy từ đậu gà, nấm hương và bơ thực vật...',
+      submittedAt: '4 giờ trước',
+      slaRemaining: 'Còn 3 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 98,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: 'Thành phần an toàn, công thức chuẩn bị rõ ràng và đầy đủ định lượng.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Đậu gà hầm mềm', amount: '150g', status: 'safe' },
+        { name: 'Nấm đùi gà băm', amount: '100g', status: 'safe' },
+        { name: 'Bơ thực vật cacao', amount: '20g', status: 'safe' }
+      ],
+      macros: { calo: '310 kcal', protein: '14g', carbs: '42g', fat: '8g' },
+      instructions: 'Xào nấm cho cạn nước, xay cùng đậu gà và bơ thực vật cho mịn rồi hấp cách thủy 20 phút...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8820',
+      title: 'Hướng Dẫn Làm Tempeh Tại Nhà Chi Tiết',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-d007c0828330?w=300',
+      author: 'Hà My',
+      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      authorEmail: 'hamy@gmail.com',
+      isVerified: true,
+      authorStats: '19 bài duyệt • 0 vi phạm',
+      trustScore: 97,
+      type: 'Video thực hành',
+      typeTag: 'Video HD',
+      typeCode: 'video',
+      category: 'video',
+      excerpt: 'Kỹ thuật lên men đậu tương bằng men Rhizopus oligosporus an toàn chuẩn vi sinh...',
+      submittedAt: '4.2 giờ trước',
+      slaRemaining: 'Còn 3 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 97,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Chuẩn kỹ thuật',
+      aiSummary: 'Video quay quy trình vệ sinh tiệt trùng đạt chuẩn kỹ thuật thực phẩm.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Hạt đậu tương hữu cơ đãi vỏ', amount: '500g', status: 'safe' },
+        { name: 'Men giống Tempeh Rhizopus', amount: '2g', status: 'safe' },
+        { name: 'Giấm gạo tạo môi trường axit', amount: '2 thìa canh', status: 'safe' }
+      ],
+      macros: { calo: '190 kcal', protein: '19g', carbs: '9g', fat: '11g' },
+      instructions: 'Luộc đậu nành với giấm, lau khô thật ráo, rắc men đều và ủ ở nhiệt độ 31 độ C trong 36 giờ...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8821',
+      title: 'Cà Ri Chay Nhật Bản Khoai Củ Nấm',
+      thumbnail: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=300',
+      author: 'Quỳnh Nga',
+      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+      authorEmail: 'quynhnga@gmail.com',
+      isVerified: true,
+      authorStats: '11 bài duyệt • 0 vi phạm',
+      trustScore: 96,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Công thức',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Cà ri chay sánh mịn vị táo và mật mía hầm cùng khoai tây, cà rốt...',
+      submittedAt: '5 giờ trước',
+      slaRemaining: 'Còn 3.5 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 96,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: 'Viên cà ri thực vật tự làm, không chứa chất điều vị nhân tạo.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Khoai tây & Cà rốt hữu cơ', amount: '300g', status: 'safe' },
+        { name: 'Viên xốt cà ri chay', amount: '50g', status: 'safe' },
+        { name: 'Táo tươi xay nhuyễn', amount: '1/2 quả', status: 'safe' }
+      ],
+      macros: { calo: '280 kcal', protein: '7.5g', carbs: '45g', fat: '6g' },
+      instructions: 'Xào thơm củ quả, cho nước hầm đun mềm 20 phút rồi thả viên xốt cà ri và táo xay vào đun sánh lại...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8822',
+      title: 'Gỏi Cuốn Ngũ Sắc Xốt Đậu Phộng Chay',
+      thumbnail: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300',
+      author: 'Phương Linh',
+      authorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100',
+      authorEmail: 'phuonglinh@gmail.com',
+      isVerified: true,
+      authorStats: '14 bài duyệt • 0 vi phạm',
+      trustScore: 97,
+      type: 'Công thức theo mùa',
+      typeTag: 'Công thức',
+      typeCode: 'seasonal',
+      category: 'seasonal',
+      excerpt: 'Món gỏi cuốn thanh mát với đậu hũ chiên, bơ sáp và rau thơm mùa hè...',
+      submittedAt: '5.5 giờ trước',
+      slaRemaining: 'Còn 4 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 97,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: 'Công thức nguyên liệu tươi sạch, giàu chất xơ và vitamin.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Bánh tráng mè gạo lứt', amount: '10 cái', status: 'safe' },
+        { name: 'Đậu hũ non chiên giòn', amount: '2 bìa', status: 'safe' },
+        { name: 'Bơ sáp thái lát', amount: '1 quả', status: 'safe' }
+      ],
+      macros: { calo: '240 kcal', protein: '9.2g', carbs: '28g', fat: '9g' },
+      instructions: 'Nhúng bánh tráng qua nước ấm, cuộn chặt tay cùng đậu hũ non và bơ, chấm kèm xốt đậu phộng béo bùi...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8823',
+      title: 'Chè Hạt Sen Nhãn Nhục Thanh Mát',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300',
+      author: 'Thu Hoài',
+      authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+      authorEmail: 'thuhoai@gmail.com',
+      isVerified: true,
+      authorStats: '6 bài duyệt • 0 vi phạm',
+      trustScore: 99,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Blog',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Món tráng miệng thanh nhiệt với đường phèn kết tinh tự nhiên...',
+      submittedAt: '6 giờ trước',
+      slaRemaining: 'Còn 4.5 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 99,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'An toàn - Đầy đủ dinh dưỡng',
+      aiSummary: '100% thảo mộc tự nhiên, an toàn cho mọi lứa tuổi.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Hạt sen tươi', amount: '100g', status: 'safe' },
+        { name: 'Nhãn nhục Hưng Yên', amount: '50g', status: 'safe' },
+        { name: 'Đường phèn mật mía', amount: '30g', status: 'safe' }
+      ],
+      macros: { calo: '160 kcal', protein: '3.5g', carbs: '38g', fat: '0.2g' },
+      instructions: 'Nấu hạt sen chín bở, cho đường phèn và nhãn nhục vào sôi bùng 2 phút tắt bếp...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8824',
+      title: 'Sữa Chua Đậu Nành Lên Men Tự Nhiên',
+      thumbnail: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300',
+      author: 'Đức Trí',
+      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+      authorEmail: 'ductri@gmail.com',
+      isVerified: true,
+      authorStats: '20 bài duyệt • 0 vi phạm',
+      trustScore: 98,
+      type: 'Dinh dưỡng & Vi chất',
+      typeTag: 'Dinh dưỡng',
+      typeCode: 'nutrition',
+      category: 'nutrition',
+      excerpt: 'Tự ủ sữa chua thuần chay bằng men probiotic thực vật an toàn đường ruột...',
+      submittedAt: '6.5 giờ trước',
+      slaRemaining: 'Còn 5 giờ SLA',
+      slaStatus: 'normal',
+      aiConfidence: 98,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'Đạt chuẩn dữ liệu',
+      aiSummary: 'Thành phần dinh dưỡng khớp cơ sở dữ liệu VeggieAI, không phát hiện sai lệch.',
+      warningTag: null,
+      priority: 'normal',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Sữa đậu nành nguyên chất đặc', amount: '1000ml', status: 'safe' },
+        { name: 'Men Probiotic thực vật', amount: '1 gói', status: 'safe' }
+      ],
+      macros: { calo: '140 kcal', protein: '8.5g', carbs: '12g', fat: '4.5g' },
+      instructions: 'Tiệt trùng hũ thủy tinh, đun sữa ấm 42 độ C hòa men rồi ủ trong nồi cơm ấm 8 tiếng...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8825',
+      title: 'Phở Nấm Trộn Chua Ngọt Hà Nội',
+      thumbnail: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=300',
+      author: 'Tuấn Hưng',
+      authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+      authorEmail: 'tuanhung@gmail.com',
+      isVerified: false,
+      authorStats: '4 bài duyệt • 1 vi phạm',
+      trustScore: 71,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Công thức',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Món phở trộn với sốt chua ngọt và nấm hương chiên giòn...',
+      submittedAt: '7 giờ trước',
+      slaRemaining: 'Còn 20 phút SLA',
+      slaStatus: 'warning',
+      aiConfidence: 71,
+      aiStatus: 'warning',
+      aiBadgeLabel: 'Cảnh báo: Nguồn gốc gia vị',
+      aiSummary: 'Phát hiện thành phần gia vị đóng gói chưa ghi rõ chứng nhận chay.',
+      warningTag: 'Cần xác thực nhãn gia vị',
+      priority: 'high',
+      isNew: false,
+      queueStatus: 'flagged',
+      actionType: 'handle',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Bánh phở tươi', amount: '300g', status: 'safe' },
+        { name: 'Gia vị phở trộn đóng gói', amount: '1 gói', status: 'warning' }
+      ],
+      macros: { calo: '380 kcal', protein: '9g', carbs: '65g', fat: '5g' },
+      instructions: 'Trần bánh phở, trộn cùng sốt và nấm xào thơm...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8826',
+      title: 'Lẩu Nấm Thập Cẩm Nước Cốt Dừa',
+      thumbnail: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=300',
+      author: 'Kim Oanh',
+      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+      authorEmail: 'kimoanh@gmail.com',
+      isVerified: true,
+      authorStats: '16 bài duyệt • 0 vi phạm',
+      trustScore: 68,
+      type: 'Công thức theo mùa',
+      typeTag: 'Công thức',
+      typeCode: 'seasonal',
+      category: 'seasonal',
+      excerpt: 'Nước lẩu béo ngọt từ nước dừa tươi và 6 loại nấm tươi mùa thu...',
+      submittedAt: '8 giờ trước',
+      slaRemaining: 'Còn 15 phút SLA',
+      slaStatus: 'warning',
+      aiConfidence: 68,
+      aiStatus: 'warning',
+      aiBadgeLabel: 'Cảnh báo: Bổ sung hạt nêm',
+      aiSummary: 'Có nhãn hạt nêm thịt nghi vấn trong danh sách gia vị đi kèm.',
+      warningTag: 'Nghi vấn hạt nêm thịt',
+      priority: 'urgent',
+      isNew: false,
+      queueStatus: 'flagged',
+      actionType: 'handle',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Nước dừa tươi', amount: '1000ml', status: 'safe' },
+        { name: 'Hạt nêm súp đóng hộp', amount: '2 thìa', status: 'warning' }
+      ],
+      macros: { calo: '290 kcal', protein: '12g', carbs: '28g', fat: '14g' },
+      instructions: 'Đun sôi nước dừa, thả nấm và rau củ vào dùng kèm...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8827',
+      title: 'Bánh Flan Yến Mạch Nước Cốt Dừa',
+      thumbnail: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=300',
+      author: 'Minh Ngọc',
+      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+      authorEmail: 'minhngoc@gmail.com',
+      isVerified: false,
+      authorStats: '3 bài duyệt • 2 vi phạm',
+      trustScore: 82,
+      type: 'Bí quyết nấu ăn',
+      typeTag: 'Công thức',
+      typeCode: 'cooking',
+      category: 'cooking',
+      excerpt: 'Công thức bánh flan mềm mịn không dùng trứng, sử dụng bột yến mạch và thạch rau câu...',
+      submittedAt: '1 ngày trước',
+      slaRemaining: 'Chờ tác giả',
+      slaStatus: 'normal',
+      aiConfidence: 82,
+      aiStatus: 'warning',
+      aiBadgeLabel: 'Chờ sửa: Thiếu định lượng',
+      aiSummary: 'Đã gửi yêu cầu tác giả cập nhật lại định lượng gram chi tiết.',
+      warningTag: 'Chờ tác giả sửa định lượng',
+      priority: 'normal',
+      isNew: false,
+      queueStatus: 'revision',
+      actionType: 'handle',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Sữa yến mạch đặc', amount: '300ml', status: 'safe' },
+        { name: 'Bột rau câu agar', amount: 'Chưa ghi rõ', status: 'warning' }
+      ],
+      macros: { calo: '180 kcal', protein: '4g', carbs: '28g', fat: '5g' },
+      instructions: 'Khuấy đều hỗn hợp trên lửa nhỏ rồi đổ khuôn làm lạnh...',
+      status: 'pending'
+    },
+    {
+      id: 'MOD-8828',
+      title: 'Canh Rong Biển Đậu Phụ Non Hạt Sen',
+      thumbnail: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300',
+      author: 'Thanh Tâm',
+      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      authorEmail: 'thanhtam@gmail.com',
+      isVerified: true,
+      authorStats: '10 bài duyệt • 0 vi phạm',
+      trustScore: 94,
+      type: 'Dinh dưỡng & Vi chất',
+      typeTag: 'Công thức',
+      typeCode: 'nutrition',
+      category: 'nutrition',
+      excerpt: 'Canh dưỡng sinh thanh nhiệt, bổ sung iot tự nhiên từ rong biển Hàn Quốc...',
+      submittedAt: '1 ngày trước',
+      slaRemaining: 'Chờ tác giả',
+      slaStatus: 'normal',
+      aiConfidence: 94,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'Chờ sửa: Ảnh minh họa',
+      aiSummary: 'Tác giả đang thay thế ảnh minh họa độ phân giải cao theo yêu cầu hệ thống.',
+      warningTag: 'Chờ tác giả đổi ảnh',
+      priority: 'normal',
+      isNew: false,
+      queueStatus: 'revision',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      ingredients: [
+        { name: 'Rong biển khô ngâm nở', amount: '20g', status: 'safe' },
+        { name: 'Đậu phụ non thái hạt lựu', amount: '150g', status: 'safe' }
+      ],
+      macros: { calo: '110 kcal', protein: '8g', carbs: '12g', fat: '2.5g' },
+      instructions: 'Nấu sôi nước dùng, cho rong biển và đậu phụ vào nêm nước tương Nhật...',
       status: 'pending'
     }
   ]);
@@ -418,7 +952,7 @@ export default function ModDashboard({ onNavigate }) {
         actionLabel: 'Đã phê duyệt',
         badgeColor: '#059669',
         badgeBg: '#ecfdf5',
-        moderator: 'Lê Minh Trí',
+        moderator: modProfileData.fullName,
         time: 'Vừa xong',
         note: 'Đã kiểm tra an toàn thuần chay & duyệt xuất bản.'
       },
@@ -447,7 +981,7 @@ export default function ModDashboard({ onNavigate }) {
         actionLabel: 'Bị từ chối',
         badgeColor: '#dc2626',
         badgeBg: '#fee2e2',
-        moderator: 'Lê Minh Trí',
+        moderator: modProfileData.fullName,
         time: 'Vừa xong',
         note: `${rejectReason}${rejectNote ? ` - Ghi chú: ${rejectNote}` : ''}`
       },
@@ -477,12 +1011,16 @@ export default function ModDashboard({ onNavigate }) {
       actionLabel: 'Đã duyệt hàng loạt',
       badgeColor: '#059669',
       badgeBg: '#ecfdf5',
-      moderator: 'Lê Minh Trí',
+      moderator: modProfileData.fullName,
       time: 'Vừa xong',
       note: 'Duyệt nhanh tự động qua bộ lọc AI an toàn cao (>95%).'
     }));
     setModerationLogs(prev => [...newLogs, ...prev]);
     showToast(`⚡ Đã phê duyệt an toàn hàng loạt ${safeItems.length} bài viết có điểm tin cậy cao!`);
+  };
+
+  const handleBatchReceive = () => {
+    showToast('📥 Đã nhận thành công nhóm 4 bài viết ưu tiên vào danh sách xử lý!');
   };
 
   // Auto-review sequential mode
@@ -497,7 +1035,7 @@ export default function ModDashboard({ onNavigate }) {
     showToast('🚀 Đã kích hoạt Chế độ Duyệt Tự Động Tập Trung.');
   };
 
-  // Filtered items list
+  // Filtered items list for general dashboard
   const filteredItems = moderationItems.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(topSearchQuery.toLowerCase()) ||
                           item.author.toLowerCase().includes(topSearchQuery.toLowerCase()) ||
@@ -505,6 +1043,46 @@ export default function ModDashboard({ onNavigate }) {
     const matchesAiFilter = isAiFlagFilterActive ? (item.aiStatus === 'warning' || item.aiStatus === 'danger') : true;
     return matchesSearch && matchesAiFilter;
   });
+
+  // Filtered queue items specifically for Queue View (Image 1 & 2)
+  const filteredQueueItems = moderationItems.filter(item => {
+    // Status tab filter
+    if (queueTab === 'new' && !item.isNew && item.queueStatus !== 'new') return false;
+    if (queueTab === 'flagged' && item.queueStatus !== 'flagged' && item.aiStatus !== 'warning' && item.aiStatus !== 'danger') return false;
+    if (queueTab === 'revision' && item.queueStatus !== 'revision') return false;
+
+    // Search query in queue
+    if (queueSearch.trim()) {
+      const q = queueSearch.toLowerCase();
+      const match = item.title.toLowerCase().includes(q) ||
+                    item.author.toLowerCase().includes(q) ||
+                    item.id.toLowerCase().includes(q) ||
+                    (item.excerpt && item.excerpt.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+
+    // Category pills filter
+    if (queueCategory !== 'all') {
+      if (item.category !== queueCategory && item.typeCode !== queueCategory) return false;
+    }
+
+    // AI risk dropdown filter
+    if (queueAiFilter === 'safe') {
+      if (item.aiConfidence < 95 || item.aiStatus !== 'safe') return false;
+    } else if (queueAiFilter === 'warning') {
+      if (item.aiStatus !== 'warning' && item.aiStatus !== 'danger') return false;
+    }
+
+    return true;
+  });
+
+  // Calculate items for current page (4 items per page matching mockup)
+  const queueItemsPerPage = 4;
+  const queueTotalPages = Math.ceil(filteredQueueItems.length / queueItemsPerPage) || 1;
+  const paginatedQueueItems = filteredQueueItems.slice(
+    (queueCurrentPage - 1) * queueItemsPerPage,
+    queueCurrentPage * queueItemsPerPage
+  );
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -1252,92 +1830,406 @@ export default function ModDashboard({ onNavigate }) {
           )}
 
           {/* =========================================================================
-              VIEW 2: HÀNG ĐỢI DUYỆT BÀI (FULL QUEUE VIEW)
+              VIEW 2: HÀNG ĐỢI DUYỆT BÀI (MODERATION QUEUE - IMAGE 1 & 2 FEEDBACK)
               ========================================================================= */}
           {activeModTab === 'queue' && (
-            <div className="mod-queue-view">
-              <div className="mod-view-header">
+            <div className="mod-queue-container">
+              {/* TOP HEADER: Breadcrumb, Title, Subtitle, SLA stat, Batch action */}
+              <div className="mod-queue-top-row">
                 <div>
-                  <h1 className="mod-view-title">Hàng Đợi Kiểm Duyệt Bài Viết &amp; Video</h1>
-                  <p className="mod-view-sub">
-                    Tổng cộng <strong>{moderationItems.length}</strong> bài viết đang chờ phê duyệt. Nhấn vào bài viết để soi chi tiết hoặc thao tác nhanh.
+                  <div className="mod-queue-breadcrumb-tag">
+                    <ShieldCheck size={14} color="#059669" />
+                    <span>TRUNG TÂM VẬN HÀNH NỘI DUNG</span>
+                  </div>
+                  <h1 className="mod-queue-title">Hàng Đợi Duyệt Bài (Moderation Queue)</h1>
+                  <p className="mod-queue-sub">
+                    Danh sách bài viết blog, công thức món chay và video do cộng đồng gửi lên chờ kiểm duyệt chất lượng và tính chuẩn xác dinh dưỡng.
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.65rem' }}>
-                  <button className="mod-batch-approve-btn" onClick={handleBatchApproveSafe}>
-                    <CheckCircle2 size={16} />
-                    <span>Duyệt hàng loạt an toàn ({moderationItems.filter(i => i.aiConfidence >= 95).length})</span>
+
+                <div className="mod-queue-top-actions">
+                  <div className="mod-sla-stat-pill">
+                    <Clock size={16} color="#0284c7" />
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>SLA trung bình:</div>
+                      <strong>18 phút</strong>
+                    </div>
+                  </div>
+
+                  <button className="mod-batch-receive-btn" onClick={handleBatchReceive}>
+                    <CheckSquare size={16} />
+                    <span>Nhận bài hàng loạt</span>
                   </button>
                 </div>
               </div>
 
-              <div className="mod-panel-card" style={{ marginTop: '1rem' }}>
-                <div className="mod-items-list">
-                  {filteredItems.map(item => (
-                    <div key={item.id} className="mod-item-row">
-                      <div className="mod-item-main">
-                        <img src={item.thumbnail} alt={item.title} className="mod-item-thumb" />
-                        <div className="mod-item-info">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
-                              #{item.id}
-                            </span>
-                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{item.type}</span>
-                            <span className="mod-meta-sep">•</span>
-                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Gửi {item.submittedAt}</span>
-                          </div>
-                          <h3 
-                            className="mod-item-title"
-                            onClick={() => {
-                              setInspectingItem(item);
-                              setActiveModTab('detail');
-                            }}
-                          >
-                            {item.title}
-                          </h3>
-                          <div className="mod-item-meta">
-                            <span className="mod-item-author">{item.author}</span>
-                            <span className="mod-meta-sep">•</span>
-                            <div className="mod-trust-score-badge">
-                              <Shield size={12} color={item.trustScore >= 90 ? '#059669' : '#d97706'} />
-                              <span>Điểm uy tín: <strong>{item.trustScore}/100</strong></span>
-                            </div>
-                            <span className="mod-meta-sep">•</span>
-                            <span style={{ fontSize: '0.72rem', color: item.aiStatus === 'safe' ? '#059669' : item.aiStatus === 'warning' ? '#d97706' : '#dc2626', fontWeight: 700 }}>
-                              AI Score: {item.aiConfidence}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mod-item-actions">
-                        <button 
-                          className="mod-btn-action view"
-                          onClick={() => {
-                            setInspectingItem(item);
-                            setActiveModTab('detail');
-                          }}
-                        >
-                          <Eye size={14} />
-                          <span>Chi tiết</span>
-                        </button>
-                        <button 
-                          className="mod-btn-action approve"
-                          onClick={() => handleApproveItem(item)}
-                        >
-                          <Check size={14} />
-                          <span>Duyệt</span>
-                        </button>
-                        <button 
-                          className="mod-btn-action reject"
-                          onClick={() => handleOpenRejectModal(item)}
-                        >
-                          <X size={14} />
-                          <span>Từ chối</span>
-                        </button>
-                      </div>
+              {/* 4 KPI METRIC CARDS */}
+              <div className="mod-queue-kpi-grid">
+                <div className="mod-queue-kpi-card">
+                  <div>
+                    <div className="mod-queue-kpi-label">ĐANG CHỜ XỬ LÝ</div>
+                    <div className="mod-queue-kpi-value">
+                      18 <span className="mod-queue-kpi-sub">bài</span>
                     </div>
-                  ))}
+                  </div>
+                  <div className="mod-queue-kpi-icon-box green">
+                    <FileText size={20} />
+                  </div>
+                </div>
+
+                <div className="mod-queue-kpi-card">
+                  <div>
+                    <div className="mod-queue-kpi-label">AI CẢNH BÁO RỦI RO</div>
+                    <div className="mod-queue-kpi-value">
+                      04 <span className="mod-queue-kpi-sub">bài gắn cờ</span>
+                    </div>
+                  </div>
+                  <div className="mod-queue-kpi-icon-box coral">
+                    <Bot size={20} />
+                  </div>
+                </div>
+
+                <div className="mod-queue-kpi-card">
+                  <div>
+                    <div className="mod-queue-kpi-label">TỶ LỆ SẠCH AI (&gt;95%)</div>
+                    <div className="mod-queue-kpi-value">
+                      83.4%
+                    </div>
+                  </div>
+                  <div className="mod-queue-kpi-icon-box emerald">
+                    <ShieldCheck size={20} />
+                  </div>
+                </div>
+
+                <div className="mod-queue-kpi-card">
+                  <div>
+                    <div className="mod-queue-kpi-label">VI PHẠM SLA HÔM NAY</div>
+                    <div className="mod-queue-kpi-value">
+                      0 <span className="mod-queue-kpi-sub">trường hợp</span>
+                    </div>
+                  </div>
+                  <div className="mod-queue-kpi-icon-box red">
+                    <Clock size={20} />
+                  </div>
+                </div>
+              </div>
+
+              {/* STATUS FILTER TABS */}
+              <div className="mod-queue-tabs-row">
+                <button 
+                  className={`mod-queue-tab-btn ${queueTab === 'all' ? 'active' : ''}`}
+                  onClick={() => { setQueueTab('all'); setQueueCurrentPage(1); }}
+                >
+                  <span>Tất cả</span>
+                  <span className="mod-tab-count-badge">18</span>
+                </button>
+
+                <button 
+                  className={`mod-queue-tab-btn ${queueTab === 'new' ? 'active' : ''}`}
+                  onClick={() => { setQueueTab('new'); setQueueCurrentPage(1); }}
+                >
+                  <span>Mới gửi</span>
+                  <span className="mod-tab-count-badge">11</span>
+                </button>
+
+                <button 
+                  className={`mod-queue-tab-btn ${queueTab === 'flagged' ? 'active' : ''}`}
+                  onClick={() => { setQueueTab('flagged'); setQueueCurrentPage(1); }}
+                >
+                  <Bot size={13} />
+                  <span>AI Gắn cờ cần chú ý</span>
+                  <span className="mod-tab-count-badge">4</span>
+                </button>
+
+                <button 
+                  className={`mod-queue-tab-btn ${queueTab === 'revision' ? 'active' : ''}`}
+                  onClick={() => { setQueueTab('revision'); setQueueCurrentPage(1); }}
+                >
+                  <span>Chờ tác giả chỉnh sửa</span>
+                  <span className="mod-tab-count-badge">3</span>
+                </button>
+              </div>
+
+              {/* FILTER & SEARCH BAR */}
+              <div className="mod-queue-filter-bar">
+                <div className="mod-queue-search-row">
+                  <div className="mod-queue-search-input-wrap">
+                    <Search size={15} color="#94a3b8" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm tiêu đề, tác giả hoặc ID..."
+                      value={queueSearch}
+                      onChange={(e) => { setQueueSearch(e.target.value); setQueueCurrentPage(1); }}
+                    />
+                    {queueSearch && (
+                      <button 
+                        onClick={() => setQueueSearch('')}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex' }}
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  <button 
+                    className="mod-queue-cat-pill-btn" 
+                    title="Tuỳ chọn bộ lọc"
+                    style={{ padding: '0.45rem 0.65rem' }}
+                  >
+                    <SlidersHorizontal size={14} />
+                  </button>
+                </div>
+
+                <div className="mod-queue-cat-row">
+                  <div className="mod-queue-cat-pills">
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginRight: '0.25rem' }}>Danh mục:</span>
+                    <button 
+                      className={`mod-queue-cat-pill-btn ${queueCategory === 'all' ? 'active' : ''}`}
+                      onClick={() => { setQueueCategory('all'); setQueueCurrentPage(1); }}
+                    >
+                      Tất cả danh mục
+                    </button>
+                    <button 
+                      className={`mod-queue-cat-pill-btn ${queueCategory === 'nutrition' ? 'active' : ''}`}
+                      onClick={() => { setQueueCategory('nutrition'); setQueueCurrentPage(1); }}
+                    >
+                      Dinh dưỡng &amp; Vi chất
+                    </button>
+                    <button 
+                      className={`mod-queue-cat-pill-btn ${queueCategory === 'cooking' ? 'active' : ''}`}
+                      onClick={() => { setQueueCategory('cooking'); setQueueCurrentPage(1); }}
+                    >
+                      Bí quyết nấu ăn
+                    </button>
+                    <button 
+                      className={`mod-queue-cat-pill-btn ${queueCategory === 'seasonal' ? 'active' : ''}`}
+                      onClick={() => { setQueueCategory('seasonal'); setQueueCurrentPage(1); }}
+                    >
+                      Công thức theo mùa
+                    </button>
+                    <button 
+                      className={`mod-queue-cat-pill-btn ${queueCategory === 'video' ? 'active' : ''}`}
+                      onClick={() => { setQueueCategory('video'); setQueueCurrentPage(1); }}
+                    >
+                      Video thực hành
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Bộ lọc AI:</span>
+                    <select 
+                      className="mod-queue-ai-filter-select"
+                      value={queueAiFilter}
+                      onChange={(e) => { setQueueAiFilter(e.target.value); setQueueCurrentPage(1); }}
+                    >
+                      <option value="all">Tất cả mức độ rủi ro</option>
+                      <option value="safe">An toàn (&gt;95%)</option>
+                      <option value="warning">Cảnh báo rủi ro / Thuần chay</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* TABLE CONTAINER */}
+              <div className="mod-queue-table-card">
+                <table className="mod-queue-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '34%' }}>THÔNG TIN BÀI ĐĂNG</th>
+                      <th style={{ width: '18%' }}>TÁC GIẢ &amp; UY TÍN</th>
+                      <th style={{ width: '24%' }}>PHÂN TÍCH AI (PRE-SCREENING)</th>
+                      <th style={{ width: '12%' }}>THỜI GIAN &amp; SLA</th>
+                      <th style={{ width: '12%', textAlign: 'right' }}>HÀNH ĐỘNG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedQueueItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+                          <CheckCircle2 size={36} color="#059669" style={{ margin: '0 auto 0.75rem auto', opacity: 0.7 }} />
+                          <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a' }}>Không có bài viết nào phù hợp bộ lọc</div>
+                          <div style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>Thử xóa từ khóa tìm kiếm hoặc chọn danh mục khác.</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedQueueItems.map(item => (
+                        <tr key={item.id}>
+                          {/* COL 1: THÔNG TIN BÀI ĐĂNG */}
+                          <td>
+                            <div className="mod-post-info-box">
+                              <div className="mod-post-thumb-wrap">
+                                <img src={item.thumbnail} alt={item.title} className="mod-post-thumb-img" />
+                                <span className="mod-post-thumb-label">{item.typeTag || 'Công thức'}</span>
+                              </div>
+                              <div>
+                                <span className="mod-post-cat-badge">{item.type}</span>
+                                <h4 
+                                  className="mod-post-name"
+                                  onClick={() => {
+                                    setInspectingItem(item);
+                                    setActiveModTab('detail');
+                                  }}
+                                  title="Nhấn để xem chi tiết bài viết"
+                                >
+                                  {item.title}
+                                </h4>
+                                <p className="mod-post-excerpt">{item.excerpt}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* COL 2: TÁC GIẢ & UY TÍN (Strictly: Name + verified check + stats, NO titles/ranks) */}
+                          <td>
+                            <div className="mod-author-cell">
+                              <img src={item.authorAvatar || modAvatar} alt={item.author} className="mod-author-avatar-img" />
+                              <div className="mod-author-details">
+                                <div className="mod-author-name-row">
+                                  <span className="mod-author-display-name">{item.author}</span>
+                                  {item.isVerified && (
+                                    <CheckCircle2 size={13} color="#059669" className="mod-author-verified-icon" />
+                                  )}
+                                </div>
+                                <div className="mod-author-stat-line">
+                                  <Sprout size={12} color="#059669" />
+                                  <span>{item.authorStats || `${item.trustScore} điểm uy tín`}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* COL 3: PHÂN TÍCH AI (PRE-SCREENING) */}
+                          <td>
+                            <div className="mod-ai-screening-box">
+                              <div className="mod-ai-bar-header">
+                                <span className="mod-ai-percent-num">{item.aiConfidence}%</span>
+                                <div className="mod-ai-progress-track">
+                                  <div 
+                                    className="mod-ai-progress-fill" 
+                                    style={{ 
+                                      width: `${item.aiConfidence}%`,
+                                      background: item.aiConfidence >= 90 ? '#10b981' : item.aiConfidence >= 70 ? '#f97316' : '#ef4444'
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                              <div className={`mod-ai-result-badge ${item.aiStatus === 'safe' ? 'safe' : item.aiStatus === 'warning' ? 'warning' : 'standard'}`}>
+                                {item.aiStatus === 'safe' ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                                <span>{item.aiBadgeLabel}</span>
+                              </div>
+                              <p className={`mod-ai-explain-txt ${item.aiStatus === 'warning' ? 'danger-note' : ''}`}>
+                                {item.aiSummary}
+                              </p>
+                            </div>
+                          </td>
+
+                          {/* COL 4: THỜI GIAN & SLA */}
+                          <td>
+                            <div className="mod-time-sla-box">
+                              <span className="mod-time-ago-txt">{item.submittedAt}</span>
+                              <div className={`mod-sla-countdown-pill ${item.slaStatus === 'warning' ? 'warning' : 'normal'}`}>
+                                <Clock size={11} />
+                                <span>{item.slaRemaining}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* COL 5: HÀNH ĐỘNG */}
+                          <td style={{ textAlign: 'right' }}>
+                            <div className="mod-table-actions-cell">
+                              <button 
+                                className={`mod-tbl-btn-primary ${item.actionType === 'handle' ? 'handle' : 'approve'}`}
+                                onClick={() => {
+                                  setInspectingItem(item);
+                                  setActiveModTab('detail');
+                                }}
+                              >
+                                {item.actionType === 'handle' ? 'Xem & Xử lý' : 'Xem & Duyệt'}
+                              </button>
+                              
+                              <button 
+                                className="mod-tbl-btn-quick-check" 
+                                title="Duyệt nhanh bài viết"
+                                onClick={() => handleApproveItem(item)}
+                              >
+                                <Check size={14} />
+                              </button>
+
+                              <button 
+                                className="mod-tbl-btn-more" 
+                                title="Thêm thao tác"
+                                onClick={() => showToast(`Tuỳ chọn quản lý cho bài viết #${item.id}`)}
+                              >
+                                <MoreVertical size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+
+                {/* PAGINATION BAR */}
+                <div className="mod-queue-pagination-bar">
+                  <div className="mod-queue-pagination-info">
+                    Hiển thị <strong>{filteredQueueItems.length > 0 ? `${(queueCurrentPage - 1) * queueItemsPerPage + 1}–${Math.min(queueCurrentPage * queueItemsPerPage, filteredQueueItems.length)}` : '0'}</strong> trong số <strong>{filteredQueueItems.length} bài chờ duyệt</strong>
+                  </div>
+                  <div className="mod-queue-pagination-pages">
+                    <button 
+                      className="mod-page-btn" 
+                      disabled={queueCurrentPage === 1}
+                      onClick={() => setQueueCurrentPage(p => Math.max(1, p - 1))}
+                      title="Trang trước"
+                    >
+                      <ChevronLeft size={13} />
+                    </button>
+                    <button 
+                      className={`mod-page-btn ${queueCurrentPage === 1 ? 'active' : ''}`}
+                      onClick={() => setQueueCurrentPage(1)}
+                    >
+                      1
+                    </button>
+                    {filteredQueueItems.length > queueItemsPerPage && (
+                      <button 
+                        className={`mod-page-btn ${queueCurrentPage === 2 ? 'active' : ''}`}
+                        onClick={() => setQueueCurrentPage(2)}
+                      >
+                        2
+                      </button>
+                    )}
+                    {filteredQueueItems.length > queueItemsPerPage * 2 && (
+                      <button 
+                        className={`mod-page-btn ${queueCurrentPage === 3 ? 'active' : ''}`}
+                        onClick={() => setQueueCurrentPage(3)}
+                      >
+                        3
+                      </button>
+                    )}
+                    <button 
+                      className="mod-page-btn"
+                      disabled={queueCurrentPage * queueItemsPerPage >= filteredQueueItems.length}
+                      onClick={() => setQueueCurrentPage(p => p + 1)}
+                      title="Trang sau"
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTTOM AI STATUS BANNER */}
+              <div className="mod-queue-bottom-ai-card">
+                <div className="mod-queue-bottom-ai-left">
+                  <div className="mod-bottom-ai-icon">
+                    <Sparkles size={18} />
+                  </div>
+                  <div className="mod-bottom-ai-content">
+                    <h4>Công nghệ AI Assistant Moderation đang hoạt động</h4>
+                    <p>Hệ thống đang tự động quét kiểm tra thành phần vi phạm quy chuẩn thuần chay, độc tố dị ứng và đối soát từ khóa y tế theo thời gian thực.</p>
+                  </div>
+                </div>
+                <div className="mod-bottom-ai-badge">
+                  <span className="mod-bottom-ai-pulse"></span>
+                  <span>Engine v3.4 Active</span>
                 </div>
               </div>
             </div>
