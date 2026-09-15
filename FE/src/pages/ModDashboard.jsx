@@ -7,7 +7,8 @@ import {
   ChevronRight, Play, Check, Slash, Zap, Download, Send, AlertCircle,
   HelpCircle, MoreVertical, Lock, Shield, Camera, Plus, Trash2, Edit2,
   Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag, Laptop,
-  Bot, SlidersHorizontal, ChevronLeft, CheckSquare, Sprout, SkipForward
+  Bot, SlidersHorizontal, ChevronLeft, CheckSquare, Sprout, SkipForward,
+  Calendar, Smile
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -50,6 +51,124 @@ export default function ModDashboard({ onNavigate }) {
   const [detailIsExpertCertified, setDetailIsExpertCertified] = useState(true);
   const [detailInternalFeedback, setDetailInternalFeedback] = useState('');
   const [detailSelectedTags, setDetailSelectedTags] = useState(['#MonTheoMua', '#TangDeKhang', '#MonKhoHam', '#DuongSinhOhsawa']);
+
+  // History Tab Interactive Controls & Audit Dataset
+  // STRICTLY RESPECTING IMAGE 2 FEEDBACK:
+  // - Clean author names ONLY (no Chef Verified, no Tác giả cộng đồng, no Top Contributor, no Thành viên mới, no Food Blogger)
+  // - "Bác sĩ Tuấn Minh - Chuyên gia dinh dưỡng" -> "Tuấn Minh" (no Bác sĩ, no Chuyên gia)
+  // - "Trích dẫn 4 nguồn Y khoa" -> REMOVED
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyPeriod, setHistoryPeriod] = useState('month'); // 'today' | 'week' | 'month' | 'custom'
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('all'); // 'all' | 'published' | 'rejected' | 'revision'
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyItemsPerPage, setHistoryItemsPerPage] = useState('20 bài');
+
+  const [historyAuditRecords, setHistoryAuditRecords] = useState([
+    {
+      id: 'VEC-9482',
+      tag: '#VEC-9482 • Lên men tự nhiên',
+      title: 'Bí quyết ủ men Tempeh đậu nành truyền thống',
+      thumbBadge: 'REC',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-d007c0828330?w=200',
+      meta: '⏱️ 48 giờ • ⚡ 19g Protein / 100g',
+      author: 'Hoàng An Nhiên',
+      authorInitials: 'HA',
+      authorAvatarBg: '#ecfeff',
+      authorAvatarColor: '#0891b2',
+      decision: 'published',
+      decisionLabel: 'Đã xuất bản',
+      date: '14:32 • 24/10/2025',
+      slaTime: 'Xử lý trong 8 phút',
+      slaType: 'green'
+    },
+    {
+      id: 'VEC-9479',
+      tag: '#VEC-9479 • Món nước thực dưỡng',
+      title: 'Phở nấm thực dưỡng dưỡng sinh',
+      thumbBadge: 'NUTRI',
+      thumbnail: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200',
+      meta: '⏱️ 45 phút • 340 kcal',
+      author: 'Đặng Khang',
+      authorInitials: 'ĐK',
+      authorAvatarBg: '#fef3c7',
+      authorAvatarColor: '#b45309',
+      decision: 'revision',
+      decisionLabel: 'Yêu cầu bổ sung',
+      date: '11:15 • 24/10/2025',
+      slaTime: 'Xử lý trong 12 phút',
+      slaType: 'warning'
+    },
+    {
+      id: 'VEC-9471',
+      tag: '#VEC-9471 • Khai vị lành mạnh',
+      title: 'Bánh tráng cuốn nấm ngũ sắc',
+      thumbBadge: 'REC',
+      thumbnail: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200',
+      meta: '⏱️ 20 phút • 🌱 100% Raw Vegan',
+      author: 'Mai Linh Vegan',
+      authorInitials: 'ML',
+      authorAvatarBg: '#ecfdf5',
+      authorAvatarColor: '#059669',
+      decision: 'published',
+      decisionLabel: 'Đã xuất bản',
+      date: '09:40 • 24/10/2025',
+      slaTime: 'Xử lý trong 5 phút',
+      slaType: 'green'
+    },
+    {
+      id: 'VEC-9469',
+      tag: '#VEC-9469 • Bánh ngọt công nghiệp',
+      title: 'Bánh Brownie bơ thực vật xốp mềm',
+      thumbBadge: 'REJECT',
+      isProhibited: true,
+      meta: '⚠️ Chứa phụ gia bột sữa bò',
+      isDangerMeta: true,
+      author: 'Trần Ngọc Huy',
+      authorInitials: 'TN',
+      authorAvatarBg: '#ede9fe',
+      authorAvatarColor: '#6d28d9',
+      decision: 'rejected',
+      decisionLabel: 'Từ chối — Không thuần chay',
+      date: '16:45 • 23/10/2025',
+      slaTime: 'Xử lý trong 4 phút',
+      slaType: 'red'
+    },
+    {
+      id: 'VEC-9452',
+      tag: '#VEC-9452 • Kiến thức chuyên sâu',
+      title: 'Cân bằng Omega 3–6 trong chế độ thuần chay',
+      thumbBadge: 'BLOG',
+      thumbnail: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200',
+      meta: '📖 6 phút đọc',
+      author: 'Tuấn Minh',
+      authorInitials: 'TM',
+      authorAvatarBg: '#dcfce7',
+      authorAvatarColor: '#15803d',
+      decision: 'published',
+      decisionLabel: 'Đã xuất bản',
+      date: '14:10 • 23/10/2025',
+      slaTime: 'Xử lý trong 15 phút',
+      slaType: 'green'
+    },
+    {
+      id: 'VEC-9449',
+      tag: '#VEC-9449 • Ngũ cốc ăn sáng',
+      title: 'Granola yến mạch mật thốt nốt giòn tan',
+      thumbBadge: 'REC',
+      thumbnail: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=200',
+      meta: '⏱️ 30 phút • ⚠️ Thiếu cảnh báo dị ứng hạt',
+      isWarningMeta: true,
+      author: 'Lâm Thanh Hà',
+      authorInitials: 'LT',
+      authorAvatarBg: '#f0fdf4',
+      authorAvatarColor: '#16a34a',
+      decision: 'revision',
+      decisionLabel: 'Yêu cầu sửa đổi',
+      date: '10:05 • 23/10/2025',
+      slaTime: 'Xử lý trong 7 phút',
+      slaType: 'warning'
+    }
+  ]);
 
   // =========================================================================
   // MOD PROFILE STATE & AVATAR UPLOAD (MATCHING EXACT MOD USER REQUIREMENTS)
@@ -2787,70 +2906,441 @@ export default function ModDashboard({ onNavigate }) {
           })()}
 
           {/* =========================================================================
-              VIEW 4: LỊCH SỬ DUYỆT BÀI (AUDIT LOGS)
+              VIEW 4: LỊCH SỬ DUYỆT BÀI CỦA TÔI (MODERATOR AUDIT & HISTORY) - MATCHING MOCKUP
               ========================================================================= */}
-          {activeModTab === 'history' && (
-            <div className="mod-history-view">
-              <div className="mod-view-header">
+          {activeModTab === 'history' && (() => {
+            const filteredRecords = historyAuditRecords.filter((rec) => {
+              if (historySearch.trim()) {
+                const q = historySearch.toLowerCase();
+                const match = rec.id.toLowerCase().includes(q) ||
+                  rec.title.toLowerCase().includes(q) ||
+                  rec.author.toLowerCase().includes(q) ||
+                  rec.tag.toLowerCase().includes(q);
+                if (!match) return false;
+              }
+              if (historyStatusFilter === 'published' && rec.decision !== 'published') return false;
+              if (historyStatusFilter === 'rejected' && rec.decision !== 'rejected') return false;
+              if (historyStatusFilter === 'revision' && rec.decision !== 'revision') return false;
+              return true;
+            });
+
+            return (
+              <div className="mod-history-page-wrap">
+                {/* 1. TOP BREADCRUMB & HEADER TITLE ROW */}
                 <div>
-                  <h1 className="mod-view-title">Nhật Ký &amp; Lịch Sử Kiểm Duyệt</h1>
-                  <p className="mod-view-sub">Hồ sơ lưu trữ các quyết định phê duyệt và từ chối nội dung của bạn.</p>
+                  <div className="mod-history-breadcrumb">
+                    <ShieldCheck size={15} />
+                    <span>Hồ sơ kiểm duyệt viên #MOD-8821</span>
+                    <span style={{ color: '#cbd5e1' }}>/</span>
+                    <span style={{ color: '#475569' }}>{modProfileData.fullName || 'Lê Minh Trí'}</span>
+                  </div>
+
+                  <div className="mod-history-title-row">
+                    <div>
+                      <h1 className="mod-history-main-title">Lịch Sử Duyệt Bài Của Tôi</h1>
+                      <p className="mod-history-subtitle">
+                        Theo dõi toàn bộ bài viết, công thức và bình luận bạn đã phê duyệt hoặc từ chối, kèm nhật ký kiểm tra và đối soát chất lượng dữ liệu dinh dưỡng thực vật.
+                      </p>
+                    </div>
+
+                    <div className="mod-history-header-actions">
+                      <button 
+                        className="mod-history-btn-audit"
+                        onClick={() => showToast('⚙️ Bảng cấu hình Audit Trail & Định danh SHA-256 đã kích hoạt.')}
+                      >
+                        <SlidersHorizontal size={15} />
+                        <span>Cấu hình Audit</span>
+                      </button>
+
+                      <button 
+                        className="mod-history-btn-export"
+                        onClick={() => showToast('📥 Đang xuất 1.428 bản ghi nhật ký kiểm duyệt (Excel/CSV)...')}
+                      >
+                        <Download size={15} />
+                        <span>Xuất nhật ký (Excel/CSV)</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button 
-                  className="mod-download-report-btn"
-                  onClick={() => {
-                    showToast('📥 Đang tải file CSV Lịch sử kiểm duyệt...');
-                  }}
-                >
-                  <Download size={14} />
-                  <span>Xuất File CSV</span>
-                </button>
-              </div>
 
-              <div className="mod-panel-card" style={{ marginTop: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {moderationLogs.map((log) => (
-                    <div 
-                      key={log.id} 
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '0.85rem 1.15rem',
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '10px',
-                        flexWrap: 'wrap',
-                        gap: '0.75rem'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: log.badgeBg, color: log.badgeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {log.action === 'approved' ? <CheckCircle size={18} /> : <Slash size={18} />}
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{log.title}</strong>
-                            <span style={{ background: log.badgeBg, color: log.badgeColor, fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
-                              {log.actionLabel}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '0.15rem' }}>
-                            Tác giả: <strong>{log.author}</strong> • {log.note}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>{log.moderator}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{log.time}</div>
+                {/* 2. TOP 4 KPI CARDS */}
+                <div className="mod-history-kpi-grid">
+                  {/* KPI 1 */}
+                  <div className="mod-history-kpi-card">
+                    <div className="mod-kpi-top-row">
+                      <span className="mod-kpi-title">TỔNG SỐ ĐÃ XỬ LÝ</span>
+                      <div className="mod-kpi-icon-wrap cyan">
+                        <FileText size={16} />
                       </div>
                     </div>
-                  ))}
+                    <div className="mod-kpi-value-row">
+                      <span className="mod-kpi-big-num">1,428</span>
+                    </div>
+                    <div className="mod-kpi-subtext" style={{ color: '#059669', fontWeight: 700 }}>
+                      ↗ +18.4% so với tháng trước
+                    </div>
+                    <div className="mod-kpi-bar teal"></div>
+                  </div>
+
+                  {/* KPI 2 */}
+                  <div className="mod-history-kpi-card">
+                    <div className="mod-kpi-top-row">
+                      <span className="mod-kpi-title">ĐÃ DUYỆT XUẤT BẢN</span>
+                      <div className="mod-kpi-icon-wrap green">
+                        <CheckCircle2 size={16} />
+                      </div>
+                    </div>
+                    <div className="mod-kpi-value-row">
+                      <span className="mod-kpi-big-num">1,285</span>
+                      <span className="mod-kpi-percent-badge green">90%</span>
+                    </div>
+                    <div className="mod-kpi-subtext">
+                      Công thức đạt tiêu chuẩn thuần chay
+                    </div>
+                    <div className="mod-kpi-bar green"></div>
+                  </div>
+
+                  {/* KPI 3 */}
+                  <div className="mod-history-kpi-card">
+                    <div className="mod-kpi-top-row">
+                      <span className="mod-kpi-title">YÊU CẦU SỬA / TỪ CHỐI</span>
+                      <div className="mod-kpi-icon-wrap pink">
+                        <MessageSquare size={16} />
+                      </div>
+                    </div>
+                    <div className="mod-kpi-value-row">
+                      <span className="mod-kpi-big-num" style={{ color: '#c2410c' }}>143</span>
+                      <span className="mod-kpi-percent-badge amber">10%</span>
+                    </div>
+                    <div className="mod-kpi-subtext">
+                      112 sửa vi chất • 31 vi phạm chuẩn
+                    </div>
+                    <div className="mod-kpi-bar orange"></div>
+                  </div>
+
+                  {/* KPI 4 */}
+                  <div className="mod-history-kpi-card">
+                    <div className="mod-kpi-top-row">
+                      <span className="mod-kpi-title">ĐỘ HÀI LÒNG TÁC GIẢ</span>
+                      <div className="mod-kpi-icon-wrap mint">
+                        <Smile size={16} />
+                      </div>
+                    </div>
+                    <div className="mod-kpi-value-row">
+                      <span className="mod-kpi-big-num" style={{ color: '#047857' }}>99.2%</span>
+                      <span className="mod-kpi-percent-badge csat">CSAT</span>
+                    </div>
+                    <div className="mod-kpi-subtext">
+                      Dựa trên 820 lượt đánh giá phản hồi
+                    </div>
+                    <div className="mod-kpi-bar blue"></div>
+                  </div>
+                </div>
+
+                {/* 3. FILTER & SEARCH CARD */}
+                <div className="mod-history-filter-card">
+                  <div className="mod-history-search-wrap">
+                    <Search size={16} color="#94a3b8" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo ID bài viết (#VEC-1092), tên công thức, tác giả..."
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                    />
+                    {historySearch && (
+                      <button 
+                        onClick={() => setHistorySearch('')}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mod-history-filter-row">
+                    {/* PERIOD */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <span className="mod-history-filter-lbl">KỲ LỌC:</span>
+                      <div className="mod-history-period-group">
+                        <button 
+                          className={`mod-period-btn ${historyPeriod === 'today' ? 'active' : ''}`}
+                          onClick={() => setHistoryPeriod('today')}
+                        >
+                          Hôm nay
+                        </button>
+                        <button 
+                          className={`mod-period-btn ${historyPeriod === 'week' ? 'active' : ''}`}
+                          onClick={() => setHistoryPeriod('week')}
+                        >
+                          Tuần này
+                        </button>
+                        <button 
+                          className={`mod-period-btn ${historyPeriod === 'month' ? 'active' : ''}`}
+                          onClick={() => setHistoryPeriod('month')}
+                        >
+                          Tháng này
+                        </button>
+                        <button 
+                          className={`mod-period-btn ${historyPeriod === 'custom' ? 'active' : ''}`}
+                          onClick={() => {
+                            setHistoryPeriod('custom');
+                            showToast('📅 Chọn khoảng thời gian tùy chỉnh...');
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Calendar size={12} />
+                          <span>Tùy chỉnh ngày</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* STATUS PILLS */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="mod-history-filter-lbl">TRẠNG THÁI:</span>
+                      <div className="mod-history-status-pills">
+                        <button 
+                          className={`mod-status-filter-pill ${historyStatusFilter === 'all' ? 'active' : ''}`}
+                          onClick={() => setHistoryStatusFilter('all')}
+                        >
+                          Tất cả kết quả (1,428)
+                        </button>
+                        <button 
+                          className={`mod-status-filter-pill ${historyStatusFilter === 'published' ? 'active' : ''}`}
+                          onClick={() => setHistoryStatusFilter('published')}
+                          style={{ color: historyStatusFilter === 'published' ? '#ffffff' : '#059669', borderColor: '#bbf7d0' }}
+                        >
+                          ● Đã xuất bản (1,285)
+                        </button>
+                        <button 
+                          className={`mod-status-filter-pill ${historyStatusFilter === 'rejected' ? 'active' : ''}`}
+                          onClick={() => setHistoryStatusFilter('rejected')}
+                          style={{ color: historyStatusFilter === 'rejected' ? '#ffffff' : '#dc2626', borderColor: '#fecaca' }}
+                        >
+                          ● Từ chối (31)
+                        </button>
+                        <button 
+                          className={`mod-status-filter-pill ${historyStatusFilter === 'revision' ? 'active' : ''}`}
+                          onClick={() => setHistoryStatusFilter('revision')}
+                          style={{ color: historyStatusFilter === 'revision' ? '#ffffff' : '#d97706', borderColor: '#fde68a' }}
+                        >
+                          ● Yêu cầu sửa đổi (112)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mod-history-ai-line">
+                    <Sparkles size={14} color="#059669" />
+                    <span>AI Auto-Compliance Check v3.4 Active</span>
+                  </div>
+                </div>
+
+                {/* 4. TABLE CONTAINER CARD */}
+                <div className="mod-history-table-card">
+                  <div className="mod-history-table-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span className="mod-table-header-title">Chi tiết bản ghi kiểm duyệt</span>
+                      <span className="mod-table-count-badge">Hiển thị {filteredRecords.length} / 1,428</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#64748b' }}>
+                      <span>Tự động đồng bộ hóa cách đây 1 phút</span>
+                      <button 
+                        onClick={() => showToast('🔄 Đã cập nhật và đồng bộ nhật ký kiểm duyệt mới nhất!')}
+                        style={{ background: 'none', border: 'none', color: '#059669', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                        title="Đồng bộ hóa lại"
+                      >
+                        <RefreshCw size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="mod-history-table">
+                      <thead>
+                        <tr>
+                          <th>MÃ BÀI &amp; TIÊU ĐỀ</th>
+                          <th>TÁC GIẢ</th>
+                          <th>QUYẾT ĐỊNH CỦA BẠN</th>
+                          <th>THỜI GIAN &amp; HIỆU SUẤT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredRecords.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>
+                              Không tìm thấy bản ghi kiểm duyệt nào khớp với tiêu chí tìm kiếm.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredRecords.map((item) => (
+                            <tr key={item.id}>
+                              {/* COL 1: POST & TITLE */}
+                              <td>
+                                <div className="mod-hist-post-cell">
+                                  {item.isProhibited ? (
+                                    <div className="mod-hist-prohibit-icon" title="Vi phạm quy chuẩn">
+                                      <Slash size={22} />
+                                    </div>
+                                  ) : (
+                                    <div className="mod-hist-thumb-wrap">
+                                      <img src={item.thumbnail} alt={item.title} />
+                                      <span className={`mod-hist-thumb-badge ${item.thumbBadge === 'NUTRI' ? 'nutri' : item.thumbBadge === 'BLOG' ? 'blog' : ''}`}>
+                                        {item.thumbBadge}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <div className="mod-hist-post-info">
+                                    <span className="mod-hist-post-tag" style={{ color: item.isDangerMeta ? '#dc2626' : '#b45309' }}>
+                                      {item.tag}
+                                    </span>
+                                    <h4 
+                                      className="mod-hist-post-title"
+                                      onClick={() => {
+                                        const found = moderationItems.find(i => i.id === item.id) || {
+                                          id: item.id,
+                                          title: item.title,
+                                          author: item.author,
+                                          thumbnail: item.thumbnail || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+                                          submittedAt: item.date,
+                                          type: item.tag,
+                                          trustScore: 98,
+                                          status: item.decision
+                                        };
+                                        setInspectingItem(found);
+                                        setActiveModTab('detail');
+                                      }}
+                                    >
+                                      {item.title}
+                                    </h4>
+                                    <div className="mod-hist-post-meta">
+                                      {item.isDangerMeta ? (
+                                        <span className="mod-hist-danger-note">{item.meta}</span>
+                                      ) : item.isWarningMeta ? (
+                                        <span style={{ color: '#d97706', fontWeight: 700 }}>{item.meta}</span>
+                                      ) : (
+                                        <span>{item.meta}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* COL 2: AUTHOR (CLEAN NAME ONLY - NO TITLES AS PER IMAGE 2) */}
+                              <td>
+                                <div className="mod-hist-author-cell">
+                                  <div 
+                                    className="mod-hist-author-avatar"
+                                    style={{ background: item.authorAvatarBg, color: item.authorAvatarColor }}
+                                  >
+                                    {item.authorInitials}
+                                  </div>
+                                  <span className="mod-hist-author-name">{item.author}</span>
+                                </div>
+                              </td>
+
+                              {/* COL 3: YOUR DECISION */}
+                              <td>
+                                {item.decision === 'published' && (
+                                  <span className="mod-hist-decision-pill published">
+                                    <Check size={13} />
+                                    <span>{item.decisionLabel}</span>
+                                  </span>
+                                )}
+                                {item.decision === 'revision' && (
+                                  <span className="mod-hist-decision-pill revision">
+                                    <Edit2 size={13} />
+                                    <span>{item.decisionLabel}</span>
+                                  </span>
+                                )}
+                                {item.decision === 'rejected' && (
+                                  <span className="mod-hist-decision-pill rejected">
+                                    <X size={13} />
+                                    <span>{item.decisionLabel}</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* COL 4: TIME & SLA */}
+                              <td>
+                                <div className="mod-hist-time-cell">
+                                  <span className="mod-hist-datetime">{item.date}</span>
+                                  <span className={`mod-hist-sla ${item.slaType}`}>
+                                    <Clock size={11} />
+                                    <span>{item.slaTime}</span>
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PAGINATION BAR */}
+                  <div className="mod-history-pagination">
+                    <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                      Hiển thị <strong>1 – 6</strong> trong tổng số <strong>1,428</strong> kết quả kiểm duyệt
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#64748b' }}>
+                        <span>Mỗi trang:</span>
+                        <select 
+                          value={historyItemsPerPage}
+                          onChange={(e) => setHistoryItemsPerPage(e.target.value)}
+                          className="mod-page-select"
+                        >
+                          <option value="10 bài">10 bài</option>
+                          <option value="20 bài">20 bài</option>
+                          <option value="50 bài">50 bài</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <button className="mod-page-btn" title="Trang đầu">«</button>
+                        <button className="mod-page-btn" title="Trang trước">‹</button>
+                        <button className="mod-page-btn active">1</button>
+                        <button className="mod-page-btn">2</button>
+                        <button className="mod-page-btn">3</button>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', padding: '0 0.2rem' }}>...</span>
+                        <button className="mod-page-btn">72</button>
+                        <button className="mod-page-btn" title="Trang sau">›</button>
+                        <button className="mod-page-btn" title="Trang cuối">»</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. BOTTOM AUDIT TRAIL HASH CARD */}
+                <div className="mod-history-audit-box">
+                  <div className="mod-audit-left">
+                    <div className="mod-audit-shield-icon">
+                      <ShieldCheck size={24} />
+                    </div>
+                    <div>
+                      <div className="mod-audit-title-line">
+                        <h4 className="mod-audit-title">Tính toàn vẹn nhật ký &amp; Đối chiếu tự động (Audit Trail Hash)</h4>
+                        <span className="mod-audit-immutable-pill">Immutable Log</span>
+                      </div>
+                      <p className="mod-audit-subtext">
+                        Mỗi quyết định phê duyệt đều được ký số mã băm SHA-256 nội bộ để đảm bảo tính khách quan và minh bạch của hội đồng kiểm duyệt nội dung dinh dưỡng VeggieAI.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button 
+                    className="mod-audit-report-btn"
+                    onClick={() => showToast('📜 Đang mở Báo cáo đối soát tính toàn vẹn (SHA-256) tuần 42...')}
+                  >
+                    Xem báo cáo đối soát tuần
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* =========================================================================
               VIEW 5: TRANG CÁ NHÂN & CÀI ĐẶT MODERATOR
