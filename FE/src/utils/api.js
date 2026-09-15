@@ -75,6 +75,55 @@ export const MOCK_ACCOUNTS = [
   }
 ];
 
+// TẤT CẢ TÀI KHOẢN HỆ THỐNG (BAO GỒM TÀI KHOẢN NHÂN SỰ & NGƯỜI DÙNG CƠ SỞ DỮ LIỆU)
+export const ALL_SYSTEM_ACCOUNTS = [
+  ...MOCK_ACCOUNTS,
+  {
+    role: 'AuthorizedUser',
+    roleLabel: 'Thành viên chính thức',
+    email: 'an.nguyen@gmail.com',
+    username: 'an.nguyen',
+    password: '123',
+    passwords: ['123', '123456'],
+    name: 'Nguyễn Văn An',
+    trustScore: 98,
+    status: 'active'
+  },
+  {
+    role: 'Moderator',
+    roleLabel: 'Moderator',
+    email: 'bich.tran@gmail.com',
+    username: 'bich.tran',
+    password: '123',
+    passwords: ['123', '123456'],
+    name: 'Trần Thị Bích',
+    trustScore: 100,
+    status: 'active'
+  },
+  {
+    role: 'Moderator',
+    roleLabel: 'Moderator',
+    email: 'duc.vu@modcommunity.vn',
+    username: 'duc.vu',
+    password: '123',
+    passwords: ['123', '123456'],
+    name: 'Vũ Minh Đức',
+    trustScore: 100,
+    status: 'active'
+  },
+  {
+    role: 'AuthorizedUser',
+    roleLabel: 'Thành viên chính thức',
+    email: 'thao.pham@health.vn',
+    username: 'thao.pham',
+    password: '123',
+    passwords: ['123', '123456'],
+    name: 'Phạm Thu Thảo',
+    trustScore: 95,
+    status: 'active'
+  }
+];
+
 // FAKE API ĐĂNG NHẬP PHÂN QUYỀN
 export async function mockLoginApi({ identifier, password }) {
   // Giả lập độ trễ mạng API 250ms cho chân thực
@@ -90,8 +139,8 @@ export async function mockLoginApi({ identifier, password }) {
     throw new Error('Vui lòng nhập Mật khẩu.');
   }
 
-  // 1. Khớp với 1 trong các tài khoản hệ thống (Admin, Mod, User mẫu)
-  const matched = MOCK_ACCOUNTS.find(acc => 
+  // 1. Khớp với tài khoản hệ thống (Admin, Mod, User mẫu và thành viên mẫu)
+  const matched = ALL_SYSTEM_ACCOUNTS.find(acc => 
     acc.email.toLowerCase() === cleanId || 
     acc.username.toLowerCase() === cleanId
   );
