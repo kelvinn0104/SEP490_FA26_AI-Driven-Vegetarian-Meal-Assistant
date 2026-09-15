@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   CheckCircle, XCircle, Clock, ShieldAlert, Search, Eye, Filter, 
   Sparkles, AlertTriangle, ArrowUpRight, CheckCircle2, User, 
   FileText, Video, Utensils, MessageSquare, ArrowLeft, RefreshCw, X,
   LayoutDashboard, ShieldCheck, History, Settings, LogOut, Sun, Bell,
   ChevronRight, Play, Check, Slash, Zap, Download, Send, AlertCircle,
-  HelpCircle, MoreVertical, Lock, Shield
+  HelpCircle, MoreVertical, Lock, Shield, Camera, Plus, Trash2, Edit2,
+  Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -35,6 +36,142 @@ export default function ModDashboard({ onNavigate }) {
   const [rejectNote, setRejectNote] = useState('');
   const [showAutoReviewModal, setShowAutoReviewModal] = useState(false);
   const [autoReviewStep, setAutoReviewStep] = useState(0);
+
+  // =========================================================================
+  // MOD PROFILE STATE & AVATAR UPLOAD (MATCHING IMAGE 2 & FEEDBACK RULES)
+  // =========================================================================
+  const modAvatarInputRef = useRef(null);
+  // Default image matching mockup
+  const [modAvatar, setModAvatar] = useState('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300');
+
+  const handleModAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setModAvatar(url);
+      showToast('📸 Đã cập nhật ảnh đại diện Kiểm duyệt viên thành công!');
+    }
+  };
+
+  // Profile data state
+  // Rule 3: Bỏ "Senior" trong "Senior Content Moderator" -> chỉ giữ "Content Moderator"
+  // Rule 4 & 5: Bỏ "Nutritionist Master" & "Top Mentor 2024" -> chỉ giữ "Food Safety ISO" & "Tiêu chuẩn Thuần Chay VeggieAI"
+  const [modProfileData, setModProfileData] = useState({
+    fullName: 'Lê Tuệ Tâm',
+    roleTitle: 'Content Moderator', // BỎ "Senior"
+    bio: 'Chuyên gia Ẩm thực Thực dưỡng & Lên men Sinh thái',
+    email: 'mod.tuetam@veggie.ai',
+    phone: '+84 912 348 765',
+    culturalRegion: 'Đông Nam Á & Đông Á (Việt, Thái...)',
+    specialties: ['Món thuần chay Á Đông', 'Thực phẩm lên men & Tempeh', 'Dinh dưỡng trị liệu'],
+    passwords: { current: '••••••••••••', newPass: '', confirmPass: '' },
+    lastSaved: 'Hôm nay lúc 14:28'
+  });
+
+  const [profileSubTab, setProfileSubTab] = useState('account'); // 'account' | 'filters' | 'notifications' | 'security'
+  const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
+  const [showAddSpecialty, setShowAddSpecialty] = useState(false);
+
+  // Modal create/edit rejection template
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [templateForm, setTemplateForm] = useState({ title: '', category: 'Ăn chay truyền thống', text: '' });
+
+  // Rejection templates (BỎ "Thiếu định lượng dinh dưỡng calo/macro" per rule 7)
+  const [rejectionTemplates, setRejectionTemplates] = useState([
+    {
+      id: 1,
+      title: 'Chứa ngũ vị tân chưa dán nhãn phân loại',
+      category: 'Ăn chay truyền thống',
+      badgeColor: 'amber',
+      text: 'Bài viết có chứa hành/tỏi/hẹ hoặc nén nhưng chưa bật tag cảnh báo "Có chứa ngũ vị tân" ở phần thuộc tính phân loại món ăn tâm linh/thuần chay. Vui lòng tick chọn thuộc tính phù hợp.'
+    },
+    {
+      id: 2,
+      title: 'Ảnh thumbnail mờ, vỡ nét hoặc dính bản quyền',
+      category: 'Hình ảnh',
+      badgeColor: 'blue',
+      text: 'Hình ảnh minh họa có độ phân giải dưới 720p hoặc dính watermark từ nguồn thương mại thứ ba. Bạn có thể chụp ảnh trực tiếp món tự nấu bằng cam điện thoại có độ ánh sáng tự nhiên nhất!'
+    },
+    {
+      id: 3,
+      title: 'Chứa nguyên liệu phi chay (xương, thịt, mỡ động vật, gelatin)',
+      category: 'Quy chuẩn Thuần Chay',
+      badgeColor: 'red',
+      text: 'Công thức chứa nguyên liệu có nguồn gốc động vật hoặc chất phụ gia bị cấm, vi phạm quy chuẩn an toàn thực phẩm thuần chay VeggieAI.'
+    }
+  ]);
+
+  const handleAddSpecialty = () => {
+    if (!newSpecialtyInput.trim()) return;
+    if (modProfileData.specialties.includes(newSpecialtyInput.trim())) {
+      showToast('Chuyên môn này đã có trong danh sách.');
+      return;
+    }
+    setModProfileData(prev => ({
+      ...prev,
+      specialties: [...prev.specialties, newSpecialtyInput.trim()]
+    }));
+    setNewSpecialtyInput('');
+    setShowAddSpecialty(false);
+    showToast('✅ Đã bổ sung chuyên môn kiểm duyệt.');
+  };
+
+  const handleRemoveSpecialty = (tag) => {
+    setModProfileData(prev => ({
+      ...prev,
+      specialties: prev.specialties.filter(t => t !== tag)
+    }));
+    showToast(`Đã xóa chuyên môn: ${tag}`);
+  };
+
+  const handleOpenCreateTemplate = () => {
+    setEditingTemplate(null);
+    setTemplateForm({ title: '', category: 'Ăn chay truyền thống', text: '' });
+    setShowCreateTemplateModal(true);
+  };
+
+  const handleOpenEditTemplate = (tmpl) => {
+    setEditingTemplate(tmpl);
+    setTemplateForm({ title: tmpl.title, category: tmpl.category, text: tmpl.text });
+    setShowCreateTemplateModal(true);
+  };
+
+  const handleSaveTemplateSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!templateForm.title.trim() || !templateForm.text.trim()) {
+      showToast('Vui lòng nhập đầy đủ tiêu đề và nội dung mẫu phản hồi.');
+      return;
+    }
+    if (editingTemplate) {
+      setRejectionTemplates(prev => prev.map(t => t.id === editingTemplate.id ? { ...t, title: templateForm.title.trim(), category: templateForm.category, text: templateForm.text.trim() } : t));
+      showToast('✅ Đã cập nhật mẫu phản hồi từ chối!');
+    } else {
+      const newTmpl = {
+        id: Date.now(),
+        title: templateForm.title.trim(),
+        category: templateForm.category,
+        badgeColor: templateForm.category.includes('Thuần Chay') ? 'red' : templateForm.category.includes('Hình ảnh') ? 'blue' : 'amber',
+        text: templateForm.text.trim()
+      };
+      setRejectionTemplates(prev => [...prev, newTmpl]);
+      showToast('✅ Đã thêm mẫu phản hồi từ chối mới!');
+    }
+    setShowCreateTemplateModal(false);
+  };
+
+  const handleDeleteTemplate = (id) => {
+    setRejectionTemplates(prev => prev.filter(t => t.id !== id));
+    showToast('🗑️ Đã xóa mẫu phản hồi từ chối.');
+  };
+
+  const handleSaveModProfile = () => {
+    setModProfileData(prev => ({
+      ...prev,
+      lastSaved: `Hôm nay lúc ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+    }));
+    showToast('✅ Đã lưu toàn bộ cấu hình hồ sơ và mẫu phản hồi Moderator thành công!');
+  };
 
   // Core Data: Priority & Pending Moderation Queue (Items)
   // Authors have pure name + numeric "Điểm uy tín: XX/100" (no titles/ranks like "Cấp 3" or "Chuyên gia")
@@ -401,7 +538,7 @@ export default function ModDashboard({ onNavigate }) {
                   </span>
                 </div>
                 <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#059669', letterSpacing: '0.4px', textTransform: 'uppercase', marginTop: '-1px' }}>
-                  Moderation Workspace
+                  Mod Portal
                 </div>
               </div>
             </div>
@@ -1389,53 +1526,567 @@ export default function ModDashboard({ onNavigate }) {
               ========================================================================= */}
           {activeModTab === 'profile' && (
             <div className="mod-profile-view">
-              <div className="mod-view-header">
-                <div>
-                  <h1 className="mod-view-title">Hồ Sơ Cá Nhân Kiểm Duyệt Viên</h1>
-                  <p className="mod-view-sub">Quản lý định danh kiểm duyệt, ca trực và phân công khu vực nội dung.</p>
+              {/* Top breadcrumb bar & online status */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                  <ShieldCheck size={16} />
+                  <span>Không gian điều hành cá nhân</span>
+                  <span style={{ color: '#94a3b8' }}>•</span>
+                  <span style={{ color: '#64748b' }}>Hệ thống VeggieAI v3.4</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.76rem', fontWeight: 700, color: '#065f46' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                  <span>Trạng thái: Trực tuyến</span>
                 </div>
               </div>
 
-              <div className="mod-panel-card" style={{ marginTop: '1rem', maxWidth: '720px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', paddingBottom: '1.25rem', borderBottom: '1px solid #e2e8f0' }}>
-                  <div className="mod-avatar-circle" style={{ width: '64px', height: '64px', fontSize: '1.4rem' }}>
-                    MT
+              {/* Title & Subtitle */}
+              <div className="mod-view-header" style={{ marginBottom: '1.5rem' }}>
+                <div>
+                  <h1 className="mod-view-title" style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>
+                    Hồ Sơ Cá Nhân &amp; Cài Đặt Kiểm Duyệt Viên
+                  </h1>
+                  <p className="mod-view-sub" style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '0.25rem' }}>
+                    Cập nhật thông tin chuyên môn, chứng chỉ thẩm định và cấu hình thông báo kiểm duyệt cho quy trình đánh giá công thức chuẩn nông nghiệp sạch.
+                  </p>
+                </div>
+              </div>
+
+              {/* Two-Column Grid Layout */}
+              <div className="mod-profile-layout">
+                {/* LEFT COLUMN: Summary Card + Subnav + Guideline */}
+                <div className="mod-profile-left-col">
+                  <div className="mod-profile-summary-box">
+                    {/* Hidden file input for avatar upload */}
+                    <input 
+                      type="file" 
+                      ref={modAvatarInputRef} 
+                      style={{ display: 'none' }} 
+                      accept="image/*"
+                      onChange={handleModAvatarChange}
+                    />
+                    <div className="mod-profile-avatar-wrap">
+                      <img 
+                        src={modAvatar} 
+                        alt="Moderator Avatar" 
+                        className="mod-profile-avatar-img"
+                      />
+                      <button 
+                        type="button" 
+                        className="mod-profile-cam-btn"
+                        title="Thay đổi ảnh đại diện"
+                        onClick={() => modAvatarInputRef.current?.click()}
+                      >
+                        <Camera size={14} />
+                      </button>
+                    </div>
+
+                    <h2 className="mod-profile-name">
+                      <span>{modProfileData.fullName}</span>
+                      <CheckCircle2 size={16} color="#0284c7" fill="#e0f2fe" />
+                    </h2>
+
+                    {/* Rule 3: BỎ "Senior", chỉ giữ "Content Moderator" */}
+                    <div className="mod-profile-role-badge">
+                      {modProfileData.roleTitle}
+                    </div>
+
+                    <p className="mod-profile-bio">
+                      {modProfileData.bio}
+                    </p>
+
+                    {/* Stats 2-Column */}
+                    <div className="mod-profile-stats-row">
+                      <div className="mod-profile-stat-box">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', color: '#10b981', marginBottom: '2px' }}>
+                          <CheckCircle2 size={15} />
+                        </div>
+                        <div className="mod-profile-stat-val">1,420</div>
+                        <div className="mod-profile-stat-lbl">Bài đã kiểm duyệt</div>
+                      </div>
+                      <div className="mod-profile-stat-box">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', color: '#f59e0b', marginBottom: '2px' }}>
+                          <Award size={15} />
+                        </div>
+                        <div className="mod-profile-stat-val">
+                          4.98 <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>/ 5.0</span>
+                        </div>
+                        <div className="mod-profile-stat-lbl">Điểm chất lượng</div>
+                      </div>
+                    </div>
+
+                    {/* Rule 4 & 5: Bỏ "Nutritionist Master" & "Top Mentor 2024" */}
+                    <div className="mod-profile-certs-section">
+                      <div className="mod-profile-certs-title">CHỨNG CHỈ THẨM ĐỊNH</div>
+                      <div className="mod-cert-pill-list">
+                        <div className="mod-cert-pill">
+                          <ShieldCheck size={14} />
+                          <span>Food Safety ISO</span>
+                        </div>
+                        <div className="mod-cert-pill">
+                          <Sparkles size={14} />
+                          <span>Tiêu chuẩn Thuần Chay VeggieAI</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sparkline Performance */}
+                    <div className="mod-profile-perf-box">
+                      <div className="mod-perf-box-header">
+                        <span>Hiệu suất 7 ngày qua</span>
+                        <span style={{ color: '#059669', fontWeight: 800 }}>+18.4%</span>
+                      </div>
+                      <svg viewBox="0 0 200 45" style={{ width: '100%', height: '36px', overflow: 'visible' }}>
+                        <defs>
+                          <linearGradient id="modSparkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+                        <path 
+                          d="M 0 32 Q 35 36, 65 24 T 120 18 T 160 8 T 200 14" 
+                          fill="none" 
+                          stroke="#059669" 
+                          strokeWidth="2.5" 
+                        />
+                        <path 
+                          d="M 0 32 Q 35 36, 65 24 T 120 18 T 160 8 T 200 14 L 200 45 L 0 45 Z" 
+                          fill="url(#modSparkGrad)" 
+                        />
+                        <circle cx="200" cy="14" r="3.5" fill="#059669" stroke="#ffffff" strokeWidth="1.5" />
+                      </svg>
+                    </div>
                   </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Lê Minh Trí</h2>
-                    <span style={{ display: 'inline-block', background: '#ecfdf5', color: '#059669', fontSize: '0.74rem', fontWeight: 800, padding: '0.15rem 0.6rem', borderRadius: '9999px', marginTop: '0.35rem' }}>
-                      Moderator • VeggieAI Community
-                    </span>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.25rem' }}>ID Nhân Sự: MOD-7719 • Ca trực: 08:30 – 16:30</div>
+
+                  {/* Vertical Subnav */}
+                  <div className="mod-profile-subnav">
+                    <button 
+                      type="button"
+                      className={`mod-subnav-btn ${profileSubTab === 'account' ? 'active' : ''}`}
+                      onClick={() => setProfileSubTab('account')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <User size={16} />
+                        <span>Thông tin tài khoản</span>
+                      </div>
+                      <ChevronRight size={14} />
+                    </button>
+                    <button 
+                      type="button"
+                      className={`mod-subnav-btn ${profileSubTab === 'filters' ? 'active' : ''}`}
+                      onClick={() => {
+                        setProfileSubTab('filters');
+                        showToast('⚙️ Cấu hình bộ lọc duyệt bài ưu tiên');
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Sliders size={16} />
+                        <span>Cấu hình bộ lọc duyệt bài</span>
+                      </div>
+                      <ChevronRight size={14} />
+                    </button>
+                    <button 
+                      type="button"
+                      className={`mod-subnav-btn ${profileSubTab === 'notifications' ? 'active' : ''}`}
+                      onClick={() => {
+                        setProfileSubTab('notifications');
+                        showToast('🔔 Cài đặt thông báo & cam kết SLA');
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Bell size={16} />
+                        <span>Thông báo &amp; SLA</span>
+                      </div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#fee2e2', color: '#dc2626', padding: '0.1rem 0.45rem', borderRadius: '9999px' }}>
+                        4 mới
+                      </span>
+                    </button>
+                    <button 
+                      type="button"
+                      className={`mod-subnav-btn ${profileSubTab === 'security' ? 'active' : ''}`}
+                      onClick={() => {
+                        setProfileSubTab('security');
+                        const secEl = document.getElementById('mod-security-section');
+                        if (secEl) secEl.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <Key size={16} />
+                        <span>Bảo mật 2FA &amp; Khóa ký</span>
+                      </div>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+
+                  {/* VeggieAI Guideline Note */}
+                  <div className="mod-guideline-note-card">
+                    <div className="mod-guideline-header">
+                      <Bookmark size={15} />
+                      <span>Ghi chú quy chuẩn VeggieAI</span>
+                    </div>
+                    <p className="mod-guideline-text">
+                      Tất cả công thức chứa chất bảo quản tự nhiên hoặc men cấy Koji cần đính kèm chú thích về nhiệt độ ủ chính xác để đạt tiêu chuẩn xuất bản thư viện.
+                    </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Họ và Tên</label>
-                    <input type="text" defaultValue="Lê Minh Trí" className="mod-form-input" />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Vai trò kiểm duyệt</label>
-                    <input type="text" defaultValue="Moderator" disabled className="mod-form-input" style={{ background: '#f1f5f9' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Email liên lạc</label>
-                    <input type="email" defaultValue="tri.le@veggieai.vn" className="mod-form-input" />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '0.35rem' }}>Số điện thoại</label>
-                    <input type="text" defaultValue="(+84) 938 112 889" className="mod-form-input" />
-                  </div>
-                </div>
+                {/* RIGHT COLUMN: Section 1, Section 2 (Rejection Templates), Section 3 (Security), Footer */}
+                <div className="mod-profile-main-col">
+                  {/* 1. THÔNG TIN CÁ NHÂN & CHUYÊN MÔN */}
+                  <div className="mod-section-card">
+                    <div className="mod-section-header-row">
+                      <div className="mod-section-title-wrap">
+                        <div className="mod-section-icon-square green">
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <h3 className="mod-section-title">1. Thông Tin Cá Nhân &amp; Chuyên Môn</h3>
+                          <p className="mod-section-subtitle">
+                            Dữ liệu hiển thị trong biên bản thẩm định công thức và phân công tự động
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '6px', letterSpacing: '0.5px' }}>
+                        ID: MOD-8829
+                      </div>
+                    </div>
 
-                <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                  <button 
-                    className="mod-batch-approve-btn"
-                    onClick={() => showToast('✅ Đã lưu cấu hình hồ sơ Moderator thành công!')}
-                  >
-                    Lưu thông tin
-                  </button>
+                    {/* 2-col inputs */}
+                    <div className="mod-form-grid-2col">
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Họ và tên</label>
+                        <div className="mod-field-input-box">
+                          <User size={15} color="#94a3b8" />
+                          <input 
+                            type="text" 
+                            value={modProfileData.fullName}
+                            onChange={(e) => setModProfileData({ ...modProfileData, fullName: e.target.value })}
+                            placeholder="Nhập họ và tên"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Email công vụ</label>
+                        <div className="mod-field-input-box">
+                          <Globe size={15} color="#94a3b8" />
+                          <input 
+                            type="email" 
+                            value={modProfileData.email}
+                            onChange={(e) => setModProfileData({ ...modProfileData, email: e.target.value })}
+                            placeholder="Email kiểm duyệt viên"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Số điện thoại liên lạc nội bộ</label>
+                        <div className="mod-field-input-box">
+                          <Smartphone size={15} color="#94a3b8" />
+                          <input 
+                            type="text" 
+                            value={modProfileData.phone}
+                            onChange={(e) => setModProfileData({ ...modProfileData, phone: e.target.value })}
+                            placeholder="Số điện thoại"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Khu vực phân loại vùng văn hóa</label>
+                        <div className="mod-field-input-box">
+                          <MapPin size={15} color="#94a3b8" />
+                          <input 
+                            type="text" 
+                            value={modProfileData.culturalRegion}
+                            onChange={(e) => setModProfileData({ ...modProfileData, culturalRegion: e.target.value })}
+                            placeholder="Khu vực ẩm thực"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chuyên môn tags */}
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <label className="mod-field-label" style={{ marginBottom: '0.45rem', display: 'block' }}>
+                        Lĩnh vực chuyên trách ưu tiên gán bài
+                      </label>
+                      <div className="mod-tags-container">
+                        {modProfileData.specialties.map((spec) => (
+                          <span key={spec} className="mod-specialty-tag">
+                            <Tag size={12} />
+                            <span>{spec}</span>
+                            <button 
+                              type="button" 
+                              className="mod-specialty-remove-btn"
+                              title={`Xóa ${spec}`}
+                              onClick={() => handleRemoveSpecialty(spec)}
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+
+                        {showAddSpecialty ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <input 
+                              type="text" 
+                              value={newSpecialtyInput}
+                              onChange={(e) => setNewSpecialtyInput(e.target.value)}
+                              placeholder="Nhập chuyên môn mới..."
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddSpecialty();
+                                if (e.key === 'Escape') setShowAddSpecialty(false);
+                              }}
+                              style={{
+                                fontSize: '0.76rem',
+                                padding: '0.3rem 0.65rem',
+                                borderRadius: '9999px',
+                                border: '1px solid #10b981',
+                                outline: 'none'
+                              }}
+                              autoFocus
+                            />
+                            <button 
+                              type="button"
+                              onClick={handleAddSpecialty}
+                              style={{ background: '#059669', color: '#fff', border: 'none', borderRadius: '9999px', padding: '0.3rem 0.65rem', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              Lưu
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setShowAddSpecialty(false)}
+                              style={{ background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '9999px', padding: '0.3rem 0.55rem', fontSize: '0.72rem', cursor: 'pointer' }}
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            type="button" 
+                            className="mod-add-specialty-btn"
+                            onClick={() => setShowAddSpecialty(true)}
+                          >
+                            <Plus size={13} />
+                            <span>Thêm chuyên môn</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. BỘ MẪU PHẢN HỒI TỪ CHỐI NHANH */}
+                  {/* Rule 6: ĐÃ BỎ hoàn toàn mục "Cấu hình Ca trực & Tiếp nhận Hàng đợi" */}
+                  {/* Rule 7: ĐÃ BỎ mẫu "Thiếu định lượng dinh dưỡng calo/macro" */}
+                  <div className="mod-section-card">
+                    <div className="mod-section-header-row">
+                      <div className="mod-section-title-wrap">
+                        <div className="mod-section-icon-square peach">
+                          <MessageSquare size={18} />
+                        </div>
+                        <div>
+                          <h3 className="mod-section-title">2. Bộ Mẫu Phản Hồi Từ Chối Nhanh</h3>
+                          <p className="mod-section-subtitle">
+                            Giải thích lịch sự, mang tính xây dựng giúp người dùng chỉnh sửa công thức
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={handleOpenCreateTemplate}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          color: '#0f172a',
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '8px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={14} color="#059669" />
+                        <span>Tạo mẫu mới</span>
+                      </button>
+                    </div>
+
+                    <div className="mod-templates-stack">
+                      {rejectionTemplates.map((tmpl) => (
+                        <div key={tmpl.id} className="mod-template-item-card">
+                          <div className="mod-template-top">
+                            <div className="mod-template-title-area">
+                              <span className="mod-template-title">{tmpl.title}</span>
+                              <span className={`mod-template-category-badge ${tmpl.badgeColor}`}>
+                                {tmpl.category}
+                              </span>
+                            </div>
+                            <div className="mod-template-actions">
+                              <button 
+                                type="button" 
+                                className="mod-template-action-btn"
+                                title="Chỉnh sửa mẫu"
+                                onClick={() => handleOpenEditTemplate(tmpl)}
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button 
+                                type="button" 
+                                className="mod-template-action-btn delete"
+                                title="Xóa mẫu"
+                                onClick={() => handleDeleteTemplate(tmpl.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="mod-template-quote">
+                            “{tmpl.text}”
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. CÀI ĐẶT BẢO MẬT & ĐỔI MẬT KHẨU */}
+                  <div className="mod-section-card" id="mod-security-section">
+                    <div className="mod-section-header-row">
+                      <div className="mod-section-title-wrap">
+                        <div className="mod-section-icon-square green">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <h3 className="mod-section-title">3. Cài Đặt Bảo Mật &amp; Đổi Mật Khẩu</h3>
+                          <p className="mod-section-subtitle">
+                            Đảm bảo an toàn tài khoản kiểm duyệt có thẩm quyền phê duyệt dữ liệu cộng đồng
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3-col password grid */}
+                    <div className="mod-password-grid-3col">
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Mật khẩu hiện tại</label>
+                        <div className="mod-field-input-box">
+                          <Lock size={15} color="#94a3b8" />
+                          <input 
+                            type="password" 
+                            value={modProfileData.passwords.current}
+                            onChange={(e) => setModProfileData({
+                              ...modProfileData,
+                              passwords: { ...modProfileData.passwords, current: e.target.value }
+                            })}
+                            placeholder="••••••••••••"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Mật khẩu mới</label>
+                        <div className="mod-field-input-box">
+                          <Key size={15} color="#94a3b8" />
+                          <input 
+                            type="password" 
+                            value={modProfileData.passwords.newPass}
+                            onChange={(e) => setModProfileData({
+                              ...modProfileData,
+                              passwords: { ...modProfileData.passwords, newPass: e.target.value }
+                            })}
+                            placeholder="Tối thiểu 10 ký tự"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mod-form-field-group">
+                        <label className="mod-field-label">Xác nhận mật khẩu mới</label>
+                        <div className="mod-field-input-box">
+                          <CheckCircle size={15} color="#94a3b8" />
+                          <input 
+                            type="password" 
+                            value={modProfileData.passwords.confirmPass}
+                            onChange={(e) => setModProfileData({
+                              ...modProfileData,
+                              passwords: { ...modProfileData.passwords, confirmPass: e.target.value }
+                            })}
+                            placeholder="Nhập lại mật khẩu mới"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2FA Status Box */}
+                    <div className="mod-2fa-status-box">
+                      <div className="mod-2fa-info">
+                        <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#ffffff', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                          <Smartphone size={20} />
+                        </div>
+                        <div>
+                          <strong style={{ fontSize: '0.84rem', color: '#065f46', display: 'block' }}>
+                            Xác thực 2 yếu tố (Google Authenticator)
+                          </strong>
+                          <span style={{ fontSize: '0.74rem', color: '#047857' }}>
+                            Bảo vệ phiên đăng nhập Moderation Portal bằng mã sinh OTP 6 số.
+                          </span>
+                        </div>
+                      </div>
+
+                      <button 
+                        type="button"
+                        style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '0.45rem 1rem',
+                          borderRadius: '8px',
+                          fontSize: '0.76rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          flexShrink: 0
+                        }}
+                        onClick={() => showToast('🔒 2FA Google Authenticator đã được kích hoạt trên thiết bị.')}
+                      >
+                        <Check size={14} />
+                        <span>Đã thiết lập</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* BOTTOM ACTION BAR */}
+                  <div className="mod-profile-footer-bar">
+                    <div className="mod-footer-time-hint">
+                      <Clock size={14} color="#94a3b8" />
+                      <span>
+                        Lần lưu gần nhất: <strong>{modProfileData.lastSaved}</strong> bởi <strong>{modProfileData.fullName}</strong>
+                      </span>
+                    </div>
+
+                    <div className="mod-footer-buttons">
+                      <button 
+                        type="button" 
+                        className="mod-footer-cancel-btn"
+                        onClick={() => {
+                          showToast('↺ Đã khôi phục thông tin cài đặt ban đầu.');
+                        }}
+                      >
+                        Hủy thay đổi
+                      </button>
+                      <button 
+                        type="button" 
+                        className="mod-footer-save-btn"
+                        onClick={handleSaveModProfile}
+                      >
+                        <Check size={16} />
+                        <span>Lưu Cấu Hình</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1652,6 +2303,98 @@ export default function ModDashboard({ onNavigate }) {
                 <p>Không còn bài viết nào trong hàng đợi!</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL: TẠO / SỬA MẪU PHẢN HỒI TỪ CHỐI
+          ========================================================================= */}
+      {showCreateTemplateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '520px', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MessageSquare size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    {editingTemplate ? 'Chỉnh Sửa Mẫu Phản Hồi' : 'Tạo Mẫu Phản Hồi Từ Chối Mới'}
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Phục vụ từ chối nhanh có lý do chuẩn mực</div>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowCreateTemplateModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTemplateSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '0.35rem' }}>
+                    Tiêu đề lý do mẫu
+                  </label>
+                  <input 
+                    type="text"
+                    value={templateForm.title}
+                    onChange={(e) => setTemplateForm({ ...templateForm, title: e.target.value })}
+                    placeholder="VD: Chứa ngũ vị tân chưa dán nhãn..."
+                    style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '0.35rem' }}>
+                    Phân loại danh mục
+                  </label>
+                  <select 
+                    value={templateForm.category}
+                    onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', background: '#ffffff' }}
+                  >
+                    <option value="Ăn chay truyền thống">Ăn chay truyền thống</option>
+                    <option value="Hình ảnh">Hình ảnh</option>
+                    <option value="Quy chuẩn Thuần Chay">Quy chuẩn Thuần Chay</option>
+                    <option value="Quy chuẩn bản quyền">Quy chuẩn bản quyền</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '0.35rem' }}>
+                    Nội dung phản hồi góp ý chi tiết
+                  </label>
+                  <textarea 
+                    rows={4}
+                    value={templateForm.text}
+                    onChange={(e) => setTemplateForm({ ...templateForm, text: e.target.value })}
+                    placeholder="Nhập nội dung hướng dẫn sửa chữa gửi đến tác giả bài viết..."
+                    style={{ width: '100%', padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateTemplateModal(false)}
+                  style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit"
+                  style={{ padding: '0.55rem 1.25rem', borderRadius: '8px', border: 'none', background: '#059669', color: '#ffffff', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {editingTemplate ? 'Cập nhật mẫu' : 'Lưu mẫu mới'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
