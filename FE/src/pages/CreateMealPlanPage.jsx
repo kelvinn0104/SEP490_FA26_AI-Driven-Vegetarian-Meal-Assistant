@@ -248,15 +248,28 @@ export default function CreateMealPlanPage({ onNavigate }) {
       <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '1.75rem 1.25rem 0 1.25rem' }}>
         
         {/* BREADCRUMB */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#64748b', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
           <span 
             onClick={() => onNavigate && onNavigate('home')} 
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            style={{ cursor: 'pointer', transition: 'color 0.15s ease' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#047857'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
           >
             Trang chủ
           </span>
           <ChevronRight size={13} />
-          <span style={{ color: '#047857', fontWeight: 700 }}>VeggieAI Workspace</span>
+          <span 
+            onClick={() => onNavigate && onNavigate('planner')} 
+            style={{ cursor: 'pointer', transition: 'color 0.15s ease' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#047857'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
+          >
+            Thực đơn của tôi
+          </span>
+          <ChevronRight size={13} />
+          <span style={{ color: '#047857', fontWeight: 700 }}>
+            Tạo thực đơn tuần cá nhân hóa với Trợ lý AI
+          </span>
         </div>
 
         {/* HEADER & ACTION BUTTONS */}
