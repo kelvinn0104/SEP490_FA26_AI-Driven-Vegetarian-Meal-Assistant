@@ -88,7 +88,7 @@ export default function App() {
       }
     } else if (user?.role === 'Moderator') {
       const savedTab = localStorage.getItem('veggieai_active_tab');
-      if (!savedTab || ['login', 'register', 'home'].includes(savedTab)) {
+      if (!savedTab || ['login', 'register', 'home'].includes(savedTab) || ['login', 'register', 'home'].includes(activeTab)) {
         handleNavigate('moderation');
       }
     } else if (!user) {
@@ -222,7 +222,7 @@ export default function App() {
         {/* BẢO VỆ TRANG MODERATION: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP */}
         {activeTab === 'moderation' && (
           user && (user.role === 'Admin' || user.role === 'Moderator') ? (
-            <ModerationQueue onNavigate={handleNavigate} />
+            <ModDashboard onNavigate={handleNavigate} />
           ) : (
             <Card style={{ maxWidth: '600px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
               <div style={{ width: '60px', height: '60px', background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>

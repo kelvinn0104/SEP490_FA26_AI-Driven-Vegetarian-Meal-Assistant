@@ -51,15 +51,15 @@ export const MOCK_ACCOUNTS = [
   },
   {
     role: 'Moderator',
-    roleLabel: 'Kiểm duyệt viên (Mod)',
+    roleLabel: 'Moderator',
     email: 'mod@veggieai.vn',
     username: 'mod',
     password: '123',
     passwords: ['123', 'mod123', '123456'],
-    name: 'Kiểm Duyệt Viên Cộng Đồng',
+    name: 'Lê Minh Trí',
     badgeColor: '#d97706',
     badgeBg: '#fef3c7',
-    permissions: 'Quyền Mod: Duyệt hàng chờ bài viết Blog, Video công thức, Thực đơn AI'
+    permissions: 'Quyền Mod: Bảng điều khiển kiểm duyệt, Duyệt bài viết Blog, Video, Công thức'
   },
   {
     role: 'AuthorizedUser',

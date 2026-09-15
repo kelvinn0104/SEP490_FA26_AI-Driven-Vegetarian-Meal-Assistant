@@ -27,6 +27,9 @@ export function AuthProvider({ children }) {
   };
 
   const loginAsAdmin = () => {
+    try {
+      localStorage.setItem('veggieai_active_tab', 'admin');
+    } catch (e) {}
     login({
       name: 'Admin',
       email: 'admin@veggieai.vn',
@@ -36,6 +39,9 @@ export function AuthProvider({ children }) {
   };
 
   const loginAsMod = () => {
+    try {
+      localStorage.setItem('veggieai_active_tab', 'moderation');
+    } catch (e) {}
     login({
       name: 'Lê Minh Trí',
       email: 'mod@veggieai.vn',

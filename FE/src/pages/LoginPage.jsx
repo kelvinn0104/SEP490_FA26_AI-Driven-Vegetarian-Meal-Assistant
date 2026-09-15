@@ -35,8 +35,10 @@ export default function LoginPage({ onNavigate }) {
 
       setTimeout(() => {
         if (res.user.role === 'Admin') {
+          try { localStorage.setItem('veggieai_active_tab', 'admin'); } catch (e) {}
           if (onNavigate) onNavigate('admin');
         } else if (res.user.role === 'Moderator') {
+          try { localStorage.setItem('veggieai_active_tab', 'moderation'); } catch (e) {}
           if (onNavigate) onNavigate('moderation');
         } else {
           if (onNavigate) onNavigate('home');
@@ -62,8 +64,10 @@ export default function LoginPage({ onNavigate }) {
 
       setTimeout(() => {
         if (res.user.role === 'Admin') {
+          try { localStorage.setItem('veggieai_active_tab', 'admin'); } catch (e) {}
           if (onNavigate) onNavigate('admin');
         } else if (res.user.role === 'Moderator') {
+          try { localStorage.setItem('veggieai_active_tab', 'moderation'); } catch (e) {}
           if (onNavigate) onNavigate('moderation');
         } else {
           if (onNavigate) onNavigate('home');

@@ -389,7 +389,7 @@ export default function ModDashboard({ onNavigate }) {
       <aside className="mod-sidebar">
         <div className="mod-sidebar-top">
           {/* BRAND LOGO HEADER: VeggieAI — Moderation Workspace */}
-          <div className="mod-brand-header" onClick={() => onNavigate && onNavigate('home')} style={{ cursor: 'pointer' }}>
+          <div className="mod-brand-header" onClick={() => setActiveModTab('dashboard')} style={{ cursor: 'pointer' }} title="Về Tổng quan Dashboard">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '12px', border: '1.5px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', flexShrink: 0 }}>
                 <span style={{ fontSize: '1.25rem' }}>🌱</span>

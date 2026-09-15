@@ -32,7 +32,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     if (!user) return guestNavLinks;
     if (user.role === 'Moderator') {
       return [
-        { id: 'moderation', label: '🛡️ Dashboard Duyệt bài' },
+        { id: 'moderation', label: '🛡️ Mod Dashboard' },
         { id: 'home', label: 'Trang chủ' },
         { id: 'blog', label: 'Blog' },
         { id: 'videos', label: 'Video nấu ăn' }
@@ -70,8 +70,11 @@ export default function Navbar({ activeTab, setActiveTab }) {
   return (
     <header className="main-header">
       <div className="header-inner">
-        {/* LOGO */}
-        <div className="brand-logo" onClick={() => handleNavClick('home')}>
+        {/* LOGO - Mặc định Admin về Admin Dashboard, Mod về Mod Dashboard */}
+        <div 
+          className="brand-logo" 
+          onClick={() => handleNavClick(user?.role === 'Admin' ? 'admin' : user?.role === 'Moderator' ? 'moderation' : 'home')}
+        >
           <span className="brand-icon">🌱</span>
           <span className="brand-name">VeggieAI</span>
         </div>
@@ -185,7 +188,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       className="dropdown-item"
                       onClick={() => { handleNavClick('moderation'); setShowDropdown(false); }}
                     >
-                      <ShieldAlert size={16} color="#d97706" /> Hàng chờ duyệt bài (Mod)
+                      <ShieldAlert size={16} color="#d97706" /> Bảng điều khiển Mod (Dashboard)
                     </button>
                   )}
 
