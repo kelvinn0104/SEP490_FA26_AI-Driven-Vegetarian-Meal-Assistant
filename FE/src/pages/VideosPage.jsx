@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Play, Clock, Sparkles, X, Heart, Eye, Bookmark, 
   Share2, CheckCircle2, ChevronRight, Youtube, Flame, Check,
-  Lock, ArrowRight
+  Lock, ArrowRight, Plus
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -395,6 +395,36 @@ export default function VideosPage({ onNavigate }) {
             Tìm kiếm
           </button>
         </div>
+
+        {/* NÚT ĐĂNG VIDEO NỔI BẬT RIÊNG TRONG NỘI DUNG TRANG (CHO AUTHORIZED USER) */}
+        {user && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.85rem 0 0.5rem 0' }}>
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('user-posts')}
+              style={{
+                background: '#059669',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '24px',
+                padding: '0.6rem 1.4rem',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
+                transition: 'transform 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <Plus size={16} />
+              <span>Chia sẻ video nấu ăn mới 📹</span>
+            </button>
+          </div>
+        )}
 
         {/* CATEGORY FILTER TABS */}
         <div className="video-filter-pills-row">

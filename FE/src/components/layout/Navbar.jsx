@@ -1,31 +1,83 @@
-import React, { useState } from 'react';
-import { Search, Sparkles, User, ShieldCheck, ShieldAlert, LogOut, LogIn } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Search, Sparkles, User, ShieldCheck, ShieldAlert, LogOut, 
+  Bell, ChevronDown, HeartPulse, Activity, FileText, Settings,
+  CheckCheck, Clock, ExternalLink
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ activeTab, setActiveTab }) {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [unreadCount, setUnreadCount] = useState(3);
 
-  // PHÂN QUYỀN HEADER THEO BẢNG QUY ĐỊNH (CHỈ HIỂN THỊ CHỨC NĂNG ĐƯỢC PHÉP CHO GUEST):
-  // 1. Tìm kiếm blog, video, công thức công khai (WF06)
-  // 2. Xem chi tiết bài viết blog (WF06)
-  // 3. Xem chi tiết video hướng dẫn nấu ăn (WF06)
-  // 4. Hỏi đáp với AI Nutrition Chatbot — giới hạn số lượt hỏi (WF05)
-  // 5. Bắt đầu quy trình đăng ký / thiết lập hồ sơ dinh dưỡng (WF01)
-  
+  const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
+
+  // Đóng dropdown và notifications khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // DANH SÁCH THÔNG BÁO CHO AUTHORIZED USER
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      title: 'Bài viết đã được duyệt ✅',
+      desc: 'Bài viết "Top 5 Nguồn Protein Thuần Chay" của bạn đã được Moderator duyệt và xuất bản.',
+      time: '15 phút trước',
+      read: false,
+      tab: 'blog'
+    },
+    {
+      id: 2,
+      title: 'Thực đơn tuần mới đã sẵn sàng 📅',
+      desc: 'AI Meal Planner đã hoàn tất tạo thực đơn 7 ngày được cá nhân hóa theo chỉ số BMI của bạn.',
+      time: '2 giờ trước',
+      read: false,
+      tab: 'planner'
+    },
+    {
+      id: 3,
+      title: 'Bình luận mới 💬',
+      desc: 'Người dùng Bếp Chay Tuệ Tâm vừa để lại bình luận trên bài đăng chia sẻ của bạn.',
+      time: '1 ngày trước',
+      read: false,
+      tab: 'blog'
+    }
+  ]);
+
+  const handleMarkAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+  };
+
+  // PHÂN QUYỀN HEADER THEO BẢNG ĐỀ XUẤT ĐÃ THỐNG NHẤT:
+  // - Guest: Trang chủ, Blog, Video nấu ăn
+  // - Authorized User: Trang chủ, Blog, Video nấu ăn, Thực đơn của tôi (tính năng lõi)
   const guestNavLinks = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'blog', label: 'Blog' },
     { id: 'videos', label: 'Video nấu ăn' }
   ];
 
-  const memberNavLinks = [
+  const authorizedUserNavLinks = [
     { id: 'home', label: 'Trang chủ' },
-    { id: 'planner', label: 'Thực đơn AI' },
-    { id: 'vision', label: 'Quét tủ lạnh' },
     { id: 'blog', label: 'Blog' },
-    { id: 'videos', label: 'Video nấu ăn' }
+    { id: 'videos', label: 'Video nấu ăn' },
+    { id: 'planner', label: 'Thực đơn của tôi' },
+    { id: 'user-nutrition', label: 'Dashboard Dinh dưỡng' }
   ];
 
   const currentNavLinks = (() => {
@@ -42,16 +94,18 @@ export default function Navbar({ activeTab, setActiveTab }) {
       return [
         { id: 'admin', label: '👑 Admin Dashboard' },
         { id: 'home', label: 'Trang chủ' },
-        { id: 'planner', label: 'Thực đơn AI' },
-        { id: 'vision', label: 'Quét tủ lạnh' },
-        { id: 'blog', label: 'Blog' }
+        { id: 'planner', label: 'Thực đơn của tôi' },
+        { id: 'blog', label: 'Blog' },
+        { id: 'videos', label: 'Video nấu ăn' }
       ];
     }
-    return memberNavLinks;
+    return authorizedUserNavLinks;
   })();
 
   const handleNavClick = (tab) => {
     if (setActiveTab) setActiveTab(tab);
+    setShowDropdown(false);
+    setShowNotifications(false);
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -61,7 +115,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     if (e.key === 'Enter') {
       handleNavClick('home');
       setTimeout(() => {
-        const el = document.getElementById('search-anchor');
+        const el = document.getElementById('search-anchor') || document.getElementById('public-recipes-section');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
@@ -70,16 +124,17 @@ export default function Navbar({ activeTab, setActiveTab }) {
   return (
     <header className="main-header">
       <div className="header-inner">
-        {/* LOGO - Mặc định Admin về Admin Dashboard, Mod về Mod Dashboard */}
+        {/* LOGO - Admin về Admin Dashboard, Mod về Mod Dashboard, User về Home */}
         <div 
           className="brand-logo" 
           onClick={() => handleNavClick(user?.role === 'Admin' ? 'admin' : user?.role === 'Moderator' ? 'moderation' : 'home')}
+          style={{ cursor: 'pointer' }}
         >
           <span className="brand-icon">🌱</span>
           <span className="brand-name">VeggieAI</span>
         </div>
 
-        {/* NAVIGATION LINKS - CHỈ HIỂN THỊ CÁC MỤC GUEST ĐƯỢC PHÉP TRUY CẬP */}
+        {/* NAVIGATION LINKS */}
         <nav className="header-nav">
           {currentNavLinks.map((link, idx) => (
             <button
@@ -105,8 +160,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
           <span className="ctrl-k-badge">Enter</span>
         </div>
 
-        {/* RIGHT ACTIONS */}
-        <div className="header-right-actions" style={{ position: 'relative' }}>
+        {/* RIGHT ACTIONS: HỎI AI | [🔔] | [AVATAR ▾] (HOẶC ĐĂNG NHẬP/BẮT ĐẦU THỬ CHO GUEST) */}
+        <div className="header-right-actions" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          
           {/* HỎI AI BUTTON */}
           <button 
             className="btn-hoi-ai" 
@@ -118,7 +174,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
           </button>
 
           {!user ? (
-            /* KHI CHƯA ĐĂNG NHẬP (GUEST): HIỂN THỊ ĐĂNG NHẬP & BẮT ĐẦU THỬ, LOẠI BỎ AVATAR TRÒN */
+            /* KHI CHƯA ĐĂNG NHẬP (GUEST): HIỂN THỊ ĐĂNG NHẬP & BẮT ĐẦU THỬ */
             <>
               <button 
                 className="btn-header-login"
@@ -135,71 +191,274 @@ export default function Navbar({ activeTab, setActiveTab }) {
               </button>
             </>
           ) : (
-            /* KHI ĐÃ ĐĂNG NHẬP (USER/ADMIN): HIỂN THỊ AVATAR VÀ DROPDOWN QUẢN LÝ */
+            /* KHI ĐÃ ĐĂNG NHẬP (AUTHORIZED USER / ADMIN / MOD): HIỂN THỊ CHUÔNG THÔNG BÁO VÀ AVATAR ▾ */
             <>
-              <button 
-                className="user-avatar-circle"
-                onClick={() => setShowDropdown(!showDropdown)}
-                title={`${user.name} (${user.role})`}
-                style={{
-                  background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#059669',
-                  border: '2px solid white',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  color: 'white'
-                }}
-              >
-                {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : <User size={18} color="white" />}
-              </button>
-
-              {showDropdown && (
-                <div className="user-dropdown-menu">
-                  <div className="dropdown-user-info">
-                    <strong>{user.name}</strong>
+              {/* 1. ICON CHUÔNG THÔNG BÁO 🔔 */}
+              <div ref={notifRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="header-bell-btn"
+                  onClick={() => {
+                    setShowNotifications(!showNotifications);
+                    setShowDropdown(false);
+                  }}
+                  title="Thông báo hệ thống"
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    background: showNotifications ? '#ecfdf5' : '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    color: showNotifications ? '#059669' : '#475569',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
                     <span 
-                      className="dropdown-user-role"
                       style={{
-                        background: user.role === 'Admin' ? '#fee2e2' : user.role === 'Moderator' ? '#fef3c7' : '#ecfdf5',
-                        color: user.role === 'Admin' ? '#b91c1c' : user.role === 'Moderator' ? '#b45309' : '#047857'
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#ef4444',
+                        boxShadow: '0 0 0 2px #ffffff'
                       }}
-                    >
-                      {user.role === 'Admin' ? '👑 Admin' : user.role === 'Moderator' ? '🛡️ Kiểm duyệt viên' : '🌱 Thành viên (User)'}
-                    </span>
-                    <small style={{ color: '#64748b' }}>{user.email}</small>
-                  </div>
-
-                  <div className="dropdown-divider"></div>
-
-                  {user.role === 'Admin' && (
-                    <button 
-                      className="dropdown-item"
-                      onClick={() => { handleNavClick('admin'); setShowDropdown(false); }}
-                    >
-                      <ShieldCheck size={16} color="#dc2626" /> Bảng điều khiển Admin
-                    </button>
+                    />
                   )}
+                </button>
 
-                  {(user.role === 'Admin' || user.role === 'Moderator') && (
-                    <button 
-                      className="dropdown-item"
-                      onClick={() => { handleNavClick('moderation'); setShowDropdown(false); }}
-                    >
-                      <ShieldAlert size={16} color="#d97706" /> Bảng điều khiển Mod (Dashboard)
-                    </button>
-                  )}
-
-                  <button 
-                    className="dropdown-item dropdown-logout"
-                    onClick={() => { logout(); setShowDropdown(false); handleNavClick('home'); }}
+                {/* NOTIFICATIONS DROPDOWN POPOVER */}
+                {showNotifications && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 10px)',
+                      right: 0,
+                      width: '330px',
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)',
+                      border: '1px solid #e2e8f0',
+                      zIndex: 1100,
+                      overflow: 'hidden',
+                      animation: 'fadeIn 0.2s ease'
+                    }}
                   >
-                    <LogOut size={16} /> Đăng xuất
-                  </button>
-                </div>
-              )}
+                    <div style={{
+                      padding: '0.85rem 1rem',
+                      borderBottom: '1px solid #f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: '#fafafa'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                        <span>🔔 Thông báo</span>
+                        {unreadCount > 0 && (
+                          <span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#059669', padding: '1px 7px', borderRadius: '10px', fontWeight: 700 }}>
+                            {unreadCount} mới
+                          </span>
+                        )}
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleMarkAllRead}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#059669',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.2rem'
+                          }}
+                        >
+                          <CheckCheck size={14} /> Đã đọc
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
+                      {notifications.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            handleNavClick(item.tab);
+                          }}
+                          style={{
+                            padding: '0.85rem 1rem',
+                            borderBottom: '1px solid #f8fafc',
+                            cursor: 'pointer',
+                            background: item.read ? '#ffffff' : '#f0fdf4',
+                            transition: 'background 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = item.read ? '#ffffff' : '#f0fdf4'}
+                        >
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.2rem' }}>
+                            {item.title}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.45, marginBottom: '0.35rem' }}>
+                            {item.desc}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Clock size={12} /> {item.time}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ padding: '0.65rem', textAlign: 'center', borderTop: '1px solid #f1f5f9', background: '#fafafa' }}>
+                      <span 
+                        style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 600, cursor: 'pointer' }}
+                        onClick={() => handleNavClick('planner')}
+                      >
+                        Xem tất cả cập nhật thực đơn & bài viết →
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. AVATAR + DROPDOWN [AVATAR ▾] (THAY THẾ NÚT ĐĂNG NHẬP) */}
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <button 
+                  className="user-avatar-pill-btn"
+                  onClick={() => {
+                    setShowDropdown(!showDropdown);
+                    setShowNotifications(false);
+                  }}
+                  title={`${user.name} (${user.role})`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '24px',
+                    padding: '3px 8px 3px 4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div 
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '50%',
+                      background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#059669',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
+                  </div>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user.name || 'Thành viên'}
+                  </span>
+                  <ChevronDown size={14} color="#64748b" />
+                </button>
+
+                {/* DROPDOWN MENU CHÍNH XÁC THEO ĐỀ XUẤT 5 MỤC CHO AUTHORIZED USER */}
+                {showDropdown && (
+                  <div className="user-dropdown-menu" style={{ width: '250px', right: 0, top: 'calc(100% + 8px)' }}>
+                    {/* THÔNG TIN TÀI KHOẢN ĐƠN GIẢN, KHÔNG PHÂN TẦNG, KHÔNG BADGE VIP */}
+                    <div className="dropdown-user-info" style={{ padding: '0.85rem 1rem' }}>
+                      <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{user.name}</strong>
+                      <span 
+                        className="dropdown-user-role"
+                        style={{
+                          background: user.role === 'Admin' ? '#fee2e2' : user.role === 'Moderator' ? '#fef3c7' : '#ecfdf5',
+                          color: user.role === 'Admin' ? '#b91c1c' : user.role === 'Moderator' ? '#b45309' : '#047857',
+                          marginTop: '0.25rem',
+                          display: 'inline-block'
+                        }}
+                      >
+                        {user.role === 'Admin' ? 'Admin' : user.role === 'Moderator' ? 'Moderator' : 'Thành viên'}
+                      </span>
+                      <small style={{ color: '#64748b', display: 'block', marginTop: '0.2rem', fontSize: '0.78rem' }}>{user.email}</small>
+                    </div>
+
+                    <div className="dropdown-divider"></div>
+
+                    {/* MỤC 1: Hồ sơ sức khỏe của tôi (Trang hồ sơ: BMI, mục tiêu, dị ứng) */}
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('user-profile')}
+                    >
+                      <HeartPulse size={16} color="#059669" /> Hồ sơ sức khỏe của tôi
+                    </button>
+
+                    {/* MỤC 2: Dashboard dinh dưỡng (Trang theo dõi xu hướng dinh dưỡng) */}
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('user-nutrition')}
+                    >
+                      <Activity size={16} color="#2563eb" /> Dashboard dinh dưỡng
+                    </button>
+
+                    {/* MỤC 3: Bài viết của tôi (Trang quản lý bài đăng cá nhân) */}
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('user-posts')}
+                    >
+                      <FileText size={16} color="#d97706" /> Bài viết của tôi
+                    </button>
+
+                    {/* MỤC 4: Cài đặt tài khoản (Đổi mật khẩu, thông tin cá nhân) */}
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('user-settings')}
+                    >
+                      <Settings size={16} color="#64748b" /> Cài đặt tài khoản
+                    </button>
+
+                    {/* ĐỐI VỚI ADMIN / MOD: BỔ SUNG LỐI TẮT BẢNG ĐIỀU KHIỂN TƯƠNG ỨNG */}
+                    {user.role === 'Admin' && (
+                      <button 
+                        className="dropdown-item"
+                        onClick={() => handleNavClick('admin')}
+                      >
+                        <ShieldCheck size={16} color="#dc2626" /> Bảng điều khiển Admin
+                      </button>
+                    )}
+
+                    {(user.role === 'Admin' || user.role === 'Moderator') && (
+                      <button 
+                        className="dropdown-item"
+                        onClick={() => handleNavClick('moderation')}
+                      >
+                        <ShieldAlert size={16} color="#d97706" /> Bảng điều khiển Mod
+                      </button>
+                    )}
+
+                    <div className="dropdown-divider"></div>
+
+                    {/* MỤC 5: Đăng xuất */}
+                    <button 
+                      className="dropdown-item dropdown-logout"
+                      onClick={() => { logout(); setShowDropdown(false); handleNavClick('home'); }}
+                    >
+                      <LogOut size={16} /> Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>

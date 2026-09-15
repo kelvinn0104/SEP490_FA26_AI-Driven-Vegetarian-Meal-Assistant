@@ -3,13 +3,16 @@ import {
   Sparkles, Camera, Utensils, Video, MapPin, 
   Search, ArrowRight, CheckCircle2, Star, Play, Heart, Share2, 
   Flame, Leaf, Award, ShieldCheck, ChevronRight, X, Clock, Eye, BookOpen,
-  Smartphone
+  Smartphone, Plus, RotateCw, Activity, HeartPulse, FileText, Check, AlertCircle, ChefHat
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomePage({ onNavigate }) {
+  const { user } = useAuth();
+
   // Luôn đảm bảo khi mở Trang chủ thì vị trí cuộn ở đỉnh trang (0, 0)
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -17,22 +20,88 @@ export default function HomePage({ onNavigate }) {
     document.body.scrollTop = 0;
   }, []);
 
-  const [selectedDay, setSelectedDay] = useState('T2');
+  const [selectedDay, setSelectedDay] = useState('T3');
   const [searchQuery, setSearchQuery] = useState('');
   
   // MODAL STATES FOR WORKFLOW WF06 (Xem chi tiết blog/công thức & xem chi tiết video)
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const [selectedVideoDetail, setSelectedVideoDetail] = useState(null);
+  const [savedRecipes, setSavedRecipes] = useState(['r1']);
+  const [mealSwapToast, setMealSwapToast] = useState('');
 
   const mealPlannerDays = [
-    { id: 'T2', label: 'T2 HÔM NAY', date: '17' },
-    { id: 'T3', label: 'T3', date: '18' },
+    { id: 'T2', label: 'T2', date: '17' },
+    { id: 'T3', label: 'T3 HÔM NAY', date: '18' },
     { id: 'T4', label: 'T4', date: '19' },
     { id: 'T5', label: 'T5', date: '20' },
     { id: 'T6', label: 'T6', date: '21' },
     { id: 'T7', label: 'T7', date: '22' },
     { id: 'CN', label: 'CN', date: '23' },
   ];
+
+  // DỮ LIỆU THỰC ĐƠN CỦA HỘI VIÊN (AUTHORIZED USER TODAY'S PLAN)
+  const [todayMeals, setTodayMeals] = useState([
+    {
+      id: 'm1',
+      slot: 'BUỔI SÁNG (07:00)',
+      title: 'Smoothie Đậu Yến Mạch & Hạt Chia',
+      desc: 'Bổ sung chất xơ hòa tan, protein thực vật và omega-3 từ hạt chia giúp tỉnh táo cả ngày.',
+      protein: '18g Protein',
+      calories: '380 kcal',
+      iron: '4.2mg Sắt',
+      status: 'completed', // completed, current, upcoming
+      statusLabel: 'Đã nạp ✅',
+      time: '15 phút',
+      img: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=400&q=80',
+      bg: '#ecfdf5',
+      color: '#047857'
+    },
+    {
+      id: 'm2',
+      slot: 'BUỔI TRƯA (12:00)',
+      title: 'Poke Quinoa Tempeh Sốt Teriyaki',
+      desc: 'Cơm trộn hạt Diêm Mạch (Quinoa) kết hợp Tempeh đậu nành lên men áp chảo và bơ sáp tươi.',
+      protein: '25g Protein',
+      calories: '510 kcal',
+      iron: '7.8mg Sắt',
+      status: 'current',
+      statusLabel: 'Bữa trưa hiện tại 🍽️',
+      time: '25 phút',
+      img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80',
+      bg: '#eff6ff',
+      color: '#1d4ed8'
+    },
+    {
+      id: 'm3',
+      slot: 'BUỔI TỐI (19:00)',
+      title: 'Canh Nấm Thực Dưỡng Củ Sen & Đậu Phụ Hấp',
+      desc: 'Nước dùng thanh ngọt hầm từ củ sen, hạt sen, táo đỏ và nấm đùi gà non giàu kẽm tự nhiên.',
+      protein: '16g Protein',
+      calories: '420 kcal',
+      iron: '5.6mg Sắt',
+      status: 'upcoming',
+      statusLabel: 'Kế hoạch tối 🕒',
+      time: '30 phút',
+      img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=400&q=80',
+      bg: '#fff7ed',
+      color: '#c2410c'
+    },
+    {
+      id: 'm4',
+      slot: 'BỮA PHỤ (15:30)',
+      title: 'Crispy Tofu Roll Bơ & Chà Là',
+      desc: 'Đậu hũ nướng giòn cuốn bánh tráng kèm sốt bơ đậu nành thanh mát, bù năng lượng giữa giờ.',
+      protein: '12g Protein',
+      calories: '210 kcal',
+      iron: '2.8mg Sắt',
+      status: 'upcoming',
+      statusLabel: 'Kế hoạch 🕒',
+      time: '10 phút',
+      img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80',
+      bg: '#fef2f2',
+      color: '#b91c1c'
+    }
+  ]);
 
   const publicRecipes = [
     {
@@ -89,15 +158,6 @@ export default function HomePage({ onNavigate }) {
     }
   ];
 
-  const dailyMeals = {
-    T2: [
-      { type: 'BUỔI SÁNG', title: 'Smoothie Đậu Yến Mạch & Hạt Chia', protein: '18g Protein', time: '15 phút', img: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=400&q=80', bg: '#ecfdf5', color: '#047857' },
-      { type: 'BUỔI TRƯA', title: 'Poke Quinoa Tempeh Sốt Teriyaki', protein: '25g Protein', time: '25 phút', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80', bg: '#eff6ff', color: '#1d4ed8' },
-      { type: 'BUỔI TỐI', title: 'Canh Nấm Thực Dưỡng Củ Sen', protein: '15g Protein', time: '30 phút', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=400&q=80', bg: '#fff7ed', color: '#c2410c' },
-      { type: 'BỮA PHỤ', title: 'Crispy Tofu Roll Bơ & Chà Là', protein: '12g Protein', time: '10 phút', img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80', bg: '#fef2f2', color: '#b91c1c' },
-    ]
-  };
-
   const videoRecipes = [
     {
       id: 'v1',
@@ -142,7 +202,692 @@ export default function HomePage({ onNavigate }) {
       ]
     }
   ];
-  // WF06: TÌM KIẾM CÔNG KHAI (Lọc video và công thức)
+
+  // ĐỔI MÓN VỚI AI CHO AUTHORIZED USER
+  const handleSwapMeal = (mealId) => {
+    setMealSwapToast('AI đang tính toán món thay thế cân bằng dinh dưỡng tương đương...');
+    setTimeout(() => {
+      setTodayMeals(prev => prev.map(m => {
+        if (m.id === mealId) {
+          return {
+            ...m,
+            title: m.id === 'm2' ? 'Cơm Gạo Lứt Cà Rốt Áp Chảo Đậu Hũ & Nấm Mối' : 'Salad Diêm Mạch Đậu Gà Sốt Chanh Mè',
+            desc: 'Món ăn thay thế tự động đảm bảo mức Protein 24g và dưới 520 kcal tương đương.',
+            protein: '24g Protein'
+          };
+        }
+        return m;
+      }));
+      setMealSwapToast('✅ AI đã đổi món thành công! Dinh dưỡng vẫn cân bằng 100%.');
+      setTimeout(() => setMealSwapToast(''), 3500);
+    }, 800);
+  };
+
+  const toggleSaveRecipe = (recipeId) => {
+    if (savedRecipes.includes(recipeId)) {
+      setSavedRecipes(savedRecipes.filter(id => id !== recipeId));
+    } else {
+      setSavedRecipes([...savedRecipes, recipeId]);
+    }
+  };
+
+  // =========================================================================
+  // GIAO DIỆN HOME DÀNH CHO AUTHORIZED USER (SAU KHI ĐĂNG NHẬP THÀNH CÔNG)
+  // =========================================================================
+  if (user) {
+    return (
+      <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '1.75rem 1.5rem 4rem 1.5rem' }}>
+        
+        {/* TOAST THÔNG BÁO ĐỔI MÓN AI */}
+        {mealSwapToast && (
+          <div style={{
+            position: 'fixed',
+            top: '80px',
+            right: '24px',
+            background: '#047857',
+            color: 'white',
+            padding: '0.85rem 1.25rem',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            zIndex: 1500,
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <Sparkles size={18} />
+            <span>{mealSwapToast}</span>
+          </div>
+        )}
+
+        {/* 1. HERO BANNER CHÀO MỪNG HỘI VIÊN & LỐI TẮT NHANH */}
+        <section style={{
+          background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+          borderRadius: '24px',
+          padding: '2.25rem',
+          color: 'white',
+          marginBottom: '2rem',
+          boxShadow: '0 12px 30px rgba(5, 150, 105, 0.18)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', position: 'relative', zIndex: 2 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem', flexWrap: 'wrap' }}>
+                <span style={{ background: 'rgba(255,255,255,0.22)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.3px' }}>
+                  🌱 HỘI VIÊN VEGGIEAI
+                </span>
+                <span style={{ background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600 }}>
+                  Thực đơn Tuần 38 đã tối ưu
+                </span>
+              </div>
+
+              <h1 style={{ fontSize: '2.15rem', fontWeight: 800, margin: '0.35rem 0 0.5rem 0', letterSpacing: '-0.5px' }}>
+                Chào mừng trở lại, {user.name || 'Thành Viên Thuần Chay'}! 🌿
+              </h1>
+
+              <p style={{ opacity: 0.92, fontSize: '0.96rem', lineHeight: 1.6, maxWidth: '620px', margin: 0 }}>
+                Hôm nay là <strong>Thứ Ba, 18 Tháng 9</strong>. Kế hoạch dinh dưỡng của bạn đã hoàn tất với hàm lượng Protein và Sắt hữu cơ tối ưu theo thể trạng cá nhân.
+              </p>
+            </div>
+
+            {/* QUICK ACTIONS BUTTONS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', minWidth: '220px' }}>
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('planner')}
+                style={{
+                  background: '#ffffff',
+                  color: '#047857',
+                  border: 'none',
+                  borderRadius: '14px',
+                  padding: '0.8rem 1.25rem',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  transition: 'transform 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <Utensils size={18} />
+                <span>Thực đơn của tôi (7 ngày)</span>
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.65rem' }}>
+                <button
+                  type="button"
+                  onClick={() => onNavigate && onNavigate('chatbot')}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.18)',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '12px',
+                    padding: '0.65rem 0.85rem',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>Hỏi AI</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate && onNavigate('user-posts')}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.18)',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '12px',
+                    padding: '0.65rem 0.85rem',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <FileText size={15} />
+                  <span>Bài viết</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 2. KHỐI TỔNG QUAN HỒ SƠ SỨC KHỎE & THƯỚC ĐO DINH DƯỠNG HÔM NAY (4 CARDS) */}
+        <section style={{ marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <span className="badge badge-ai" style={{ marginBottom: '0.25rem' }}>THEO DÕI THỂ TRẠNG</span>
+              <h2 style={{ fontSize: '1.45rem', color: '#0f172a', margin: '0.2rem 0 0 0', fontWeight: 800 }}>
+                Chỉ Số Sức Khỏe & Tiến Độ Dinh Dưỡng Hôm Nay
+              </h2>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                onClick={() => onNavigate && onNavigate('user-profile')}
+                style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                Hồ sơ sức khỏe của tôi →
+              </button>
+              <span style={{ color: '#cbd5e1' }}>|</span>
+              <button 
+                onClick={() => onNavigate && onNavigate('user-nutrition')}
+                style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                Dashboard dinh dưỡng đầy đủ →
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+            {/* Card 1: BMI */}
+            <Card style={{ padding: '1.35rem', borderLeft: '4px solid #059669', cursor: 'pointer' }} onClick={() => onNavigate && onNavigate('user-profile')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>CHỈ SỐ THỂ TRẠNG (BMI)</span>
+                <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>
+                  Chuẩn lý tưởng
+                </span>
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                21.4 <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>kg/m²</span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0, lineHeight: 1.45 }}>
+                Chiều cao: 1m68 • Cân nặng: 60.5 kg. Mục tiêu: Duy trì thể trạng và tăng cơ nạc thực vật.
+              </p>
+            </Card>
+
+            {/* Card 2: Calo */}
+            <Card style={{ padding: '1.35rem', borderLeft: '4px solid #3b82f6', cursor: 'pointer' }} onClick={() => onNavigate && onNavigate('user-nutrition')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>NĂNG LƯỢNG (CALO)</span>
+                <span style={{ background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>
+                  Đạt 73%
+                </span>
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                1,350 <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>/ 1,850 kcal</span>
+              </div>
+              {/* Progress bar */}
+              <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', margin: '0.4rem 0' }}>
+                <div style={{ width: '73%', height: '100%', background: '#3b82f6', borderRadius: '3px' }}></div>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0 }}>
+                Còn lại <strong>500 kcal</strong> cho Bữa tối & Bữa phụ.
+              </p>
+            </Card>
+
+            {/* Card 3: Protein */}
+            <Card style={{ padding: '1.35rem', borderLeft: '4px solid #10b981', cursor: 'pointer' }} onClick={() => onNavigate && onNavigate('user-nutrition')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>ĐẠM THỰC VẬT (PROTEIN)</span>
+                <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>
+                  Đạt 80%
+                </span>
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                52g <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>/ 65g mục tiêu</span>
+              </div>
+              <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', margin: '0.4rem 0' }}>
+                <div style={{ width: '80%', height: '100%', background: '#10b981', borderRadius: '3px' }}></div>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0 }}>
+                Nguồn chính hôm nay: Đậu gà, Tempeh nướng sốt, Quinoa.
+              </p>
+            </Card>
+
+            {/* Card 4: Sắt & B12 */}
+            <Card style={{ padding: '1.35rem', borderLeft: '4px solid #d97706', cursor: 'pointer' }} onClick={() => onNavigate && onNavigate('user-nutrition')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748b' }}>VI CHẤT (SẮT & B12)</span>
+                <span style={{ background: '#fffbeb', color: '#d97706', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>
+                  88% Khuyến nghị
+                </span>
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem' }}>
+                12.8mg <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>Sắt • 2.2 mcg B12</span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#b45309', margin: '0.4rem 0 0 0', lineHeight: 1.45 }}>
+                💡 Gợi ý AI: Bữa tối kèm nước chanh hoặc ớt chuông để hấp thu sắt tối đa.
+              </p>
+            </Card>
+          </div>
+        </section>
+
+        {/* 3. KHỐI THỰC ĐƠN HÔM NAY CỦA BẠN (TODAY'S AI MEAL PLAN) */}
+        <section style={{ marginBottom: '2.75rem' }}>
+          <Card style={{ padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <span className="badge badge-ai">THỰC ĐƠN CÁ NHÂN HÓA</span>
+                <h2 style={{ fontSize: '1.65rem', color: '#0f172a', margin: '0.35rem 0 0.2rem 0', fontWeight: 800 }}>
+                  Thực Đơn Hôm Nay Của Bạn (Thứ Ba, 18 Tháng 9)
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                  Thực đơn 4 bữa được AI Meal Planner tối ưu tự động dựa trên chỉ số BMI và kiêng cữ của bạn.
+                </p>
+              </div>
+
+              <Button onClick={() => onNavigate && onNavigate('planner')}>
+                <Utensils size={16} /> Mở toàn bộ Thực đơn tuần 7 ngày →
+              </Button>
+            </div>
+
+            {/* Days bar */}
+            <div className="meal-days-bar" style={{ marginBottom: '1.5rem' }}>
+              {mealPlannerDays.map(day => (
+                <div 
+                  key={day.id} 
+                  className={`day-tab ${selectedDay === day.id ? 'active' : ''}`}
+                  onClick={() => setSelectedDay(day.id)}
+                >
+                  <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>{day.label}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{day.date}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 4 MEAL CARDS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {todayMeals.map((meal) => (
+                <div 
+                  key={meal.id} 
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    border: meal.status === 'current' ? '2px solid #059669' : '1px solid #e2e8f0',
+                    overflow: 'hidden',
+                    boxShadow: meal.status === 'current' ? '0 8px 25px rgba(5, 150, 105, 0.12)' : '0 2px 10px rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+                  <div style={{ height: '150px', backgroundImage: `url('${meal.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                    <span style={{ position: 'absolute', top: '12px', left: '12px', background: meal.bg, color: meal.color, padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800 }}>
+                      {meal.slot}
+                    </span>
+                    <span style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(15,23,42,0.85)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600 }}>
+                      ⏱️ {meal.time}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: meal.status === 'completed' ? '#ecfdf5' : meal.status === 'current' ? '#eff6ff' : '#f8fafc',
+                        color: meal.status === 'completed' ? '#047857' : meal.status === 'current' ? '#1d4ed8' : '#64748b',
+                        marginBottom: '0.4rem'
+                      }}>
+                        {meal.statusLabel}
+                      </span>
+                      <h4 style={{ color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.4, margin: '0.2rem 0' }}>
+                        {meal.title}
+                      </h4>
+                    </div>
+
+                    <p style={{ fontSize: '0.83rem', color: '#64748b', lineHeight: 1.5, marginBottom: '1rem', flex: 1 }}>
+                      {meal.desc}
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.78rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                        {meal.protein}
+                      </span>
+                      <span style={{ background: '#f1f5f9', color: '#334155', padding: '3px 8px', borderRadius: '6px' }}>
+                        🔥 {meal.calories}
+                      </span>
+                      <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '6px' }}>
+                        {meal.iron}
+                      </span>
+                    </div>
+
+                    {/* ACTION BUTTONS: ĐỔI MÓN AI & XEM CÁCH NẤU */}
+                    <div style={{ display: 'flex', gap: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleSwapMeal(meal.id)}
+                        style={{
+                          flex: 1,
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '0.45rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#475569',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
+                        }}
+                        title="AI đổi món khác có dinh dưỡng tương đương"
+                      >
+                        <RotateCw size={13} /> Đổi món AI
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRecipeDetail(publicRecipes[0])}
+                        style={{
+                          flex: 1,
+                          background: '#ecfdf5',
+                          border: '1px solid #a7f3d0',
+                          borderRadius: '8px',
+                          padding: '0.45rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#047857',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <Eye size={13} /> Công thức
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </section>
+
+        {/* 4. KHỐI BÀI VIẾT & HOẠT ĐỘNG CỘNG ĐỒNG CỦA TÔI (MY POSTS & CONTRIBUTIONS) */}
+        <section style={{ marginBottom: '2.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <span className="badge badge-ai">ĐÓNG GÓP CỦA TÔI</span>
+              <h2 style={{ fontSize: '1.45rem', color: '#0f172a', margin: '0.2rem 0 0 0', fontWeight: 800 }}>
+                Bài Viết & Công Thức Bạn Đang Chia Sẻ
+              </h2>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <Button variant="secondary" onClick={() => onNavigate && onNavigate('user-posts')}>
+                Quản lý bài viết của tôi →
+              </Button>
+              <Button variant="primary" onClick={() => onNavigate && onNavigate('user-posts')}>
+                <Plus size={16} /> Viết bài chia sẻ mới ✍️
+              </Button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Post 1: Pending Mod approval */}
+            <Card style={{ padding: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                backgroundImage: `url('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80')`,
+                backgroundSize: 'cover',
+                borderRadius: '10px',
+                flexShrink: 0
+              }} />
+              <div style={{ flex: 1 }}>
+                <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '8px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Clock size={12} /> Đang chờ Mod duyệt
+                </span>
+                <h4 style={{ color: '#0f172a', fontSize: '0.95rem', margin: '0.35rem 0', lineHeight: 1.35 }}>
+                  Bí quyết tự ủ Tempeh đậu nành truyền thống tại nhà chuẩn vị
+                </h4>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Gửi lúc 13:45 hôm nay • Kiểm duyệt viên: Lê Tuệ Tâm</span>
+              </div>
+            </Card>
+
+            {/* Post 2: Published */}
+            <Card style={{ padding: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                backgroundImage: `url('https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=300&q=80')`,
+                backgroundSize: 'cover',
+                borderRadius: '10px',
+                flexShrink: 0
+              }} />
+              <div style={{ flex: 1 }}>
+                <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '8px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <CheckCircle2 size={12} /> Đã xuất bản
+                </span>
+                <h4 style={{ color: '#0f172a', fontSize: '0.95rem', margin: '0.35rem 0', lineHeight: 1.35 }}>
+                  Salad Cải Xoăn Nấm Hầu Thủ Sốt Mè Rang Giàu Đạm
+                </h4>
+                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>420 lượt đọc • 38 yêu thích • 12 bình luận</span>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* 5. KHỐI GỢI Ý CÔNG THỨC & VIDEO DÀNH RIÊNG CHO BẠN (RECOMMENDED FOR YOU) */}
+        <section style={{ marginBottom: '2.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <span className="badge badge-ai">ĐỀ XUẤT CHO BẠN</span>
+              <h2 style={{ fontSize: '1.45rem', color: '#0f172a', margin: '0.2rem 0 0 0', fontWeight: 800 }}>
+                Gợi Ý Món Chay & Video Nấu Ăn Phù Hợp Thể Trạng
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                Các món ăn bổ sung đạm và sắt được chọn lọc tự động phù hợp với hồ sơ thể trạng của bạn.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <Button variant="secondary" onClick={() => onNavigate && onNavigate('blog')}>
+                Xem Blog công thức →
+              </Button>
+              <Button variant="secondary" onClick={() => onNavigate && onNavigate('videos')}>
+                Xem Video nấu ăn →
+              </Button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            {publicRecipes.map((recipe) => (
+              <Card key={recipe.id} style={{ padding: 0, overflow: 'hidden' }}>
+                <div 
+                  style={{ height: '180px', backgroundImage: `url('${recipe.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', cursor: 'pointer' }}
+                  onClick={() => setSelectedRecipeDetail(recipe)}
+                >
+                  <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.92)', color: '#047857', padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                    {recipe.time}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleSaveRecipe(recipe.id); }}
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: 'rgba(255,255,255,0.92)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: savedRecipes.includes(recipe.id) ? '#ef4444' : '#64748b'
+                    }}
+                    title={savedRecipes.includes(recipe.id) ? 'Bỏ lưu' : 'Lưu công thức'}
+                  >
+                    <Heart size={16} fill={savedRecipes.includes(recipe.id) ? '#ef4444' : 'none'} />
+                  </button>
+                </div>
+
+                <div style={{ padding: '1.25rem' }}>
+                  <h4 style={{ color: '#0f172a', marginBottom: '0.35rem', fontSize: '1.05rem', lineHeight: 1.4, cursor: 'pointer' }} onClick={() => setSelectedRecipeDetail(recipe)}>
+                    {recipe.title}
+                  </h4>
+                  <p style={{ fontSize: '0.83rem', color: '#64748b', marginBottom: '0.85rem', lineHeight: 1.5 }}>
+                    {recipe.desc}
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <span className="nutrition-pill" style={{ background: '#ecfdf5', color: '#047857' }}>{recipe.protein}</span>
+                    <span className="nutrition-pill" style={{ background: '#eff6ff', color: '#1d4ed8' }}>{recipe.iron}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
+                    <span 
+                      style={{ color: '#059669', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                      onClick={() => setSelectedRecipeDetail(recipe)}
+                    >
+                      <Eye size={15} /> Xem chi tiết cách nấu →
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* 6. KHỐI QUÉT TỦ LẠNH NHẬN DIỆN NGUYÊN LIỆU (YOLOV8) TRÊN APP DI ĐỘNG */}
+        <section className="vision-showcase" style={{ borderRadius: '24px', overflow: 'hidden' }}>
+          <div>
+            <div 
+              className="fridge-camera-box"
+              style={{ backgroundImage: `url('https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80')` }}
+            >
+              <div className="bounding-tag" style={{ top: '20px', left: '20px' }}>
+                🥦 Đậu hũ non & Cà rốt tươi (Độ tươi: 95%)
+              </div>
+              <div className="bounding-tag" style={{ bottom: '30px', right: '20px', borderLeftColor: '#f59e0b' }}>
+                🍄 Nấm hương tươi (Nên dùng trong 2 ngày)
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span className="badge badge-ai" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700 }}>
+              TIỆN ÍCH TRÊN ỨNG DỤNG DI ĐỘNG
+            </span>
+            <h2 style={{ fontSize: '1.85rem', color: '#0f172a', margin: '0.5rem 0' }}>Quét Tủ Lạnh, Nấu Ngon Liền Tay</h2>
+            <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: '1.65', marginBottom: '1.25rem' }}>
+              Chụp ảnh ngăn tủ lạnh qua camera điện thoại, mô hình YOLOv8 sẽ tự động nhận diện nguyên liệu sẵn có và đề xuất món ăn phù hợp ngay trong tích tắc.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <CheckCircle2 color="#059669" size={18} />
+                <span style={{ fontSize: '0.9rem', color: '#334155' }}>Tự động kiểm tra độ tươi và hạn sử dụng của rau củ</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <CheckCircle2 color="#059669" size={18} />
+                <span style={{ fontSize: '0.9rem', color: '#334155' }}>Đề xuất món chay tận dụng triệt để nguyên liệu còn thừa</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button 
+                type="button" 
+                className="app-download-btn"
+                onClick={() => alert('Ứng dụng VeggieAI trên App Store (iOS) đang chuẩn bị phát hành. Vui lòng đón chờ!')}
+              >
+                <Smartphone size={18} className="app-btn-icon" />
+                <div className="app-btn-text">
+                  <span className="app-btn-sub">Tải trên</span>
+                  <span className="app-btn-main">App Store</span>
+                </div>
+              </button>
+
+              <button 
+                type="button" 
+                className="app-download-btn"
+                onClick={() => alert('Ứng dụng VeggieAI trên Google Play (Android) đang chuẩn bị phát hành. Vui lòng đón chờ!')}
+              >
+                <span className="google-play-icon">▶</span>
+                <div className="app-btn-text">
+                  <span className="app-btn-sub">Có sẵn trên</span>
+                  <span className="app-btn-main">Google Play</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* MODAL CHI TIẾT CÔNG THỨC (CHO AUTHORIZED USER: CÓ NÚT LƯU VÀO THỰC ĐƠN, KHÔNG BỊ BẮT ĐĂNG KÝ) */}
+        {selectedRecipeDetail && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
+          }}>
+            <div style={{
+              background: 'white', borderRadius: '24px', maxWidth: '650px', width: '100%', maxHeight: '90vh',
+              overflowY: 'auto', padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+            }}>
+              <button 
+                onClick={() => setSelectedRecipeDetail(null)}
+                style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={20} />
+              </button>
+
+              <span className="badge badge-success">CHI TIẾT CÔNG THỨC</span>
+              <h2 style={{ color: '#0f172a', margin: '0.75rem 0 0.5rem 0' }}>{selectedRecipeDetail.title}</h2>
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>{selectedRecipeDetail.desc}</p>
+
+              <div style={{ height: '220px', backgroundImage: `url('${selectedRecipeDetail.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '16px', marginBottom: '1.5rem' }}></div>
+
+              <h4 style={{ color: '#059669', marginBottom: '0.5rem' }}>🥕 Nguyên liệu cần chuẩn bị:</h4>
+              <ul style={{ paddingLeft: '1.25rem', color: '#334155', marginBottom: '1.25rem', lineHeight: '1.6' }}>
+                {selectedRecipeDetail.ingredients.map((ing, idx) => (
+                  <li key={idx}>{ing}</li>
+                ))}
+              </ul>
+
+              <h4 style={{ color: '#059669', marginBottom: '0.5rem' }}>👨‍🍳 Các bước thực hiện:</h4>
+              <ol style={{ paddingLeft: '1.25rem', color: '#334155', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+                {selectedRecipeDetail.steps.map((st, idx) => (
+                  <li key={idx} style={{ marginBottom: '0.5rem' }}>{st}</li>
+                ))}
+              </ol>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                <Button variant="secondary" onClick={() => setSelectedRecipeDetail(null)}>Đóng</Button>
+                <Button onClick={() => {
+                  toggleSaveRecipe(selectedRecipeDetail.id);
+                  alert('Đã lưu món ăn vào cẩm nang công thức yêu thích của bạn!');
+                  setSelectedRecipeDetail(null);
+                }}>
+                  <Heart size={16} fill="white" /> {savedRecipes.includes(selectedRecipeDetail.id) ? 'Đã lưu yêu thích' : 'Lưu vào yêu thích'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // GIAO DIỆN HOME DÀNH CHO GUEST (CHƯA ĐĂNG NHẬP / KHÁCH VÃNG LAI)
+  // =========================================================================
   const filteredVideos = videoRecipes.filter(v => 
     v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.summary.toLowerCase().includes(searchQuery.toLowerCase())
@@ -411,11 +1156,11 @@ export default function HomePage({ onNavigate }) {
 
           {/* Meals Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(245px, 1fr))', gap: '1.25rem', marginTop: '1rem' }}>
-            {dailyMeals[selectedDay]?.map((meal, idx) => (
-              <div key={idx} style={{ background: '#white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+            {todayMeals.map((meal, idx) => (
+              <div key={idx} style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                 <div style={{ height: '140px', backgroundImage: `url('${meal.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
                   <span style={{ position: 'absolute', top: '10px', left: '10px', background: meal.bg, color: meal.color, padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800 }}>
-                    {meal.type}
+                    {meal.slot}
                   </span>
                 </div>
 
@@ -521,9 +1266,7 @@ export default function HomePage({ onNavigate }) {
         </div>
       </section>
 
-      {/* ======================================================= */}
-      {/* MODAL: XEM CHI TIẾT BÀI VIẾT / CÔNG THỨC NẤU ĂN */}
-      {/* ======================================================= */}
+      {/* MODAL: XEM CHI TIẾT BÀI VIẾT / CÔNG THỨC CHO GUEST */}
       {selectedRecipeDetail && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
@@ -570,9 +1313,7 @@ export default function HomePage({ onNavigate }) {
         </div>
       )}
 
-      {/* ======================================================= */}
-      {/* MODAL: XEM CHI TIẾT VIDEO HƯỚNG DẪN NẤU ĂN */}
-      {/* ======================================================= */}
+      {/* MODAL: XEM CHI TIẾT VIDEO CHO GUEST */}
       {selectedVideoDetail && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
@@ -593,7 +1334,6 @@ export default function HomePage({ onNavigate }) {
             <h2 style={{ color: '#0f172a', margin: '0.75rem 0 0.5rem 0' }}>{selectedVideoDetail.title}</h2>
             <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.25rem' }}>{selectedVideoDetail.author} • Thời lượng: {selectedVideoDetail.time}</p>
 
-            {/* Video Player Box Mockup */}
             <div style={{ height: '240px', background: '#0f172a', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', marginBottom: '1.5rem', position: 'relative' }}>
               <div style={{ width: '60px', height: '60px', background: '#059669', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 20px rgba(5,150,105,0.4)' }}>
                 <Play fill="white" size={24} color="white" />

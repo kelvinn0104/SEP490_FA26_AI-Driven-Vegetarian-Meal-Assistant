@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout } from 'lucide-react';
+import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout, Plus } from 'lucide-react';
 import Button from '../components/ui/Button';
+import { useAuth } from '../context/AuthContext';
 
 export default function BlogPage({ onNavigate }) {
+  const { user } = useAuth();
   // Luôn đảm bảo khi mở trang Blog thì vị trí cuộn ở đỉnh trang (0, 0)
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -215,6 +217,36 @@ export default function BlogPage({ onNavigate }) {
             Tìm kiếm
           </button>
         </div>
+
+        {/* NÚT ĐĂNG BÀI NỔI BẬT RIÊNG TRONG NỘI DUNG TRANG (CHO AUTHORIZED USER) */}
+        {user && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.85rem 0 0.5rem 0' }}>
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('user-posts')}
+              style={{
+                background: '#059669',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '24px',
+                padding: '0.6rem 1.4rem',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
+                transition: 'transform 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <Plus size={16} />
+              <span>Viết bài chia sẻ mới ✍️</span>
+            </button>
+          </div>
+        )}
 
         {/* FILTER PILLS */}
         <div className="blog-filter-pills-row">

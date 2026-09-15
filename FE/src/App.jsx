@@ -13,6 +13,8 @@ import VideosPage from './pages/VideosPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ModDashboard from './pages/ModDashboard';
 import ModerationQueue from './pages/ModerationQueue';
+import UserAccountPage from './pages/UserAccountPage';
+import HealthProfilePage from './pages/HealthProfilePage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -193,6 +195,12 @@ export default function App() {
         {activeTab === 'blog' && <BlogPage onNavigate={handleNavigate} />}
         {activeTab === 'videos' && <VideosPage onNavigate={handleNavigate} />}
         {activeTab === 'community' && <CommunityPage />}
+
+        {/* CÁC MÀN HÌNH CÁ NHÂN HỘI VIÊN TỪ DROPDOWN AVATAR */}
+        {activeTab === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
+        {activeTab === 'user-nutrition' && <UserAccountPage defaultTab="nutrition" onNavigate={handleNavigate} />}
+        {activeTab === 'user-posts' && <UserAccountPage defaultTab="posts" onNavigate={handleNavigate} />}
+        {activeTab === 'user-settings' && <UserAccountPage defaultTab="settings" onNavigate={handleNavigate} />}
 
         {/* BẢO VỆ TRANG ADMIN: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP với quyền ADMIN */}
         {activeTab === 'admin' && (

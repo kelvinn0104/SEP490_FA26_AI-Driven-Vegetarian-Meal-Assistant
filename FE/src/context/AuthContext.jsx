@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('veggieai_active_tab', 'moderation');
     } catch (e) {}
     login({
-      name: 'Lê Minh Trí',
+      name: 'Lê Tuệ Tâm',
       email: 'mod@veggieai.vn',
       role: 'Moderator',
       roleLabel: 'Moderator'
