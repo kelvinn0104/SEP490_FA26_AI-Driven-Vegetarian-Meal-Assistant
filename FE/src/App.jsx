@@ -154,7 +154,7 @@ export default function App() {
         {/* BẢO VỆ CHỨC NĂNG THỰC ĐƠN AI: YÊU CẦU HOÀN TẤT ĐĂNG KÝ / HỒ SƠ DINH DƯỠNG */}
         {activeTab === 'planner' && (
           user ? (
-            <MealPlannerPage />
+            <MealPlannerPage onNavigate={handleNavigate} />
           ) : (
             <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
               <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>

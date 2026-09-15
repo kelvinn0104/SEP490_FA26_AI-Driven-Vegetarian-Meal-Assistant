@@ -56,14 +56,14 @@ export default function Footer({ onNavigate }) {
             <h4 className="footer-col-title">CÔNG CỤ & TRỢ LÝ</h4>
             <ul className="footer-links">
               <li><a href="#chatbot" onClick={(e) => handleFooterNav(e, 'chatbot')}>Hỏi AI</a></li>
-              <li><a href="#planner" onClick={(e) => handleFooterNav(e, 'planner')}>Tính toán Macro & Calo</a></li>
+              <li><a href="#planner" onClick={(e) => handleFooterNav(e, 'planner')}>Thực đơn của tôi & Tính toán Macro</a></li>
               <li>
-                <a href="#vision">
-                  Quét nguyên liệu <span className="footer-app-tag">(chỉ trên App)</span>
+                <a href="#vision" onClick={(e) => { e.preventDefault(); alert('Tính năng Quét nguyên liệu tủ lạnh bằng AI (YOLOv8) chỉ khả dụng trên ứng dụng di động VeggieAI.'); }}>
+                  Quét nguyên liệu tủ lạnh <span className="footer-app-tag">(Chỉ trên App)</span>
                 </a>
               </li>
               <li>
-                <a href="#market">
+                <a href="#planner" onClick={(e) => handleFooterNav(e, 'planner')}>
                   Sổ tay đi chợ (tạo từ thực đơn)
                 </a>
               </li>
