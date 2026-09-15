@@ -7,7 +7,7 @@ import {
   ChevronRight, Play, Check, Slash, Zap, Download, Send, AlertCircle,
   HelpCircle, MoreVertical, Lock, Shield, Camera, Plus, Trash2, Edit2,
   Bookmark, Award, Sliders, Key, Smartphone, Globe, MapPin, Tag, Laptop,
-  Bot, SlidersHorizontal, ChevronLeft, CheckSquare, Sprout
+  Bot, SlidersHorizontal, ChevronLeft, CheckSquare, Sprout, SkipForward
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,7 +15,7 @@ export default function ModDashboard({ onNavigate }) {
   const { user, logout } = useAuth();
 
   // Active navigation tab in Moderator Workspace
-  // 'dashboard' | 'queue' | 'detail' | 'history' | 'profile' | 'security'
+  // 'dashboard' | 'queue' | 'detail' | 'history' | 'profile'
   const [activeModTab, setActiveModTab] = useState('dashboard');
 
   // Notification Toast
@@ -44,6 +44,12 @@ export default function ModDashboard({ onNavigate }) {
   const [rejectNote, setRejectNote] = useState('');
   const [showAutoReviewModal, setShowAutoReviewModal] = useState(false);
   const [autoReviewStep, setAutoReviewStep] = useState(0);
+
+  // Post Detail Interactive Controls (matching exact uploaded mockup)
+  const [detailMealCategory, setDetailMealCategory] = useState('main'); // 'main' | 'side' | 'dessert'
+  const [detailIsExpertCertified, setDetailIsExpertCertified] = useState(true);
+  const [detailInternalFeedback, setDetailInternalFeedback] = useState('');
+  const [detailSelectedTags, setDetailSelectedTags] = useState(['#MonTheoMua', '#TangDeKhang', '#MonKhoHam', '#DuongSinhOhsawa']);
 
   // =========================================================================
   // MOD PROFILE STATE & AVATAR UPLOAD (MATCHING EXACT MOD USER REQUIREMENTS)
@@ -223,6 +229,88 @@ export default function ModDashboard({ onNavigate }) {
   // Core Data: Priority & Pending Moderation Queue (Items)
   // Authors have pure name + objective stats "XX bài duyệt • X vi phạm" (NO chef/doctor titles, NO tier badges)
   const [moderationItems, setModerationItems] = useState([
+    {
+      id: 'POST-8821',
+      title: 'Cà ri bí đỏ cốt dừa hạt điều hạt sen dưỡng sinh mùa đông',
+      thumbnail: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=600',
+      coverImage: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=1200',
+      author: 'Bếp Chay Tuệ Tâm',
+      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+      authorInitials: 'TT',
+      authorEmail: 'tuetam.bepchay@gmail.com',
+      isVerified: true,
+      authorStats: '142 công thức đã duyệt',
+      trustScore: 100,
+      type: 'Ẩm thực Thực Dưỡng Ohsawa',
+      typeTag: 'Thực dưỡng',
+      typeCode: 'seasonal',
+      category: 'seasonal',
+      excerpt: 'Cà ri bí đỏ béo bùi từ hạt sen tươi và cốt dừa, bổ sung đạm hạt điều ấm nồng cho mùa đông...',
+      submittedAt: '10:42 Hôm nay',
+      submittedDateFull: '26/10/2024 - 10:42',
+      servings: '4 Người ăn',
+      cookTime: '45 Phút',
+      veganBadge: 'Thuần chay 100%',
+      dietCategory: 'ẨM THỰC THỰC DƯỠNG OHSAWA',
+      slaRemaining: 'Còn 45 phút SLA',
+      slaStatus: 'normal',
+      aiConfidence: 100,
+      aiStatus: 'safe',
+      aiBadgeLabel: 'Đạt chuẩn thuần chay 100%',
+      aiSummary: 'Không phát hiện mỡ động vật, bơ sữa bò, trứng hoặc phụ gia gelatin.',
+      warningTag: null,
+      priority: 'high',
+      isNew: true,
+      queueStatus: 'new',
+      actionType: 'approve',
+      hasFiveSpices: false,
+      macros: {
+        calo: '568 kcal',
+        protein: '11.4g',
+        proteinDv: '13% DV',
+        carbs: '38.2g',
+        carbsDv: '54% DV',
+        fat: '16.8g',
+        fatDv: '25% DV',
+        fiber: '7.5g',
+        fiberDv: '28% DV'
+      },
+      ingredientsTable: [
+        { name: 'Bí đỏ hồ lô giống hữu cơ', amount: '500g', calories: '130 kcal', origin: 'Rau củ hữu cơ', originColor: 'blue', status: 'Hợp lệ' },
+        { name: 'Hạt sen tươi Huế', amount: '150g', calories: '134 kcal', origin: 'Hạt dưỡng chất', originColor: 'purple', status: 'Hợp lệ' },
+        { name: 'Hạt điều sữa tươi chưa rang', amount: '80g', calories: '442 kcal', origin: 'Hạt giàu đạm/béo', originColor: 'amber', status: 'Hợp lệ' },
+        { name: 'Nước cốt dừa tươi nguyên chất', amount: '200ml', calories: '460 kcal', origin: 'Chất béo dừa tươi', originColor: 'teal', status: 'Hợp lệ' },
+        { name: 'Bột cà ri Ấn Độ hữu cơ & Sả cây', amount: '30g', calories: '25 kcal', origin: 'Thảo mộc tự nhiên', originColor: 'emerald', status: 'Hợp lệ' }
+      ],
+      instructionsSteps: [
+        {
+          step: 1,
+          title: 'Sơ chế rau củ và hạt dưỡng chất',
+          img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400',
+          desc: 'Bí đỏ gọt vỏ, thái quân cờ vừa ăn khoảng 3x3cm (không thái quá mỏng để tránh nát khi hầm). Hạt sen rửa sạch lấy tim đắng nếu có. Hạt điều ngâm nước ấm 20 phút cho nở mềm rồi vớt ráo.'
+        },
+        {
+          step: 2,
+          title: 'Kích hoạt tầng hương gia vị thực dưỡng',
+          img: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400',
+          desc: 'Đun 1 thìa dầu mè nguyên chất, cho sả đập dập và bột cà ri vào phi nhỏ lửa cho dậy mùi thơm ấm áp. Cho bí đỏ và hạt sen vào đảo đều trong 3 phút để áo đều lớp gia vị vàng óng tự nhiên.'
+        },
+        {
+          step: 3,
+          title: 'Hầm chậm cùng nước cốt dừa và hạt điều',
+          img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+          desc: 'Đổ 400ml nước dùng rau củ đun sôi, hạ lửa riu riu hầm trong 15 phút. Khi bí và hạt sen vừa chín mềm tới, cho hạt điều cùng 200ml cốt dừa vào khuấy nhẹ tay. Nêm 1 thìa tương tamari và một nhúm muối hồng Himalaya rồi tắt bếp sau 3 phút.'
+        }
+      ],
+      macrobioticTip: 'Bí đỏ mang năng lượng Dương ấm nồng, phối hợp cùng hạt sen thanh tâm an thần và cốt dừa giúp cân bằng thể trạng trong những ngày tiết trời chuyển lạnh. Tránh nêm bột ngọt hóa học hoặc đường tinh luyện làm mất đi vị ngọt hậu thanh tao tự nhiên của củ và hạt sen.',
+      aiTags: ['#MonTheoMua', '#TangDeKhang', '#MonKhoHam', '#DuongSinhOhsawa'],
+      safetyChecks: {
+        language: '0 vi phạm',
+        externalLinks: 'Không có',
+        copyright: 'Nguyên bản 100%'
+      },
+      status: 'pending'
+    },
     {
       id: 'MOD-8811',
       title: 'Salad Cầu Vồng Rau Củ Mùa Hè',
@@ -2238,177 +2326,465 @@ export default function ModDashboard({ onNavigate }) {
           )}
 
           {/* =========================================================================
-              VIEW 3: CHI TIẾT BÀI VIẾT (DEEP INSPECTION VIEW)
+              VIEW 3: CHI TIẾT BÀI VIẾT (MODERATOR POST DETAIL VIEW) - PIXEL PERFECT
               ========================================================================= */}
-          {activeModTab === 'detail' && (
-            <div className="mod-detail-view">
-              {inspectingItem ? (
-                <div>
-                  {/* Top Bar Navigation */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <button 
-                      onClick={() => setActiveModTab('dashboard')}
-                      style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 600, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
-                    >
-                      <ArrowLeft size={15} />
-                      <span>Quay lại Dashboard</span>
-                    </button>
+          {activeModTab === 'detail' && (() => {
+            const currItem = inspectingItem || moderationItems[0];
+            const ingredientsList = currItem?.ingredientsTable || (currItem?.ingredients || []).map((ing, idx) => ({
+              name: ing.name,
+              amount: ing.amount,
+              calories: `${Math.round(40 + idx * 35)} kcal`,
+              origin: idx % 2 === 0 ? 'Rau củ hữu cơ' : 'Hạt dưỡng chất',
+              originColor: idx % 2 === 0 ? 'blue' : 'purple',
+              status: ing.status === 'violation' ? 'Cảnh báo' : 'Hợp lệ'
+            }));
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <button 
-                        onClick={() => handleOpenRejectModal(inspectingItem)}
-                        className="mod-btn-action reject"
-                        style={{ padding: '0.55rem 1.15rem' }}
-                      >
-                        <X size={16} />
-                        <span>Từ chối bài này (R)</span>
-                      </button>
-                      <button 
-                        onClick={() => handleApproveItem(inspectingItem)}
-                        className="mod-btn-action approve"
-                        style={{ padding: '0.55rem 1.35rem' }}
-                      >
-                        <Check size={16} />
-                        <span>Phê duyệt xuất bản (Space)</span>
-                      </button>
-                    </div>
+            const stepsList = currItem?.instructionsSteps || [
+              {
+                step: 1,
+                title: 'Sơ chế rau củ và hạt dưỡng chất',
+                img: currItem?.thumbnail || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400',
+                desc: 'Bí đỏ gọt vỏ, thái quân cờ vừa ăn khoảng 3x3cm (không thái quá mỏng để tránh nát khi hầm). Hạt sen rửa sạch lấy tim đắng nếu có. Hạt điều ngâm nước ấm 20 phút cho nở mềm rồi vớt ráo.'
+              },
+              {
+                step: 2,
+                title: 'Kích hoạt tầng hương gia vị thực dưỡng',
+                img: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400',
+                desc: 'Đun 1 thìa dầu mè nguyên chất, cho sả đập dập và bột cà ri vào phi nhỏ lửa cho dậy mùi thơm ấm áp. Cho bí đỏ và hạt sen vào đảo đều trong 3 phút để áo đều lớp gia vị vàng óng tự nhiên.'
+              },
+              {
+                step: 3,
+                title: 'Hầm chậm cùng nước cốt dừa và hạt điều',
+                img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+                desc: currItem?.instructions || 'Đổ 400ml nước dùng rau củ đun sôi, hạ lửa riu riu hầm trong 15 phút. Khi bí và hạt sen vừa chín mềm tới, cho hạt điều cùng 200ml cốt dừa vào khuấy nhẹ tay. Nêm 1 thìa tương tamari và một nhúm muối hồng Himalaya rồi tắt bếp sau 3 phút.'
+              }
+            ];
+
+            const itemMacros = currItem?.macros || {
+              calo: '568 kcal',
+              protein: '11.4g',
+              proteinDv: '13% DV',
+              carbs: '38.2g',
+              carbsDv: '54% DV',
+              fat: '16.8g',
+              fatDv: '25% DV',
+              fiber: '7.5g',
+              fiberDv: '28% DV'
+            };
+
+            const tipContent = currItem?.macrobioticTip || 'Bí đỏ mang năng lượng Dương ấm nồng, phối hợp cùng hạt sen thanh tâm an thần và cốt dừa giúp cân bằng thể trạng trong những ngày tiết trời chuyển lạnh. Tránh nêm bột ngọt hóa học hoặc đường tinh luyện làm mất đi vị ngọt hậu thanh tao tự nhiên của củ và hạt sen.';
+
+            const handleNextPost = () => {
+              const currentIndex = moderationItems.findIndex(i => i.id === currItem.id);
+              const nextIndex = (currentIndex + 1) % moderationItems.length;
+              setInspectingItem(moderationItems[nextIndex]);
+              showToast(`Đã chuyển sang bài viết #${moderationItems[nextIndex].id}`);
+            };
+
+            const handleDetailApproveAndPublish = (item) => {
+              handleApproveItem(item);
+              showToast(`🎉 Đã phê duyệt và xuất bản công thức #${item.id} thành công!`);
+              handleNextPost();
+            };
+
+            const handleDetailRequestRevision = (item) => {
+              showToast(`📩 Đã gửi yêu cầu tác giả ${item.author} chỉnh sửa công thức #${item.id}!`);
+            };
+
+            const handleDetailReject = (item) => {
+              handleOpenRejectModal(item);
+            };
+
+            return (
+              <div className="mod-detail-page-wrap">
+                {/* 1. TOP NAV BREADCRUMB & ACTION BAR */}
+                <div className="mod-detail-top-nav-bar">
+                  <div className="mod-detail-nav-left">
+                    <button 
+                      className="mod-detail-back-btn" 
+                      onClick={() => setActiveModTab('queue')}
+                      title="Quay lại Hàng đợi duyệt bài"
+                    >
+                      <ArrowLeft size={16} />
+                    </button>
+                    <span className="mod-detail-post-id">Mã #{currItem.id}</span>
+                    <span className="mod-detail-status-pill">Chờ phê duyệt</span>
+                    <span className="mod-detail-meta-dot">•</span>
+                    <span className="mod-detail-author-meta">
+                      <User size={13} color="#64748b" />
+                      <span>Tác giả: <strong>{currItem.author}</strong></span>
+                    </span>
+                    <span className="mod-detail-meta-dot">•</span>
+                    <span className="mod-detail-time-meta">{currItem.submittedAt}</span>
                   </div>
 
-                  {/* Main Detail Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem' }}>
-                    {/* Left: Recipe Content, Ingredients, Instructions */}
-                    <div className="mod-panel-card">
-                      <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '1.25rem', marginBottom: '1.25rem' }}>
-                        <img 
-                          src={inspectingItem.thumbnail} 
-                          alt={inspectingItem.title} 
-                          style={{ width: '140px', height: '105px', borderRadius: '10px', objectFit: 'cover' }}
-                        />
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#ecfdf5', color: '#059669', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
-                              #{inspectingItem.id}
-                            </span>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{inspectingItem.type}</span>
+                  <div className="mod-detail-nav-actions">
+                    <button 
+                      className="mod-detail-btn-reject"
+                      onClick={() => handleDetailReject(currItem)}
+                    >
+                      <X size={15} />
+                      <span>Từ chối</span>
+                    </button>
+
+                    <button 
+                      className="mod-detail-btn-revision"
+                      onClick={() => handleDetailRequestRevision(currItem)}
+                    >
+                      <Edit2 size={14} />
+                      <span>Yêu cầu sửa</span>
+                    </button>
+
+                    <button 
+                      className="mod-detail-btn-approve"
+                      onClick={() => handleDetailApproveAndPublish(currItem)}
+                    >
+                      <Check size={16} />
+                      <span>Phê duyệt &amp; Xuất bản</span>
+                    </button>
+
+                    <button 
+                      className="mod-detail-btn-next"
+                      onClick={handleNextPost}
+                      title="Chuyển sang bài chờ duyệt tiếp theo"
+                    >
+                      <SkipForward size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. MAIN 2-COLUMN GRID CONTAINER */}
+                <div className="mod-detail-grid-container">
+                  {/* LEFT COLUMN: RECIPE CONTENT & NUTRITION & INSTRUCTIONS */}
+                  <div className="mod-detail-content-col">
+                    {/* HERO RECIPE CARD */}
+                    <div className="mod-detail-hero-card">
+                      <img 
+                        src={currItem.coverImage || currItem.thumbnail} 
+                        alt={currItem.title} 
+                        className="mod-detail-hero-img" 
+                      />
+                      <div className="mod-detail-hero-overlay"></div>
+                      
+                      <div className="mod-detail-hero-top-badges">
+                        <span className="mod-hero-tag-vegan">
+                          <Sprout size={13} />
+                          <span>{currItem.veganBadge || 'Thuần chay 100%'}</span>
+                        </span>
+                        <span className="mod-hero-tag-time">
+                          <Clock size={13} />
+                          <span>{currItem.cookTime || '45 Phút'}</span>
+                        </span>
+                      </div>
+
+                      <div className="mod-detail-hero-bottom">
+                        <span className="mod-hero-category-chip">
+                          {currItem.dietCategory || 'ẨM THỰC THỰC DƯỠNG OHSAWA'}
+                        </span>
+                        <h1 className="mod-hero-title-text">
+                          {currItem.title}
+                        </h1>
+                      </div>
+                    </div>
+
+                    {/* AUTHOR PROFILE BAR */}
+                    <div className="mod-detail-author-card">
+                      <div className="mod-detail-author-left">
+                        <div className="mod-detail-author-avatar">
+                          {currItem.authorInitials || (currItem.author ? currItem.author.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'TT')}
+                        </div>
+                        <div className="mod-detail-author-info">
+                          <div className="mod-detail-author-name">
+                            <span>{currItem.author}</span>
+                            {currItem.isVerified && (
+                              <CheckCircle2 size={16} color="#059669" />
+                            )}
                           </div>
-                          <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.45rem' }}>
-                            {inspectingItem.title}
-                          </h1>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#64748b' }}>
-                            <span>Tác giả: <strong>{inspectingItem.author}</strong></span>
-                            <span>•</span>
-                            <span style={{ color: '#059669', fontWeight: 700 }}>Điểm uy tín: {inspectingItem.trustScore}/100</span>
-                            <span>•</span>
-                            <span>Gửi {inspectingItem.submittedAt}</span>
+                          <div className="mod-detail-author-stats">
+                            {currItem.authorStats || '142 công thức đã duyệt'}
                           </div>
                         </div>
                       </div>
+                      <div className="mod-detail-author-right-meta">
+                        <div className="time-label">Thời gian nộp: {currItem.submittedDateFull || '26/10/2024 - 10:42'}</div>
+                        <div className="servings-label">Khẩu phần: {currItem.servings || '4 Người ăn'}</div>
+                      </div>
+                    </div>
 
-                      {/* Ingredients List */}
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
-                        🥗 Danh sách nguyên liệu &amp; Định lượng:
-                      </h3>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '1.5rem' }}>
-                        {inspectingItem.ingredients.map((ing, idx) => (
-                          <div 
-                            key={idx}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              padding: '0.55rem 0.85rem',
-                              background: ing.status === 'violation' ? '#fef2f2' : ing.status === 'warning' ? '#fffbeb' : '#f8fafc',
-                              border: `1px solid ${ing.status === 'violation' ? '#fecaca' : ing.status === 'warning' ? '#fde68a' : '#e2e8f0'}`,
-                              borderRadius: '8px',
-                              fontSize: '0.82rem'
-                            }}
-                          >
-                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{ing.name}</span>
-                            <span style={{ color: '#64748b', fontFamily: 'monospace', fontWeight: 700 }}>{ing.amount}</span>
+                    {/* NUTRITIONAL MACRO METRICS */}
+                    <div className="mod-detail-card">
+                      <div className="mod-detail-section-header">
+                        <h3 className="mod-detail-section-title">
+                          <Sprout size={17} color="#059669" />
+                          <span>Chỉ số dinh dưỡng dự tính (Mỗi khẩu phần)</span>
+                        </h3>
+                        <span className="mod-detail-total-kcal">
+                          Tổng: {itemMacros.calo || '568 kcal'}
+                        </span>
+                      </div>
+
+                      <div className="mod-nutrition-grid">
+                        <div className="mod-nutrition-box">
+                          <div className="mod-nutrition-lbl">PROTEIN</div>
+                          <div className="mod-nutrition-val">{itemMacros.protein || '11.4g'}</div>
+                          <div className="mod-nutrition-dv">{itemMacros.proteinDv || '13% DV'}</div>
+                        </div>
+                        <div className="mod-nutrition-box">
+                          <div className="mod-nutrition-lbl">CARBOHYDRATE</div>
+                          <div className="mod-nutrition-val">{itemMacros.carbs || '38.2g'}</div>
+                          <div className="mod-nutrition-dv">{itemMacros.carbsDv || '54% DV'}</div>
+                        </div>
+                        <div className="mod-nutrition-box">
+                          <div className="mod-nutrition-lbl">CHẤT BÉO TỐT</div>
+                          <div className="mod-nutrition-val">{itemMacros.fat || '16.8g'}</div>
+                          <div className="mod-nutrition-dv">{itemMacros.fatDv || '25% DV'}</div>
+                        </div>
+                        <div className="mod-nutrition-box">
+                          <div className="mod-nutrition-lbl">CHẤT XƠ TỰ NHIÊN</div>
+                          <div className="mod-nutrition-val">{itemMacros.fiber || '7.5g'}</div>
+                          <div className="mod-nutrition-dv">{itemMacros.fiberDv || '28% DV'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* INGREDIENTS TABLE */}
+                    <div className="mod-detail-card">
+                      <div className="mod-detail-section-header">
+                        <h3 className="mod-detail-section-title">
+                          <FileText size={17} color="#059669" />
+                          <span>Bảng phân tích thành phần &amp; Định lượng</span>
+                        </h3>
+                      </div>
+
+                      <div className="mod-ingredients-table-wrap">
+                        <table className="mod-ingredients-table">
+                          <thead>
+                            <tr>
+                              <th>NGUYÊN LIỆU</th>
+                              <th>KHỐI LƯỢNG</th>
+                              <th>NĂNG LƯỢNG</th>
+                              <th>GỐC THỰC VẬT</th>
+                              <th>TRẠNG THÁI</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {ingredientsList.map((ing, idx) => (
+                              <tr key={idx}>
+                                <td><strong>{ing.name}</strong></td>
+                                <td style={{ fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>{ing.amount}</td>
+                                <td>{ing.calories || `${100 + idx * 40} kcal`}</td>
+                                <td>
+                                  <span className={`mod-origin-pill ${ing.originColor || (idx % 2 === 0 ? 'blue' : 'purple')}`}>
+                                    {ing.origin || 'Rau củ hữu cơ'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={`mod-status-valid-pill ${ing.status === 'Vi phạm' || ing.status === 'Cảnh báo' ? 'warning' : ''}`}>
+                                    <Check size={12} />
+                                    <span>{ing.status || 'Hợp lệ'}</span>
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* COOKING INSTRUCTIONS */}
+                    <div className="mod-detail-card">
+                      <div className="mod-detail-section-header">
+                        <h3 className="mod-detail-section-title">
+                          <Utensils size={17} color="#059669" />
+                          <span>Hướng dẫn chi tiết các bước chế biến</span>
+                        </h3>
+                      </div>
+
+                      <div className="mod-steps-list">
+                        {stepsList.map((stepItem) => (
+                          <div key={stepItem.step} className="mod-step-card">
+                            <img src={stepItem.img} alt={stepItem.title} className="mod-step-thumb" />
+                            <div className="mod-step-body">
+                              <div className="mod-step-header">
+                                <span className="mod-step-num-badge">{stepItem.step}</span>
+                                <h4 className="mod-step-title">{stepItem.title}</h4>
+                              </div>
+                              <p className="mod-step-desc">{stepItem.desc}</p>
+                            </div>
                           </div>
                         ))}
                       </div>
-
-                      {/* Instructions */}
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-                        📝 Hướng dẫn chế biến:
-                      </h3>
-                      <p style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        {inspectingItem.instructions}
-                      </p>
                     </div>
 
-                    {/* Right: AI Safety Evaluation & Macros */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      {/* AI Verification Box */}
-                      <div className="mod-panel-card">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                          <Sparkles size={18} color="#059669" />
-                          <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>Đánh giá an toàn AI</h3>
-                        </div>
+                    {/* AUTHOR MACROBIOTIC TIP CARD */}
+                    <div className="mod-author-tip-card">
+                      <div className="mod-tip-icon-wrap">
+                        <MapPin size={18} />
+                      </div>
+                      <div className="mod-tip-content">
+                        <h4 className="mod-tip-title">Mẹo thực dưỡng Ohsawa từ tác giả</h4>
+                        <p className="mod-tip-body">{tipContent}</p>
+                      </div>
+                    </div>
+                  </div>
 
-                        <div style={{ background: inspectingItem.aiStatus === 'safe' ? '#ecfdf5' : '#fffbeb', border: `1px solid ${inspectingItem.aiStatus === 'safe' ? '#a7f3d0' : '#fde68a'}`, borderRadius: '8px', padding: '0.85rem', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                            <strong style={{ fontSize: '0.85rem', color: inspectingItem.aiStatus === 'safe' ? '#047857' : '#b45309' }}>
-                              Độ tin cậy: {inspectingItem.aiConfidence}%
-                            </strong>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
-                              {inspectingItem.aiStatus === 'safe' ? 'AN TOÀN' : 'CẢNH BÁO'}
-                            </span>
-                          </div>
-                          <p style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.5, margin: 0 }}>
-                            {inspectingItem.aiSummary}
+                  {/* RIGHT COLUMN: AI PRE-SCREENING & MOD DECISION PANEL */}
+                  <div className="mod-detail-sidebar-col">
+                    {/* CARD 1: AI PRE-SCREENING */}
+                    <div className="mod-sidebar-card">
+                      <div className="mod-card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <Sparkles size={17} color="#059669" />
+                          <h3 className="mod-panel-title" style={{ fontSize: '0.88rem' }}>Trợ lý AI Pre-Screening</h3>
+                        </div>
+                        <span className="mod-ai-auto-badge">Tự động 100%</span>
+                      </div>
+
+                      <div className="mod-ai-gauge-box">
+                        <div className="mod-circle-meter">
+                          {currItem.aiConfidence || 100}%
+                        </div>
+                        <div className="mod-gauge-info">
+                          <div className="mod-gauge-title">Đạt tiêu chuẩn thuần chay</div>
+                          <p className="mod-gauge-desc">
+                            {currItem.aiSummary || 'Không phát hiện mỡ động vật, bơ sữa bò, trứng hoặc phụ gia gelatin.'}
                           </p>
-                        </div>
-
-                        <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          <div>• Computer Vision (YOLO): <strong>Khớp ảnh thực vật 100%</strong></div>
-                          <div style={{ marginTop: '0.35rem' }}>• NLP Parser: <strong>Không phát hiện gelatin / mỡ lợn</strong></div>
-                          <div style={{ marginTop: '0.35rem' }}>• Ngũ vị tân: <strong>{inspectingItem.hasFiveSpices ? 'Đã gắn nhãn rõ ràng' : 'Không chứa ngũ vị tân'}</strong></div>
                         </div>
                       </div>
 
-                      {/* Nutritional Macro Box */}
-                      <div className="mod-panel-card">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                          <Utensils size={17} color="#059669" />
-                          <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>Macro Dinh Dưỡng</h3>
+                      <div>
+                        <div className="mod-sidebar-field-label">GỢI Ý PHÂN LOẠI THẺ (AI TAGS):</div>
+                        <div className="mod-ai-tags-wrap">
+                          {['#MonTheoMua +', '#TangDeKhang +', '#MonKhoHam +', '#DuongSinhOhsawa'].map((tag, tIdx) => {
+                            const pureTag = tag.replace(' +', '');
+                            const isSelected = detailSelectedTags.includes(pureTag);
+                            return (
+                              <button
+                                key={tIdx}
+                                className={`mod-ai-tag-pill ${isSelected ? 'active' : ''}`}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setDetailSelectedTags(detailSelectedTags.filter(t => t !== pureTag));
+                                  } else {
+                                    setDetailSelectedTags([...detailSelectedTags, pureTag]);
+                                    showToast(`Đã thêm thẻ ${pureTag} vào danh mục bài viết`);
+                                  }
+                                }}
+                              >
+                                {tag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CARD 2: KIỂM TRA AN TOÀN & NGÔN TỪ */}
+                    <div className="mod-sidebar-card">
+                      <div className="mod-card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <ShieldCheck size={17} color="#059669" />
+                          <h3 className="mod-panel-title" style={{ fontSize: '0.88rem' }}>Kiểm tra An toàn &amp; Ngôn từ</h3>
+                        </div>
+                        <span className="mod-safe-score-badge">99.8% Sạch</span>
+                      </div>
+
+                      <div className="mod-safety-list">
+                        <div className="mod-safety-item">
+                          <div className="mod-safety-item-left">
+                            <CheckCircle2 size={14} color="#059669" />
+                            <span>Ngôn từ chuẩn mực, tôn trọng</span>
+                          </div>
+                          <span className="mod-safe-pill">0 vi phạm</span>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-                          <div style={{ background: '#f8fafc', padding: '0.65rem', borderRadius: '8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Năng lượng</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{inspectingItem.macros.calo}</div>
+                        <div className="mod-safety-item">
+                          <div className="mod-safety-item-left">
+                            <CheckCircle2 size={14} color="#059669" />
+                            <span>Liên kết ngoài / Tiếp thị liên kết</span>
                           </div>
-                          <div style={{ background: '#f8fafc', padding: '0.65rem', borderRadius: '8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Đạm thực vật</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#059669' }}>{inspectingItem.macros.protein}</div>
-                          </div>
-                          <div style={{ background: '#f8fafc', padding: '0.65rem', borderRadius: '8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Carbohydrate</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{inspectingItem.macros.carbs}</div>
-                          </div>
-                          <div style={{ background: '#f8fafc', padding: '0.65rem', borderRadius: '8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Chất béo tốt</div>
-                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{inspectingItem.macros.fat}</div>
-                          </div>
+                          <span className="mod-safe-pill">Không có</span>
                         </div>
+
+                        <div className="mod-safety-item">
+                          <div className="mod-safety-item-left">
+                            <CheckCircle2 size={14} color="#059669" />
+                            <span>Bản quyền hình ảnh xác thực</span>
+                          </div>
+                          <span className="mod-safe-pill">Nguyên bản 100%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CARD 3: QUYẾT ĐỊNH CỦA KIỂM DUYỆT VIÊN */}
+                    <div className="mod-sidebar-card">
+                      <div className="mod-card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <User size={16} color="#b45309" />
+                          <h3 className="mod-panel-title" style={{ fontSize: '0.88rem' }}>Quyết định của Kiểm duyệt viên</h3>
+                        </div>
+                      </div>
+
+                      <div className="mod-sidebar-field-label">PHÂN MỤC BỮA ĂN</div>
+                      <div className="mod-meal-segment-grid">
+                        <button 
+                          className={`mod-meal-seg-btn ${detailMealCategory === 'main' ? 'active' : ''}`}
+                          onClick={() => setDetailMealCategory('main')}
+                        >
+                          Món chính
+                        </button>
+                        <button 
+                          className={`mod-meal-seg-btn ${detailMealCategory === 'side' ? 'active' : ''}`}
+                          onClick={() => setDetailMealCategory('side')}
+                        >
+                          Món phụ/canh
+                        </button>
+                        <button 
+                          className={`mod-meal-seg-btn ${detailMealCategory === 'dessert' ? 'active' : ''}`}
+                          onClick={() => setDetailMealCategory('dessert')}
+                        >
+                          Tráng miệng
+                        </button>
+                      </div>
+
+                      <div 
+                        className="mod-expert-cert-box"
+                        onClick={() => setDetailIsExpertCertified(!detailIsExpertCertified)}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={detailIsExpertCertified} 
+                          onChange={(e) => setDetailIsExpertCertified(e.target.checked)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div>
+                          <div className="mod-cert-title">Chứng nhận Chuyên gia VeggieAI</div>
+                          <div className="mod-cert-sub">Gắn huy hiệu uy tín xuất hiện trên trang chủ ứng dụng và tab thịnh hành.</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mod-sidebar-field-label">GHI CHÚ NỘI BỘ HOẶC PHẢN HỒI GỬI TÁC GIẢ</div>
+                        <textarea 
+                          className="mod-feedback-textarea"
+                          placeholder="Ví dụ: Công thức định lượng chuẩn, ảnh chụp đẹp. Đề xuất thêm chú thích nhiệt độ sôi..."
+                          value={detailInternalFeedback}
+                          onChange={(e) => setDetailInternalFeedback(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="mod-detail-mod-status">
+                        <span>Kiểm duyệt viên: <strong>{modProfileData.fullName || 'Lê Tuệ Tâm'}</strong></span>
+                        <span style={{ color: '#94a3b8' }}>•</span>
+                        <span className="status-dot"></span>
+                        <span style={{ color: '#059669' }}>Đang trực tuyến</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#64748b' }}>
-                  <FileText size={42} color="#94a3b8" style={{ margin: '0 auto 1rem auto' }} />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Chưa chọn bài viết nào để soi chi tiết</h3>
-                  <p style={{ fontSize: '0.85rem', marginTop: '0.45rem', marginBottom: '1.25rem' }}>Vui lòng chọn một bài viết từ Hàng đợi duyệt bài.</p>
-                  <button className="mod-batch-approve-btn" onClick={() => setActiveModTab('queue')}>
-                    Đến Hàng Đợi Duyệt Bài
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* =========================================================================
               VIEW 4: LỊCH SỬ DUYỆT BÀI (AUDIT LOGS)
