@@ -361,13 +361,51 @@ export default function VideosPage({ onNavigate }) {
     }, 1200);
   };
 
-  const handleSaveMealPlan = () => {
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+  const [toastMessage, setToastMessage] = useState('');
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 2800);
+  };
+
+  const handleSaveFavoriteVideo = () => {
+    if (!user) {
+      if (onNavigate) onNavigate('register');
+      return;
+    }
+    const nextState = !savedSuccess;
+    setSavedSuccess(nextState);
+    if (nextState) {
+      showToast('❤️ Đã lưu vào video yêu thích!');
+    } else {
+      showToast('Đã bỏ lưu khỏi video yêu thích');
+    }
   };
 
   return (
     <div className="video-container">
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9999,
+          background: '#047857',
+          color: '#ffffff',
+          padding: '0.9rem 1.4rem',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          animation: 'slideUp 0.25s ease'
+        }}>
+          <CheckCircle2 size={18} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
       {/* 1. TOP HERO SECTION */}
       <section className="video-hero">
         <div className="video-thuan-chay-badge">
@@ -531,15 +569,15 @@ export default function VideosPage({ onNavigate }) {
 
               <button 
                 className="btn-bookmark-meal"
-                onClick={handleSaveMealPlan}
+                onClick={handleSaveFavoriteVideo}
               >
                 {savedSuccess ? (
                   <>
-                    <Check size={16} color="#047857" /> Đã lưu vào Thực Đơn
+                    <Check size={16} color="#047857" /> Đã lưu vào video yêu thích
                   </>
                 ) : (
                   <>
-                    <Bookmark size={16} /> Lưu vào Thực Đơn
+                    <Bookmark size={16} /> Lưu vào video yêu thích
                   </>
                 )}
               </button>
@@ -973,28 +1011,31 @@ export default function VideosPage({ onNavigate }) {
 
               <button
                 className="btn-bookmark-meal"
-                onClick={handleSaveMealPlan}
+                onClick={handleSaveFavoriteVideo}
               >
                 {savedSuccess ? (
                   <>
-                    <Check size={16} color="#047857" /> Đã lưu vào Thực Đơn
+                    <Check size={16} color="#047857" /> Đã lưu vào video yêu thích
                   </>
                 ) : (
                   <>
-                    <Bookmark size={16} /> Lưu vào Thực Đơn
+                    <Bookmark size={16} /> Lưu vào video yêu thích
                   </>
                 )}
               </button>
 
-              <button 
-                className="btn-watch-video-ai"
-                onClick={() => {
-                  setSelectedVideo(null);
-                  if (onNavigate) onNavigate('register');
-                }}
-              >
-                Đăng ký tài khoản để tải công thức PDF
-              </button>
+              {/* NẾU CHƯA ĐĂNG NHẬP: HIỂN THỊ NÚT ĐĂNG KÝ. ĐÃ ĐĂNG NHẬP THÌ BỎ NÚT ĐĂNG KÝ TÀI KHOẢN */}
+              {!user && (
+                <button 
+                  className="btn-watch-video-ai"
+                  onClick={() => {
+                    setSelectedVideo(null);
+                    if (onNavigate) onNavigate('register');
+                  }}
+                >
+                  Đăng ký tài khoản để tải công thức PDF
+                </button>
+              )}
             </div>
           </div>
         </div>

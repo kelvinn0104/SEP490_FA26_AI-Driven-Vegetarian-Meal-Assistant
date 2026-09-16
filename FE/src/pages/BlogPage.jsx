@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout, Plus } from 'lucide-react';
+import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout, Plus, Bookmark, Check, CheckCircle2 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,29 @@ export default function BlogPage({ onNavigate }) {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [savedArticleIds, setSavedArticleIds] = useState([]);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 2800);
+  };
+
+  const handleToggleSaveArticle = (article) => {
+    if (!article) return;
+    if (!user) {
+      if (onNavigate) onNavigate('register');
+      return;
+    }
+    const isSaved = savedArticleIds.includes(article.id);
+    if (isSaved) {
+      setSavedArticleIds(prev => prev.filter(id => id !== article.id));
+      showToast(`Đã bỏ lưu bài viết "${article.title}"`);
+    } else {
+      setSavedArticleIds(prev => [...prev, article.id]);
+      showToast('❤️ Đã lưu vào Bài viết yêu thích!');
+    }
+  };
 
   // CATEGORIES ACCORDING TO DESIGN
   const row1Categories = ['Tất cả', 'Dinh dưỡng & Vi chất', 'Bí quyết nấu ăn', 'Ăn chay theo mùa'];
@@ -190,6 +213,30 @@ export default function BlogPage({ onNavigate }) {
 
   return (
     <div className="blog-container">
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9999,
+          background: '#047857',
+          color: '#ffffff',
+          padding: '0.9rem 1.4rem',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          animation: 'slideUp 0.25s ease'
+        }}>
+          <CheckCircle2 size={18} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* 1. HERO HEADER SECTION */}
       <section className="blog-hero">
         <div className="blog-kienthuc-badge">
@@ -549,13 +596,27 @@ export default function BlogPage({ onNavigate }) {
               {selectedArticle.fullContent}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem', flexWrap: 'wrap' }}>
               <Button variant="secondary" onClick={() => setSelectedArticle(null)}>
                 Đóng
               </Button>
-              <Button onClick={() => { setSelectedArticle(null); onNavigate && onNavigate('register'); }}>
-                Đăng ký để lưu bài viết
-              </Button>
+              {user ? (
+                <Button onClick={() => handleToggleSaveArticle(selectedArticle)}>
+                  {savedArticleIds.includes(selectedArticle?.id) ? (
+                    <>
+                      <Check size={16} /> Đã lưu vào Bài viết yêu thích
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark size={16} /> Lưu vào Bài viết yêu thích
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button onClick={() => { setSelectedArticle(null); onNavigate && onNavigate('register'); }}>
+                  Đăng ký để lưu bài viết
+                </Button>
+              )}
             </div>
           </div>
         </div>
