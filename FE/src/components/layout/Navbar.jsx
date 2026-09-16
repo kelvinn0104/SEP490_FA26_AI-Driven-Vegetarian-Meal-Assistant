@@ -64,19 +64,21 @@ export default function Navbar({ activeTab, setActiveTab }) {
   };
 
   // PHÂN QUYỀN HEADER THEO BẢNG ĐỀ XUẤT ĐÃ THỐNG NHẤT:
-  // - Guest: Trang chủ, Blog, Video nấu ăn
-  // - Authorized User: Trang chủ, Blog, Video nấu ăn, Thực đơn của tôi (tính năng lõi)
+  // - Guest: Trang chủ, Blog, Công thức & Video, Hỏi AI
+  // - Authorized User: Trang chủ, Thực đơn tuần, Công thức & Video, Dashboard Dinh dưỡng, Hỏi AI, Quản lý bài đăng
   const guestNavLinks = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'blog', label: 'Blog' },
-    { id: 'videos', label: 'Video nấu ăn' }
+    { id: 'videos', label: 'Công thức & Video' },
+    { id: 'chatbot', label: 'Hỏi AI' }
   ];
 
   const authorizedUserNavLinks = [
     { id: 'home', label: 'Trang chủ' },
-    { id: 'blog', label: 'Blog' },
-    { id: 'videos', label: 'Video nấu ăn' },
-    { id: 'planner', label: 'Thực đơn của tôi' },
+    { id: 'planner', label: 'Thực đơn tuần' },
+    { id: 'videos', label: 'Công thức & Video' },
+    { id: 'user-nutrition', label: 'Dashboard Dinh dưỡng' },
+    { id: 'chatbot', label: 'Hỏi AI' },
     { id: 'user-posts', label: 'Quản lý bài đăng' }
   ];
 
@@ -86,17 +88,17 @@ export default function Navbar({ activeTab, setActiveTab }) {
       return [
         { id: 'moderation', label: '🛡️ Mod Dashboard' },
         { id: 'home', label: 'Trang chủ' },
-        { id: 'blog', label: 'Blog' },
-        { id: 'videos', label: 'Video nấu ăn' }
+        { id: 'videos', label: 'Công thức & Video' },
+        { id: 'chatbot', label: 'Hỏi AI' }
       ];
     }
     if (user.role === 'Admin') {
       return [
         { id: 'admin', label: '👑 Admin Dashboard' },
         { id: 'home', label: 'Trang chủ' },
-        { id: 'planner', label: 'Thực đơn của tôi' },
-        { id: 'blog', label: 'Blog' },
-        { id: 'videos', label: 'Video nấu ăn' }
+        { id: 'planner', label: 'Thực đơn tuần' },
+        { id: 'videos', label: 'Công thức & Video' },
+        { id: 'chatbot', label: 'Hỏi AI' }
       ];
     }
     return authorizedUserNavLinks;
@@ -142,8 +144,10 @@ export default function Navbar({ activeTab, setActiveTab }) {
               className={`header-nav-item ${
                 activeTab === link.id ||
                 (link.id === 'planner' && ['planner', 'create-plan', 'meal-history'].includes(activeTab)) ||
-                (link.id === 'blog' && ['blog', 'create-post'].includes(activeTab)) ||
-                (link.id === 'videos' && ['videos', 'create-video'].includes(activeTab)) ||
+                (link.id === 'blog' && ['blog', 'create-post', 'article-detail'].includes(activeTab)) ||
+                (link.id === 'videos' && ['videos', 'create-video', 'video-detail'].includes(activeTab)) ||
+                (link.id === 'user-nutrition' && activeTab === 'user-nutrition') ||
+                (link.id === 'chatbot' && activeTab === 'chatbot') ||
                 (link.id === 'user-posts' && ['user-posts', 'create-post', 'create-video'].includes(activeTab))
                   ? 'active'
                   : ''
@@ -199,8 +203,32 @@ export default function Navbar({ activeTab, setActiveTab }) {
               </button>
             </>
           ) : (
-            /* KHI ĐÃ ĐĂNG NHẬP (AUTHORIZED USER / ADMIN / MOD): HIỂN THỊ CHUÔNG THÔNG BÁO VÀ AVATAR ▾ */
+            /* KHI ĐÃ ĐĂNG NHẬP (AUTHORIZED USER / ADMIN / MOD): HIỂN THỊ WIDGET THỂ TRẠNG, CHUÔNG THÔNG BÁO VÀ AVATAR ▾ */
             <>
+              {/* WIDGET THỂ TRẠNG / STREAK (NHƯ MOCKUP) */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '20px',
+                  padding: '4px 10px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: '#334155'
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#ea580c' }}>
+                  🔥 5 ngày
+                </span>
+                <span style={{ color: '#cbd5e1' }}>•</span>
+                <span style={{ color: '#047857' }}>
+                  1,840 kcal
+                </span>
+              </div>
+
               {/* 1. ICON CHUÔNG THÔNG BÁO 🔔 */}
               <div ref={notifRef} style={{ position: 'relative' }}>
                 <button
@@ -362,7 +390,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <Bookmark size={17} fill={activeTab === 'user-collection' ? '#047857' : 'none'} />
               </button>
 
-              {/* 2. AVATAR + DROPDOWN [AVATAR ▾] (THAY THẾ NÚT ĐĂNG NHẬP) */}
+              {/* 2. AVATAR + DROPDOWN [AVATAR ▾] (HIỂN THỊ TÊN VÀ CHAY TRƯỜNG, TUYỆT ĐỐI BỎ BADGE VIP) */}
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button 
                   className="user-avatar-pill-btn"
@@ -370,23 +398,32 @@ export default function Navbar({ activeTab, setActiveTab }) {
                     setShowDropdown(!showDropdown);
                     setShowNotifications(false);
                   }}
-                  title={`${user.name} (${user.role})`}
+                  title={`${user.name || 'Minh Tuấn'} (${user.role || 'Thành viên'})`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
+                    gap: '0.6rem',
                     background: '#f8fafc',
                     border: '1px solid #e2e8f0',
                     borderRadius: '24px',
-                    padding: '3px 8px 3px 4px',
+                    padding: '3px 10px 3px 6px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease'
                   }}
                 >
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.25 }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
+                      {user.name || 'Minh Tuấn'}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 600 }}>
+                      Chay trường
+                    </span>
+                  </div>
+
                   <div 
                     style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
                       background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#059669',
                       color: '#ffffff',
@@ -394,14 +431,11 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 800,
-                      fontSize: '0.75rem'
+                      fontSize: '0.78rem'
                     }}
                   >
-                    {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
+                    {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : (user.name ? user.name.charAt(0).toUpperCase() : 'MT')}
                   </div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {user.name || 'Thành viên'}
-                  </span>
                   <ChevronDown size={14} color="#64748b" />
                 </button>
 
