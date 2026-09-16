@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, Sparkles, User, ShieldCheck, ShieldAlert, LogOut, 
   Bell, ChevronDown, HeartPulse, Activity, FileText, Settings,
-  CheckCheck, Clock, ExternalLink
+  CheckCheck, Clock, ExternalLink, Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -339,6 +339,29 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 )}
               </div>
 
+              {/* NÚT LỐI TẮT BỘ SƯU TẬP CỦA TÔI (NHƯ ẢNH GIAO DIỆN) */}
+              <button
+                type="button"
+                className="user-nav-action-btn"
+                onClick={() => handleNavClick('user-collection')}
+                title="Bộ sưu tập của tôi"
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: activeTab === 'user-collection' ? '#ecfdf5' : '#f8fafc',
+                  border: activeTab === 'user-collection' ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: activeTab === 'user-collection' ? '#047857' : '#475569',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Bookmark size={17} fill={activeTab === 'user-collection' ? '#047857' : 'none'} />
+              </button>
+
               {/* 2. AVATAR + DROPDOWN [AVATAR ▾] (THAY THẾ NÚT ĐĂNG NHẬP) */}
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button 
@@ -420,7 +443,15 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       <Activity size={16} color="#2563eb" /> Dashboard dinh dưỡng
                     </button>
 
-                    {/* MỤC 3: Bài viết của tôi (Trang quản lý bài đăng cá nhân) */}
+                    {/* MỤC 3: Bộ sưu tập của tôi (Kho lưu trữ món ăn, video & bài viết) */}
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => handleNavClick('user-collection')}
+                    >
+                      <Bookmark size={16} color="#047857" /> Bộ sưu tập của tôi
+                    </button>
+
+                    {/* MỤC 4: Bài viết của tôi (Trang quản lý bài đăng cá nhân) */}
                     <button 
                       className="dropdown-item"
                       onClick={() => handleNavClick('user-posts')}
@@ -428,7 +459,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       <FileText size={16} color="#d97706" /> Bài viết của tôi
                     </button>
 
-                    {/* MỤC 4: Cài đặt tài khoản (Đổi mật khẩu, thông tin cá nhân) */}
+                    {/* MỤC 5: Cài đặt tài khoản (Đổi mật khẩu, thông tin cá nhân) */}
                     <button 
                       className="dropdown-item"
                       onClick={() => handleNavClick('user-settings')}

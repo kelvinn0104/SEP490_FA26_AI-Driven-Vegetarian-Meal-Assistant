@@ -4,7 +4,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, AlertCircle, Plus, 
   Edit3, Trash2, Eye, Sparkles, ShieldCheck, Scale, 
   Flame, Droplets, Target, Save, Lock, Mail, Phone,
-  Camera, X, ChefHat, BookOpen, Send
+  Camera, X, ChefHat, BookOpen, Send, Bookmark
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
@@ -274,6 +274,31 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
 
         <button
           type="button"
+          onClick={() => onNavigate ? onNavigate('user-collection') : null}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '12px',
+            border: 'none',
+            fontSize: '0.9rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            background: 'transparent',
+            color: '#64748b',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <Bookmark size={18} color="#059669" />
+          <span>3. Bộ sưu tập của tôi</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveSubTab('posts')}
           style={{
             flex: 1,
@@ -294,7 +319,7 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
           }}
         >
           <FileText size={18} />
-          <span>3. Bài viết của tôi</span>
+          <span>4. Bài viết của tôi</span>
           {myPosts.filter(p => p.status === 'pending').length > 0 && (
             <span style={{ background: activeSubTab === 'posts' ? '#ffffff' : '#f59e0b', color: activeSubTab === 'posts' ? '#d97706' : '#ffffff', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>
               {myPosts.filter(p => p.status === 'pending').length} chờ
@@ -324,7 +349,7 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
           }}
         >
           <Settings size={18} />
-          <span>4. Cài đặt tài khoản</span>
+          <span>5. Cài đặt tài khoản</span>
         </button>
       </div>
 

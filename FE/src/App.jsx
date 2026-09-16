@@ -20,6 +20,7 @@ import NutritionDashboardPage from './pages/NutritionDashboardPage';
 import MealHistoryPage from './pages/MealHistoryPage';
 import CreatePostPage from './pages/CreatePostPage';
 import CreateVideoPage from './pages/CreateVideoPage';
+import MyCollectionPage from './pages/MyCollectionPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -244,6 +245,9 @@ export default function App() {
         {/* CÁC MÀN HÌNH CÁ NHÂN HỘI VIÊN TỪ DROPDOWN AVATAR & NAVBAR */}
         {activeTab === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
         {activeTab === 'user-nutrition' && <NutritionDashboardPage onNavigate={handleNavigate} />}
+        {(activeTab === 'user-collection' || activeTab === 'collection' || activeTab === 'favorites') && (
+          <MyCollectionPage onNavigate={handleNavigate} />
+        )}
         {activeTab === 'user-posts' && <UserAccountPage defaultTab="posts" onNavigate={handleNavigate} />}
         {activeTab === 'user-settings' && <UserAccountPage defaultTab="settings" onNavigate={handleNavigate} />}
 
