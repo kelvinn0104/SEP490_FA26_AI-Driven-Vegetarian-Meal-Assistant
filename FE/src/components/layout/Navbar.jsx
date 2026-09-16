@@ -143,7 +143,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 activeTab === link.id ||
                 (link.id === 'planner' && ['planner', 'create-plan', 'meal-history'].includes(activeTab)) ||
                 (link.id === 'blog' && ['blog', 'create-post'].includes(activeTab)) ||
-                (link.id === 'user-posts' && ['user-posts', 'create-post'].includes(activeTab))
+                (link.id === 'videos' && ['videos', 'create-video'].includes(activeTab)) ||
+                (link.id === 'user-posts' && ['user-posts', 'create-post', 'create-video'].includes(activeTab))
                   ? 'active'
                   : ''
               }`}

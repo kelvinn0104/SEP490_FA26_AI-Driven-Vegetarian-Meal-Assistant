@@ -401,20 +401,20 @@ export default function VideosPage({ onNavigate }) {
           <div style={{ display: 'flex', justifyContent: 'center', margin: '0.85rem 0 0.5rem 0' }}>
             <button
               type="button"
-              onClick={() => onNavigate && onNavigate('user-posts')}
+              onClick={() => onNavigate && onNavigate('create-video')}
               style={{
-                background: '#059669',
+                background: '#046a47',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '24px',
-                padding: '0.6rem 1.4rem',
-                fontWeight: 700,
-                fontSize: '0.88rem',
+                padding: '0.65rem 1.5rem',
+                fontWeight: 800,
+                fontSize: '0.9rem',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
+                boxShadow: '0 4px 14px rgba(4, 106, 71, 0.25)',
                 transition: 'transform 0.15s ease'
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}

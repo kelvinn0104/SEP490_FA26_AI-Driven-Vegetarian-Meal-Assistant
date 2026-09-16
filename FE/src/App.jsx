@@ -19,6 +19,7 @@ import CreateMealPlanPage from './pages/CreateMealPlanPage';
 import NutritionDashboardPage from './pages/NutritionDashboardPage';
 import MealHistoryPage from './pages/MealHistoryPage';
 import CreatePostPage from './pages/CreatePostPage';
+import CreateVideoPage from './pages/CreateVideoPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -258,6 +259,26 @@ export default function App() {
               <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Viết Bài</h2>
               <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
                 Vui lòng đăng nhập để chia sẻ công thức món ăn chay, kinh nghiệm dinh dưỡng và địa điểm ăn chay cùng cộng đồng VeggieAI.
+              </p>
+              <Button variant="primary" onClick={() => handleNavigate('login')}>
+                🚀 Đăng nhập ngay
+              </Button>
+            </Card>
+          )
+        )}
+
+        {/* TRANG CHIA SẺ VIDEO NẤU ĂN MỚI */}
+        {activeTab === 'create-video' && (
+          user ? (
+            <CreateVideoPage onNavigate={handleNavigate} />
+          ) : (
+            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Sparkles size={32} color="#059669" />
+              </div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Chia Sẻ Video</h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Vui lòng đăng nhập để chia sẻ video nấu ăn chay và ứng dụng công nghệ Speech-to-Recipe AI tóm tắt công thức tự động.
               </p>
               <Button variant="primary" onClick={() => handleNavigate('login')}>
                 🚀 Đăng nhập ngay
