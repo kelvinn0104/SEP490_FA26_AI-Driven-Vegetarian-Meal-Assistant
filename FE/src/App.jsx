@@ -16,6 +16,7 @@ import ModerationQueue from './pages/ModerationQueue';
 import UserAccountPage from './pages/UserAccountPage';
 import HealthProfilePage from './pages/HealthProfilePage';
 import CreateMealPlanPage from './pages/CreateMealPlanPage';
+import NutritionDashboardPage from './pages/NutritionDashboardPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -217,9 +218,9 @@ export default function App() {
         {activeTab === 'videos' && <VideosPage onNavigate={handleNavigate} />}
         {activeTab === 'community' && <CommunityPage />}
 
-        {/* CÁC MÀN HÌNH CÁ NHÂN HỘI VIÊN TỪ DROPDOWN AVATAR */}
+        {/* CÁC MÀN HÌNH CÁ NHÂN HỘI VIÊN TỪ DROPDOWN AVATAR & NAVBAR */}
         {activeTab === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
-        {activeTab === 'user-nutrition' && <UserAccountPage defaultTab="nutrition" onNavigate={handleNavigate} />}
+        {activeTab === 'user-nutrition' && <NutritionDashboardPage onNavigate={handleNavigate} />}
         {activeTab === 'user-posts' && <UserAccountPage defaultTab="posts" onNavigate={handleNavigate} />}
         {activeTab === 'user-settings' && <UserAccountPage defaultTab="settings" onNavigate={handleNavigate} />}
 

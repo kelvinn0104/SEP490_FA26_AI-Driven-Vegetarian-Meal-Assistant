@@ -249,7 +249,7 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
 
         <button
           type="button"
-          onClick={() => setActiveSubTab('nutrition')}
+          onClick={() => onNavigate ? onNavigate('user-nutrition') : setActiveSubTab('nutrition')}
           style={{
             flex: 1,
             display: 'flex',
