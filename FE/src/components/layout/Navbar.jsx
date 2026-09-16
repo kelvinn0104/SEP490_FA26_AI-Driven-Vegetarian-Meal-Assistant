@@ -77,7 +77,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: 'blog', label: 'Blog' },
     { id: 'videos', label: 'Video nấu ăn' },
     { id: 'planner', label: 'Thực đơn của tôi' },
-    { id: 'user-nutrition', label: 'Dashboard Dinh dưỡng' }
+    { id: 'user-posts', label: 'Quản lý bài đăng' }
   ];
 
   const currentNavLinks = (() => {
@@ -451,12 +451,12 @@ export default function Navbar({ activeTab, setActiveTab }) {
                       <Bookmark size={16} color="#047857" /> Bộ sưu tập của tôi
                     </button>
 
-                    {/* MỤC 4: Bài viết của tôi (Trang quản lý bài đăng cá nhân) */}
+                    {/* MỤC 4: Bài viết/Video của tôi (Trang quản lý bài đăng cá nhân) */}
                     <button 
                       className="dropdown-item"
                       onClick={() => handleNavClick('user-posts')}
                     >
-                      <FileText size={16} color="#d97706" /> Bài viết của tôi
+                      <FileText size={16} color="#d97706" /> Bài viết/Video của tôi
                     </button>
 
                     {/* MỤC 5: Cài đặt tài khoản (Đổi mật khẩu, thông tin cá nhân) */}

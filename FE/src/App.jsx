@@ -21,6 +21,7 @@ import MealHistoryPage from './pages/MealHistoryPage';
 import CreatePostPage from './pages/CreatePostPage';
 import CreateVideoPage from './pages/CreateVideoPage';
 import MyCollectionPage from './pages/MyCollectionPage';
+import ManagePostsPage from './pages/ManagePostsPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -248,7 +249,24 @@ export default function App() {
         {(activeTab === 'user-collection' || activeTab === 'collection' || activeTab === 'favorites') && (
           <MyCollectionPage onNavigate={handleNavigate} />
         )}
-        {activeTab === 'user-posts' && <UserAccountPage defaultTab="posts" onNavigate={handleNavigate} />}
+        {(activeTab === 'user-posts' || activeTab === 'manage-posts') && (
+          user ? (
+            <ManagePostsPage onNavigate={handleNavigate} />
+          ) : (
+            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Sparkles size={32} color="#059669" />
+              </div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập</h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Vui lòng đăng nhập để theo dõi trạng thái kiểm duyệt, số liệu tương tác và quản lý toàn bộ bài viết, video ẩm thực của bạn.
+              </p>
+              <Button variant="primary" onClick={() => handleNavigate('login')}>
+                🚀 Đăng nhập ngay
+              </Button>
+            </Card>
+          )
+        )}
         {activeTab === 'user-settings' && <UserAccountPage defaultTab="settings" onNavigate={handleNavigate} />}
 
         {/* TRANG ĐĂNG BÀI BLOG & CÔNG THỨC MỚI (TẠO BÀI VIẾT) */}

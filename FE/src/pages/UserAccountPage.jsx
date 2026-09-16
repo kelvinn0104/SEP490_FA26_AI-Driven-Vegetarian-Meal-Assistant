@@ -299,7 +299,7 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
 
         <button
           type="button"
-          onClick={() => setActiveSubTab('posts')}
+          onClick={() => onNavigate ? onNavigate('user-posts') : setActiveSubTab('posts')}
           style={{
             flex: 1,
             display: 'flex',
@@ -319,7 +319,7 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
           }}
         >
           <FileText size={18} />
-          <span>4. Bài viết của tôi</span>
+          <span>4. Bài viết/Video của tôi</span>
           {myPosts.filter(p => p.status === 'pending').length > 0 && (
             <span style={{ background: activeSubTab === 'posts' ? '#ffffff' : '#f59e0b', color: activeSubTab === 'posts' ? '#d97706' : '#ffffff', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '10px', fontWeight: 800 }}>
               {myPosts.filter(p => p.status === 'pending').length} chờ
