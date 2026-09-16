@@ -593,10 +593,10 @@ export default function CreateMealPlanPage({ onNavigate }) {
                 {/* GỢI Ý MỐC NHANH (PRESETS) */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
                   {[
-                    { days: 3, label: '3 ngày', sub: 'Trải nghiệm' },
+                    { days: 3, label: '3 ngày' },
                     { days: 7, label: '7 ngày', sub: '1 tuần', badge: 'Khuyên dùng' },
                     { days: 14, label: '14 ngày', sub: '2 tuần' },
-                    { days: 30, label: '30 ngày', sub: '1 tháng trọn gói' }
+                    { days: 30, label: '30 ngày', sub: '1 tháng' }
                   ].map((option) => {
                     const isSelected = planDays === option.days;
                     return (
@@ -606,6 +606,7 @@ export default function CreateMealPlanPage({ onNavigate }) {
                         onClick={() => setPlanDays(option.days)}
                         style={{
                           padding: '0.65rem 0.4rem',
+                          minHeight: '76px',
                           borderRadius: '12px',
                           border: isSelected ? '2px solid #046a47' : '1px solid #e2e8f0',
                           background: isSelected ? '#046a47' : '#ffffff',
@@ -623,9 +624,15 @@ export default function CreateMealPlanPage({ onNavigate }) {
                         }}
                       >
                         <span style={{ fontWeight: 800 }}>{option.label}</span>
-                        <span style={{ fontSize: '0.68rem', opacity: isSelected ? 0.9 : 0.65 }}>
-                          {option.sub}
-                        </span>
+                        {option.sub ? (
+                          <span style={{ fontSize: '0.68rem', opacity: isSelected ? 0.9 : 0.65 }}>
+                            {option.sub}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.68rem', visibility: 'hidden' }}>
+                            -
+                          </span>
+                        )}
                         {option.badge && (
                           <span style={{
                             fontSize: '0.62rem',
