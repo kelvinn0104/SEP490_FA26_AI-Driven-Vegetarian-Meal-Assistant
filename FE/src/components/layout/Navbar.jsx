@@ -390,7 +390,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <Bookmark size={17} fill={activeTab === 'user-collection' ? '#047857' : 'none'} />
               </button>
 
-              {/* 2. AVATAR + DROPDOWN [AVATAR ▾] (HIỂN THỊ TÊN VÀ CHAY TRƯỜNG, TUYỆT ĐỐI BỎ BADGE VIP) */}
+              {/* 2. AVATAR + DROPDOWN [AVATAR ▾] (THIẾT KẾ ĐẲNG CẤP, KHÔNG BỊ CO MÉO, KHÔNG BỊ TRÀN CHỮ) */}
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button 
                   className="user-avatar-pill-btn"
@@ -398,45 +398,62 @@ export default function Navbar({ activeTab, setActiveTab }) {
                     setShowDropdown(!showDropdown);
                     setShowNotifications(false);
                   }}
-                  title={`${user.name || 'Minh Tuấn'} (${user.role || 'Thành viên'})`}
+                  title={`${user.name || 'Thành viên'} (${user.role || 'Thành viên'})`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.6rem',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '24px',
-                    padding: '3px 10px 3px 6px',
+                    gap: '0.65rem',
+                    background: '#ffffff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: '28px',
+                    padding: '4px 10px 4px 6px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                    flexShrink: 0
                   }}
                 >
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.25 }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
-                      {user.name || 'Minh Tuấn'}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 600 }}>
-                      Chay trường
-                    </span>
-                  </div>
-
+                  {/* AVATAR TRÒN HOÀN HẢO - TUYỆT ĐỐI KHÔNG CO MÉO THÀNH HÌNH ELIP */}
                   <div 
                     style={{
-                      width: '32px',
-                      height: '32px',
+                      width: '34px',
+                      height: '34px',
+                      minWidth: '34px',
+                      minHeight: '34px',
+                      flexShrink: 0,
                       borderRadius: '50%',
-                      background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#059669',
+                      background: user.role === 'Admin' ? '#dc2626' : user.role === 'Moderator' ? '#d97706' : '#047857',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 800,
-                      fontSize: '0.78rem'
+                      fontSize: '0.85rem',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
                     }}
                   >
-                    {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : (user.name ? user.name.charAt(0).toUpperCase() : 'MT')}
+                    {user.role === 'Admin' ? 'AD' : user.role === 'Moderator' ? 'MD' : (user.name ? user.name.charAt(0).toUpperCase() : 'T')}
                   </div>
-                  <ChevronDown size={14} color="#64748b" />
+
+                  {/* THÔNG TIN TÊN & CHAY TRƯỜNG - GỌN GÀNG, KHÔNG XUỐNG DÒNG VỤN VẶT */}
+                  <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', lineHeight: 1.25, maxWidth: '140px' }}>
+                    <span style={{ 
+                      fontSize: '0.84rem', 
+                      fontWeight: 700, 
+                      color: '#0f172a',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: 'block'
+                    }}>
+                      {user.name || 'Thành viên'}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 600, whiteSpace: 'nowrap', display: 'block' }}>
+                      Chay trường
+                    </span>
+                  </div>
+
+                  <ChevronDown size={14} color="#64748b" style={{ flexShrink: 0, marginLeft: '2px' }} />
                 </button>
 
                 {/* DROPDOWN MENU CHÍNH XÁC THEO ĐỀ XUẤT 5 MỤC CHO AUTHORIZED USER */}

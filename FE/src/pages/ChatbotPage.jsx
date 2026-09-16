@@ -311,12 +311,14 @@ export default function ChatbotPage({ onNavigate }) {
         <span style={{ color: '#0f172a', fontWeight: 600 }}>VeggieAI Workspace</span>
       </div>
 
-      {/* BỐ CỤC 3 CỘT WORKSPACE */}
+      {/* BỐ CỤC 2 CỘT WORKSPACE: LỊCH SỬ/HỒ SƠ BÊN TRÁI & KHUNG CHAT RỘNG RÃI BÊN PHẢI */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: '270px 1fr 310px', 
-        gap: '1.25rem', 
-        alignItems: 'start' 
+        gridTemplateColumns: '290px 1fr', 
+        gap: '1.5rem', 
+        alignItems: 'start',
+        maxWidth: '1440px',
+        margin: '0 auto'
       }}>
 
         {/* ======================================================= */}
@@ -943,144 +945,6 @@ export default function ChatbotPage({ onNavigate }) {
             </div>
           </div>
         </main>
-
-        {/* ======================================================= */}
-        {/* CỘT PHẢI: THỂ TRẠNG HÔM NAY & KIẾN THỨC KHOA HỌC */}
-        {/* ======================================================= */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-          
-          {/* THẺ 1: THỂ TRẠNG HÔM NAY #W42-T5 */}
-          <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                <Activity size={18} color="#047857" />
-                <span>Thể trạng hôm nay</span>
-              </div>
-              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
-                #W42-T5
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.85rem' }}>
-              <span style={{ fontSize: '0.85rem', color: '#475569' }}>Năng lượng</span>
-              <strong style={{ fontSize: '1rem', color: '#0f172a' }}>1,420 / 2,080 kcal</strong>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#475569' }}>Đạm thực vật (Protein)</span>
-                <strong style={{ color: '#047857' }}>72g / 85g (85%)</strong>
-              </div>
-              <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: '85%', height: '100%', background: 'linear-gradient(90deg, #059669, #10b981)', borderRadius: '4px' }} />
-              </div>
-            </div>
-
-            {/* ALERT BOX THIẾU CANXI */}
-            <div style={{
-              background: '#fff7ed',
-              border: '1px solid #ffedd5',
-              borderRadius: '12px',
-              padding: '0.85rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.35rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#c2410c', fontWeight: 800, fontSize: '0.82rem' }}>
-                <span>⚠️ Cần thêm ~320mg Canxi</span>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#9a3412', margin: 0, lineHeight: 1.45 }}>
-                Món tối nấm xào cải thìa mè rang sẽ bù đủ 100% mục tiêu.
-              </p>
-            </div>
-          </div>
-
-          {/* THẺ 2: KIẾN THỨC DINH DƯỠNG KHOA HỌC */}
-          <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.92rem', fontWeight: 800, color: '#047857', marginBottom: '0.65rem' }}>
-              <Sparkles size={16} />
-              <span>Kiến thức Dinh Dưỡng Khoa Học</span>
-            </div>
-
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem 0', lineHeight: 1.45 }}>
-              Vì sao hạt mè nguyên cám là siêu thực phẩm canxi thuần chay?
-            </h4>
-
-            <div style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '0.75rem', height: '120px' }}>
-              <img 
-                src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80" 
-                alt="Hạt mè nguyên cám" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-
-            <p style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.55, margin: 0 }}>
-              100g hạt mè nguyên vỏ chứa đến <strong>975mg canxi</strong> (gấp 8 lần sữa bò công nghiệp). Khi rang chín và nhai kỹ hoặc xay mịn, tỷ lệ sinh khả dụng đạt trên 70%.
-            </p>
-          </div>
-
-          {/* THẺ 3: LỐI TẮT ĐỒNG BỘ (ĐÃ BỎ "CẦN HỎI Ý KIẾN BÁC SĨ") */}
-          <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '1.15rem' }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.65rem', letterSpacing: '0.5px' }}>
-              Lối tắt đồng bộ
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              
-              {/* LỐI TẮT 1: TỦ LẠNH VEGGIEBOX */}
-              <div 
-                onClick={() => showToast('🥦 Mở tủ lạnh thông minh VeggieBox: 8 nguyên liệu tươi')}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.75rem',
-                  borderRadius: '12px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#047857'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
-              >
-                <div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>Tủ lạnh VeggieBox</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>8 nguyên liệu còn tươi</div>
-                </div>
-                <ChevronRight size={16} color="#94a3b8" />
-              </div>
-
-              {/* LỐI TẮT 2: KẾ HOẠCH TUẦN */}
-              <div 
-                onClick={() => onNavigate && onNavigate('planner')}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0.75rem',
-                  borderRadius: '12px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#047857'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
-              >
-                <div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>Kế hoạch tuần #W42</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Đã hoàn thành 5/7 ngày</div>
-                </div>
-                <ChevronRight size={16} color="#94a3b8" />
-              </div>
-
-              {/* ĐÃ BỎ HOÀN TOÀN MỤC "Cần hỏi ý kiến Bác Sĩ? — Kết nối trực tiếp 1-1 với Chuyên gia Lâm sàng" THEO ĐÚNG YÊU CẦU CỦA NGƯỜI DÙNG */}
-
-            </div>
-          </div>
-
-        </aside>
 
       </div>
     </div>
