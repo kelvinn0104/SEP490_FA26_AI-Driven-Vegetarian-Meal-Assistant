@@ -346,49 +346,30 @@ export default function MealPlannerPage({ onNavigate }) {
               <span>Đổi món với AI</span>
             </button>
 
-            {/* Xuất giỏ đi chợ (24 món) */}
+            {/* Nút Lịch sử thực đơn ghi rõ ràng */}
             <button
               type="button"
-              onClick={() => setShowMarketModal(true)}
+              onClick={() => onNavigate ? onNavigate('meal-history') : setShowHistoryModal(true)}
               style={{
-                background: '#046a47',
-                border: 'none',
-                color: '#ffffff',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
                 padding: '0.65rem 1.15rem',
                 borderRadius: '12px',
                 fontSize: '0.85rem',
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                boxShadow: '0 4px 12px rgba(4, 106, 71, 0.25)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 transition: 'all 0.15s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#059669'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
             >
-              <ShoppingCart size={15} />
-              <span>Xuất giỏ đi chợ (24 món)</span>
-            </button>
-
-            {/* Icon Calendar */}
-            <button
-              type="button"
-              onClick={() => setShowHistoryModal(true)}
-              title="Lịch sử thực đơn"
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '12px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                color: '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              <Calendar size={17} />
+              <Calendar size={16} color="#059669" />
+              <span>Lịch sử thực đơn</span>
             </button>
 
             {/* Icon Print */}

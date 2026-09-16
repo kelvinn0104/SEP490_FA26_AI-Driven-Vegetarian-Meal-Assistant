@@ -300,7 +300,7 @@ export default function CreateMealPlanPage({ onNavigate }) {
           <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => setShowHistoryModal(true)}
+              onClick={() => onNavigate ? onNavigate('meal-history') : setShowHistoryModal(true)}
               style={{
                 background: '#ffffff',
                 border: '1px solid #cbd5e1',

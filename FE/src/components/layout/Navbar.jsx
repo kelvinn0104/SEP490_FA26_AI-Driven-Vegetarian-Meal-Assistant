@@ -139,7 +139,11 @@ export default function Navbar({ activeTab, setActiveTab }) {
           {currentNavLinks.map((link, idx) => (
             <button
               key={idx}
-              className={`header-nav-item ${activeTab === link.id ? 'active' : ''}`}
+              className={`header-nav-item ${
+                activeTab === link.id || (link.id === 'planner' && ['planner', 'create-plan', 'meal-history'].includes(activeTab))
+                  ? 'active'
+                  : ''
+              }`}
               onClick={() => handleNavClick(link.id)}
             >
               {link.label}
