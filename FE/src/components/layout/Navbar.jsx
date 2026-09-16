@@ -140,7 +140,10 @@ export default function Navbar({ activeTab, setActiveTab }) {
             <button
               key={idx}
               className={`header-nav-item ${
-                activeTab === link.id || (link.id === 'planner' && ['planner', 'create-plan', 'meal-history'].includes(activeTab))
+                activeTab === link.id ||
+                (link.id === 'planner' && ['planner', 'create-plan', 'meal-history'].includes(activeTab)) ||
+                (link.id === 'blog' && ['blog', 'create-post'].includes(activeTab)) ||
+                (link.id === 'user-posts' && ['user-posts', 'create-post'].includes(activeTab))
                   ? 'active'
                   : ''
               }`}

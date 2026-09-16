@@ -692,7 +692,7 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
             </div>
 
             {/* NÚT VIẾT BÀI MỚI NỔI BẬT THEO ĐÚNG PHÂN TÍCH */}
-            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+            <Button variant="primary" onClick={() => onNavigate ? onNavigate('create-post') : setShowCreateModal(true)}>
               <Plus size={16} /> Viết bài / Đăng công thức mới ✍️
             </Button>
           </div>

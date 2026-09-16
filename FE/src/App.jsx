@@ -18,6 +18,7 @@ import HealthProfilePage from './pages/HealthProfilePage';
 import CreateMealPlanPage from './pages/CreateMealPlanPage';
 import NutritionDashboardPage from './pages/NutritionDashboardPage';
 import MealHistoryPage from './pages/MealHistoryPage';
+import CreatePostPage from './pages/CreatePostPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -244,6 +245,26 @@ export default function App() {
         {activeTab === 'user-nutrition' && <NutritionDashboardPage onNavigate={handleNavigate} />}
         {activeTab === 'user-posts' && <UserAccountPage defaultTab="posts" onNavigate={handleNavigate} />}
         {activeTab === 'user-settings' && <UserAccountPage defaultTab="settings" onNavigate={handleNavigate} />}
+
+        {/* TRANG ĐĂNG BÀI BLOG & CÔNG THỨC MỚI (TẠO BÀI VIẾT) */}
+        {activeTab === 'create-post' && (
+          user ? (
+            <CreatePostPage onNavigate={handleNavigate} />
+          ) : (
+            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <Sparkles size={32} color="#059669" />
+              </div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Viết Bài</h2>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Vui lòng đăng nhập để chia sẻ công thức món ăn chay, kinh nghiệm dinh dưỡng và địa điểm ăn chay cùng cộng đồng VeggieAI.
+              </p>
+              <Button variant="primary" onClick={() => handleNavigate('login')}>
+                🚀 Đăng nhập ngay
+              </Button>
+            </Card>
+          )
+        )}
 
         {/* BẢO VỆ TRANG ADMIN: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP với quyền ADMIN */}
         {activeTab === 'admin' && (
