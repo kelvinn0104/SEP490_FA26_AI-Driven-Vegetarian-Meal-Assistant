@@ -102,8 +102,8 @@ export default function CreateVideoPage({ onNavigate }) {
       return;
     }
 
-    if (!copyrightAccepted) {
-      showToast('⚠️ Vui lòng xác nhận cam kết bản quyền video hợp pháp!');
+    if (uploadMode === 'upload' && !copyrightAccepted) {
+      showToast('⚠️ Vui lòng xác nhận cam kết bản quyền video chính chủ!');
       return;
     }
 
@@ -744,44 +744,48 @@ export default function CreateVideoPage({ onNavigate }) {
             </div>
           </div>
 
-          {/* 6. CAM KẾT BẢN QUYỀN VIDEO CHÍNH CHỦ */}
-          <div style={{
-            background: '#fffbeb',
-            border: '1px solid #fef3c7',
-            borderRadius: '16px',
-            padding: '1.25rem 1.4rem',
-            marginBottom: '1.75rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.45rem' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={16} />
+          {/* 6. CAM KẾT BẢN QUYỀN VIDEO CHÍNH CHỦ (CHỈ ÁP DỤNG CHO LUỒNG TẢI VIDEO LÊN) */}
+          {uploadMode === 'upload' && (
+            <div style={{
+              background: '#fffbeb',
+              border: '1px solid #fef3c7',
+              borderRadius: '16px',
+              padding: '1.25rem 1.4rem',
+              marginBottom: '1.75rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.45rem' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={16} />
+                </div>
+                <strong style={{ fontSize: '0.92rem', color: '#92400e' }}>
+                  Cam kết bản quyền video chính chủ
+                </strong>
               </div>
-              <strong style={{ fontSize: '0.92rem', color: '#92400e' }}>
-                Cam kết bản quyền video chính chủ
-              </strong>
+
+              <p style={{ fontSize: '0.82rem', color: '#78350f', margin: '0 0 0.85rem 0', lineHeight: 1.5 }}>
+                Để bảo vệ cộng đồng sáng tạo ẩm thực chay lành mạnh, VeggieAI nghiêm cấm tải lên nội dung sao chép không phép từ các kênh truyền hình hoặc nhà sáng tạo khác.
+              </p>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: '#92400e' }}>
+                <input
+                  type="checkbox"
+                  checked={copyrightAccepted}
+                  onChange={(e) => setCopyrightAccepted(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: '#047857', cursor: 'pointer' }}
+                />
+                <span>Tôi xác nhận đây là video do tôi tự quay hoặc sở hữu bản quyền hợp pháp, và chịu trách nhiệm nếu vi phạm.</span>
+              </label>
             </div>
-
-            <p style={{ fontSize: '0.82rem', color: '#78350f', margin: '0 0 0.85rem 0', lineHeight: 1.5 }}>
-              Để bảo vệ cộng đồng sáng tạo ẩm thực chay lành mạnh, VeggieAI nghiêm cấm tải lên nội dung sao chép không phép từ các kênh truyền hình hoặc nhà sáng tạo khác.
-            </p>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: '#92400e' }}>
-              <input
-                type="checkbox"
-                checked={copyrightAccepted}
-                onChange={(e) => setCopyrightAccepted(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: '#047857', cursor: 'pointer' }}
-              />
-              <span>Tôi xác nhận đây là video do tôi tự quay hoặc sở hữu bản quyền hợp pháp, và chịu trách nhiệm nếu vi phạm.</span>
-            </label>
-          </div>
+          )}
 
           {/* FOOTER ACTION SUMMARY */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: '#047857', fontWeight: 700 }}>
-              <CheckCircle2 size={14} />
-              <span>Đã xác nhận cam kết bản quyền hợp lệ</span>
-            </div>
+          <div style={{ display: 'flex', justifyContent: uploadMode === 'upload' ? 'space-between' : 'flex-end', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            {uploadMode === 'upload' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: copyrightAccepted ? '#047857' : '#94a3b8', fontWeight: 700 }}>
+                <CheckCircle2 size={14} />
+                <span>{copyrightAccepted ? 'Đã xác nhận cam kết bản quyền hợp lệ' : 'Chưa xác nhận cam kết bản quyền'}</span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '0.65rem' }}>
               <Button variant="secondary" onClick={handleSaveDraft}>
@@ -793,129 +797,6 @@ export default function CreateVideoPage({ onNavigate }) {
             </div>
           </div>
 
-        </div>
-
-        {/* ========================================================================= */}
-        {/* KHỐI: AI SẼ TỰ ĐỘNG XỬ LÝ SAU KHI BẠN ĐĂNG BÀI (KHÔNG CÓ CHỮ "RK" THỪA) */}
-        {/* ========================================================================= */}
-        <div style={{
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          borderRadius: '20px',
-          padding: '1.4rem 1.6rem',
-          marginBottom: '1.75rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '12px',
-              background: '#046a47',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong style={{ fontSize: '1rem', color: '#0f172a' }}>
-                  AI sẽ tự động xử lý sau khi bạn đăng bài:
-                </strong>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
-                  Hỗ trợ thông minh
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.82rem', color: '#334155', lineHeight: 1.55 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem' }}>
-              <span style={{ color: '#059669', fontWeight: 800, marginTop: '2px' }}>⚡</span>
-              <div>
-                <strong>Tự động tách âm thanh & Tóm tắt các bước nấu ăn:</strong> Thuật toán Speech-to-Text và VeggieAI Summarizer giúp chuyển ngữ và gom gọn các công đoạn thành checklist trực quan, giúp người xem nắm bắt công thức trong 30 giây.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem' }}>
-              <span style={{ color: '#059669', fontWeight: 800, marginTop: '2px' }}>🧪</span>
-              <div>
-                <strong>Trích xuất danh sách nguyên liệu & Ước tính calo:</strong> Dự đoán định lượng calo, hàm lượng đạm thực vật và chất xơ sơ bộ cho từng khẩu phần ăn.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem' }}>
-              <span style={{ color: '#059669', fontWeight: 800, marginTop: '2px' }}>🛡</span>
-              <div>
-                <strong>Kiểm duyệt an toàn thực phẩm:</strong> Bài đăng sẽ được gửi đến Hàng đợi duyệt bài (Moderation Queue) để đội ngũ Mod rà soát độ tin cậy và không chứa nội dung phản cảm trước khi phát hành rộng rãi.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* BẢNG SO SÁNH QUYỀN LỢI & HIỂN THỊ GIỮA 2 PHƯƠNG THỨC (ĐÃ CHỈNH SỬA THEO YÊU CẦU) */}
-        {/* ========================================================================= */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          border: '1px solid #e2e8f0',
-          padding: '1.5rem',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '1.1rem' }}>⚖</span>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              So sánh quyền lợi & hiển thị giữa 2 phương thức
-            </h4>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 800, color: '#475569', width: '25%' }}>TIÊU CHÍ</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 800, color: '#047857', background: '#ecfdf5', width: '40%' }}>LUỒNG A: TẢI VIDEO LÊN (CHÍNH CHỦ)</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 800, color: '#475569', width: '35%' }}>LUỒNG B: DẪN LINK (YOUTUBE / TIKTOK)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* Hàng 1: Nội dung hiển thị */}
-                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: '#0f172a' }}>Nội dung hiển thị</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#1e293b', background: '#fafffd' }}>
-                    Trình phát video trực tiếp native trên VeggieAI, không quảng cáo chen ngang.
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>
-                    Trình phát nhúng kèm nút nổi bật "Xem trên YouTube / TikTok" dẫn về nguồn gốc.
-                  </td>
-                </tr>
-
-                {/* Hàng 2: Nhãn tác quyền (Đã sửa theo yêu cầu: mô tả trung tính) */}
-                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: '#0f172a' }}>Nhãn tác quyền</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#047857', fontWeight: 700, background: '#fafffd' }}>
-                    Video hiển thị với tên tài khoản của bạn
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>
-                    Gắn nhãn bắt buộc "Nguồn: [Tên kênh gốc]" minh bạch.
-                  </td>
-                </tr>
-
-                {/* Hàng 3: Quyền lợi cộng đồng (Đã bỏ "Tính điểm đóng góp ẩm thực & đề xuất vào mục Thực đơn tuần") */}
-                <tr>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: '#0f172a' }}>Đóng góp cộng đồng</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#1e293b', background: '#fafffd' }}>
-                    Đóng góp công thức trực quan, truyền cảm hứng nấu ăn chay lành mạnh cho cộng đồng.
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>
-                    Đóng góp kho tư liệu phong phú cho cộng đồng tra cứu nguyên liệu và cách nấu.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
 
       </div>
