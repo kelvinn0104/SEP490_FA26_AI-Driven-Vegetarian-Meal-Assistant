@@ -617,6 +617,29 @@ export default function BlogPage({ onNavigate }) {
                   Đăng ký để lưu bài viết
                 </Button>
               )}
+              <button
+                onClick={() => {
+                  const art = selectedArticle;
+                  setSelectedArticle(null);
+                  if (onNavigate) onNavigate('article-detail', art);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: '#046a47',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.62rem 1.15rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(4, 106, 71, 0.25)'
+                }}
+              >
+                <span>Xem chi tiết bài viết →</span>
+              </button>
             </div>
           </div>
         </div>

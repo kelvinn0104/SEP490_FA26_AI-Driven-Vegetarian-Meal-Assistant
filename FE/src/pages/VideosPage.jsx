@@ -568,6 +568,16 @@ export default function VideosPage({ onNavigate }) {
               </button>
 
               <button 
+                className="btn-watch-video-ai"
+                style={{ background: '#059669', color: '#ffffff' }}
+                onClick={() => {
+                  if (onNavigate) onNavigate('video-detail', featuredVideo);
+                }}
+              >
+                Xem chi tiết video →
+              </button>
+
+              <button 
                 className="btn-bookmark-meal"
                 onClick={handleSaveFavoriteVideo}
               >
@@ -1022,6 +1032,18 @@ export default function VideosPage({ onNavigate }) {
                     <Bookmark size={16} /> Lưu vào video yêu thích
                   </>
                 )}
+              </button>
+
+              <button 
+                className="btn-watch-video-ai"
+                style={{ background: '#059669', color: '#ffffff' }}
+                onClick={() => {
+                  const v = selectedVideo;
+                  setSelectedVideo(null);
+                  if (onNavigate) onNavigate('video-detail', v);
+                }}
+              >
+                Xem chi tiết video →
               </button>
 
               {/* NẾU CHƯA ĐĂNG NHẬP: HIỂN THỊ NÚT ĐĂNG KÝ. ĐÃ ĐĂNG NHẬP THÌ BỎ NÚT ĐĂNG KÝ TÀI KHOẢN */}

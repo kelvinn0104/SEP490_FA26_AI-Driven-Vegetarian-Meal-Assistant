@@ -22,6 +22,8 @@ import CreatePostPage from './pages/CreatePostPage';
 import CreateVideoPage from './pages/CreateVideoPage';
 import MyCollectionPage from './pages/MyCollectionPage';
 import ManagePostsPage from './pages/ManagePostsPage';
+import ArticleDetailPage from './pages/ArticleDetailPage';
+import VideoDetailPage from './pages/VideoDetailPage';
 import { useAuth } from './context/AuthContext';
 import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
 import Button from './components/ui/Button';
@@ -77,8 +79,17 @@ export default function App() {
     }
   }, []);
 
+  const [selectedArticleData, setSelectedArticleData] = useState(null);
+  const [selectedVideoData, setSelectedVideoData] = useState(null);
+
   // ĐIỀU HƯỚNG VÀ TỰ ĐỘNG LƯU VÀO LOCALSTORAGE ĐỂ TRÁNH BỊ MẤT TRANG KHI F5
-  const handleNavigate = (tab) => {
+  const handleNavigate = (tab, data = null) => {
+    if (tab === 'article-detail' && data) {
+      setSelectedArticleData(data);
+    }
+    if (tab === 'video-detail' && data) {
+      setSelectedVideoData(data);
+    }
     setActiveTab(tab);
     try {
       localStorage.setItem('veggieai_active_tab', tab);
@@ -242,6 +253,14 @@ export default function App() {
         {activeTab === 'blog' && <BlogPage onNavigate={handleNavigate} />}
         {activeTab === 'videos' && <VideosPage onNavigate={handleNavigate} />}
         {activeTab === 'community' && <CommunityPage />}
+
+        {/* TRANG CHI TIẾT BÀI VIẾT & VIDEO */}
+        {activeTab === 'article-detail' && (
+          <ArticleDetailPage articleData={selectedArticleData} onNavigate={handleNavigate} />
+        )}
+        {activeTab === 'video-detail' && (
+          <VideoDetailPage videoData={selectedVideoData} onNavigate={handleNavigate} />
+        )}
 
         {/* CÁC MÀN HÌNH CÁ NHÂN HỘI VIÊN TỪ DROPDOWN AVATAR & NAVBAR */}
         {activeTab === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
