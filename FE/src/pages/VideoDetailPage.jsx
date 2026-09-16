@@ -11,8 +11,8 @@ export default function VideoDetailPage({ videoData, onNavigate }) {
     document.body.scrollTop = 0;
   }, []);
 
-  // DỮ LIỆU VIDEO (MẶC ĐỊNH LÀ BÀI PHỞ NẤM DƯỠNG SINH HOẶC TRUYỀN TỪ PROPS)
-  const video = videoData || {
+  // DỮ LIỆU VIDEO MẶC ĐỊNH (PHỞ NẤM DƯỠNG SINH HOẶC TRUYỀN TỪ PROPS)
+  const defaultVideo = {
     id: 'vid-pho-1',
     title: 'Bí Quyết Nấu Phở Nấm Dưỡng Sinh: Nước Dùng Trong Ngọt Tự Nhiên Từ Củ Quả & Nấm Hương',
     channel: 'Bếp Chay Thanh Tịnh',
@@ -59,6 +59,45 @@ export default function VideoDetailPage({ videoData, onNavigate }) {
       { time: '09:30', desc: 'Chần nhanh bánh phở qua nước sôi, xếp vào tô cùng nấm xào, đậu hũ lát và rau mùi.' },
       { time: '11:45', desc: 'Chan nước dùng phở sôi bốc khói, rắc tiêu sọ và dọn kèm đĩa rau thơm chanh ớt.' }
     ]
+  };
+
+  // CHUẨN HÓA DỮ LIỆU ĐẢM BẢO KHÔNG BAO GIỜ BỊ LỖI UNDEFINED .map
+  const rawTips = videoData?.aiTips || videoData?.aiCoreTips || defaultVideo.aiTips;
+  const normalizedAiTips = Array.isArray(rawTips) ? rawTips.map((tip, idx) => ({
+    num: tip.num || idx + 1,
+    title: tip.title || `Mẹo ${idx + 1}:`,
+    desc: tip.desc || tip.description || ''
+  })) : defaultVideo.aiTips;
+
+  const rawSteps = videoData?.steps || defaultVideo.steps;
+  const normalizedSteps = Array.isArray(rawSteps) ? rawSteps.map((st, idx) => {
+    if (typeof st === 'string') {
+      const parts = st.split(' - ');
+      return {
+        time: parts[0] || `0${idx + 1}:00`,
+        desc: parts.slice(1).join(' - ') || st
+      };
+    }
+    return {
+      time: st.time || `0${idx + 1}:00`,
+      desc: st.desc || st.description || ''
+    };
+  }) : defaultVideo.steps;
+
+  const video = {
+    ...defaultVideo,
+    ...(videoData || {}),
+    channel: videoData?.channel || videoData?.author || defaultVideo.channel,
+    thumbnail: videoData?.thumbnail || videoData?.img || defaultVideo.thumbnail,
+    macro: {
+      ...defaultVideo.macro,
+      ...(videoData?.macro || {})
+    },
+    aiTips: normalizedAiTips,
+    steps: normalizedSteps,
+    ingredients: (Array.isArray(videoData?.ingredients) && videoData.ingredients.length > 0)
+      ? videoData.ingredients
+      : defaultVideo.ingredients
   };
 
   // STATES

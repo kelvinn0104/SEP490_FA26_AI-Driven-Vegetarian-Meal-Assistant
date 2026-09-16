@@ -13,8 +13,8 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
     document.body.scrollTop = 0;
   }, []);
 
-  // DỮ LIỆU BÀI VIẾT (MẶC ĐỊNH LÀ BÀI CÀ RI BÍ ĐỎ HẠT SEN NHƯ ẢNH 3 HOẶC TRUYỀN TỪ PROPS)
-  const article = articleData || {
+  // DỮ LIỆU BÀI VIẾT MẶC ĐỊNH (CÀ RI BÍ ĐỎ HẠT SEN NHƯ ẢNH 3 HOẶC TRUYỀN TỪ PROPS)
+  const defaultArticle = {
     id: 'art-curry-1',
     category: 'Món Kho / Cà Ri Chay',
     readTime: '6 phút đọc',
@@ -62,6 +62,26 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
       fiber: '4.2g Chất xơ',
       cholesterol: '0mg Cholesterol',
       allergyNote: 'Không chứa Đậu phộng, không Ngũ vị tân, Thuần chay 100%'
+    }
+  };
+
+  // CHUẨN HÓA DỮ LIỆU AN TOÀN
+  const article = {
+    ...defaultArticle,
+    ...(articleData || {}),
+    author: articleData?.author || defaultArticle.author,
+    image: articleData?.image || articleData?.img || defaultArticle.image,
+    category: articleData?.category || articleData?.tag || defaultArticle.category,
+    intro: articleData?.intro || articleData?.content || articleData?.excerpt || defaultArticle.intro,
+    ingredients: (Array.isArray(articleData?.ingredients) && articleData.ingredients.length > 0)
+      ? articleData.ingredients
+      : defaultArticle.ingredients,
+    steps: (Array.isArray(articleData?.steps) && articleData.steps.length > 0)
+      ? articleData.steps
+      : defaultArticle.steps,
+    nutrition: {
+      ...defaultArticle.nutrition,
+      ...(articleData?.nutrition || {})
     }
   };
 
