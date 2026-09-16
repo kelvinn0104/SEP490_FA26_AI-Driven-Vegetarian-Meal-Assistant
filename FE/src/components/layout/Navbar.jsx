@@ -64,20 +64,20 @@ export default function Navbar({ activeTab, setActiveTab }) {
   };
 
   // PHÂN QUYỀN HEADER THEO BẢNG ĐỀ XUẤT ĐÃ THỐNG NHẤT:
-  // - Guest: Trang chủ, Blog, Công thức & Video, Hỏi AI
-  // - Authorized User: Trang chủ, Thực đơn tuần, Công thức & Video, Dashboard Dinh dưỡng, Hỏi AI, Quản lý bài đăng
+  // - Guest: Trang chủ, Blog, Video nấu ăn, Hỏi AI
+  // - Authorized User: Trang chủ, Blog, Video nấu ăn, Thực đơn tuần, Hỏi AI, Quản lý bài đăng
   const guestNavLinks = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'blog', label: 'Blog' },
-    { id: 'videos', label: 'Công thức & Video' },
+    { id: 'videos', label: 'Video nấu ăn' },
     { id: 'chatbot', label: 'Hỏi AI' }
   ];
 
   const authorizedUserNavLinks = [
     { id: 'home', label: 'Trang chủ' },
+    { id: 'blog', label: 'Blog' },
+    { id: 'videos', label: 'Video nấu ăn' },
     { id: 'planner', label: 'Thực đơn tuần' },
-    { id: 'videos', label: 'Công thức & Video' },
-    { id: 'user-nutrition', label: 'Dashboard Dinh dưỡng' },
     { id: 'chatbot', label: 'Hỏi AI' },
     { id: 'user-posts', label: 'Quản lý bài đăng' }
   ];
@@ -88,7 +88,8 @@ export default function Navbar({ activeTab, setActiveTab }) {
       return [
         { id: 'moderation', label: '🛡️ Mod Dashboard' },
         { id: 'home', label: 'Trang chủ' },
-        { id: 'videos', label: 'Công thức & Video' },
+        { id: 'blog', label: 'Blog' },
+        { id: 'videos', label: 'Video nấu ăn' },
         { id: 'chatbot', label: 'Hỏi AI' }
       ];
     }
@@ -96,8 +97,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
       return [
         { id: 'admin', label: '👑 Admin Dashboard' },
         { id: 'home', label: 'Trang chủ' },
+        { id: 'blog', label: 'Blog' },
+        { id: 'videos', label: 'Video nấu ăn' },
         { id: 'planner', label: 'Thực đơn tuần' },
-        { id: 'videos', label: 'Công thức & Video' },
         { id: 'chatbot', label: 'Hỏi AI' }
       ];
     }
