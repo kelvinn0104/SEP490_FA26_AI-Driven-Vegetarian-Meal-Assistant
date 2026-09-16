@@ -462,54 +462,186 @@ export default function CreateMealPlanPage({ onNavigate }) {
                 </span>
               </div>
 
-              {/* 1.1 Số ngày lập thực đơn */}
-              <div style={{ marginBottom: '1.35rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem' }}>
-                  Số ngày lập thực đơn tuần
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1fr', gap: '0.75rem' }}>
-                  {[
-                    { days: 3, label: '3 ngày trải nghiệm' },
-                    { days: 7, label: '7 ngày (1 tuần)', badge: 'Khuyên dùng' },
-                    { days: 14, label: '14 ngày trọn gói' }
-                  ].map((option) => (
-                    <button
-                      key={option.days}
-                      type="button"
-                      onClick={() => setPlanDays(option.days)}
-                      style={{
-                        padding: '0.75rem 0.5rem',
-                        borderRadius: '12px',
-                        border: planDays === option.days ? '2px solid #046a47' : '1px solid #e2e8f0',
-                        background: planDays === option.days ? '#046a47' : '#ffffff',
-                        color: planDays === option.days ? '#ffffff' : '#334155',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.25rem',
-                        transition: 'all 0.15s ease',
-                        boxShadow: planDays === option.days ? '0 4px 12px rgba(4, 106, 71, 0.2)' : 'none'
-                      }}
-                    >
-                      <span>{option.label}</span>
-                      {option.badge && (
-                        <span style={{
-                          fontSize: '0.68rem',
-                          background: planDays === option.days ? '#fef08a' : '#ecfdf5',
-                          color: planDays === option.days ? '#854d0e' : '#059669',
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          fontWeight: 800
-                        }}>
-                          {option.badge}
+              {/* 1.1 Số ngày lập thực đơn (Nhập tùy chọn tối đa 1 tháng / 30 ngày) */}
+              <div style={{ marginBottom: '1.45rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  <label style={{ fontSize: '0.86rem', fontWeight: 700, color: '#334155' }}>
+                    Số ngày lập thực đơn <span style={{ color: '#047857', fontWeight: 800 }}>({planDays} ngày)</span>
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                    Tối đa 1 tháng (30 ngày)
+                  </span>
+                </div>
+
+                {/* KHỐI NHẬP TRỰC TIẾP SỐ NGÀY & NÚT +/- & SLIDER */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '1rem 1.15rem',
+                  marginBottom: '0.85rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.84rem', color: '#475569', fontWeight: 600 }}>
+                      Nhập số ngày mong muốn:
+                    </span>
+                    
+                    {/* CỤM STEPPER NHẬP SỐ NGÀY */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPlanDays(prev => Math.max(1, prev - 1))}
+                        disabled={planDays <= 1}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          background: planDays <= 1 ? '#f1f5f9' : '#ffffff',
+                          color: planDays <= 1 ? '#94a3b8' : '#0f172a',
+                          fontWeight: 800,
+                          fontSize: '1.1rem',
+                          cursor: planDays <= 1 ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.1s ease'
+                        }}
+                      >
+                        -
+                      </button>
+
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={planDays}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (isNaN(val)) {
+                              setPlanDays(1);
+                            } else {
+                              setPlanDays(Math.min(30, Math.max(1, val)));
+                            }
+                          }}
+                          style={{
+                            width: '80px',
+                            height: '36px',
+                            textAlign: 'center',
+                            borderRadius: '10px',
+                            border: '2px solid #047857',
+                            background: '#ffffff',
+                            fontWeight: 800,
+                            fontSize: '1rem',
+                            color: '#047857',
+                            outline: 'none'
+                          }}
+                        />
+                        <span style={{ position: 'absolute', right: '8px', fontSize: '0.75rem', color: '#64748b', pointerEvents: 'none', fontWeight: 600 }}>
+                          ngày
                         </span>
-                      )}
-                    </button>
-                  ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setPlanDays(prev => Math.min(30, prev + 1))}
+                        disabled={planDays >= 30}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          background: planDays >= 30 ? '#f1f5f9' : '#ffffff',
+                          color: planDays >= 30 ? '#94a3b8' : '#0f172a',
+                          fontWeight: 800,
+                          fontSize: '1.1rem',
+                          cursor: planDays >= 30 ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.1s ease'
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* THANH TRƯỢT RANGE SLIDER TỪ 1 ĐẾN 30 NGÀY */}
+                  <div style={{ marginTop: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      <span>1 ngày (Tối thiểu)</span>
+                      <span>15 ngày (Nửa tháng)</span>
+                      <span>30 ngày (Tối đa 1 tháng)</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="30"
+                      value={planDays}
+                      onChange={(e) => setPlanDays(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        accentColor: '#047857',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* GỢI Ý MỐC NHANH (PRESETS) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                  {[
+                    { days: 3, label: '3 ngày', sub: 'Trải nghiệm' },
+                    { days: 7, label: '7 ngày', sub: '1 tuần', badge: 'Khuyên dùng' },
+                    { days: 14, label: '14 ngày', sub: '2 tuần' },
+                    { days: 30, label: '30 ngày', sub: '1 tháng trọn gói' }
+                  ].map((option) => {
+                    const isSelected = planDays === option.days;
+                    return (
+                      <button
+                        key={option.days}
+                        type="button"
+                        onClick={() => setPlanDays(option.days)}
+                        style={{
+                          padding: '0.65rem 0.4rem',
+                          borderRadius: '12px',
+                          border: isSelected ? '2px solid #046a47' : '1px solid #e2e8f0',
+                          background: isSelected ? '#046a47' : '#ffffff',
+                          color: isSelected ? '#ffffff' : '#334155',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.15rem',
+                          transition: 'all 0.15s ease',
+                          boxShadow: isSelected ? '0 4px 12px rgba(4, 106, 71, 0.2)' : 'none'
+                        }}
+                      >
+                        <span style={{ fontWeight: 800 }}>{option.label}</span>
+                        <span style={{ fontSize: '0.68rem', opacity: isSelected ? 0.9 : 0.65 }}>
+                          {option.sub}
+                        </span>
+                        {option.badge && (
+                          <span style={{
+                            fontSize: '0.62rem',
+                            background: isSelected ? '#fef08a' : '#ecfdf5',
+                            color: isSelected ? '#854d0e' : '#059669',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontWeight: 800,
+                            marginTop: '2px'
+                          }}>
+                            {option.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

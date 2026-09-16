@@ -28,6 +28,7 @@ export default function MealHistoryPage({ onNavigate }) {
 
   // MODAL STATES
   const [previewWeek, setPreviewWeek] = useState(null);
+  const [modalSelectedDayIndex, setModalSelectedDayIndex] = useState(0);
   const [marketWeek, setMarketWeek] = useState(null);
 
   const showToast = (msg) => {
@@ -219,6 +220,115 @@ export default function MealHistoryPage({ onNavigate }) {
     const matchesGoal = goalFilter === 'all' || week.goalType === goalFilter;
     return matchesSearch && matchesGoal;
   });
+
+  // HÀM TẠO DỮ LIỆU 7 NGÀY CHI TIẾT ĐẦY ĐỦ CỦA TUẦN ĐÃ LƯU TRỮ
+  const getWeekDaysData = (week) => {
+    if (!week) return [];
+
+    const weekDatesMap = {
+      w41: ['07/10', '08/10', '09/10', '10/10', '11/10', '12/10', '13/10'],
+      w40: ['30/09', '01/10', '02/10', '03/10', '04/10', '05/10', '06/10'],
+      w39: ['23/09', '24/09', '25/09', '26/09', '27/09', '28/09', '29/09'],
+      w38: ['16/09', '17/09', '18/09', '19/09', '20/09', '21/09', '22/09']
+    };
+
+    const dates = weekDatesMap[week.id] || ['07/10', '08/10', '09/10', '10/10', '11/10', '12/10', '13/10'];
+    const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+    const dayShorts = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+    // MẪU 7 NGÀY PHONG PHÚ CHO TỪNG TUẦN
+    const scheduleByWeek = {
+      w41: [
+        {
+          calories: '2,050 kcal',
+          protein: '86g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:00 – 08:30', prepTime: '10 phút', title: 'Smoothie Bowl Yến Mạch, Chuối & Hạt Chia Hạnh Nhân', calories: '480 kcal', protein: '18g Protein', fiber: '9g Xơ', iron: '4.2mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=600&q=80', ingredients: 'Yến mạch cán dẹt, sữa hạt dừa không đường, chuối Laba đông lạnh, hạt chia organic, hạnh nhân lát.', note: 'Năng lượng giải phóng chậm từ yến mạch kết hợp omega-3 giúp não bộ tỉnh táo.' },
+            { slot: 'Bữa Trưa', time: '11:30 – 13:00', prepTime: '25 phút', title: 'Poke Quinoa Tempeh & Đậu Hũ Áp Chảo Sốt Mè Rang', calories: '720 kcal', protein: '34g Protein', fiber: '12g Xơ', iron: '8.5mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80', ingredients: 'Tempeh đậu nành lên men, quinoa 3 màu, đậu hũ áp chảo vàng giòn, bơ sáp Đắk Lắk, cải thìa trần.', note: 'Bữa ăn giàu đạm hoàn chỉnh giúp phục hồi cơ bắp tối ưu sau buổi tập.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Energy Balls Hạt Bí, Chà Là & Trà Thảo Mộc Hoa Cúc', calories: '220 kcal', protein: '8g Protein', fiber: '5g Xơ', iron: '2.1mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80', ingredients: 'Hạt bí xanh Ấn Độ, quả chà là Medjool nghiền, bột ca cao nguyên chất, trà hoa cúc sấy lạnh.', note: 'Bữa phụ tiện lợi cung cấp magie và kẽm ổn định đường huyết trước giờ tan sở.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '20 phút', title: 'Đậu Hũ Tứ Xuyên Thuần Chay & Canh Nấm Hạt Sen', calories: '630 kcal', protein: '26g Protein', fiber: '8g Xơ', iron: '6.4mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80', ingredients: 'Đậu hũ non làng Mơ, nấm đông cô, hạt sen tươi Huế, sốt tương ớt Tứ Xuyên không ngũ vị tân.', note: 'Bữa tối ấm bụng, hạt sen giúp an thần dễ ngủ, nấm tăng cường miễn dịch.' }
+          ]
+        },
+        {
+          calories: '2,040 kcal',
+          protein: '85g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:00 – 08:30', prepTime: '12 phút', title: 'Bánh Mì Nguyên Cám Quả Bơ & Đậu Gà Nghiền Sốt Tahini', calories: '460 kcal', protein: '17g Protein', fiber: '8g Xơ', iron: '3.8mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80', ingredients: 'Bánh mì lúa mạch đen nguyên cám, bơ sáp nghiền, đậu gà luộc mềm, mè rang, ớt bột paprika.', note: 'Chất béo tốt từ quả bơ và protein từ đậu gà tạo cảm giác no lâu, không thèm ăn vặt.' },
+            { slot: 'Bữa Trưa', time: '11:30 – 13:00', prepTime: '20 phút', title: 'Buddha Bowl Rau Củ Cầu Vồng, Đậu Lăng & Hạt Sen', calories: '710 kcal', protein: '33g Protein', fiber: '14g Xơ', iron: '7.9mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80', ingredients: 'Đậu lăng đỏ hầm nhừ, ngô ngọt luộc, bắp cải tím muối chua nhẹ, hạt sen hấp, sốt chanh leo chua ngọt.', note: 'Sự kết hợp hoàn hảo giữa đạm thực vật và chất chống oxy hóa anthocyanin.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Sữa Hạt Điều Nướng Nguyên Chất & Hạnh Nhân Sấy Mộc', calories: '230 kcal', protein: '9g Protein', fiber: '4g Xơ', iron: '2.5mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80', ingredients: 'Hạt điều Bình Phước hữu cơ xay nhuyễn không thêm đường tinh luyện, hạnh nhân lát sấy.', note: 'Bổ sung tryptophan tự nhiên hỗ trợ thư giãn hệ thần kinh.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '25 phút', title: 'Nấm Đùi Gà Xào Cải Thìa Dầu Hào Chay & Cơm Gạo Lứt', calories: '640 kcal', protein: '26g Protein', fiber: '9g Xơ', iron: '6.8mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80', ingredients: 'Nấm đùi gà cắt lát dày giòn sần sật, cải thìa tươi, dầu hào chay từ nấm hương, gạo lứt huyết rồng.', note: 'Beta-glucan từ nấm giúp tăng cường sức đề kháng và hỗ trợ tiêu hóa.' }
+          ]
+        },
+        {
+          calories: '2,070 kcal',
+          protein: '88g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:00 – 08:30', prepTime: '15 phút', title: 'Phở Nấm Bào Ngư Nước Dùng Rau Củ Thanh Đạm', calories: '490 kcal', protein: '19g Protein', fiber: '7g Xơ', iron: '4.5mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1594998893017-36147cbcae05?auto=format&fit=crop&w=600&q=80', ingredients: 'Bánh phở tươi không hàn the, nấm bào ngư xào sơ, nước dùng ninh từ mía lau, củ cải đường, hồi quế thảo mộc.', note: 'Nước dùng trong ngọt tự nhiên giúp thanh lọc cơ thể khởi đầu ngày mới nhẹ nhõm.' },
+            { slot: 'Bữa Trưa', time: '11:30 – 13:00', prepTime: '25 phút', title: 'Cơm Gạo Lứt Trộn Hàn Quốc (Bibimbap) Thuần Chay', calories: '730 kcal', protein: '35g Protein', fiber: '13g Xơ', iron: '8.1mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80', ingredients: 'Cơm lứt dẻo, nấm hương xào, giá đỗ luộc, cà rốt bào sợi, đậu hũ chiên giòn, tương gochujang chay.', note: 'Cung cấp đầy đủ các nhóm vitamin A, B, C và khoáng chất thiết yếu.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Sinh Tố Bơ Sáp, Chuối & Sữa Hạt Đậu Nành Tươi', calories: '210 kcal', protein: '8g Protein', fiber: '5g Xơ', iron: '2.0mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=600&q=80', ingredients: 'Bơ sáp chín tới, chuối đông lạnh, sữa đậu nành nguyên chất không đường, hạt lanh xay mịn.', note: 'Dồi dào kali và axit béo không bão hòa đơn tốt cho tim mạch.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '20 phút', title: 'Canh Rong Biển Đậu Non & Chả Tempeh Chiên Không Dầu', calories: '640 kcal', protein: '26g Protein', fiber: '8g Xơ', iron: '6.1mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80', ingredients: 'Rong biển wakame Hàn Quốc, đậu non Nhật Bản mềm mịn, tempeh ướp thì là nướng giòn.', note: 'I-ốt từ rong biển hỗ trợ chức năng tuyến giáp hoạt động ổn định.' }
+          ]
+        },
+        {
+          calories: '2,030 kcal',
+          protein: '84g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:00 – 08:30', prepTime: '10 phút', title: 'Cháo Yến Mạch Nấm Rơm & Hạt Điều Rang Muối', calories: '450 kcal', protein: '16g Protein', fiber: '8g Xơ', iron: '4.0mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80', ingredients: 'Yến mạch nấu nhuyễn, nấm rơm tươi xào thơm với dầu mè, hạt điều rang đập dập, tiêu sọ cay nhẹ.', note: 'Ấm tỳ vị, dễ tiêu hóa, thích hợp cho buổi sáng bận rộn cần bổ sung đạm nhanh.' },
+            { slot: 'Bữa Trưa', time: '11:30 – 13:00', prepTime: '25 phút', title: 'Mì Ý Sốt Cà Chua Đậu Lăng Đỏ & Nấm Mỡ', calories: '720 kcal', protein: '34g Protein', fiber: '11g Xơ', iron: '8.4mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80', ingredients: 'Mì Spaghetti lúa mì cứng, sốt cà chua tươi hầm đậu lăng đỏ đậm đà, nấm mỡ xắt lát, lá húng tây basil.', note: 'Lycopene trong cà chua nấu chín kết hợp đạm đậu lăng tăng cường bảo vệ tế bào.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Bánh Quy Yến Mạch Hạt Bí & Trà Xanh Matcha Sữa Yến Mạch', calories: '220 kcal', protein: '8g Protein', fiber: '4g Xơ', iron: '2.2mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80', ingredients: 'Bánh nướng thủ công ít ngọt từ yến mạch và hạt bí, matcha Nhật Bản pha sữa yến mạch thơm lừng.', note: 'EGCG trong matcha thúc đẩy quá trình trao đổi chất và đốt cháy calo tự nhiên.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '20 phút', title: 'Cà Ri Nấm Dừa Đậu Gà & Bánh Mì Lúa Mạch Nướng', calories: '640 kcal', protein: '26g Protein', fiber: '10g Xơ', iron: '6.9mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80', ingredients: 'Đậu gà hữu cơ ninh mềm, khoai lang mật, nấm hương, nước cốt dừa tươi thơm béo, bột cà ri thảo quả.', note: 'Curcumin từ nghệ trong bột cà ri giúp chống viêm và phục hồi cơ bắp hiệu quả.' }
+          ]
+        },
+        {
+          calories: '2,060 kcal',
+          protein: '87g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:00 – 08:30', prepTime: '12 phút', title: 'Hủ Tiếu Gạo Lứt Nấm Đông Cô & Đậu Hũ Ky Giòn', calories: '480 kcal', protein: '18g Protein', fiber: '7g Xơ', iron: '4.1mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1594998893017-36147cbcae05?auto=format&fit=crop&w=600&q=80', ingredients: 'Sợi hủ tiếu làm từ gạo lứt nguyên cám, đậu hũ ky tươi rán giòn, nấm đông cô tươi, hẹ lá, nước dùng ngọt thanh.', note: 'Cung cấp năng lượng tinh khiết không tạo cảm giác đầy bụng.' },
+            { slot: 'Bữa Trưa', time: '11:30 – 13:00', prepTime: '20 phút', title: 'Cơm Chiên Gạo Lứt Ngũ Sắc & Tempeh Nướng Mật Mía', calories: '730 kcal', protein: '35g Protein', fiber: '12g Xơ', iron: '8.3mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80', ingredients: 'Gạo lứt rang xốp, đậu Hà Lan, ngô ngọt, cà rốt hạt lựu, tempeh tẩm mật mía nướng vàng thơm nức.', note: 'Chỉ số GI thấp của gạo lứt giúp duy trì mức insulin ổn định suốt buổi chiều.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Sữa Hạt Sen Tươi Nấu Nước Cốt Dừa Ít Ngọt', calories: '210 kcal', protein: '7g Protein', fiber: '4g Xơ', iron: '2.0mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=600&q=80', ingredients: 'Hạt sen tươi bóc vỏ ninh nhuyễn với lá dứa thơm mát, sữa dừa nguyên chất không đường tinh luyện.', note: 'Dưỡng tâm, an thần, xua tan căng thẳng mệt mỏi cuối ngày làm việc.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '25 phút', title: 'Nem Nấm Nướng Giòn & Canh Chua Chay Nam Bộ', calories: '640 kcal', protein: '27g Protein', fiber: '9g Xơ', iron: '6.7mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80', ingredients: 'Nem cuốn nấm mối đen và miến dong nướng nồi chiên không dầu, canh chua cà chua dứa đậu bắp thơm ngon.', note: 'Hương vị chua thanh giúp kích thích vị giác và thanh nhiệt cơ thể hiệu quả.' }
+          ]
+        },
+        {
+          calories: '2,080 kcal',
+          protein: '89g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:30 – 09:00', prepTime: '15 phút', title: 'Pancake Yến Mạch Chuối Chín & Hạt Óc Chó Giòn', calories: '500 kcal', protein: '19g Protein', fiber: '9g Xơ', iron: '4.3mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80', ingredients: 'Bột yến mạch nghiền, chuối sứ chín, sữa hạnh nhân, nướng chảo chống dính, rắc hạt óc chó và dâu tây tươi.', note: 'Bữa sáng cuối tuần ấm cúng, giàu chất chống oxy hóa và omega-3 thực vật.' },
+            { slot: 'Bữa Trưa', time: '12:00 – 13:30', prepTime: '30 phút', title: 'Lẩu Nấm Dưỡng Sinh Thảo Mộc & Đậu Hũ Non Nhúng Rau Mầm', calories: '740 kcal', protein: '36g Protein', fiber: '13g Xơ', iron: '8.8mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80', ingredients: '5 loại nấm tươi (nấm kim châm, nấm đùi gà, nấm linh chi nâu, nấm hương, nấm rơm), kỷ tử, táo đỏ, đậu non mềm.', note: 'Bữa ăn thịnh soạn giàu polysaccharide giúp thanh lọc độc tố và tăng cường hệ miễn dịch.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Sữa Chua Đậu Nành Hữu Cơ Trộn Hạt Lanh & Quả Mọng', calories: '210 kcal', protein: '9g Protein', fiber: '5g Xơ', iron: '2.1mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80', ingredients: 'Sữa chua đậu nành tự làm lên men tự nhiên, hạt lanh xay thô, việt quất và dâu tây tươi.', note: 'Lợi khuẩn probiotics tăng cường sức khỏe đường ruột và hấp thu dưỡng chất.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '20 phút', title: 'Gỏi Cuốn Ngũ Sắc Chấm Tương Đậu Phộng & Canh Bí Đỏ', calories: '630 kcal', protein: '25g Protein', fiber: '9g Xơ', iron: '6.2mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80', ingredients: 'Bánh tráng gạo lứt cuốn rau mầm, dưa chuột, ớt chuông đỏ, đậu hũ chiên xắt sợi, sốt bơ đậu phộng mè rang.', note: 'Bữa tối nhẹ nhàng, nhiều enzyme sống từ rau củ tươi giúp cơ thể thanh thoát.' }
+          ]
+        },
+        {
+          calories: '2,010 kcal',
+          protein: '83g Đạm',
+          meals: [
+            { slot: 'Bữa Sáng', time: '07:30 – 09:00', prepTime: '15 phút', title: 'Bún Riêu Chay Sữa Đậu Nành, Cà Chua & Đậu Hũ Chiên Vàng', calories: '480 kcal', protein: '20g Protein', fiber: '7g Xơ', iron: '4.6mg Sắt', badgeColor: '#b45309', badgeBg: '#fef3c7', img: 'https://images.unsplash.com/photo-1594998893017-36147cbcae05?auto=format&fit=crop&w=600&q=80', ingredients: 'Riêu làm từ sữa đậu nành tươi kết tủa giấm bỗng, nước dùng cà chua chín đỏ thanh tao, đậu hũ chiên mềm.', note: 'Món nước truyền thống thanh đạm, thơm lừng vị đồng quê chuẩn chỉnh ngày Chủ Nhật.' },
+            { slot: 'Bữa Trưa', time: '12:00 – 13:30', prepTime: '25 phút', title: 'Cơm Gạo Lứt Nướng Lá Sen, Hạt Sen Huế & Nấm Mối Đen', calories: '720 kcal', protein: '33g Protein', fiber: '11g Xơ', iron: '8.2mg Sắt', badgeColor: '#047857', badgeBg: '#ecfdf5', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80', ingredients: 'Cơm gạo lứt dẻo thơm gói trong lá sen tươi hấp chín, hạt sen Huế bùi ngậy, nấm mối xào tiêu đậm đà.', note: 'Món chay thanh tịnh, cân bằng âm dương và nuôi dưỡng năng lượng bình an cho tuần mới.' },
+            { slot: 'Snack Chiều', time: '15:30 – 16:30', prepTime: '5 phút', title: 'Hạt Dẻ Nướng Ấm No & Trà Hoa Cúc Thảo Mộc', calories: '210 kcal', protein: '6g Protein', fiber: '5g Xơ', iron: '2.0mg Sắt', badgeColor: '#6d28d9', badgeBg: '#f3e8ff', img: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80', ingredients: 'Hạt dẻ Trùng Khánh nướng vỏ giòn thơm nức, tách vỏ ăn liền cùng tách trà hoa cúc nóng.', note: 'Bổ thận khí, cung cấp vitamin C và chất chống oxy hóa tự nhiên.' },
+            { slot: 'Bữa Tối', time: '18:30 – 20:00', prepTime: '20 phút', title: 'Súp Bí Đỏ Hạt Sen Hạnh Nhân & Bánh Mì Đen Nướng Giòn', calories: '600 kcal', protein: '24g Protein', fiber: '9g Xơ', iron: '6.0mg Sắt', badgeColor: '#0369a1', badgeBg: '#e0f2fe', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80', ingredients: 'Bí đỏ hồ lô ninh sánh mịn với hạt sen tươi và sữa dừa, rắc hạnh nhân nướng thơm, bánh mì lúa mạch giòn rụm.', note: 'Bữa tối nhẹ bụng chuẩn bị cho giấc ngủ sâu, khép lại tuần dinh dưỡng trọn vẹn 100% mục tiêu.' }
+          ]
+        }
+      ]
+    };
+
+    // NẾU CÓ DỮ LIỆU RIÊNG CHO TUẦN ĐÓ THÌ DÙNG, NẾU KHÔNG THÌ SINH ĐỒNG BỘ THEO DATES
+    const weekSchedule = scheduleByWeek[week.id] || scheduleByWeek['w41'];
+
+    return dayNames.map((name, idx) => {
+      const dayData = weekSchedule[idx % weekSchedule.length];
+      return {
+        id: `day-${idx + 1}`,
+        dayName: name,
+        shortName: dayShorts[idx],
+        date: dates[idx],
+        calories: dayData.calories,
+        totalProtein: dayData.protein,
+        adherence: 95 + (idx % 4),
+        meals: dayData.meals
+      };
+    });
+  };
 
   // ÁP DỤNG LẠI THỰC ĐƠN TUẦN ĐÓ
   const handleApplyWeek = (week) => {
@@ -513,7 +623,10 @@ export default function MealHistoryPage({ onNavigate }) {
                   {/* [Xem lại] */}
                   <button
                     type="button"
-                    onClick={() => setPreviewWeek(week)}
+                    onClick={() => {
+                      setPreviewWeek(week);
+                      setModalSelectedDayIndex(0);
+                    }}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
@@ -695,61 +808,246 @@ export default function MealHistoryPage({ onNavigate }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: XEM CHI TIẾT THỰC ĐƠN TUẦN */}
+      {/* MODAL 1: XEM CHI TIẾT THỰC ĐƠN TUẦN (7 NGÀY & CHI TIẾT BỮA ĂN) */}
       {/* ========================================================================= */}
-      {previewWeek && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-        }}>
+      {previewWeek && (() => {
+        const weekDays = getWeekDaysData(previewWeek);
+        const currentDay = weekDays[modalSelectedDayIndex] || weekDays[0];
+
+        return (
           <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '680px', width: '100%', maxHeight: '90vh',
-            overflowY: 'auto', padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
           }}>
-            <button 
-              onClick={() => setPreviewWeek(null)}
-              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <X size={20} />
-            </button>
+            <div style={{
+              background: '#ffffff', borderRadius: '24px', maxWidth: '880px', width: '100%', maxHeight: '92vh',
+              overflowY: 'auto', padding: '1.75rem 2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+            }}>
+              <button 
+                onClick={() => setPreviewWeek(null)}
+                style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={20} />
+              </button>
 
-            <span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
-              CHI TIẾT THỰC ĐƠN LƯU TRỮ
-            </span>
-            <h2 style={{ color: '#0f172a', margin: '0.65rem 0 0.25rem 0', fontSize: '1.4rem', fontWeight: 800 }}>
-              {previewWeek.code}
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              Mục tiêu: {previewWeek.goal} • {previewWeek.calories} • {previewWeek.protein}
-            </p>
+              <span style={{ fontSize: '0.74rem', background: '#ecfdf5', color: '#047857', padding: '3px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                CHI TIẾT THỰC ĐƠN LƯU TRỮ • 7 NGÀY HOÀN CHỈNH
+              </span>
+              <h2 style={{ color: '#0f172a', margin: '0.55rem 0 0.25rem 0', fontSize: '1.35rem', fontWeight: 800 }}>
+                {previewWeek.code}
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '0 0 1.25rem 0' }}>
+                Mục tiêu: <strong style={{ color: '#0f172a' }}>{previewWeek.goal}</strong> • TB: <strong style={{ color: '#047857' }}>{previewWeek.calories}</strong> • <strong style={{ color: '#047857' }}>{previewWeek.protein}</strong> • Độ tuân thủ: <strong style={{ color: '#047857' }}>{previewWeek.adherence}% đạt chuẩn</strong>
+              </p>
 
-            <h4 style={{ color: '#047857', marginBottom: '0.75rem', fontSize: '0.95rem', fontWeight: 800 }}>
-              🍽️ 4 Món ăn tiêu biểu trong tuần:
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              {previewWeek.dishes.map((dish, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: '#f8fafc', padding: '0.65rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <img src={dish.img} alt={dish.name} style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover' }} />
-                  <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>{dish.name}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#047857' }}>{dish.protein} • {dish.calories}</div>
-                  </div>
+              {/* THANH TAB 7 NGÀY (THỨ 2 ĐẾN CHỦ NHẬT) */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.55rem' }}>
+                  <label style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
+                    Chọn ngày trong tuần để xem chi tiết bữa ăn:
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Nhấp vào từng ngày để chuyển đổi
+                  </span>
                 </div>
-              ))}
-            </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-              <Button variant="secondary" onClick={() => setPreviewWeek(null)}>Đóng</Button>
-              <Button onClick={() => {
-                setPreviewWeek(null);
-                handleApplyWeek(previewWeek);
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: '0.5rem'
+                }}>
+                  {weekDays.map((day, idx) => {
+                    const isSelected = modalSelectedDayIndex === idx;
+                    return (
+                      <button
+                        key={day.id}
+                        type="button"
+                        onClick={() => setModalSelectedDayIndex(idx)}
+                        style={{
+                          borderRadius: '14px',
+                          padding: '0.65rem 0.35rem',
+                          textAlign: 'center',
+                          border: isSelected ? '2px solid #046a47' : '1px solid #e2e8f0',
+                          background: isSelected ? '#046a47' : '#ffffff',
+                          color: isSelected ? '#ffffff' : '#1e293b',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.15rem',
+                          boxShadow: isSelected ? '0 6px 16px rgba(4, 106, 71, 0.25)' : '0 1px 3px rgba(0,0,0,0.02)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, opacity: isSelected ? 0.95 : 0.6 }}>
+                          {day.dayName}
+                        </span>
+                        <span style={{ fontSize: '1.12rem', fontWeight: 800, lineHeight: 1.15 }}>
+                          {day.date}
+                        </span>
+                        <span style={{ fontSize: '0.66rem', fontWeight: 700, color: isSelected ? '#a7f3d0' : '#059669', marginTop: '2px' }}>
+                          {day.calories}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* HEADER NGÀY ĐANG ĐƯỢC CHỌN */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+                background: '#f8fafc',
+                padding: '0.75rem 1.15rem',
+                borderRadius: '14px',
+                border: '1px solid #e2e8f0',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
               }}>
-                <RotateCw size={15} /> Áp dụng thực đơn này cho tuần này
-              </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Utensils size={17} color="#047857" />
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                    Thực đơn {currentDay.dayName} ({currentDay.date})
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem' }}>
+                  <span style={{ background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                    🔥 {currentDay.calories}
+                  </span>
+                  <span style={{ background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                    💪 {currentDay.totalProtein}
+                  </span>
+                  <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                    4 bữa ăn chi tiết
+                  </span>
+                </div>
+              </div>
+
+              {/* DANH SÁCH CÁC BỮA ĂN TRONG NGÀY (SÁNG, TRƯA, SNACK, TỐI) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                {currentDay.meals.map((meal, mIdx) => (
+                  <div
+                    key={mIdx}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '110px 1fr 140px',
+                      gap: '1rem',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '16px',
+                      padding: '0.85rem',
+                      alignItems: 'center',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {/* ẢNH MÓN */}
+                    <div style={{ position: 'relative', width: '110px', height: '90px', borderRadius: '12px', overflow: 'hidden' }}>
+                      <img
+                        src={meal.img}
+                        alt={meal.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+
+                    {/* THÔNG TIN MÓN */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: meal.badgeColor,
+                          background: meal.badgeBg,
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {meal.slot}
+                        </span>
+                        <span style={{ fontSize: '0.73rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Clock size={12} /> {meal.time} • {meal.prepTime}
+                        </span>
+                      </div>
+
+                      <h4 style={{ margin: '0 0 0.3rem 0', fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>
+                        {meal.title}
+                      </h4>
+
+                      <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
+                        <strong style={{ color: '#475569' }}>Nguyên liệu:</strong> {meal.ingredients}
+                      </p>
+
+                      {meal.note && (
+                        <span style={{ fontSize: '0.72rem', color: '#047857', fontStyle: 'italic' }}>
+                          💡 {meal.note}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* MACROS BADGES CỘT PHẢI */}
+                    <div style={{
+                      background: '#f8fafc',
+                      border: '1px solid #f1f5f9',
+                      borderRadius: '12px',
+                      padding: '0.55rem 0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                        <span style={{ color: '#64748b' }}>Năng lượng:</span>
+                        <strong style={{ color: '#0f172a' }}>{meal.calories}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                        <span style={{ color: '#64748b' }}>Đạm (Protein):</span>
+                        <strong style={{ color: '#047857' }}>{meal.protein}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                        <span style={{ color: '#64748b' }}>Chất xơ:</span>
+                        <strong style={{ color: '#0284c7' }}>{meal.fiber}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem' }}>
+                        <span style={{ color: '#64748b' }}>Sắt (Fe):</span>
+                        <strong style={{ color: '#d97706' }}>{meal.iron}</strong>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* MODAL FOOTER ACTIONS */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderTop: '1px solid #e2e8f0',
+                paddingTop: '1.15rem',
+                flexWrap: 'wrap',
+                gap: '0.75rem'
+              }}>
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  💡 Bạn có thể xem trọn vẹn từng ngày hoặc áp dụng ngay toàn bộ tuần này.
+                </span>
+
+                <div style={{ display: 'flex', gap: '0.65rem' }}>
+                  <Button variant="secondary" onClick={() => setPreviewWeek(null)}>
+                    Đóng
+                  </Button>
+                  <Button onClick={() => {
+                    setPreviewWeek(null);
+                    handleApplyWeek(previewWeek);
+                  }}>
+                    <RotateCw size={15} /> Áp dụng toàn bộ thực đơn này cho tuần này
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* MODAL 2: XEM DANH SÁCH ĐI CHỢ ĐÃ LƯU */}
