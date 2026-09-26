@@ -2798,41 +2798,64 @@ export default function ModDashboard({ onNavigate }) {
                       </div>
                     </div>
 
-                    {/* CARD 2: KIỂM TRA AN TOÀN & NGÔN TỪ */}
+                    {/* CARD 2: KIỂM TRA AN TOÀN & AI SAFETY CONSOLE */}
                     <div className="mod-sidebar-card">
                       <div className="mod-card-header">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                          <ShieldCheck size={17} color="#059669" />
-                          <h3 className="mod-panel-title" style={{ fontSize: '0.88rem' }}>Kiểm tra An toàn &amp; Ngôn từ</h3>
+                          <ShieldCheck size={17} color={currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? '#dc2626' : '#059669'} />
+                          <h3 className="mod-panel-title" style={{ fontSize: '0.88rem' }}>
+                            {currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? 'AI Flagged Safety Console' : 'Kiểm tra An toàn & Ngôn từ'}
+                          </h3>
                         </div>
-                        <span className="mod-safe-score-badge">99.8% Sạch</span>
+                        <span className={`mod-safe-score-badge ${currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? 'warning' : ''}`} style={{
+                          background: currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? '#fee2e2' : '#ecfdf5',
+                          color: currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? '#dc2626' : '#047857',
+                          border: currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? '1px solid #fca5a5' : '1px solid #a7f3d0'
+                        }}>
+                          {currItem.aiConfidence ? `${currItem.aiConfidence}% Conf.` : (currItem.aiStatus === 'warning' ? 'Cảnh báo AI' : '99.8% Sạch')}
+                        </span>
                       </div>
 
-                      <div className="mod-safety-list">
-                        <div className="mod-safety-item">
-                          <div className="mod-safety-item-left">
-                            <CheckCircle2 size={14} color="#059669" />
-                            <span>Ngôn từ chuẩn mực, tôn trọng</span>
+                      {currItem.aiStatus === 'warning' || currItem.aiStatus === 'danger' ? (
+                        <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', padding: '0.85rem', marginTop: '0.5rem' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#9f1239', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <AlertTriangle size={14} color="#dc2626" />
+                            <span>Phân tích vi phạm từ YOLOv8 / MedGuard:</span>
                           </div>
-                          <span className="mod-safe-pill">0 vi phạm</span>
+                          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.76rem', color: '#881337', lineHeight: 1.45 }}>
+                            {currItem.aiExplain || currItem.aiDetails || 'Phát hiện nguyên liệu hoặc từ khóa nghi vấn không đáp ứng quy chuẩn thuần chay / y khoa.'}
+                          </p>
+                          <div style={{ fontSize: '0.72rem', color: '#991b1b', background: '#fee2e2', padding: '0.35rem 0.6rem', borderRadius: '6px', fontWeight: 700 }}>
+                            📌 Đề xuất AI: Kiểm duyệt viên cần đối soát nguyên liệu và phản hồi lại tác giả.
+                          </div>
                         </div>
+                      ) : (
+                        <div className="mod-safety-list">
+                          <div className="mod-safety-item">
+                            <div className="mod-safety-item-left">
+                              <CheckCircle2 size={14} color="#059669" />
+                              <span>Ngôn từ chuẩn mực, tôn trọng</span>
+                            </div>
+                            <span className="mod-safe-pill">0 vi phạm</span>
+                          </div>
 
-                        <div className="mod-safety-item">
-                          <div className="mod-safety-item-left">
-                            <CheckCircle2 size={14} color="#059669" />
-                            <span>Liên kết ngoài / Tiếp thị liên kết</span>
+                          <div className="mod-safety-item">
+                            <div className="mod-safety-item-left">
+                              <CheckCircle2 size={14} color="#059669" />
+                              <span>Liên kết ngoài / Tiếp thị liên kết</span>
+                            </div>
+                            <span className="mod-safe-pill">Không có</span>
                           </div>
-                          <span className="mod-safe-pill">Không có</span>
-                        </div>
 
-                        <div className="mod-safety-item">
-                          <div className="mod-safety-item-left">
-                            <CheckCircle2 size={14} color="#059669" />
-                            <span>Bản quyền hình ảnh xác thực</span>
+                          <div className="mod-safety-item">
+                            <div className="mod-safety-item-left">
+                              <CheckCircle2 size={14} color="#059669" />
+                              <span>Bản quyền hình ảnh xác thực</span>
+                            </div>
+                            <span className="mod-safe-pill">Nguyên bản 100%</span>
                           </div>
-                          <span className="mod-safe-pill">Nguyên bản 100%</span>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* CARD 3: QUYẾT ĐỊNH CỦA KIỂM DUYỆT VIÊN */}

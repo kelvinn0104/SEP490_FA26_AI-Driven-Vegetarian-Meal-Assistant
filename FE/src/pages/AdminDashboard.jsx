@@ -276,6 +276,44 @@ export default function AdminDashboard({ onNavigate }) {
     }
   ]);
 
+  useEffect(() => {
+    try {
+      const storedUsers = JSON.parse(localStorage.getItem('veggieai_registered_users') || '[]');
+      if (storedUsers.length > 0) {
+        setUsersList(prev => {
+          const existingEmails = new Set(prev.map(u => u.email));
+          const newFromStorage = storedUsers.filter(u => !existingEmails.has(u.email)).map((u, i) => ({
+            id: `USR-REG-${i + 10}`,
+            name: u.name || 'Người dùng mới',
+            email: u.email,
+            role: u.role || 'Authorized User',
+            trustScore: 90,
+            trustLevel: 'Tiêu chuẩn (90/100)',
+            trustTier: 'Đăng trực tiếp',
+            diet: u.dietPhilosophy || 'Thuần chay (Vegan)',
+            status: 'active',
+            joined: 'Vừa xong',
+            aiMealPlans: 1,
+            aiVisionScans: 1,
+            aiChatbotQueries: 3,
+            bmi: u.bmi || 21.5,
+            height: `${u.height || 165} cm`,
+            weight: `${u.weight || 60} kg`,
+            targetCalories: `${u.targetCalories || 2000} kcal/ngày`,
+            allergies: Array.isArray(u.allergies) ? u.allergies.join(', ') : 'Không',
+            keyNutrients: 'Đạm thực vật, Sắt, Canxi, B12',
+            recentActivities: [
+              'Vừa đăng ký tài khoản & hoàn thành hồ sơ dinh dưỡng (WF01)'
+            ]
+          }));
+          return [...newFromStorage, ...prev];
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const [userRoleFilter, setUserRoleFilter] = useState('all');
   const [userStatusFilter, setUserStatusFilter] = useState('all');
   const [userDietFilter, setUserDietFilter] = useState('all');
@@ -2605,19 +2643,6 @@ export default function AdminDashboard({ onNavigate }) {
                   <span>Trang cá nhân &amp; Cài đặt</span>
                 </div>
               </button>
-
-              {/* Bảo mật */}
-              <button 
-                className={`admin-menu-link ${activeMenu === 'security' ? 'active' : ''}`}
-                onClick={() => { setActiveMenu('security'); setProfileTab('security'); }}
-              >
-                <div className="admin-menu-link-inner">
-                  <div className="admin-menu-icon-box">
-                    <Lock size={16} />
-                  </div>
-                  <span>Bảo mật</span>
-                </div>
-              </button>
             </div>
           </div>
         </div>
@@ -2689,7 +2714,7 @@ export default function AdminDashboard({ onNavigate }) {
               {activeMenu === 'ai-monitoring' && 'Giám sát AI & Model Ops'}
               {activeMenu === 'ai-override' && 'Can thiệp thủ công AI'}
               {activeMenu === 'ai-flagged' && 'Kiểm duyệt nội dung AI'}
-              {(activeMenu === 'profile' || activeMenu === 'security') && 'Hồ Sơ & Cài Đặt Tài Khoản'}
+              {activeMenu === 'profile' && 'Hồ Sơ & Cài Đặt Tài Khoản'}
             </span>
           </div>
 
@@ -9830,264 +9855,671 @@ export default function AdminDashboard({ onNavigate }) {
                     }
 
                     return (
-                      <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{
+                        background: '#ffffff',
+                        borderRadius: '20px',
+                        border: '1px solid #e2e8f0',
+                        padding: '1.75rem',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+                        transition: 'all 0.2s ease'
+                      }}>
                         {/* CASE HEADER */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+                        <div style={{
+                          display: 'flex',
+                          justify: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '1rem',
+                          borderBottom: '1px solid #f1f5f9',
+                          paddingBottom: '1.15rem',
+                          marginBottom: '1.5rem'
+                        }}>
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                                Chi tiết Thẩm định Case {activeCase.id}
-                              </h2>
-                              <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-                                Đang thẩm định
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+                              <span style={{
+                                background: '#fee2e2',
+                                color: '#dc2626',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                padding: '0.2rem 0.65rem',
+                                borderRadius: '8px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                border: '1px solid #fca5a5'
+                              }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#dc2626' }}></span>
+                                Đang thẩm định vi phạm
+                              </span>
+                              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, background: '#f8fafc', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                Case #{activeCase.id}
                               </span>
                             </div>
-                            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                              Phát hiện lúc: <strong>{activeCase.publishedAt}</strong> • Người đăng: <strong>{activeCase.authorName}</strong> ({activeCase.author})
+
+                            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                              Thẩm Định Bài Viết Vi Phạm An Toàn Món Chay
+                            </h2>
+
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                              <span>🕒 Phát hiện: <strong>{activeCase.publishedAt}</strong></span>
+                              <span>•</span>
+                              <span>👤 Tác giả: <strong style={{ color: '#0f172a' }}>{activeCase.authorName}</strong> <span style={{ color: '#047857', fontWeight: 600 }}>({activeCase.author})</span></span>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <button
                               onClick={() => showToast('🔗 Đã sao chép liên kết thẩm định case!')}
                               title="Chia sẻ case"
-                              style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.4rem', cursor: 'pointer', color: '#64748b' }}
+                              style={{
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '10px',
+                                padding: '0.55rem 0.85rem',
+                                cursor: 'pointer',
+                                color: '#334155',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                transition: 'all 0.15s ease'
+                              }}
                             >
-                              <Share2 size={14} />
+                              <Share2 size={15} /> Chia sẻ
                             </button>
                             <button
                               onClick={() => setShowEvidenceZoomModal(true)}
                               title="Mở toàn màn hình xem ảnh bằng chứng"
-                              style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.4rem', cursor: 'pointer', color: '#64748b' }}
+                              style={{
+                                background: '#046a47',
+                                border: 'none',
+                                borderRadius: '10px',
+                                padding: '0.55rem 0.95rem',
+                                cursor: 'pointer',
+                                color: '#ffffff',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                boxShadow: '0 2px 8px rgba(4, 106, 71, 0.25)',
+                                transition: 'all 0.15s ease'
+                              }}
                             >
-                              <Maximize2 size={14} />
+                              <Maximize2 size={15} /> Phóng to bằng chứng
                             </button>
                           </div>
                         </div>
 
-                        {/* SECTION 1: PHÂN TÍCH THỊ GIÁC MÁY TÍNH (BOUNDING BOX) */}
-                        <div style={{ marginBottom: '1.25rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                              PHÂN TÍCH THỊ GIÁC MÁY TÍNH (SAFETY VISION BOUNDING BOX)
-                            </span>
-                            <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
-                              Frames 01:24 • YOLOv8-Safety Vision v2.4
+                        {/* SECTION 1: PHÂN TÍCH THỊ GIÁC MÁY TÍNH (COMPUTER VISION BOUNDING BOX CONSOLE) */}
+                        <div style={{ marginBottom: '1.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                Phân tích Thị Giác Máy Tính (YOLOv8 Safety Vision Bounding Box)
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '0.74rem', color: '#047857', background: '#ecfdf5', padding: '2px 10px', borderRadius: '12px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
+                              Frames 01:24 • YOLOv8-Safety Vision v2.4 (Accuracy: 98.4%)
                             </span>
                           </div>
 
-                          <div style={{ position: 'relative', height: '220px', background: '#090d16', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{
+                            position: 'relative',
+                            height: '250px',
+                            background: 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                            border: '1px solid #334155'
+                          }}>
+                            {/* HUD Header Bar */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              padding: '0.5rem 1rem',
+                              background: 'rgba(15, 23, 42, 0.75)',
+                              backdropFilter: 'blur(8px)',
+                              borderBottom: '1px solid rgba(255,255,255,0.08)',
+                              display: 'flex',
+                              justify: 'space-between',
+                              alignItems: 'center',
+                              zIndex: 5
+                            }}>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: '#ef4444', fontWeight: 700 }}>● LIVE DETECTOR</span>
+                                <span>FPS: 60.0</span>
+                                <span>RESOLUTION: 1920x1080</span>
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontFamily: 'monospace', fontWeight: 700 }}>
+                                DETECTED: {activeCase.id === '#FLG-2024-8896' ? 'TEXT MEDICAL CLAIM (1 VIOLATION)' : activeCase.id === '#FLG-2024-8829' ? 'AUDIO WHISPER ASR (1 MISMATCH)' : '2 OBJECTS (1 WARNING/VIOLATION)'}
+                              </div>
+                            </div>
+
                             {/* Realistic dark gradient background simulating video frame */}
-                            <div style={{ position: 'absolute', inset: 0, opacity: 0.35, background: 'radial-gradient(circle at 40% 50%, #334155, #020617)' }}></div>
+                            <div style={{ position: 'absolute', inset: 0, opacity: 0.45, background: 'radial-gradient(circle at 45% 55%, #334155, #020617)' }}></div>
 
-                            {/* Bounding Box 1: PORK / MARROW BONE (98.4%) - RED */}
-                            <div style={{ position: 'absolute', top: '22%', left: '20%', width: '42%', height: '54%', border: '2px solid #ef4444', background: 'rgba(239, 68, 68, 0.12)', borderRadius: '6px', padding: '0.35rem', boxSizing: 'border-box' }}>
-                              <div style={{ background: '#dc2626', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, padding: '0.12rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <span>[ ! ]</span>
-                                <span>PORK / MARROW BONE (98.4%)</span>
+                            {/* DYNAMIC HUD VIEWPORT PER CASE */}
+                            {activeCase.id === '#FLG-2024-8896' ? (
+                              /* CASE 2: TEXT MEDICAL CLAIM HUD (MEDGUARD) */
+                              <div style={{ position: 'absolute', inset: 0, paddingTop: '2.5rem', padding: '2.5rem 1.25rem 1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', justifyContent: 'center' }}>
+                                <div style={{ background: 'rgba(220, 38, 38, 0.15)', border: '1.5px dashed #ef4444', borderRadius: '10px', padding: '0.75rem 1rem', boxShadow: '0 0 16px rgba(239,68,68,0.25)' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                    <span style={{ background: '#dc2626', color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.55rem', borderRadius: '5px' }}>
+                                      ⚠️ VI PHẠM Y KHOA: NÓI QUÁ SỰ THẬT & TRỤC LỢI (97.2%)
+                                    </span>
+                                    <span style={{ color: '#fca5a5', fontSize: '0.68rem', fontFamily: 'monospace', fontWeight: 700 }}>MedGuard NLP Match</span>
+                                  </div>
+                                  <div style={{ color: '#fef2f2', fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 700, lineHeight: 1.4 }}>
+                                    &quot;chữa khỏi 100% không cần phẫu thuật... uống 3 thang tan hết sỏi mật&quot;
+                                  </div>
+                                </div>
+                                <div style={{ background: 'rgba(15, 23, 42, 0.85)', border: '1px solid #0284c7', borderRadius: '8px', padding: '0.5rem 0.85rem', color: '#38bdf8', fontSize: '0.74rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>🔍 Phác đồ y tế: Tuyên bố sai lệch y khoa không qua kiểm chứng lâm sàng</span>
+                                  <span style={{ color: '#0284c7', fontWeight: 800 }}>Conf: 95.1%</span>
+                                </div>
                               </div>
-                              <div style={{ color: '#fecaca', fontSize: '0.6rem', marginTop: '0.3rem', fontWeight: 700 }}>
-                                BOX_01 (Tọa độ: X: 20%, Y: 22%)
+                            ) : activeCase.id === '#FLG-2024-8871' ? (
+                              /* CASE 3: MEAL PREP FRIDGE LABELS (YOLOV8) */
+                              <>
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '22%',
+                                  left: '15%',
+                                  width: '40%',
+                                  height: '54%',
+                                  border: '2px dashed #f97316',
+                                  background: 'rgba(249, 115, 22, 0.16)',
+                                  borderRadius: '8px',
+                                  padding: '0.5rem',
+                                  boxSizing: 'border-box',
+                                  boxShadow: '0 0 16px rgba(249, 115, 22, 0.35)'
+                                }}>
+                                  <div style={{ background: '#ea580c', color: '#ffffff', fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                    <span>⚠️ CẢNH BÁO: CHEESE / PATE CONTAINER (62.1%)</span>
+                                  </div>
+                                  <div style={{ color: '#ffedd5', fontSize: '0.68rem', marginTop: '0.35rem', fontWeight: 700, background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block' }}>
+                                    BOX_01 (Nghi vấn bơ phô mai chưa đối soát)
+                                  </div>
+                                </div>
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '28%',
+                                  right: '12%',
+                                  width: '28%',
+                                  height: '48%',
+                                  border: '2px solid #10b981',
+                                  background: 'rgba(16, 185, 129, 0.14)',
+                                  borderRadius: '8px',
+                                  padding: '0.5rem',
+                                  boxSizing: 'border-box'
+                                }}>
+                                  <div style={{ background: '#059669', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '0.18rem 0.55rem', borderRadius: '6px' }}>
+                                    <span>✓ HỢP LỆ: MEN DINH DƯỠNG (91.5%)</span>
+                                  </div>
+                                </div>
+                                <div style={{ position: 'absolute', bottom: '0.65rem', left: '0.85rem', right: '0.85rem', background: 'rgba(15, 23, 42, 0.85)', color: '#ffffff', fontSize: '0.76rem', padding: '0.4rem 0.85rem', borderRadius: '8px', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>🎯 Tọa độ vị trí: <strong style={{ color: '#fed7aa' }}>Hũ pate phô mai nghi vấn bơ động vật (Cần đối soát tác giả)</strong></span>
+                                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>AI Conf: 62.1%</span>
+                                </div>
+                              </>
+                            ) : activeCase.id === '#FLG-2024-8829' ? (
+                              /* CASE 4: WHISPER ASR AUDIO SPEECH HUD */
+                              <div style={{ position: 'absolute', inset: 0, paddingTop: '2.5rem', padding: '2.5rem 1.25rem 1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', justifyContent: 'center' }}>
+                                <div style={{ background: 'rgba(2, 132, 199, 0.15)', border: '1.5px solid #0284c7', borderRadius: '10px', padding: '0.75rem 1rem' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                    <span style={{ background: '#0284c7', color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.55rem', borderRadius: '5px' }}>
+                                      🎙️ WHISPER ASR SPEECH DETECTOR: MISPRONUNCIATION (71.5%)
+                                    </span>
+                                    <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontFamily: 'monospace', fontWeight: 700 }}>Timestamp 00:18</span>
+                                  </div>
+                                  <div style={{ color: '#e0f2fe', fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: 700, lineHeight: 1.4 }}>
+                                    Phát âm: &quot;...bún mắm [chay] đậu nành lên men...&quot; (Âm &quot;chay&quot; bị tiếng nhạc lấn át)
+                                  </div>
+                                </div>
+                                <div style={{ background: 'rgba(15, 23, 42, 0.85)', border: '1px solid #10b981', borderRadius: '8px', padding: '0.5rem 0.85rem', color: '#a7f3d0', fontSize: '0.74rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>✓ Kết quả thị giác YOLOv8: Chao đỏ & nấm rơm hoàn toàn hợp lệ thuần chay (94.2%)</span>
+                                  <span style={{ color: '#10b981', fontWeight: 800 }}>False Alarm (Nhầm lẫn)</span>
+                                </div>
                               </div>
-                            </div>
-
-                            {/* Bounding Box 2: SUGARCANE / VEGGIE (88.2%) - GREEN */}
-                            <div style={{ position: 'absolute', top: '35%', right: '12%', width: '26%', height: '48%', border: '2px solid #10b981', background: 'rgba(16, 185, 129, 0.12)', borderRadius: '6px', padding: '0.35rem', boxSizing: 'border-box' }}>
-                              <div style={{ background: '#059669', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, padding: '0.12rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <span>[ ✓ ]</span>
-                                <span>SUGARCANE / VEGGIE (88.2%)</span>
-                              </div>
-                              <div style={{ color: '#a7f3d0', fontSize: '0.6rem', marginTop: '0.3rem', fontWeight: 700 }}>
-                                BOX_02 (Rau củ)
-                              </div>
-                            </div>
-
-                            {/* Overlay tag */}
-                            <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.75rem', background: 'rgba(0,0,0,0.65)', color: '#ffffff', fontSize: '0.68rem', padding: '0.2rem 0.5rem', borderRadius: '4px', backdropFilter: 'blur(2px)' }}>
-                              🎯 Tọa độ phát hiện vi phạm: <strong>Mô xương hầm động vật tại nồi trung tâm</strong>
-                            </div>
+                            ) : (
+                              /* DEFAULT / CASE 1: PORK BONE HUD */
+                              <>
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '24%',
+                                  left: '18%',
+                                  width: '44%',
+                                  height: '52%',
+                                  border: '2px dashed #ef4444',
+                                  background: 'rgba(239, 68, 68, 0.16)',
+                                  borderRadius: '8px',
+                                  padding: '0.5rem',
+                                  boxSizing: 'border-box',
+                                  boxShadow: '0 0 16px rgba(239, 68, 68, 0.4)'
+                                }}>
+                                  <div style={{
+                                    background: '#dc2626',
+                                    color: '#ffffff',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    padding: '0.2rem 0.55rem',
+                                    borderRadius: '6px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                                  }}>
+                                    <span>⚠️ VI PHẠM: PORK / MARROW BONE (98.4%)</span>
+                                  </div>
+                                  <div style={{ color: '#fecaca', fontSize: '0.68rem', marginTop: '0.35rem', fontWeight: 700, background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block' }}>
+                                    BOX_01 (X: 20%, Y: 22% • Mô xương hầm động vật)
+                                  </div>
+                                </div>
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '32%',
+                                  right: '10%',
+                                  width: '26%',
+                                  height: '46%',
+                                  border: '2px solid #10b981',
+                                  background: 'rgba(16, 185, 129, 0.14)',
+                                  borderRadius: '8px',
+                                  padding: '0.5rem',
+                                  boxSizing: 'border-box',
+                                  boxShadow: '0 0 12px rgba(16, 185, 129, 0.3)'
+                                }}>
+                                  <div style={{
+                                    background: '#059669',
+                                    color: '#ffffff',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 800,
+                                    padding: '0.18rem 0.55rem',
+                                    borderRadius: '6px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}>
+                                    <span>✓ HỢP LỆ: SUGARCANE (88.2%)</span>
+                                  </div>
+                                  <div style={{ color: '#a7f3d0', fontSize: '0.66rem', marginTop: '0.35rem', fontWeight: 700, background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block' }}>
+                                    BOX_02 (Rau củ / Mía lau)
+                                  </div>
+                                </div>
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '0.65rem',
+                                  left: '0.85rem',
+                                  right: '0.85rem',
+                                  background: 'rgba(15, 23, 42, 0.85)',
+                                  color: '#ffffff',
+                                  fontSize: '0.76rem',
+                                  padding: '0.4rem 0.85rem',
+                                  borderRadius: '8px',
+                                  backdropFilter: 'blur(8px)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  display: 'flex',
+                                  justify: 'space-between',
+                                  alignItems: 'center'
+                                }}>
+                                  <span>🎯 Tọa độ vị trí vi phạm: <strong style={{ color: '#fca5a5' }}>Mô xương hầm động vật tại khu vực nồi trung tâm</strong></span>
+                                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>AI Conf: {activeCase.confidence || '98.4%'}</span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
 
                         {/* SECTION 2: DANH MỤC NGUYÊN LIỆU KHAI BÁO & KIỂM TRA */}
-                        <div style={{ marginBottom: '1.25rem' }}>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.45rem' }}>
-                            DANH MỤC NGUYÊN LIỆU KHAI BÁO &amp; KIỂM TRA <span style={{ color: '#dc2626', textTransform: 'none' }}>(Thành phần vi phạm nghiêm trọng thực thể)</span>
+                        <div style={{ marginBottom: '1.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                              Danh Mục Nguyên Liệu Khai Báo &amp; Đối Chiếu AI
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: '#b91c1c', background: '#fee2e2', padding: '2px 10px', borderRadius: '10px', fontWeight: 800, border: '1px solid #fca5a5' }}>
+                              Phát hiện 1 thành phần Vi Phạm Nặng
+                            </span>
                           </div>
 
-                          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', textAlign: 'left' }}>
+                          <div style={{ border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
                               <thead>
-                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase' }}>
-                                  <th style={{ padding: '0.5rem 0.75rem' }}>NGUYÊN LIỆU</th>
-                                  <th style={{ padding: '0.5rem 0.75rem' }}>KHỐI LƯỢNG</th>
-                                  <th style={{ padding: '0.5rem 0.75rem' }}>PHÂN LOẠI</th>
-                                  <th style={{ padding: '0.5rem 0.75rem', textAlign: 'right' }}>TRẠNG THÁI</th>
+                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.03em' }}>
+                                  <th style={{ padding: '0.75rem 1rem' }}>Tên nguyên liệu</th>
+                                  <th style={{ padding: '0.75rem 1rem' }}>Khối lượng</th>
+                                  <th style={{ padding: '0.75rem 1rem' }}>Phân loại AI</th>
+                                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Trạng thái đối chiếu</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {activeCase.ingredients.map((ing, idx) => (
-                                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: ing.status === 'violation' ? '#fef2f2' : 'transparent' }}>
-                                    <td style={{ padding: '0.55rem 0.75rem', fontWeight: ing.status === 'violation' ? 800 : 600, color: ing.status === 'violation' ? '#b91c1c' : '#1e293b' }}>
-                                      {ing.name}
-                                    </td>
-                                    <td style={{ padding: '0.55rem 0.75rem', color: '#64748b' }}>
-                                      {ing.amount}
-                                    </td>
-                                    <td style={{ padding: '0.55rem 0.75rem', color: ing.status === 'violation' ? '#b91c1c' : '#475569', fontWeight: ing.status === 'violation' ? 700 : 500 }}>
-                                      {ing.type}
-                                    </td>
-                                    <td style={{ padding: '0.55rem 0.75rem', textAlign: 'right' }}>
-                                      {ing.status === 'violation' ? (
-                                        <span style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800 }}>
-                                          VI PHẠM (NẶNG)
-                                        </span>
-                                      ) : (
-                                        <span style={{ background: '#ecfdf5', color: '#047857', padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
-                                          Hợp lệ
-                                        </span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                ))}
+                                {activeCase.ingredients.map((ing, idx) => {
+                                  const isViolation = ing.status === 'violation';
+                                  return (
+                                    <tr
+                                      key={idx}
+                                      style={{
+                                        borderBottom: idx === activeCase.ingredients.length - 1 ? 'none' : '1px solid #f1f5f9',
+                                        background: isViolation ? '#fef2f2' : (idx % 2 === 0 ? '#ffffff' : '#fafafa'),
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      <td style={{ padding: '0.75rem 1rem', fontWeight: isViolation ? 800 : 600, color: isViolation ? '#991b1b' : '#0f172a' }}>
+                                        {isViolation ? <span style={{ marginRight: '0.35rem' }}>⚠️</span> : <span style={{ color: '#10b981', marginRight: '0.35rem' }}>✓</span>}
+                                        {ing.name}
+                                      </td>
+                                      <td style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 600 }}>
+                                        {ing.amount}
+                                      </td>
+                                      <td style={{ padding: '0.75rem 1rem', color: isViolation ? '#991b1b' : '#475569', fontWeight: isViolation ? 700 : 500 }}>
+                                        {ing.type}
+                                      </td>
+                                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                        {isViolation ? (
+                                          <span style={{
+                                            background: '#fee2e2',
+                                            color: '#dc2626',
+                                            border: '1px solid #fca5a5',
+                                            padding: '0.25rem 0.65rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.74rem',
+                                            fontWeight: 800,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.3rem'
+                                          }}>
+                                            <span>VI PHẠM (NẶNG)</span>
+                                          </span>
+                                        ) : (
+                                          <span style={{
+                                            background: '#ecfdf5',
+                                            color: '#047857',
+                                            border: '1px solid #a7f3d0',
+                                            padding: '0.25rem 0.65rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.74rem',
+                                            fontWeight: 700,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.3rem'
+                                          }}>
+                                            <span>✓ Hợp lệ</span>
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
                         </div>
 
                         {/* SECTION 3: KHỐI PHÂN TÍCH SUY LUẬN CỤM AI */}
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
-                              <Bot size={15} color="#059669" />
-                              <span>Khối Phân Tích Suy Luận Cụm AI</span>
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Bot size={18} />
+                              </div>
+                              <div>
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                                  Khối Phân Tích Suy Luận Cụm AI Dual-Engine
+                                </h3>
+                                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Phối hợp giữa Mô hình NLP MedGuard &amp; YOLOv8 Safety Vision</span>
+                              </div>
                             </div>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#047857', background: '#d1fae5', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#047857', background: '#d1fae5', padding: '0.25rem 0.75rem', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
                               Độ tin cậy tổng thể: {activeCase.confidence}
                             </span>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '0.85rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                             {/* AI SUB 1: NLP */}
-                            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                                <strong style={{ fontSize: '0.75rem', color: '#0f172a' }}>{activeCase.aiAnalysis.nlpModel}</strong>
-                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c2410c', background: '#ffedd5', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
-                                  {activeCase.aiAnalysis.nlpConf}
+                            <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                                <strong style={{ fontSize: '0.84rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <span>📝</span> {activeCase.aiAnalysis.nlpModel}
+                                </strong>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c2410c', background: '#ffedd5', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #fed7aa' }}>
+                                  {activeCase.aiAnalysis.nlpConf} Conf.
                                 </span>
                               </div>
-                              <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', lineHeight: 1.45 }}>
+                              <p style={{ margin: 0, fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
                                 {activeCase.aiAnalysis.nlpText}
                               </p>
                             </div>
 
                             {/* AI SUB 2: VISION */}
-                            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                                <strong style={{ fontSize: '0.75rem', color: '#0f172a' }}>{activeCase.aiAnalysis.visionModel}</strong>
-                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#b91c1c', background: '#fee2e2', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
-                                  {activeCase.aiAnalysis.visionConf}
+                            <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                                <strong style={{ fontSize: '0.84rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <span>👁️</span> {activeCase.aiAnalysis.visionModel}
+                                </strong>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b91c1c', background: '#fee2e2', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #fca5a5' }}>
+                                  {activeCase.aiAnalysis.visionConf} Conf.
                                 </span>
                               </div>
-                              <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', lineHeight: 1.45 }}>
+                              <p style={{ margin: 0, fontSize: '0.78rem', color: '#334155', lineHeight: 1.5 }}>
                                 {activeCase.aiAnalysis.visionText}
                               </p>
                             </div>
                           </div>
 
                           {/* WARNING BLOCK */}
-                          <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.65rem', fontSize: '0.73rem', color: '#991b1b', lineHeight: 1.45 }}>
-                            <strong style={{ display: 'block', marginBottom: '0.2rem' }}>
-                              ⚠️ Cảnh báo rủi ro người dùng: Nguy cơ dị ứng Alpha-Gal &amp; Vi phạm quy tắc cộng đồng
+                          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '0.85rem' }}>
+                            <strong style={{ display: 'block', fontSize: '0.82rem', color: '#9f1239', marginBottom: '0.25rem', fontWeight: 800 }}>
+                              ⚠️ Cảnh báo rủi ro người dùng: Nguy cơ dị ứng Alpha-Gal &amp; Vi phạm nghiêm trọng quy tắc cộng đồng
                             </strong>
-                            <span>{activeCase.aiAnalysis.warningText}</span>
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#881337', lineHeight: 1.5 }}>
+                              {activeCase.aiAnalysis.warningText}
+                            </p>
                           </div>
 
                           {/* RECOMMENDATION */}
-                          <div style={{ fontSize: '0.72rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <span>Đề xuất tự động từ AI Agent:</span>
-                            <strong style={{ color: '#b91c1c' }}>{activeCase.aiAnalysis.aiSuggestion}</strong>
+                          <div style={{
+                            background: '#ffffff',
+                            border: '1px solid #a7f3d0',
+                            borderRadius: '10px',
+                            padding: '0.65rem 0.95rem',
+                            fontSize: '0.8rem',
+                            color: '#0f172a',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <span style={{ fontWeight: 700, color: '#047857' }}>💡 Đề xuất tự động từ AI Agent:</span>
+                            <strong style={{ color: '#dc2626' }}>{activeCase.aiAnalysis.aiSuggestion}</strong>
                           </div>
                         </div>
 
-                        {/* SECTION 4: QUYẾT ĐỊNH CỦA QUẢN TRỊ VIÊN (ENFORCEMENT) */}
-                        <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1.15rem', marginBottom: '1rem' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <Shield size={16} color="#047857" />
-                            <span>Quyết Định Của Quản Trị Viên (Enforcement)</span>
+                        {/* SECTION 4: QUYẾT ĐỊNH CỦA QUẢN TRỊ VIÊN (ENFORCEMENT CONTROL PANEL) */}
+                        <div style={{
+                          background: '#ffffff',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: '16px',
+                          padding: '1.4rem',
+                          boxShadow: '0 4px 14px rgba(0,0,0,0.03)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                            <Shield size={18} color="#047857" />
+                            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                              Quyết Định Của Quản Trị Viên (Enforcement Panel)
+                            </h3>
                           </div>
 
-                          {/* 4 CHECKBOXES */}
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '1rem' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#1e293b', cursor: 'pointer' }}>
+                          {/* 4 CHECKBOXES IN CARDS */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              color: '#1e293b',
+                              cursor: 'pointer',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '0.75rem 0.9rem',
+                              borderRadius: '10px',
+                              transition: 'all 0.15s ease'
+                            }}>
                               <input
                                 type="checkbox"
                                 checked={enforceChecklist.deleteContent}
                                 onChange={(e) => setEnforceChecklist({ ...enforceChecklist, deleteContent: e.target.checked })}
+                                style={{ width: '16px', height: '16px', accentColor: '#dc2626', cursor: 'pointer' }}
                               />
                               <span>Xóa nội dung vĩnh viễn khỏi nền tảng</span>
                             </label>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#1e293b', cursor: 'pointer' }}>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              color: '#1e293b',
+                              cursor: 'pointer',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '0.75rem 0.9rem',
+                              borderRadius: '10px',
+                              transition: 'all 0.15s ease'
+                            }}>
                               <input
                                 type="checkbox"
                                 checked={enforceChecklist.sendWarning}
                                 onChange={(e) => setEnforceChecklist({ ...enforceChecklist, sendWarning: e.target.checked })}
+                                style={{ width: '16px', height: '16px', accentColor: '#d97706', cursor: 'pointer' }}
                               />
                               <span>Gửi cảnh cáo vi phạm tiêu chuẩn món chay</span>
                             </label>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#1e293b', cursor: 'pointer' }}>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              color: '#1e293b',
+                              cursor: 'pointer',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '0.75rem 0.9rem',
+                              borderRadius: '10px',
+                              transition: 'all 0.15s ease'
+                            }}>
                               <input
                                 type="checkbox"
                                 checked={enforceChecklist.suspend14Days}
                                 onChange={(e) => setEnforceChecklist({ ...enforceChecklist, suspend14Days: e.target.checked })}
+                                style={{ width: '16px', height: '16px', accentColor: '#dc2626', cursor: 'pointer' }}
                               />
                               <span>Tạm khóa quyền đăng bài 14 ngày</span>
                             </label>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#1e293b', cursor: 'pointer' }}>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.65rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              color: '#1e293b',
+                              cursor: 'pointer',
+                              background: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              padding: '0.75rem 0.9rem',
+                              borderRadius: '10px',
+                              transition: 'all 0.15s ease'
+                            }}>
                               <input
                                 type="checkbox"
                                 checked={enforceChecklist.pushDataset}
                                 onChange={(e) => setEnforceChecklist({ ...enforceChecklist, pushDataset: e.target.checked })}
+                                style={{ width: '16px', height: '16px', accentColor: '#047857', cursor: 'pointer' }}
                               />
                               <span>Nạp mẫu vào Dataset huấn luyện AI Mislabels</span>
                             </label>
                           </div>
 
                           {/* RATIONALE NOTE */}
-                          <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                          <div style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '0.45rem', letterSpacing: '0.03em' }}>
                               GHI CHÚ LÝ DO XỬ LÝ (ADMIN RATIONALE LOG):
                             </label>
                             <textarea
                               rows={2}
                               value={adminRationaleNote}
                               onChange={(e) => setAdminRationaleNote(e.target.value)}
-                              style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.75rem', color: '#1e293b', boxSizing: 'border-box' }}
+                              placeholder="Nhập ghi chú chi tiết về căn cứ xử lý vi phạm..."
+                              style={{
+                                width: '100%',
+                                padding: '0.65rem 0.85rem',
+                                borderRadius: '10px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '0.82rem',
+                                color: '#0f172a',
+                                boxSizing: 'border-box',
+                                outline: 'none',
+                                fontFamily: 'inherit'
+                              }}
                             />
                           </div>
 
                           {/* 3 ACTION BUTTONS */}
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <button
                               onClick={() => handleDismissFlag(activeCase.id)}
-                              style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                              style={{
+                                background: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                color: '#475569',
+                                padding: '0.6rem 1.15rem',
+                                borderRadius: '10px',
+                                fontSize: '0.84rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
                             >
                               Bỏ Qua Cờ / Nhận Diện Sai
                             </button>
 
                             <button
                               onClick={() => handleRequestEdit(activeCase.id)}
-                              style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                              style={{
+                                background: '#fffbeb',
+                                border: '1px solid #fde68a',
+                                color: '#b45309',
+                                padding: '0.6rem 1.15rem',
+                                borderRadius: '10px',
+                                fontSize: '0.84rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
                             >
                               Yêu Cầu Sửa Đổi
                             </button>
 
                             <button
                               onClick={() => handleConfirmViolation(activeCase.id)}
-                              style={{ background: '#dc2626', border: 'none', color: '#ffffff', padding: '0.55rem 1.25rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)' }}
+                              style={{
+                                background: '#dc2626',
+                                border: 'none',
+                                color: '#ffffff',
+                                padding: '0.65rem 1.4rem',
+                                borderRadius: '10px',
+                                fontSize: '0.86rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)',
+                                transition: 'all 0.15s ease'
+                              }}
                             >
                               Xác Nhận Vi Phạm &amp; Thực Thi Quyết Định
                             </button>
@@ -10469,7 +10901,7 @@ export default function AdminDashboard({ onNavigate }) {
           {/* =========================================================================
               MÀN HÌNH 9: TRANG CÁ NHÂN & CÀI ĐẶT TÀI KHOẢN (ADMIN)
               ========================================================================= */}
-          {(activeMenu === 'profile' || activeMenu === 'security') && (
+          {activeMenu === 'profile' && (
             <section className="admin-profile-page">
               {/* TOP HEADER */}
               <div className="admin-profile-top-header">
@@ -10609,16 +11041,6 @@ export default function AdminDashboard({ onNavigate }) {
                         <span>Thông tin cá nhân</span>
                       </div>
                       <ChevronRight size={14} />
-                    </button>
-
-                    <button 
-                      className={`admin-profile-nav-btn ${profileTab === 'security' ? 'active' : ''}`}
-                      onClick={() => setProfileTab('security')}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <ShieldCheck size={16} />
-                        <span>Bảo mật &amp; 2FA</span>
-                      </div>
                     </button>
 
                     <button 

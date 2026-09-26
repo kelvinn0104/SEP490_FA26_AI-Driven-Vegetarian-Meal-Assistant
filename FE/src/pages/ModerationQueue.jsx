@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle, XCircle, Clock, ShieldAlert, Search, Eye, Filter, 
   Sparkles, AlertTriangle, ArrowUpRight, CheckCircle2, User, 
-  FileText, Video, Utensils, MessageSquare, ArrowLeft, RefreshCw, X
+  FileText, Video, Utensils, MessageSquare, ArrowLeft, RefreshCw, X, Shield
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -12,8 +12,8 @@ import { useAuth } from '../context/AuthContext';
 export default function ModerationQueue({ onNavigate }) {
   const { user } = useAuth();
 
-  // SAMPLE PENDING AND MODERATED ITEMS
-  const [items, setItems] = useState([
+  // INITIAL SAMPLE ITEMS
+  const defaultItems = [
     {
       id: 'MOD-001',
       title: 'Công thức Đậu hũ sốt Cà chua & Nấm đông cô chuẩn vị nhà hàng',
@@ -74,7 +74,25 @@ export default function ModerationQueue({ onNavigate }) {
       ingredients: ['Cần tây Mỹ: 500g', 'Mật ong rừng: 2 muỗng', 'Chanh tươi: 1 quả'],
       status: 'pending'
     }
-  ]);
+  ];
+
+  const [items, setItems] = useState(defaultItems);
+  const [reportedItems, setReportedItems] = useState([]);
+
+  useEffect(() => {
+    try {
+      const storedPending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
+      if (storedPending.length > 0) {
+        const mergedIds = new Set(defaultItems.map(i => i.id));
+        const customPending = storedPending.filter(p => !mergedIds.has(p.id));
+        setItems([...customPending, ...defaultItems]);
+      }
+      const storedReports = JSON.parse(localStorage.getItem('veggieai_reported_items') || '[]');
+      setReportedItems(storedReports);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const [activeTabFilter, setActiveTabFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +111,35 @@ export default function ModerationQueue({ onNavigate }) {
 
   // ACTIONS
   const handleApprove = (id) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, status: 'approved' } : item));
+    setItems(prev => {
+      const updated = prev.map(item => item.id === id ? { ...item, status: 'approved' } : item);
+      const approvedItem = updated.find(i => i.id === id);
+      if (approvedItem) {
+        try {
+          const published = JSON.parse(localStorage.getItem('veggieai_user_published_posts') || '[]');
+          const formatted = {
+            id: approvedItem.id,
+            category: approvedItem.typeLabel || 'Bí quyết nấu ăn',
+            date: 'Hôm nay',
+            readTime: '5 phút đọc',
+            title: approvedItem.title,
+            desc: approvedItem.content ? approvedItem.content.slice(0, 100) + '...' : approvedItem.title,
+            author: approvedItem.author || 'Tác giả cộng đồng',
+            authorAvatar: approvedItem.authorAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+            img: approvedItem.img || approvedItem.coverImage || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600',
+            fullContent: approvedItem.content
+          };
+          localStorage.setItem('veggieai_user_published_posts', JSON.stringify([formatted, ...published.filter(p => p.id !== id)]));
+          
+          const pending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
+          localStorage.setItem('veggieai_pending_posts', JSON.stringify(pending.map(p => p.id === id ? { ...p, status: 'approved' } : p)));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return updated;
+    });
+
     showToast(`✅ Đã phê duyệt và xuất bản thành công mục #${id}!`);
     if (showPreviewModal) setShowPreviewModal(false);
   };
@@ -105,11 +151,20 @@ export default function ModerationQueue({ onNavigate }) {
 
   const handleConfirmReject = () => {
     if (!itemToReject) return;
-    setItems(prev => prev.map(item => item.id === itemToReject.id ? { 
-      ...item, 
-      status: 'rejected', 
-      rejectReason: `${rejectReason}: ${rejectNote}` 
-    } : item));
+    const finalReason = `${rejectReason}: ${rejectNote}`.trim();
+    setItems(prev => {
+      const updated = prev.map(item => item.id === itemToReject.id ? { 
+        ...item, 
+        status: 'rejected', 
+        rejectReason: finalReason 
+      } : item);
+      try {
+        const pending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
+        localStorage.setItem('veggieai_pending_posts', JSON.stringify(pending.map(p => p.id === itemToReject.id ? { ...p, status: 'rejected', rejectReason: finalReason } : p)));
+      } catch (e) {}
+      return updated;
+    });
+
     showToast(`🚫 Đã từ chối bài viết #${itemToReject.id} và gửi phản hồi đến tác giả.`);
     setShowRejectModal(false);
     setItemToReject(null);
