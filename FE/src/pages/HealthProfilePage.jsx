@@ -45,7 +45,16 @@ export default function HealthProfilePage({ onNavigate }) {
   // =========================================================================
   // TRƯỜNG PHÁI ĂN CHAY & TRIẾT LÝ
   // =========================================================================
-  const [dietType, setDietType] = useState('vegan'); // vegan, ovo-lacto, lacto, flexitarian
+  const [dietType, setDietType] = useState(() => {
+    return user?.dietType || 'vegan';
+  }); // vegan, ovo-lacto, lacto, flexitarian
+
+  useEffect(() => {
+    if (user?.dietType) {
+      setDietType(user.dietType);
+    }
+  }, [user]);
+
   const [strictPhilosophy, setStrictPhilosophy] = useState({
     noNguViTan: true, // Kiêng ngũ vị tân
     noProcessedMeat: true, // Hạn chế thực phẩm chế biến sẵn & giả thịt
@@ -1076,7 +1085,7 @@ export default function HealthProfilePage({ onNavigate }) {
               {/* NÚT TẠO THỰC ĐƠN TUẦN TỪ HỒ SƠ NÀY */}
               <button
                 type="button"
-                onClick={() => onNavigate && onNavigate('planner')}
+                onClick={() => onNavigate && onNavigate('create-plan')}
                 style={{
                   width: '100%',
                   background: '#eff6ff',

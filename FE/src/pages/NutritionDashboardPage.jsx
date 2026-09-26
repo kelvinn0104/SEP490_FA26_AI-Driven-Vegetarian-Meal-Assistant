@@ -47,7 +47,7 @@ export default function NutritionDashboardPage({ onNavigate }) {
   const targetCalo = 2080;
   const maxChartHeight = 2400; // Calo scale max for 100% height
 
-  // STATE FORM GHI NHANH BỮA ĂN
+  // STATE FORM GHI NHANH BỮA ĂN (WF03)
   const [quickLog, setQuickLog] = useState({
     mealSlot: 'Trưa',
     dishName: '',
@@ -55,12 +55,53 @@ export default function NutritionDashboardPage({ onNavigate }) {
     protein: ''
   });
 
+  const [todayLoggedMeals, setTodayLoggedMeals] = useState(() => {
+    try {
+      const saved = localStorage.getItem('veggieai_logged_meals');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [
+      { id: 'log-1', mealSlot: 'Sáng', dishName: 'Smoothie Bowl Yến Mạch, Chuối & Hạt Chia', calories: 480, protein: 18, source: 'Trong kế hoạch', time: '07:30' },
+      { id: 'log-2', mealSlot: 'Trưa', dishName: 'Buddha Bowl Quinoa Đậu Hũ Áp Chảo Sốt Mè', calories: 720, protein: 32, source: 'Trong kế hoạch', time: '12:15' },
+      { id: 'log-3', mealSlot: 'Snack', dishName: 'Energy Balls Hạt Bí & Trà Hoa Cúc', calories: 220, protein: 8, source: 'Trong kế hoạch', time: '15:45' }
+    ];
+  });
+
   const handleQuickLogSubmit = (e) => {
     e.preventDefault();
     if (!quickLog.dishName) return;
-    showToast(`✓ Đã ghi nhận bữa ${quickLog.mealSlot}: "${quickLog.dishName}" (${quickLog.calories || 450} kcal)!`);
+
+    const newLogItem = {
+      id: `log-quick-${Date.now()}`,
+      mealSlot: quickLog.mealSlot,
+      dishName: quickLog.dishName.trim(),
+      calories: parseInt(quickLog.calories) || 450,
+      protein: parseInt(quickLog.protein) || 20,
+      source: 'Ngoài kế hoạch',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updated = [newLogItem, ...todayLoggedMeals];
+    setTodayLoggedMeals(updated);
+    try {
+      localStorage.setItem('veggieai_logged_meals', JSON.stringify(updated));
+    } catch (err) {}
+
+    showToast(`✓ Đã ghi nhận bữa ${quickLog.mealSlot}: "${quickLog.dishName}" (${newLogItem.calories} kcal)!`);
     setQuickLog({ mealSlot: 'Trưa', dishName: '', calories: '', protein: '' });
     setShowQuickLogModal(false);
+  };
+
+  const handleDeleteLogItem = (id, title) => {
+    const updated = todayLoggedMeals.filter(item => item.id !== id);
+    setTodayLoggedMeals(updated);
+    try {
+      localStorage.setItem('veggieai_logged_meals', JSON.stringify(updated));
+    } catch (err) {}
+    showToast(`🗑️ Đã xóa nhật ký món "${title}". Hệ thống đã tính lại tổng Calo/Đạm ngày (BR12).`);
   };
 
   return (
@@ -752,6 +793,136 @@ export default function NutritionDashboardPage({ onNavigate }) {
                   </div>
                 </div>
 
+              </div>
+            </div>
+
+            {/* KHỐI 4: BẢNG NHẬT KÝ BỮA ĂN THỰC TẾ HÔM NAY (WF03) */}
+            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem 1.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={18} color="#059669" />
+                    <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      Nhật Ký Bữa Ăn Thực Tế Hôm Nay (WF03)
+                    </h3>
+                  </div>
+                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.2rem 0 0 0' }}>
+                    Ghi nhận các món đã ăn trong kế hoạch (WF02) hoặc ngoài kế hoạch. Tính lại tổng Calo/Đạm khi sửa/xóa (Quy tắc BR12).
+                  </p>
+                </div>
+
+                <Button variant="primary" onClick={() => setShowQuickLogModal(true)} style={{ padding: '0.5rem 1rem', fontSize: '0.82rem', fontWeight: 800 }}>
+                  <Plus size={15} /> Ghi thêm bữa ăn
+                </Button>
+              </div>
+
+              {/* TỔNG QUAN LOG HÔM NAY */}
+              <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1rem', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: '1.25rem', textAlign: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>TỔNG CALO TIÊU THỤ</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+                    {todayLoggedMeals.reduce((sum, item) => sum + (parseInt(item.calories) || 0), 0)} <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ 2,080 kcal</span>
+                  </div>
+                </div>
+                <div style={{ height: '30px', width: '1px', background: '#cbd5e1' }}></div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>TỔNG ĐẠM NẠP THỰC TẾ</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#047857' }}>
+                    {todayLoggedMeals.reduce((sum, item) => sum + (parseInt(item.protein) || 0), 0)}g <span style={{ fontSize: '0.8rem', color: '#64748b' }}>/ 85g Target</span>
+                  </div>
+                </div>
+                <div style={{ height: '30px', width: '1px', background: '#cbd5e1' }}></div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>SỐ BỮA ĐÃ GHI NHẬN</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#2563eb' }}>
+                    {todayLoggedMeals.length} bữa
+                  </div>
+                </div>
+              </div>
+
+              {/* DANH SÁCH NHẬT KÝ BỮA ĂN */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {todayLoggedMeals.length === 0 ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.88rem' }}>
+                    Chưa có bữa ăn nào được ghi nhận hôm nay. Hãy bấm "Ghi thêm bữa ăn" hoặc đánh dấu đã ăn tại trang Thực đơn tuần (WF02)!
+                  </div>
+                ) : (
+                  todayLoggedMeals.map((item) => (
+                    <div 
+                      key={item.id}
+                      style={{
+                        padding: '0.9rem 1.15rem',
+                        borderRadius: '14px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          background: item.mealSlot === 'Sáng' ? '#eff6ff' : item.mealSlot === 'Trưa' ? '#ecfdf5' : item.mealSlot === 'Tối' ? '#fef3c7' : '#fff7ed',
+                          color: item.mealSlot === 'Sáng' ? '#1d4ed8' : item.mealSlot === 'Trưa' ? '#047857' : item.mealSlot === 'Tối' ? '#b45309' : '#c2410c',
+                          padding: '4px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1'
+                        }}>
+                          {item.mealSlot}
+                        </span>
+
+                        <div>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
+                            {item.dishName}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2px' }}>
+                            <span>⏱️ {item.time}</span>
+                            <span>•</span>
+                            <span style={{ 
+                              color: item.source === 'Trong kế hoạch' ? '#047857' : '#d97706',
+                              fontWeight: 700 
+                            }}>
+                              {item.source}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                            {item.calories} kcal
+                          </div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857' }}>
+                            {item.protein}g Protein
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLogItem(item.id, item.dishName)}
+                          style={{
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title="Xóa nhật ký này (Tính lại tổng ngày - BR12)"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

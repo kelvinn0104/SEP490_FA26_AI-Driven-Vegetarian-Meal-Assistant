@@ -53,7 +53,32 @@ export default function MealPlannerPage({ onNavigate }) {
   const toggleCookedMeal = (mealId) => {
     setCookedMeals(prev => {
       const nextState = !prev[mealId];
-      showToast(nextState ? '✓ Đã ghi nhận bữa ăn hoàn thành!' : 'Đã bỏ đánh dấu hoàn thành.');
+      showToast(nextState ? '✓ Đã ghi nhận bữa ăn vào nhật ký dinh dưỡng WF03!' : 'Đã bỏ đánh dấu hoàn thành.');
+      
+      try {
+        const existingStr = localStorage.getItem('veggieai_logged_meals');
+        let existingList = existingStr ? JSON.parse(existingStr) : [];
+        const mealObj = currentMealsList.find(m => m.id === mealId);
+        
+        if (nextState && mealObj) {
+          const newLog = {
+            id: `log-${mealObj.id}-${Date.now()}`,
+            mealSlot: mealObj.slot.replace('Bữa ', ''),
+            dishName: mealObj.title,
+            calories: parseInt(mealObj.calories) || 500,
+            protein: parseInt(mealObj.protein) || 20,
+            source: 'Trong kế hoạch',
+            time: mealObj.timeRange ? mealObj.timeRange.split('–')[0].trim() : '12:00'
+          };
+          // Avoid duplication
+          existingList = existingList.filter(l => l.dishName !== mealObj.title);
+          existingList.unshift(newLog);
+        } else if (!nextState && mealObj) {
+          existingList = existingList.filter(l => l.dishName !== mealObj.title);
+        }
+        localStorage.setItem('veggieai_logged_meals', JSON.stringify(existingList));
+      } catch (e) {}
+
       return { ...prev, [mealId]: nextState };
     });
   };
@@ -61,7 +86,7 @@ export default function MealPlannerPage({ onNavigate }) {
   const completedCount = Object.values(cookedMeals).filter(Boolean).length;
 
   // DỮ LIỆU THỰC ĐƠN CHI TIẾT 4 BỮA
-  const dayMeals = [
+  const dayMealsData = [
     {
       id: 'm1',
       slot: 'Bữa Sáng',
@@ -105,12 +130,12 @@ export default function MealPlannerPage({ onNavigate }) {
       isZeroWaste: true,
       zeroWasteNote: '🌱 Món Zero-Waste: Dùng hết cải thìa & đậu hũ trong 24h',
       img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-      mainIngredients: 'Đậu hũ mơ cắt quân cờ nướng giòn không dầu, hạt quinoa nấu mềm dẻo, rau cải thìa xào sơ và bơ sáp Đắk Lắk béo ngậy sốt mè nguyên chất...',
+      mainIngredients: 'Đậu hũ mơ cắt quân cờ nướng giòn không dầu, hạt quinoa nấu mềm dẻo, rau cải thìa xào sơ và bơ sáp Đắc Lắk béo ngậy sốt mè nguyên chất...',
       ingredientsList: [
         'Đậu hũ mơ tươi: 180g (ép ráo, cắt khối vuông)',
         'Hạt Quinoa trắng nấu chín: 1 chén (150g)',
         'Rau cải thìa Đà Lạt: 120g (rửa sạch cắt khúc)',
-        'Bơ sáp Đắk Lắk thái lát: 1/2 quả',
+        'Bơ sáp Đắc Lắk thái lát: 1/2 quả',
         'Sốt mè rang đậu nành thủ công (không ngũ vị tân): 2 muỗng canh',
         'Dầu mè ép lạnh: 1 thìa cà phê'
       ],
@@ -184,6 +209,8 @@ export default function MealPlannerPage({ onNavigate }) {
     }
   ];
 
+  const [currentMealsList, setCurrentMealsList] = useState(dayMealsData);
+
   // STATE MODALS
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const [selectedVideoRecipe, setSelectedVideoRecipe] = useState(null);
@@ -228,8 +255,22 @@ export default function MealPlannerPage({ onNavigate }) {
   ];
 
   const handleApplySwap = (option) => {
+    if (swapModalMeal) {
+      setCurrentMealsList(prev => prev.map(m => {
+        if (m.id === swapModalMeal.id) {
+          return {
+            ...m,
+            title: option.title,
+            calories: option.calories,
+            protein: option.protein,
+            note: `Gợi ý AI (Đã đổi món tương đương 98%): ${option.reason}`
+          };
+        }
+        return m;
+      }));
+    }
     setSwapModalMeal(null);
-    showToast(`✨ Đã đổi sang món "${option.title}" thành công!`);
+    showToast(`✨ Đã đổi sang món "${option.title}" thành công! Thuật toán đã tính lại tổng Calo/Đạm.`);
   };
 
   return (
@@ -640,7 +681,7 @@ export default function MealPlannerPage({ onNavigate }) {
 
             {/* 4 MEAL CARDS (VERTICAL LIST AS PER MOCKUP) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {dayMeals.map((meal) => {
+              {currentMealsList.map((meal) => {
                 const isCooked = cookedMeals[meal.id];
                 const isSaved = savedRecipes.includes(meal.id);
 

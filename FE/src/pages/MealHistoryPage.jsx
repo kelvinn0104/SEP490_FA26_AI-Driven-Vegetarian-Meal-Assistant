@@ -332,6 +332,11 @@ export default function MealHistoryPage({ onNavigate }) {
 
   // ÁP DỤNG LẠI THỰC ĐƠN TUẦN ĐÓ
   const handleApplyWeek = (week) => {
+    try {
+      localStorage.setItem('veggieai_active_meal_plan', JSON.stringify(week));
+    } catch (e) {
+      console.error(e);
+    }
     showToast(`✨ Đã áp dụng lại toàn bộ thực đơn "${week.code}" cho tuần này!`);
     setTimeout(() => {
       if (onNavigate) {

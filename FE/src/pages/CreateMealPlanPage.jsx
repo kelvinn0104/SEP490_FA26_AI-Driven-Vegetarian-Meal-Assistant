@@ -13,11 +13,25 @@ import { useAuth } from '../context/AuthContext';
 export default function CreateMealPlanPage({ onNavigate }) {
   const { user } = useAuth();
 
-  // Luôn scroll về đầu trang khi truy cập
+  // Luôn scroll về đầu trang khi truy cập & Đồng bộ nguyên liệu quét từ WF04 (VisionPage)
   useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    try {
+      const scannedStr = localStorage.getItem('veggieai_scanned_pantry');
+      if (scannedStr) {
+        const scannedItems = JSON.parse(scannedStr);
+        if (Array.isArray(scannedItems) && scannedItems.length > 0) {
+          setPantryIngredients(prev => Array.from(new Set([...scannedItems, ...prev])));
+          setToastMessage(`✨ Đã đồng bộ ${scannedItems.length} nguyên liệu từ Tủ lạnh thông minh (WF04)!`);
+          setTimeout(() => setToastMessage(''), 4500);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   // =========================================================================
