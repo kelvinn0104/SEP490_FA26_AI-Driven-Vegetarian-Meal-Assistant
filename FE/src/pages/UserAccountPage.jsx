@@ -904,6 +904,51 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
             </p>
           </div>
 
+          {/* KHỐI TRẠNG THÁI TUÂN THỦ & VI PHẠM (WF09 STRIKE SYSTEM) */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '1.5rem',
+            marginBottom: '1.75rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: '12px' }}>
+                  HỆ THỐNG KIỂM SOÁT TUÂN THỦ (WF09 STRIKE SYSTEM)
+                </span>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0.4rem 0 0.2rem 0' }}>
+                  Trạng thái tài khoản & Lịch sử Cảnh báo Vi phạm
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.45rem 0.95rem', borderRadius: '12px' }}>
+                <CheckCircle2 size={16} color="#059669" />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#047857' }}>
+                  Tài khoản Trong Sạch (0/3 Strike)
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Cấp độ 1 (Strike 1)</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>Cảnh báo tuân thủ</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Gửi thông báo nhắc nhở quy chuẩn</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Cấp độ 2 (Strike 2)</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#d97706', marginTop: '0.2rem' }}>Tạm ngưng 7 ngày</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Chặn đăng bài & bình luận công khai</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Cấp độ 3 (Strike 3)</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginTop: '0.2rem' }}>Khóa vĩnh viễn</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Đóng tài khoản do vi phạm nghiêm trọng</div>
+              </div>
+            </div>
+          </div>
+
           <Card style={{ padding: '2rem', maxWidth: '780px' }}>
             {accountSaved && (
               <div style={{ background: '#ecfdf5', color: '#047857', padding: '0.65rem 1rem', borderRadius: '10px', fontSize: '0.88rem', fontWeight: 700, border: '1px solid #a7f3d0', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

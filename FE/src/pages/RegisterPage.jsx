@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, HeartPulse, Gift, Scale, Check, Eye, EyeOff, 
-  Lock, Mail, Phone, User, Sparkles, ArrowRight, Shield, Star
+  Lock, Mail, Phone, User, Sparkles, ArrowRight, Shield, Star, CheckCircle2
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function RegisterPage({ onNavigate }) {
+  const { login } = useAuth();
+
   // Luôn đảm bảo khi mở trang Đăng ký thì vị trí cuộn ở đỉnh trang (0, 0)
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -23,6 +26,7 @@ export default function RegisterPage({ onNavigate }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(true);
+  const [registerSuccess, setRegisterSuccess] = useState(false);
 
   const getPasswordStrength = () => {
     if (!password) return { label: 'Chưa nhập', level: 0 };
@@ -33,6 +37,21 @@ export default function RegisterPage({ onNavigate }) {
   };
 
   const strength = getPasswordStrength();
+
+  const handleSocialLogin = (provider) => {
+    const socialUser = {
+      name: provider === 'Google' ? 'Google Member' : 'Apple Member',
+      email: provider === 'Google' ? 'google_user@veggieai.vn' : 'apple_user@veggieai.vn',
+      role: 'AuthorizedUser',
+      roleLabel: 'Thành viên chính thức',
+      dietType: dietGoal
+    };
+    login(socialUser);
+    try {
+      localStorage.setItem('veggieai_active_tab', 'user-profile');
+    } catch (err) {}
+    if (onNavigate) onNavigate('user-profile');
+  };
 
   const handleRegisterSubmit = (e) => {
     e.preventDefault();
@@ -61,16 +80,28 @@ export default function RegisterPage({ onNavigate }) {
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password: password,
+        dietType: dietGoal === 'weight_loss' ? 'vegan' : dietGoal,
         role: 'AuthorizedUser',
         roleLabel: 'Thành viên chính thức'
       };
 
       existingList.push(newUser);
       localStorage.setItem('veggieai_registered_users', JSON.stringify(existingList));
-    } catch (err) {}
 
-    alert(`Chào mừng ${fullName || 'bạn'} gia nhập VeggieAI! Đăng ký thành công, vui lòng đăng nhập.`);
-    if (onNavigate) onNavigate('login');
+      setRegisterSuccess(true);
+
+      // TỰ ĐỘNG ĐĂNG NHẬP VÀ CHUYỂN THẲNG ĐẾN WF01 (HỒ SƠ DINH DƯỠNG)
+      setTimeout(() => {
+        login(newUser);
+        try {
+          localStorage.setItem('veggieai_active_tab', 'user-profile');
+        } catch (err) {}
+        if (onNavigate) onNavigate('user-profile');
+      }, 700);
+
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -241,7 +272,7 @@ export default function RegisterPage({ onNavigate }) {
             <div className="social-section">
               <div className="social-label">ĐĂNG KÝ TỨC THÌ TRONG 3 GIÂY</div>
               <div className="social-buttons-row">
-                <button type="button" className="social-btn google-btn">
+                <button type="button" className="social-btn google-btn" onClick={() => handleSocialLogin('Google')}>
                   <svg className="social-icon" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -251,7 +282,7 @@ export default function RegisterPage({ onNavigate }) {
                   <span>Đăng ký với Google</span>
                 </button>
 
-                <button type="button" className="social-btn apple-btn">
+                <button type="button" className="social-btn apple-btn" onClick={() => handleSocialLogin('Apple')}>
                   <svg className="social-icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.65 1.35-.58.66-1.09 1.73-.96 2.76 1.01.08 2.05-.51 2.69-1.26z"/>
                   </svg>
@@ -265,6 +296,28 @@ export default function RegisterPage({ onNavigate }) {
               <span className="divider-text">HOẶC ĐĂNG KÝ VỚI EMAIL</span>
               <span className="divider-line"></span>
             </div>
+
+            {/* REGISTER SUCCESS BANNER */}
+            {registerSuccess && (
+              <div style={{
+                padding: '0.85rem 1rem',
+                background: '#ecfdf5',
+                color: '#047857',
+                borderRadius: '12px',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                marginBottom: '1.25rem',
+                border: '1px solid #a7f3d0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}>
+                <CheckCircle2 size={18} />
+                <span>🎉 Đăng ký thành công! Đang tự động đăng nhập & chuyển sang Hồ sơ dinh dưỡng...</span>
+              </div>
+            )}
 
             {/* FORM FIELDS */}
             <form onSubmit={handleRegisterSubmit} className="register-form">

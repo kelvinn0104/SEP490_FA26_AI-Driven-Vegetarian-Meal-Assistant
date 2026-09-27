@@ -232,7 +232,7 @@ export default function App() {
         {/* BẢO VỆ CHỨC NĂNG QUÉT TỦ LẠNH: YÊU CẦU ĐĂNG KÝ */}
         {activeTab === 'vision' && (
           user ? (
-            <VisionPage />
+            <VisionPage onNavigate={handleNavigate} />
           ) : (
             <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
               <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
