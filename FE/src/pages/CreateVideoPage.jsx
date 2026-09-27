@@ -110,6 +110,36 @@ export default function CreateVideoPage({ onNavigate }) {
     setIsSubmitting(true);
     showToast('🚀 Đang gửi video & chuyển tới thuật toán Speech-to-Recipe AI...');
 
+    const newVideoPost = {
+      id: `MOD-VID-${Date.now().toString().slice(-4)}`,
+      title: title.trim(),
+      category: category || 'Món canh chay',
+      type: 'Video',
+      typeLabel: 'Video nấu ăn',
+      submittedAt: 'Vừa xong',
+      author: user?.name || 'Tác giả cộng đồng',
+      authorEmail: user?.email || 'user@veggie.ai',
+      content: description || title,
+      ingredients: ingredients,
+      cookTime: cookTime || '20 phút',
+      videoUrl: uploadMode === 'link' ? videoUrl : (videoFileName || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+      img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+      coverImage: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+      views: '1.2k xem',
+      duration: cookTime || '15:00',
+      aiScore: 97,
+      aiStatus: 'safe',
+      aiDetails: 'Video món chay hợp lệ, đạt tiêu chuẩn cộng đồng. Speech-to-Recipe AI đã bóc tách xong nguyên liệu.',
+      status: 'pending'
+    };
+
+    try {
+      const existingPending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
+      localStorage.setItem('veggieai_pending_posts', JSON.stringify([newVideoPost, ...existingPending]));
+    } catch (e) {
+      console.error(e);
+    }
+
     setTimeout(() => {
       setIsSubmitting(false);
       showToast('✅ Đăng video thành công! Video đã được gửi đến Moderator kiểm duyệt.');

@@ -294,8 +294,36 @@ export default function VideosPage({ onNavigate }) {
     }
   ];
 
+  const [videoList, setVideoList] = useState(latestVideos);
+
+  useEffect(() => {
+    try {
+      const userPublished = JSON.parse(localStorage.getItem('veggieai_user_published_posts') || '[]');
+      const userVideos = userPublished.filter(p => p.type === 'Video').map(v => ({
+        id: v.id,
+        title: v.title,
+        author: v.author || 'Tác giả cộng đồng',
+        views: v.views || 'Mới đăng',
+        duration: v.duration || '10:00',
+        timeCategory: '5 - 15 phút',
+        category: v.category || 'Món canh chay',
+        macroShort: '300 kcal • 10g đạm',
+        macro: { calories: '300 kcal', protein: '10g', carbs: '35g', fat: '8g' },
+        img: v.img || v.coverImage || 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
+        aiCoreTips: [
+          { title: 'Nguyên liệu bóc tách bởi Speech-to-Recipe AI:', desc: Array.isArray(v.ingredients) ? v.ingredients.join(', ') : 'Rau củ tươi thuần chay' }
+        ],
+        ingredients: Array.isArray(v.ingredients) ? v.ingredients : [v.ingredients || 'Nguyên liệu tươi'],
+        steps: Array.isArray(v.steps) && v.steps.length > 0 ? v.steps : [v.content || 'Xem video hướng dẫn chi tiết']
+      }));
+      if (userVideos.length > 0) {
+        setVideoList([...userVideos, ...latestVideos]);
+      }
+    } catch (e) {}
+  }, []);
+
   // Filtering logic
-  const filteredVideos = latestVideos.filter(video => {
+  const filteredVideos = videoList.filter(video => {
     const matchesCategory = activeCategory === 'Tất cả' || video.category === activeCategory;
     const matchesTime = activeTimeFilter === 'Tất cả' || video.timeCategory === activeTimeFilter;
     const matchesSearch = !searchQuery || 

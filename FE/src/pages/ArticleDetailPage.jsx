@@ -89,7 +89,49 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
   const [isSaved, setIsSaved] = useState(false);
   const [likes, setLikes] = useState(article.likesCount);
   const [hasLiked, setHasLiked] = useState(false);
+  const [userRating, setUserRating] = useState(5);
+  const [avgRating, setAvgRating] = useState(4.9);
   const [toastMessage, setToastMessage] = useState('');
+
+  // REPORT MODAL STATE (WF09 INTEGRATION)
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('Nội dung công thức chưa chính xác');
+
+  const handleConfirmReport = () => {
+    const reportItem = {
+      id: `rep_${Date.now()}`,
+      targetId: article.id,
+      targetContent: article.title,
+      reason: reportReason,
+      reportedBy: 'AuthorizedUser',
+      timestamp: new Date().toLocaleString()
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem('veggieai_reported_items') || '[]');
+      localStorage.setItem('veggieai_reported_items', JSON.stringify([reportItem, ...existing]));
+    } catch (e) {}
+    setShowReportModal(false);
+    showToast('✓ Đã gửi báo cáo bài viết đến Moderator kiểm duyệt (WF09)!');
+  };
+
+  const handleRating = (stars) => {
+    setUserRating(stars);
+    setAvgRating(((avgRating * 128 + stars) / 129).toFixed(1));
+    showToast(`⭐ Cảm ơn bạn đã đánh giá ${stars} sao cho công thức này!`);
+  };
+
+  const handleAddToPlan = () => {
+    try {
+      const existingStr = localStorage.getItem('veggieai_scanned_pantry');
+      const existing = existingStr ? JSON.parse(existingStr) : [];
+      const newItems = article.ingredients ? article.ingredients.map(i => i.name) : [article.title];
+      localStorage.setItem('veggieai_scanned_pantry', JSON.stringify(Array.from(new Set([...newItems, ...existing]))));
+    } catch (e) {}
+    showToast(`📅 Đã nạp nguyên liệu công thức "${article.title}" vào Thực đơn AI (WF02)!`);
+    setTimeout(() => {
+      if (onNavigate) onNavigate('create-plan');
+    }, 450);
+  };
 
   // COMMENTS STATE
   const [commentText, setCommentText] = useState('');
@@ -225,8 +267,12 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
             <ArrowLeft size={16} /> Quay lại Blog
           </button>
 
-          <span style={{ color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => showToast('Cảm ơn bạn! Đã ghi nhận phản hồi.')}>
-            Phản hồi / Báo cáo lỗi
+          <span 
+            style={{ color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} 
+            onClick={() => setShowReportModal(true)}
+            title="Báo cáo nội dung bài viết vi phạm cho Moderator"
+          >
+            🚩 Phản hồi / Báo cáo vi phạm (WF09)
           </span>
         </div>
 
@@ -503,10 +549,7 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
               </div>
 
               <button
-                onClick={() => {
-                  showToast('📅 Đã thêm món "Cà Ri Bí Đỏ Hạt Sen" vào Thực đơn tuần!');
-                  if (onNavigate) onNavigate('planner');
-                }}
+                onClick={handleAddToPlan}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -523,7 +566,7 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
                 }}
               >
                 <Calendar size={15} />
-                <span>+ Thêm món này vào Thực đơn tuần</span>
+                <span>+ Thêm nguyên liệu món này vào Thực đơn AI (WF02)</span>
               </button>
             </div>
 
@@ -686,7 +729,70 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
 
         </div>
 
-      </div>
+    </div>
+
+      {/* ========================================================================= */}
+      {/* REPORT MODAL POPUP (WF09 INTEGRATION) */}
+      {/* ========================================================================= */}
+      {showReportModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '1.25rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '1.75rem',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              🚩 Báo Cáo Nội Dung Bài Viết / Công Thức Vi Phạm (WF09)
+            </h3>
+            <p style={{ fontSize: '0.86rem', color: '#64748b', margin: '0 0 1rem 0' }}>
+              Báo cáo sẽ chuyển trực tiếp tới Hàng chờ Kiểm duyệt (Moderator Queue) để chuyên gia xem xét.
+            </p>
+
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '1.15rem' }}>
+              Bài viết: "{article.title}"
+            </div>
+
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+              Chọn lý do báo cáo vi phạm:
+            </label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', marginBottom: '1.5rem', outline: 'none' }}
+            >
+              <option value="Nội dung công thức chưa chính xác">Nội dung công thức chưa chính xác</option>
+              <option value="Chứa thành phần dị ứng nguy hiểm">Chứa thành phần dị ứng nguy hiểm</option>
+              <option value="Hình ảnh hoặc nội dung vi phạm bản quyền">Hình ảnh hoặc nội dung vi phạm bản quyền</option>
+              <option value="Ngôn từ không phù hợp quy chuẩn cộng đồng">Ngôn từ không phù hợp quy chuẩn cộng đồng</option>
+            </select>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={() => setShowReportModal(false)}>
+                Hủy bỏ
+              </Button>
+              <Button variant="primary" onClick={handleConfirmReport} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
+                Gửi Báo Cáo (WF09)
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

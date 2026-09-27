@@ -79,7 +79,7 @@ export default function BlogPage({ onNavigate }) {
   };
 
   // 6 LATEST ARTICLES EXACTLY MATCHING THE USER SCREENSHOT
-  const latestArticles = [
+  const baseArticles = [
     {
       id: 'art-1',
       category: 'Bí quyết nấu ăn',
@@ -193,6 +193,17 @@ export default function BlogPage({ onNavigate }) {
       `
     }
   ];
+
+  const [latestArticles, setLatestArticles] = useState(baseArticles);
+
+  useEffect(() => {
+    try {
+      const userPublished = JSON.parse(localStorage.getItem('veggieai_user_published_posts') || '[]');
+      if (userPublished.length > 0) {
+        setLatestArticles([...userPublished, ...baseArticles]);
+      }
+    } catch (e) {}
+  }, []);
 
   // FILTERING LOGIC
   const filteredArticles = latestArticles.filter(art => {

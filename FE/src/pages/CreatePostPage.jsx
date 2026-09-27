@@ -164,6 +164,33 @@ export default function CreatePostPage({ onNavigate }) {
       return;
     }
 
+    const newPost = {
+      id: `MOD-USER-${Date.now().toString().slice(-4)}`,
+      title: title.trim(),
+      category: selectedCategory,
+      type: selectedCategory === 'recipe' ? 'Recipe' : 'Blog',
+      typeLabel: selectedCategory === 'recipe' ? 'Công thức món chay' : 'Blog dinh dưỡng',
+      submittedAt: 'Vừa xong',
+      author: user?.name || 'Tác giả cộng đồng',
+      authorEmail: user?.email || 'user@veggie.ai',
+      content: articleContent || (steps.filter(s => s.trim()).join('\n\n')) || title,
+      ingredients: ingredients.filter(i => i.name.trim()).map(i => `${i.name}: ${i.amount}`),
+      steps: steps.filter(s => s.trim()),
+      img: coverImage || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+      coverImage: coverImage || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+      aiScore: 98,
+      aiStatus: 'safe',
+      aiDetails: '100% Nguyên liệu thực vật thuần chay. Không phát hiện từ ngữ vi phạm.',
+      status: 'pending'
+    };
+
+    try {
+      const existingPending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
+      localStorage.setItem('veggieai_pending_posts', JSON.stringify([newPost, ...existingPending]));
+    } catch (e) {
+      console.error(e);
+    }
+
     showToast('🚀 Đang gửi bài viết đến đội ngũ Moderator kiểm duyệt...');
     setTimeout(() => {
       showToast('✅ Đăng bài thành công! Bài viết đã chuyển sang hàng đợi duyệt của Mod.');

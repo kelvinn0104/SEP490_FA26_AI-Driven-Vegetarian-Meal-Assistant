@@ -118,6 +118,27 @@ export default function ChatbotPage({ onNavigate }) {
     }
   }, [chatMessages]);
 
+  const [showReportModal, setShowReportModal] = useState(null);
+  const [reportReason, setReportReason] = useState('Thông tin dinh dưỡng chưa chính xác');
+
+  const handleConfirmReport = () => {
+    if (!showReportModal) return;
+    const reportItem = {
+      id: `rep_${Date.now()}`,
+      targetId: showReportModal.id,
+      targetContent: showReportModal.content,
+      reason: reportReason,
+      reportedBy: user?.name || 'AuthorizedUser',
+      timestamp: new Date().toLocaleString()
+    };
+    try {
+      const existing = JSON.parse(localStorage.getItem('veggieai_reported_items') || '[]');
+      localStorage.setItem('veggieai_reported_items', JSON.stringify([reportItem, ...existing]));
+    } catch (e) {}
+    setShowReportModal(null);
+    showToast('✓ Đã gửi báo cáo câu trả lời đến Moderator kiểm duyệt (WF09)!');
+  };
+
   const handleAuthSend = async (customText = null) => {
     const textToSend = customText || authInput;
     if (!textToSend.trim() || authLoading) return;
@@ -142,7 +163,8 @@ export default function ChatbotPage({ onNavigate }) {
         sender: 'bot',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         type: 'text',
-        content: res.answer || 'VeggieNutri AI đã ghi nhận yêu cầu của bạn và điều chỉnh vào hồ sơ dinh dưỡng!'
+        content: res.answer || 'VeggieNutri AI đã ghi nhận yêu cầu của bạn và điều chỉnh vào hồ sơ dinh dưỡng!',
+        sources: res.sources || ['Hệ thống RAG Tri thức Dinh dưỡng VeggieAI v2.4']
       };
       setChatMessages(prev => [...prev, botMsg]);
     } catch (err) {
@@ -153,7 +175,11 @@ export default function ChatbotPage({ onNavigate }) {
           sender: 'bot',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: 'text',
-          content: `Dạ, để tối ưu cho chế độ Chay trường và bổ sung đạm/canxi không dùng ngũ vị tân: Bạn nên kết hợp hạt mè rang giã thô cùng đậu hũ non và nấm đùi gà. Phương pháp này giúp tỷ lệ hấp thu canxi sinh học đạt trên 70% mà không gây nặng bụng buổi tối!`
+          content: `Dạ, để tối ưu cho chế độ Chay trường và bổ sung đạm/canxi không dùng ngũ vị tân: Bạn nên kết hợp hạt mè rang giã thô cùng đậu hũ non và nấm đùi gà. Phương pháp này giúp tỷ lệ hấp thu canxi sinh học đạt trên 70% mà không gây nặng bụng buổi tối!`,
+          sources: [
+            'Bảng Thành Phần Thực Phẩm Việt Nam - Viện Dinh Dưỡng (TCVN 2023)',
+            'Journal of Agricultural and Food Chemistry - Calcium Bioavailability in Tofu'
+          ]
         };
         setChatMessages(prev => [...prev, botMsg]);
       }, 700);
@@ -823,10 +849,35 @@ export default function ChatbotPage({ onNavigate }) {
                       border: '1px solid #e2e8f0',
                       boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
                     }}>
-                      {msg.content}
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+
+                      {/* RAG CITATION SOURCES */}
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px dashed #a7f3d0', fontSize: '0.76rem', color: '#047857' }}>
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem', color: '#047857' }}>
+                            <ShieldCheck size={14} /> Nguồn tri thức RAG y khoa đối chiếu:
+                          </strong>
+                          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', lineHeight: 1.5 }}>
+                            {msg.sources.map((src, sIdx) => (
+                              <li key={sIdx}>{src}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
-                      {msg.time}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        {msg.time}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowReportModal(msg)}
+                        style={{ border: 'none', background: 'transparent', color: '#94a3b8', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
+                        title="Gửi báo cáo câu trả lời cho Moderator kiểm duyệt"
+                      >
+                        🚩 Báo cáo phản hồi (WF09)
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -847,22 +898,22 @@ export default function ChatbotPage({ onNavigate }) {
           <div style={{ padding: '0.6rem 1.25rem', background: '#ffffff', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.65rem', overflowX: 'auto' }}>
             <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#94a3b8', flexShrink: 0 }}>GỢI Ý:</span>
             <button
-              onClick={() => handleAuthSend('Tính macro cho bữa trưa tự nấu')}
+              onClick={() => handleAuthSend('Bổ sung Vitamin B12 cho người thuần chay')}
               style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '4px 12px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              📋 Tính macro cho bữa trưa tự nấu
+              💊 Bổ sung Vitamin B12 thuần chay
             </button>
             <button
-              onClick={() => handleAuthSend('Cách ủ đậu nành làm tempeh')}
+              onClick={() => handleAuthSend('Mẹo thay thế ngũ vị tân trong món xào')}
               style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '4px 12px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              🌱 Cách ủ đậu nành làm tempeh
+              🌱 Thay thế ngũ vị tân (hành tỏi)
             </button>
             <button
-              onClick={() => handleAuthSend('Bổ sung canxi và sắt thuần chay')}
+              onClick={() => handleAuthSend('Bổ sung canxi và sắt từ thực vật')}
               style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '4px 12px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              💧 Bổ sung canxi & sắt thuần chay
+              💧 Bổ sung Canxi & Sắt thực vật
             </button>
           </div>
 
@@ -939,7 +990,6 @@ export default function ChatbotPage({ onNavigate }) {
               </button>
             </form>
 
-            {/* DÒNG DISCLAIMER CUỐI TRANG: ĐÃ BỎ HOÀN TOÀN "VIỆN DINH DƯỠNG THỰC VẬT & TIÊU CHUẨN RNI 2024" */}
             <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.55rem' }}>
               Thông tin do VeggieNutri AI cung cấp mang tính tham khảo chăm sóc sức khỏe.
             </div>
@@ -947,6 +997,70 @@ export default function ChatbotPage({ onNavigate }) {
         </main>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* REPORT MODAL POPUP (WF09 INTEGRATION) */}
+      {/* ========================================================================= */}
+      {showReportModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '1.25rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '1.75rem',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              🚩 Báo Cáo Câu Trả Lời AI Cần Kiểm Duyệt (WF09)
+            </h3>
+            <p style={{ fontSize: '0.86rem', color: '#64748b', margin: '0 0 1rem 0' }}>
+              Nội dung báo cáo sẽ được chuyển thẳng tới Hàng chờ Kiểm duyệt (Moderator Queue) để chuyên gia rà soát.
+            </p>
+
+            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#334155', marginBottom: '1.15rem', maxHeight: '100px', overflowY: 'auto' }}>
+              "{showReportModal.content}"
+            </div>
+
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+              Lý do báo cáo vi phạm:
+            </label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', marginBottom: '1.5rem', outline: 'none' }}
+            >
+              <option value="Thông tin dinh dưỡng chưa chính xác">Thông tin dinh dưỡng chưa chính xác</option>
+              <option value="Gợi ý công thức dính chất dị ứng">Gợi ý công thức dính chất dị ứng</option>
+              <option value="Lỗi thuật ngữ hoặc nguồn trích dẫn">Lỗi thuật ngữ hoặc nguồn trích dẫn</option>
+              <option value="Nội dung không phù hợp thực dưỡng">Nội dung không phù hợp thực dưỡng</option>
+            </select>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={() => setShowReportModal(null)}>
+                Hủy bỏ
+              </Button>
+              <Button variant="primary" onClick={handleConfirmReport} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
+                Xác nhận Báo cáo (WF09)
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

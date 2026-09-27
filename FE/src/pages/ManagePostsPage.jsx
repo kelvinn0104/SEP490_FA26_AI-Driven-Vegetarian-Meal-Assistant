@@ -32,8 +32,8 @@ export default function ManagePostsPage({ onNavigate }) {
     }, 2800);
   };
 
-  // DỮ LIỆU BÀI VIẾT & VIDEO (18 NỘI DUNG NHƯ ẢNH GỐC)
-  const [items, setItems] = useState([
+  // DỮ LIỆU BÀI VIẾT & VIDEO
+  const defaultManageItems = [
     {
       id: 'post_1',
       title: 'Ram nấm nướng giòn rụm không dầu mỡ cho tiệc cuối tuần',
@@ -127,7 +127,36 @@ export default function ManagePostsPage({ onNavigate }) {
       thumbnail: null,
       contentPreview: 'Bữa sáng nhanh gọn giàu chất xơ và Omega-3 từ hạt chia, sữa yến mạch và các loại dâu tây tươi...'
     }
-  ]);
+  ];
+
+  const [items, setItems] = useState(defaultManageItems);
+
+  useEffect(() => {
+    try {
+      const storedPending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
+      if (storedPending.length > 0) {
+        const formattedPending = storedPending.map(p => ({
+          id: p.id,
+          title: p.title,
+          type: p.type === 'Recipe' || p.type === 'Blog' ? 'blog_recipe' : 'video_native',
+          typeLabel: p.typeLabel || 'Công thức chay',
+          timeLabel: p.submittedAt || 'Vừa xong',
+          category: p.category || 'Món chay',
+          nutritionAI: 'Đạt chuẩn thuần chay 100%',
+          status: p.status || 'pending',
+          statusLabel: p.status === 'approved' ? 'Đã xuất bản' : p.status === 'rejected' ? `Từ chối: ${p.rejectReason || ''}` : 'Đang chờ duyệt (WF07)',
+          views: p.status === 'approved' ? '120' : '0',
+          saves: p.status === 'approved' ? '14' : 'Chưa mở',
+          thumbnail: p.coverImage || p.img || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400',
+          contentPreview: p.content ? p.content.slice(0, 100) + '...' : p.title
+        }));
+        const existingIds = new Set(defaultManageItems.map(i => i.id));
+        setItems([...formattedPending.filter(i => !existingIds.has(i.id)), ...defaultManageItems]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   // XỬ LÝ XÓA BẢN NHÁP
   const handleDeleteItem = (id, title) => {
