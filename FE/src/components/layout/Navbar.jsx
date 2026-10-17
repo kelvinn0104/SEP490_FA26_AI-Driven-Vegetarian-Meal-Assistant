@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Navbar({ activeTab, setActiveTab }) {
+export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -108,6 +108,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
 
   const handleNavClick = (tab) => {
     if (setActiveTab) setActiveTab(tab);
+    if (onNavigate) onNavigate(tab);
     setShowDropdown(false);
     setShowNotifications(false);
     window.scrollTo(0, 0);
@@ -201,7 +202,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 onClick={() => handleNavClick('register')}
                 title="Bắt đầu thiết lập hồ sơ dinh dưỡng cá nhân"
               >
-                Bắt đầu thử
+                Đăng ký
               </button>
             </>
           ) : (

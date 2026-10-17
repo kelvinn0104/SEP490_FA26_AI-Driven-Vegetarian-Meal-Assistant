@@ -1,11 +1,13 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { getStoredUser, setStoredUser, getAuthToken, setAuthToken } from '../api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Khởi tạo từ localStorage nếu có, mặc định là null (khách vãng lai)
   const [user, setUser] = useState(() => {
     try {
+      const stored = getStoredUser();
+      if (stored) return stored;
       const saved = localStorage.getItem('veggieai_user');
       return saved ? JSON.parse(saved) : null;
     } catch (e) {
@@ -21,46 +23,16 @@ export function AuthProvider({ children }) {
       roleLabel: 'Thành viên chính thức'
     };
     setUser(finalUser);
+    setStoredUser(finalUser);
     try {
       localStorage.setItem('veggieai_user', JSON.stringify(finalUser));
     } catch (e) {}
   };
 
-  const loginAsAdmin = () => {
-    try {
-      localStorage.setItem('veggieai_active_tab', 'admin');
-    } catch (e) {}
-    login({
-      name: 'Admin',
-      email: 'admin@veggieai.vn',
-      role: 'Admin',
-      roleLabel: 'Admin'
-    });
-  };
-
-  const loginAsMod = () => {
-    try {
-      localStorage.setItem('veggieai_active_tab', 'moderation');
-    } catch (e) {}
-    login({
-      name: 'Lê Tuệ Tâm',
-      email: 'mod@veggieai.vn',
-      role: 'Moderator',
-      roleLabel: 'Moderator'
-    });
-  };
-
-  const loginAsUser = () => {
-    login({
-      name: 'Thành Viên Thuần Chay',
-      email: 'user@veggieai.vn',
-      role: 'AuthorizedUser',
-      roleLabel: 'Thành viên chính thức (User)'
-    });
-  };
-
   const logout = () => {
     setUser(null);
+    setStoredUser(null);
+    setAuthToken(null);
     try {
       localStorage.removeItem('veggieai_user');
       localStorage.removeItem('veggieai_active_tab');
@@ -68,12 +40,20 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, loginAsAdmin, loginAsMod, loginAsUser, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    return {
+      user: null,
+      login: () => {},
+      logout: () => {},
+    };
+  }
+  return context;
 }

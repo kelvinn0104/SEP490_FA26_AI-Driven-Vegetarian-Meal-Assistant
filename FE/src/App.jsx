@@ -1,377 +1,388 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './components/layout/Navbar';
-import Footer from './components/layout/Footer';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import MealPlannerPage from './pages/MealPlannerPage';
-import VisionPage from './pages/VisionPage';
-import ChatbotPage from './pages/ChatbotPage';
-import CommunityPage from './pages/CommunityPage';
-import BlogPage from './pages/BlogPage';
-import VideosPage from './pages/VideosPage';
-import AdminDashboard from './pages/AdminDashboard';
-import ModDashboard from './pages/ModDashboard';
-import ModerationQueue from './pages/ModerationQueue';
-import UserAccountPage from './pages/UserAccountPage';
-import HealthProfilePage from './pages/HealthProfilePage';
-import CreateMealPlanPage from './pages/CreateMealPlanPage';
-import NutritionDashboardPage from './pages/NutritionDashboardPage';
-import MealHistoryPage from './pages/MealHistoryPage';
-import CreatePostPage from './pages/CreatePostPage';
-import CreateVideoPage from './pages/CreateVideoPage';
-import MyCollectionPage from './pages/MyCollectionPage';
-import ManagePostsPage from './pages/ManagePostsPage';
-import ArticleDetailPage from './pages/ArticleDetailPage';
-import VideoDetailPage from './pages/VideoDetailPage';
-import { useAuth } from './context/AuthContext';
-import { ShieldAlert, LogIn, Lock, Sparkles, Camera } from 'lucide-react';
-import Button from './components/ui/Button';
-import Card from './components/ui/Card';
+import { getAuthToken, authApi } from './api';
+import { useAuth } from './context/AuthContext.jsx';
+import { Sidebar } from './components/layout/Sidebar';
+import { Header } from './components/layout/Header';
+import { Navbar, Footer } from './components/layout';
+import { SearchModal } from './components/ui/SearchModal';
+import { AgentModal } from './components/ui/AgentModal';
+import { DocModal } from './components/ui/DocModal';
+import { Card, Button } from './components/ui';
+import { Sparkles, Camera } from 'lucide-react';
+
+// Admin & Mod screens
+import { DashboardScreen } from './pages/DashboardScreen';
+import {
+  UserManagementScreen,
+  AiMonitoringScreen,
+  RoleManagementScreen,
+} from './pages/admin';
+import {
+  CategoryManagementScreen,
+  ContentModerationScreen,
+  RecipeManagementScreen,
+} from './pages/mod';
+
+// User pages
+import {
+  HomePage,
+  LoginPage,
+  RegisterPage,
+  MealPlannerPage,
+  CreateMealPlanPage,
+  MealHistoryPage,
+  VisionPage,
+  ChatbotPage,
+  CommunityPage,
+  BlogPage,
+  VideosPage,
+  ArticleDetailPage,
+  VideoDetailPage,
+  HealthProfilePage,
+  NutritionDashboardPage,
+  MyCollectionPage,
+  ManagePostsPage,
+  UserAccountPage,
+  CreatePostPage,
+  CreateVideoPage,
+} from './pages/user';
+
+const adminScreens = [
+  'dashboard',
+  'user-management',
+  'category-management',
+  'content-moderation',
+  'recipe-management',
+  'ai-model-monitoring',
+  'role-management',
+];
+
+const userScreens = [
+  'home',
+  'login',
+  'register',
+  'planner',
+  'create-plan',
+  'create-mealplan',
+  'meal-history',
+  'vision',
+  'chatbot',
+  'community',
+  'blog',
+  'videos',
+  'article-detail',
+  'video-detail',
+  'user-profile',
+  'user-nutrition',
+  'user-collection',
+  'user-posts',
+  'user-settings',
+  'create-post',
+  'create-video',
+];
 
 export default function App() {
-  const { user, loginAsAdmin } = useAuth();
+  const { user: authUser, login: authLogin, logout: authLogout } = useAuth();
 
-  // XÁC ĐỊNH TAB KHỞI TẠO HOẶC PHỤC HỒI SAU KHI NHẤN F5
-  const getInitialTab = () => {
-    try {
-      // 1. Kiểm tra tài khoản đã lưu trong localStorage
-      const savedUserStr = localStorage.getItem('veggieai_user');
-      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
-      const role = savedUser?.role;
+  const isAuthenticated = !!authUser;
+  const currentUser = authUser;
+  const userRole = (() => {
+    const role = (authUser?.role || '').toLowerCase();
+    if (role === 'admin') return 'admin';
+    if (role === 'moderator' || role === 'mod') return 'mod';
+    return 'user';
+  })();
 
-      // 2. Kiểm tra tab gần nhất đã lưu trong session/localStorage
-      const savedTab = localStorage.getItem('veggieai_active_tab');
-
-      // 3. Nếu là Admin: mặc định là 'admin' (Admin Dashboard), giữ nguyên tab nếu đang mở trang hợp lệ
-      if (role === 'Admin') {
-        if (savedTab && !['login', 'register', 'home'].includes(savedTab)) {
-          return savedTab;
-        }
-        return 'admin';
-      }
-
-      // 4. Nếu là Moderator: mặc định là 'moderation' (Moderator Dashboard), giữ nguyên tab nếu đang mở trang hợp lệ
-      if (role === 'Moderator') {
-        if (savedTab && !['login', 'register', 'home'].includes(savedTab)) {
-          return savedTab;
-        }
-        return 'moderation';
-      }
-
-      // 5. Nếu là User hoặc Khách: giữ nguyên tab đã lưu nếu không phải tab quản trị
-      if (savedTab && !['admin', 'moderation'].includes(savedTab)) {
-        return savedTab;
-      }
-
-      return 'home';
-    } catch (e) {
-      return 'home';
+  // Mặc định khi truy cập trang web luôn là Trang chủ (HomePage)
+  const [currentScreen, setCurrentScreen] = useState(() => {
+    const path = window.location.pathname.replace('/', '');
+    if (adminScreens.includes(path) && authUser) {
+      return path;
     }
-  };
-
-  const [activeTab, setActiveTab] = useState(getInitialTab);
-
-  // VÔ HIỆU HÓA SCROLL RESTORATION TỰ ĐỘNG CỦA TRÌNH DUYỆT ĐỂ LUÔN BẮT ĐẦU Ở ĐẦU TRANG
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
+    if (userScreens.includes(path)) {
+      return path;
     }
-  }, []);
+    return 'home';
+  });
 
   const [selectedArticleData, setSelectedArticleData] = useState(null);
   const [selectedVideoData, setSelectedVideoData] = useState(null);
+  const [pendingCount, setPendingCount] = useState(14);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // ĐIỀU HƯỚNG VÀ TỰ ĐỘNG LƯU VÀO LOCALSTORAGE ĐỂ TRÁNH BỊ MẤT TRANG KHI F5
-  const handleNavigate = (tab, data = null) => {
-    if (tab === 'article-detail' && data) {
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.replace('/', '');
+      if (adminScreens.includes(path)) {
+        if (isAuthenticated) {
+          setCurrentScreen(path);
+        } else {
+          setCurrentScreen('login');
+        }
+      } else if (userScreens.includes(path)) {
+        setCurrentScreen(path);
+      } else {
+        setCurrentScreen('home');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isAuthenticated]);
+
+  const handleNavigate = (screen, data = null) => {
+    if (screen === 'article-detail' && data) {
       setSelectedArticleData(data);
     }
-    if (tab === 'video-detail' && data) {
+    if (screen === 'video-detail' && data) {
       setSelectedVideoData(data);
     }
-    setActiveTab(tab);
-    try {
-      localStorage.setItem('veggieai_active_tab', tab);
-    } catch (e) {}
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  };
 
-  // ĐẢM BẢO KHI ĐĂNG NHẬP HOẶC ĐỔI ROLE THÌ ADMIN & MOD TỰ ĐỘNG CHUYỂN ĐẾN DASHBOARD MẶC ĐỊNH
-  useEffect(() => {
-    if (user?.role === 'Admin') {
-      const savedTab = localStorage.getItem('veggieai_active_tab');
-      if (!savedTab || ['login', 'register', 'home'].includes(savedTab)) {
-        handleNavigate('admin');
+    // Bảo vệ các màn hình Admin/Mod: nếu chưa đăng nhập thì chuyển hướng sang trang Đăng nhập chung
+    if (adminScreens.includes(screen)) {
+      if (!isAuthenticated || (userRole !== 'admin' && userRole !== 'mod')) {
+        setCurrentScreen('login');
+        window.history.pushState({}, '', '/login');
+        window.scrollTo(0, 0);
+        return;
       }
-    } else if (user?.role === 'Moderator') {
-      const savedTab = localStorage.getItem('veggieai_active_tab');
-      if (!savedTab || ['login', 'register', 'home'].includes(savedTab) || ['login', 'register', 'home'].includes(activeTab)) {
-        handleNavigate('moderation');
+      // Mod không truy cập được màn hình của Admin
+      if (userRole === 'mod' && ['user-management', 'ai-model-monitoring', 'role-management'].includes(screen)) {
+        setCurrentScreen('dashboard');
+        window.history.pushState({}, '', '/dashboard');
+        window.scrollTo(0, 0);
+        return;
       }
-    } else if (!user) {
-      // Khi đã đăng xuất, nếu tab hiện tại là trang quản trị thì quay về home
-      if (activeTab === 'admin' || activeTab === 'moderation') {
-        handleNavigate('home');
+      // Admin không truy cập được màn hình của Mod
+      if (userRole === 'admin' && ['category-management', 'content-moderation', 'recipe-management'].includes(screen)) {
+        setCurrentScreen('dashboard');
+        window.history.pushState({}, '', '/dashboard');
+        window.scrollTo(0, 0);
+        return;
       }
     }
-  }, [user]);
 
-  // ĐẢM BẢO MỌI THAY ĐỔI TAB LUÔN ĐƯỢC BẮT ĐẦU Ở ĐẦU TRANG MỚI (RAF + BACKUP TIMERS)
-  useEffect(() => {
+    setCurrentScreen(screen);
+    const newPath = screen === 'home' ? '/' : `/${screen}`;
+    window.history.pushState({}, '', newPath);
     window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+  };
 
-    const raf = requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    });
+  const handleLogin = (role, user) => {
+    authLogin(user);
+    const normalizedRole = (role || user?.role || '').toLowerCase();
+    const effectiveRole = normalizedRole === 'admin' ? 'admin' : (normalizedRole === 'moderator' || normalizedRole === 'mod' ? 'mod' : 'user');
 
-    const timer1 = setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 50);
+    if (effectiveRole === 'admin') {
+      handleNavigate('dashboard');
+    } else if (effectiveRole === 'mod') {
+      handleNavigate('dashboard');
+    } else {
+      handleNavigate('home');
+    }
+  };
 
-    const timer2 = setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 150);
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch { }
+    authLogout();
+    handleNavigate('home');
+  };
 
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+  const handleToggleRole = () => {
+    const nextRole = userRole === 'admin' ? 'mod' : 'admin';
+    const updatedUser = {
+      ...authUser,
+      role: nextRole === 'admin' ? 'Admin' : 'Moderator',
+      roleLabel: nextRole === 'admin' ? 'Admin' : 'Moderator'
     };
-  }, [activeTab]);
+    authLogin(updatedUser);
+    if (nextRole === 'mod' && ['user-management', 'ai-model-monitoring', 'role-management'].includes(currentScreen)) {
+      handleNavigate('category-management');
+    } else if (nextRole === 'admin' && ['category-management', 'content-moderation', 'recipe-management'].includes(currentScreen)) {
+      handleNavigate('dashboard');
+    }
+  };
 
-  // NẾU ADMIN ĐANG XEM ADMIN DASHBOARD: HIỂN THỊ TRỌN VẸN GIAO DIỆN OPS PORTAL CHUYÊN NGHIỆP
-  if (activeTab === 'admin' && user && user.role === 'Admin') {
-    return <AdminDashboard onNavigate={handleNavigate} />;
+  const isAdminView = adminScreens.includes(currentScreen) && isAuthenticated && (userRole === 'admin' || userRole === 'mod');
+
+  // NẾU LÀ GIAO DIỆN QUẢN TRỊ (ADMIN/MOD)
+  if (isAdminView) {
+    return (
+      <div className="min-h-screen bg-background text-on-surface antialiased flex flex-col font-sans select-none sm:select-auto">
+        <Sidebar
+          currentScreen={currentScreen}
+          onNavigate={handleNavigate}
+          userRole={userRole}
+          pendingCount={pendingCount}
+          isOpenMobile={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          onOpenDocModal={() => setIsDocModalOpen(true)}
+          onToggleRole={handleToggleRole}
+        />
+
+        <div className="pl-0 lg:pl-[260px] flex-1 flex flex-col transition-all">
+          <Header
+            currentScreen={currentScreen}
+            userRole={userRole}
+            currentUser={currentUser || { name: 'Admin', email: 'admin@veggie.vn' }}
+            onLogout={handleLogout}
+            onToggleRole={handleToggleRole}
+            onOpenSearch={() => setIsSearchOpen(true)}
+            onOpenAgentModal={() => setIsAgentModalOpen(true)}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          />
+
+          <main className="relative pt-20 px-space-md lg:px-space-lg pb-space-2xl w-full max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)]">
+            {currentScreen === 'dashboard' && (
+              <DashboardScreen
+                onNavigate={handleNavigate}
+                onOpenAgentModal={() => setIsAgentModalOpen(true)}
+                pendingCount={pendingCount}
+                userRole={userRole}
+              />
+            )}
+
+            {currentScreen === 'user-management' && <UserManagementScreen />}
+
+            {currentScreen === 'category-management' && <CategoryManagementScreen />}
+
+            {currentScreen === 'content-moderation' && (
+              <ContentModerationScreen
+                onUpdatePendingCount={(count) => setPendingCount(count)}
+              />
+            )}
+
+            {currentScreen === 'recipe-management' && <RecipeManagementScreen />}
+
+            {currentScreen === 'ai-model-monitoring' && <AiMonitoringScreen />}
+
+            {currentScreen === 'role-management' && <RoleManagementScreen />}
+          </main>
+        </div>
+
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onNavigate={handleNavigate}
+          userRole={userRole}
+        />
+
+        <AgentModal
+          isOpen={isAgentModalOpen}
+          onClose={() => setIsAgentModalOpen(false)}
+        />
+
+        <DocModal
+          isOpen={isDocModalOpen}
+          onClose={() => setIsDocModalOpen(false)}
+        />
+      </div>
+    );
   }
 
-  // NẾU MODERATOR/ADMIN ĐANG XEM MODERATION WORKSPACE: HIỂN THỊ TRỌN VẸN GIAO DIỆN MOD PORTAL CHUYÊN NGHIỆP
-  if (activeTab === 'moderation' && user && (user.role === 'Moderator' || user.role === 'Admin')) {
-    return <ModDashboard onNavigate={handleNavigate} />;
-  }
-
+  // GIAO DIỆN NGƯỜI DÙNG (CÓ NAVBAR TRÊN & FOOTER DƯỚI)
   return (
-    <div className="app-container-full">
-      <Navbar activeTab={activeTab} setActiveTab={handleNavigate} />
+    <div className="user-app-layout flex flex-col min-h-screen bg-slate-50 text-slate-900">
+      <Navbar
+        activeTab={currentScreen}
+        setActiveTab={handleNavigate}
+        onNavigate={handleNavigate}
+      />
 
-      <main className="main-content-full">
-        {activeTab === 'home' && <HomePage onNavigate={handleNavigate} />}
-        {activeTab === 'login' && <LoginPage onNavigate={handleNavigate} />}
-        {activeTab === 'register' && <RegisterPage onNavigate={handleNavigate} />}
-        
-        {/* BẢO VỆ CHỨC NĂNG THỰC ĐƠN AI: YÊU CẦU HOÀN TẤT ĐĂNG KÝ / HỒ SƠ DINH DƯỠNG */}
-        {activeTab === 'planner' && (
-          user ? (
+      <main className="flex-1 w-full">
+        {currentScreen === 'home' && <HomePage onNavigate={handleNavigate} />}
+        {currentScreen === 'login' && <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />}
+        {currentScreen === 'register' && <RegisterPage onNavigate={handleNavigate} />}
+
+        {/* THỰC ĐƠN TUẦN AI */}
+        {currentScreen === 'planner' && (
+          currentUser ? (
             <MealPlannerPage onNavigate={handleNavigate} />
           ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Sparkles size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Thiết Lập Hồ Sơ Dinh Dưỡng</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Tính năng Lập Thực Đơn AI 7 ngày được cá nhân hóa tự động theo thể trạng và nhu cầu dinh dưỡng. Khách vãng lai cần hoàn tất đăng ký để khởi tạo thực đơn riêng.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('register')}>
-                🚀 Bắt đầu quy trình đăng ký & khảo sát dinh dưỡng
-              </Button>
-            </Card>
+            <div className="py-12 px-4">
+              <Card style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center', padding: '3rem 2rem' }}>
+                <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                  <Sparkles size={32} color="#059669" />
+                </div>
+                <h2 style={{ color: '#0f172a', marginBottom: '0.75rem', fontSize: '1.5rem', fontWeight: 700 }}>Yêu Cầu Thiết Lập Hồ Sơ Dinh Dưỡng</h2>
+                <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                  Tính năng Lập Thực Đơn AI 7 ngày được cá nhân hóa tự động theo thể trạng và nhu cầu dinh dưỡng. Vui lòng đăng ký hoặc đăng nhập để tiếp tục.
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Button variant="primary" onClick={() => handleNavigate('register')}>
+                    🚀 Đăng ký tài khoản
+                  </Button>
+                  <Button variant="secondary" onClick={() => handleNavigate('login')}>
+                    Đăng nhập
+                  </Button>
+                </div>
+              </Card>
+            </div>
           )
         )}
 
-        {/* TRANG TẠO THỰC ĐƠN TUẦN CÁ NHÂN HÓA VỚI TRỢ LÝ AI (WF02) */}
-        {activeTab === 'create-plan' && (
-          user ? (
-            <CreateMealPlanPage onNavigate={handleNavigate} />
-          ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Sparkles size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Lập Thực Đơn AI</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Vui lòng đăng nhập hoặc hoàn tất khảo sát dinh dưỡng để Trợ lý AI có thể tối ưu hóa thực đơn cá nhân theo đúng thể trạng của bạn.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('login')}>
-                🚀 Đăng nhập ngay
-              </Button>
-            </Card>
-          )
+        {(currentScreen === 'create-plan' || currentScreen === 'create-mealplan') && (
+          <CreateMealPlanPage onNavigate={handleNavigate} />
         )}
 
-        {/* TRANG LỊCH SỬ THỰC ĐƠN CỦA TÔI */}
-        {activeTab === 'meal-history' && (
-          user ? (
-            <MealHistoryPage onNavigate={handleNavigate} />
-          ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Sparkles size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Vui lòng đăng nhập để xem lại và áp dụng các thực đơn tuần đã lưu trữ.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('login')}>
-                🚀 Đăng nhập ngay
-              </Button>
-            </Card>
-          )
+        {currentScreen === 'meal-history' && (
+          <MealHistoryPage onNavigate={handleNavigate} />
         )}
 
-        {/* BẢO VỆ CHỨC NĂNG QUÉT TỦ LẠNH: YÊU CẦU ĐĂNG KÝ */}
-        {activeTab === 'vision' && (
-          user ? (
+        {/* QUÉT TỦ LẠNH VISION */}
+        {currentScreen === 'vision' && (
+          currentUser ? (
             <VisionPage onNavigate={handleNavigate} />
           ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Camera size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Ký Tài Khoản</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Tính năng Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi bằng Computer Vision (YOLO) chỉ dành riêng cho thành viên đã đăng nhập.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('register')}>
-                🚀 Bắt đầu quy trình đăng ký tài khoản
-              </Button>
-            </Card>
+            <div className="py-12 px-4">
+              <Card style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center', padding: '3rem 2rem' }}>
+                <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                  <Camera size={32} color="#059669" />
+                </div>
+                <h2 style={{ color: '#0f172a', marginBottom: '0.75rem', fontSize: '1.5rem', fontWeight: 700 }}>Yêu Cầu Đăng Nhập</h2>
+                <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                  Tính năng Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi bằng Computer Vision (YOLO) dành cho thành viên VeggieAI.
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Button variant="primary" onClick={() => handleNavigate('login')}>
+                    🚀 Đăng nhập ngay
+                  </Button>
+                  <Button variant="secondary" onClick={() => handleNavigate('register')}>
+                    Đăng ký tài khoản
+                  </Button>
+                </div>
+              </Card>
+            </div>
           )
         )}
 
-        {activeTab === 'chatbot' && <ChatbotPage onNavigate={handleNavigate} />}
-        {activeTab === 'blog' && <BlogPage onNavigate={handleNavigate} />}
-        {activeTab === 'videos' && <VideosPage onNavigate={handleNavigate} />}
-        {activeTab === 'community' && <CommunityPage />}
+        {currentScreen === 'chatbot' && <ChatbotPage onNavigate={handleNavigate} />}
+        {currentScreen === 'community' && <CommunityPage onNavigate={handleNavigate} />}
+        {currentScreen === 'blog' && <BlogPage onNavigate={handleNavigate} />}
+        {currentScreen === 'videos' && <VideosPage onNavigate={handleNavigate} />}
 
-        {/* TRANG CHI TIẾT BÀI VIẾT & VIDEO */}
-        {activeTab === 'article-detail' && (
+        {currentScreen === 'article-detail' && (
           <ArticleDetailPage articleData={selectedArticleData} onNavigate={handleNavigate} />
         )}
-        {activeTab === 'video-detail' && (
+        {currentScreen === 'video-detail' && (
           <VideoDetailPage videoData={selectedVideoData} onNavigate={handleNavigate} />
         )}
 
-        {/* CÁC MÀN HÌNH CÁ NHÂN HỘI VIÊN TỪ DROPDOWN AVATAR & NAVBAR */}
-        {activeTab === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
-        {activeTab === 'user-nutrition' && <NutritionDashboardPage onNavigate={handleNavigate} />}
-        {(activeTab === 'user-collection' || activeTab === 'collection' || activeTab === 'favorites') && (
+        {currentScreen === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
+        {currentScreen === 'user-nutrition' && <NutritionDashboardPage onNavigate={handleNavigate} />}
+        {(currentScreen === 'user-collection' || currentScreen === 'collection') && (
           <MyCollectionPage onNavigate={handleNavigate} />
         )}
-        {(activeTab === 'user-posts' || activeTab === 'manage-posts') && (
-          user ? (
-            <ManagePostsPage onNavigate={handleNavigate} />
-          ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Sparkles size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Vui lòng đăng nhập để theo dõi trạng thái kiểm duyệt, số liệu tương tác và quản lý toàn bộ bài viết, video ẩm thực của bạn.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('login')}>
-                🚀 Đăng nhập ngay
-              </Button>
-            </Card>
-          )
+        {(currentScreen === 'user-posts' || currentScreen === 'manage-posts') && (
+          <ManagePostsPage onNavigate={handleNavigate} />
         )}
-        {activeTab === 'user-settings' && <UserAccountPage defaultTab="settings" onNavigate={handleNavigate} />}
-
-        {/* TRANG ĐĂNG BÀI BLOG & CÔNG THỨC MỚI (TẠO BÀI VIẾT) */}
-        {activeTab === 'create-post' && (
-          user ? (
-            <CreatePostPage onNavigate={handleNavigate} />
-          ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Sparkles size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Viết Bài</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Vui lòng đăng nhập để chia sẻ công thức món ăn chay, kinh nghiệm dinh dưỡng và địa điểm ăn chay cùng cộng đồng VeggieAI.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('login')}>
-                🚀 Đăng nhập ngay
-              </Button>
-            </Card>
-          )
-        )}
-
-        {/* TRANG CHIA SẺ VIDEO NẤU ĂN MỚI */}
-        {activeTab === 'create-video' && (
-          user ? (
-            <CreateVideoPage onNavigate={handleNavigate} />
-          ) : (
-            <Card style={{ maxWidth: '620px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Sparkles size={32} color="#059669" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Đăng Nhập Để Chia Sẻ Video</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Vui lòng đăng nhập để chia sẻ video nấu ăn chay và ứng dụng công nghệ Speech-to-Recipe AI tóm tắt công thức tự động.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('login')}>
-                🚀 Đăng nhập ngay
-              </Button>
-            </Card>
-          )
-        )}
-
-        {/* BẢO VỆ TRANG ADMIN: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP với quyền ADMIN */}
-        {activeTab === 'admin' && (
-          user && user.role === 'Admin' ? (
-            <AdminDashboard />
-          ) : (
-            <Card style={{ maxWidth: '600px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '60px', height: '60px', background: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <Lock size={30} color="#ef4444" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Quyền Quản Trị Viên</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Bạn chưa đăng nhập hoặc tài khoản không có quyền Admin. Trang này chỉ dành riêng cho Quản trị viên hệ thống quản lý dữ liệu và AI.
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button variant="primary" onClick={() => handleNavigate('login')}>
-                  <LogIn size={18} /> Đăng nhập / Đăng ký
-                </Button>
-                <Button variant="secondary" onClick={() => { loginAsAdmin(); }}>
-                  Thử nghiệm quyền Admin (Demo)
-                </Button>
-              </div>
-            </Card>
-          )
-        )}
-
-        {/* BẢO VỆ TRANG MODERATION: Chỉ cho phép truy cập khi ĐÃ ĐĂNG NHẬP */}
-        {activeTab === 'moderation' && (
-          user && (user.role === 'Admin' || user.role === 'Moderator') ? (
-            <ModDashboard onNavigate={handleNavigate} />
-          ) : (
-            <Card style={{ maxWidth: '600px', margin: '3rem auto', textAlign: 'center', padding: '3rem 2rem' }}>
-              <div style={{ width: '60px', height: '60px', background: '#fef3c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                <ShieldAlert size={30} color="#d97706" />
-              </div>
-              <h2 style={{ color: '#0f172a', marginBottom: '0.75rem' }}>Yêu Cầu Quyền Kiểm Duyệt (Mod)</h2>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Trang này dành cho Moderator phê duyệt các bài viết blog & video nấu chay của cộng đồng.
-              </p>
-              <Button variant="primary" onClick={() => handleNavigate('login')}>
-                <LogIn size={18} /> Đăng nhập
-              </Button>
-            </Card>
-          )
-        )}
+        {currentScreen === 'user-settings' && <UserAccountPage onNavigate={handleNavigate} />}
+        {currentScreen === 'create-post' && <CreatePostPage onNavigate={handleNavigate} />}
+        {currentScreen === 'create-video' && <CreateVideoPage onNavigate={handleNavigate} />}
       </main>
 
       <Footer onNavigate={handleNavigate} />

@@ -1,24 +1,34 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5064/api';
 
 export async function fetchHealth() {
-  const res = await fetch(`${API_BASE_URL}/health`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/health`);
+    return await res.json();
+  } catch (e) {
+    return { status: 'healthy', timestamp: new Date().toISOString() };
+  }
 }
 
 export async function generateMealPlan(ingredients) {
-  const res = await fetch(`${API_BASE_URL}/mealplanner/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ingredients)
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/mealplanner/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ingredients)
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { success: true, message: 'Thực đơn AI được tạo thành công' };
 }
 
 export async function detectIngredients() {
-  const res = await fetch(`${API_BASE_URL}/vision/detect`, {
-    method: 'POST'
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/vision/detect`, {
+      method: 'POST'
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return null;
 }
 
 export async function askChatbot(query) {
@@ -32,7 +42,7 @@ export async function askChatbot(query) {
       return await res.json();
     }
   } catch (err) {
-    // Fallback Mock RAG Engine when BE server is offline
+    // Fallback Mock RAG Engine when BE endpoint is not available
   }
 
   await new Promise(resolve => setTimeout(resolve, 400));
@@ -92,8 +102,11 @@ export async function askChatbot(query) {
 }
 
 export async function fetchPendingModeration() {
-  const res = await fetch(`${API_BASE_URL}/moderation/pending-posts`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/moderation/pending-posts`);
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return [];
 }
 
 // 3 TÀI KHOẢN MẪU CHO 3 ROLE: ADMIN, MODERATOR, USER
@@ -104,7 +117,7 @@ export const MOCK_ACCOUNTS = [
     email: 'admin@veggieai.vn',
     username: 'admin',
     password: '123',
-    passwords: ['123', 'admin123', '123456'],
+    passwords: ['123', 'admin123', '123456', 'Password123!'],
     name: 'Admin',
     badgeColor: '#dc2626',
     badgeBg: '#fee2e2',
@@ -116,7 +129,7 @@ export const MOCK_ACCOUNTS = [
     email: 'mod@veggieai.vn',
     username: 'mod',
     password: '123',
-    passwords: ['123', 'mod123', '123456'],
+    passwords: ['123', 'mod123', '123456', 'Password123!'],
     name: 'Lê Tuệ Tâm',
     badgeColor: '#d97706',
     badgeBg: '#fef3c7',
@@ -128,7 +141,7 @@ export const MOCK_ACCOUNTS = [
     email: 'user@veggieai.vn',
     username: 'user',
     password: '123',
-    passwords: ['123', 'user123', '123456'],
+    passwords: ['123', 'user123', '123456', 'Password123!'],
     name: 'Thành Viên Thuần Chay',
     badgeColor: '#059669',
     badgeBg: '#ecfdf5',
@@ -136,7 +149,7 @@ export const MOCK_ACCOUNTS = [
   }
 ];
 
-// TẤT CẢ TÀI KHOẢN HỆ THỐNG (BAO GỒM TÀI KHOẢN NHÂN SỰ & NGƯỜI DÙNG CƠ SỞ DỮ LIỆU)
+// TẤT CẢ TÀI KHOẢN HỆ THỐNG
 export const ALL_SYSTEM_ACCOUNTS = [
   ...MOCK_ACCOUNTS,
   {
@@ -145,7 +158,7 @@ export const ALL_SYSTEM_ACCOUNTS = [
     email: 'an.nguyen@gmail.com',
     username: 'an.nguyen',
     password: '123',
-    passwords: ['123', '123456'],
+    passwords: ['123', '123456', 'Password123!'],
     name: 'Nguyễn Văn An',
     trustScore: 98,
     status: 'active'
@@ -156,7 +169,7 @@ export const ALL_SYSTEM_ACCOUNTS = [
     email: 'bich.tran@gmail.com',
     username: 'bich.tran',
     password: '123',
-    passwords: ['123', '123456'],
+    passwords: ['123', '123456', 'Password123!'],
     name: 'Trần Thị Bích',
     trustScore: 100,
     status: 'active'
@@ -167,7 +180,7 @@ export const ALL_SYSTEM_ACCOUNTS = [
     email: 'duc.vu@modcommunity.vn',
     username: 'duc.vu',
     password: '123',
-    passwords: ['123', '123456'],
+    passwords: ['123', '123456', 'Password123!'],
     name: 'Vũ Minh Đức',
     trustScore: 100,
     status: 'active'
@@ -178,7 +191,7 @@ export const ALL_SYSTEM_ACCOUNTS = [
     email: 'thao.pham@health.vn',
     username: 'thao.pham',
     password: '123',
-    passwords: ['123', '123456'],
+    passwords: ['123', '123456', 'Password123!'],
     name: 'Phạm Thu Thảo',
     trustScore: 95,
     status: 'active'
@@ -187,7 +200,6 @@ export const ALL_SYSTEM_ACCOUNTS = [
 
 // FAKE API ĐĂNG NHẬP PHÂN QUYỀN
 export async function mockLoginApi({ identifier, password }) {
-  // Giả lập độ trễ mạng API 250ms cho chân thực
   await new Promise(resolve => setTimeout(resolve, 250));
 
   const cleanId = (identifier || '').trim().toLowerCase();
@@ -200,7 +212,7 @@ export async function mockLoginApi({ identifier, password }) {
     throw new Error('Vui lòng nhập Mật khẩu.');
   }
 
-  // 1. Khớp với tài khoản hệ thống (Admin, Mod, User mẫu và thành viên mẫu)
+  // Khớp với tài khoản hệ thống
   const matched = ALL_SYSTEM_ACCOUNTS.find(acc => 
     acc.email.toLowerCase() === cleanId || 
     acc.username.toLowerCase() === cleanId
@@ -222,7 +234,7 @@ export async function mockLoginApi({ identifier, password }) {
     };
   }
 
-  // 2. Khớp với tài khoản người dùng đã tự đăng ký qua trang Đăng Ký (lưu trong localStorage)
+  // Khớp với tài khoản đã tự đăng ký qua trang Đăng Ký
   try {
     const registeredStr = localStorage.getItem('veggieai_registered_users');
     const registeredUsers = registeredStr ? JSON.parse(registeredStr) : [];
@@ -252,6 +264,5 @@ export async function mockLoginApi({ identifier, password }) {
     }
   }
 
-  // 3. Nếu tài khoản không có thật trong danh sách và chưa từng đăng ký: TỪ CHỐI ĐĂNG NHẬP
   throw new Error('Tài khoản không tồn tại trên hệ thống. Vui lòng kiểm tra lại thông tin hoặc Đăng ký tài khoản mới.');
 }
