@@ -1,0 +1,109 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{14FE485B-BBBF-44E9-BC1D-C3CA61E55BBC}|VeggieAI.Service\\VeggieAI.Service.csproj|d:\\prn222\\veggieai\\veggieai\\veggieai-be\\veggieai.service\\veggieai.service.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{14FE485B-BBBF-44E9-BC1D-C3CA61E55BBC}|VeggieAI.Service\\VeggieAI.Service.csproj|solutionrelative:veggieai.service\\veggieai.service.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2BE1DDB3-F18C-4A50-9A50-D6A68C09531D}|VeggieAI.Repository\\VeggieAI.Repository.csproj|d:\\prn222\\veggieai\\veggieai\\veggieai-be\\veggieai.repository\\veggieai.repository.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{2BE1DDB3-F18C-4A50-9A50-D6A68C09531D}|VeggieAI.Repository\\VeggieAI.Repository.csproj|solutionrelative:veggieai.repository\\veggieai.repository.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{06FDD018-ABE1-4AA5-BA80-00D954F0225F}|VeggieAI.Model\\VeggieAI.Model.csproj|d:\\prn222\\veggieai\\veggieai\\veggieai-be\\veggieai.model\\veggieai.model.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{06FDD018-ABE1-4AA5-BA80-00D954F0225F}|VeggieAI.Model\\VeggieAI.Model.csproj|solutionrelative:veggieai.model\\veggieai.model.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "VeggieAI.Service",
+              "DocumentMoniker": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\VeggieAI.Service\\VeggieAI.Service.csproj",
+              "RelativeDocumentMoniker": "VeggieAI.Service\\VeggieAI.Service.csproj",
+              "ToolTip": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\VeggieAI.Service\\VeggieAI.Service.csproj",
+              "RelativeToolTip": "VeggieAI.Service\\VeggieAI.Service.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-10-17T07:11:20.32Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "VeggieAI.Repository",
+              "DocumentMoniker": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\VeggieAI.Repository\\VeggieAI.Repository.csproj",
+              "RelativeDocumentMoniker": "VeggieAI.Repository\\VeggieAI.Repository.csproj",
+              "ToolTip": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\VeggieAI.Repository\\VeggieAI.Repository.csproj",
+              "RelativeToolTip": "VeggieAI.Repository\\VeggieAI.Repository.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-10-17T07:11:19.35Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "VeggieAI.Model",
+              "DocumentMoniker": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\VeggieAI.Model\\VeggieAI.Model.csproj",
+              "RelativeDocumentMoniker": "VeggieAI.Model\\VeggieAI.Model.csproj",
+              "ToolTip": "D:\\prn222\\VeggieAI\\VeggieAI\\VeggieAI-BE\\VeggieAI.Model\\VeggieAI.Model.csproj",
+              "RelativeToolTip": "VeggieAI.Model\\VeggieAI.Model.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-10-17T07:11:17.21Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
