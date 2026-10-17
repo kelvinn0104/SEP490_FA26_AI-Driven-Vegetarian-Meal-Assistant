@@ -1,19 +1,140 @@
-# ⚙️ VeggieAI Backend (.NET Core Clean Architecture)
+# VeggieAI Backend (.NET 10 RESTful API)
 
-This folder contains the complete Backend solution written in **C# ASP.NET Core (.NET 8/9)** following **Clean Architecture** principles.
-
----
-
-## 🏗 Project Structure
-
-- **VeggieAI.Domain:** Contains Domain Entities (User, Recipe, MealPlan, CommunityPost), Enums, and Value Objects.
-- **VeggieAI.Application:** Business Logic, Use Cases, DTOs, and Interfaces for AI solvers (`IMealPlannerService`, `IComputerVisionService`, `IChatbotService`).
-- **VeggieAI.Infrastructure:** EF Core PostgreSQL Database Context (`Npgsql`), `pgvector` Vector Search integration, Redis Caching, and Google OR-Tools / ONNX Runtime C# AI implementations.
-- **VeggieAI.API:** REST API Controllers, Middlewares, Dependency Injection, Swagger Documentation, JWT Authentication, and Health Checks.
+Hệ thống Backend cho nền tảng **VeggieAI - Trợ lý Chế độ ăn Thuần thực vật & Quản trị AI**, được xây dựng bằng kiến trúc 4 lớp chuẩn Enterprise theo yêu cầu.
 
 ---
 
-## 🤖 Built-in .NET AI Engine Implementations
-- **Meal Planner:** Powered by C# Linear Programming (`Google.OrTools`).
-- **Computer Vision:** Powered by C# ONNX Runtime (`Microsoft.ML.OnnxRuntime`) for YOLOv8 object detection.
-- **Nutrition Chatbot & RAG:** Powered by C# OpenAI / Semantic Kernel SDK + PostgreSQL `pgvector`.
+## 🏗️ Cấu trúc Kiến trúc 4 Lớp (4-Layer Architecture)
+
+```
+VeggieAI-BE/
+├── VeggieAI.sln                         # Solution file quản lý toàn bộ 4 projects
+│   ├── Entities/                        # Mapped 100% với schema VeggieAI_Database.sql
+│   │   ├── User.cs                      # User, Role, Status, CreatedAt
+│   │   ├── HealthProfile.cs             # Chỉ số dinh dưỡng cá nhân, TDEE, BMR, Macro targets
+│   │   ├── NutritionEntities.cs         # Ingredient, Allergy, NutrientStandard, GoalStandard
+│   │   ├── RecipeEntities.cs            # Recipe, Category, RecipeIngredient, Favorite
+│   │   ├── MealPlanningEntities.cs      # MealPlan, MealPlanItem, ChatSession, ShoppingList, MealLog
+│   │   ├── CommunityEntities.cs         # Post, Comment, PostVote, Report, ModerationLog
+│   │   └── AiAndAdminEntities.cs        # AiModel, AiModelLog, AiFeedback, SystemSetting, Notification
+│   └── DTOs/                            # Data Transfer Objects
+│       ├── CommonDtos.cs                # ApiResponse<T>, PagedResult<T>
+│       ├── UserAndAuthDtos.cs           # LoginRequest, RegisterRequest, UserDto, CreateUserRequest
+│       ├── CategoryAndRecipeDtos.cs     # CategoryDto, RecipeDto, CreateRecipeRequest
+│       └── DashboardAndAdminDtos.cs     # DashboardOverviewDto, ModerationItemDto, AiTelemetryLogDto
+│
+├── VeggieAI.Repository/                 # 2. Tầng Repository (Data Access & EF Core)
+│   ├── Data/
+│   │   ├── VeggieAIDbContext.cs         # DbContext cấu hình schema 'veggieai', composite keys & indexes
+│   │   └── DatabaseSeeder.cs            # Nạp dữ liệu hạt giống ban đầu & tài khoản mẫu
+│   └── Repositories/
+│       ├── Repository.cs                # Generic Repository (IRepository<T>)
+│       └── SpecializedRepositories.cs   # IUserRepository, IRecipeRepository, ICategoryRepository, 
+│                                        # IModerationRepository, IAiModelRepository, IUnitOfWork
+│
+├── VeggieAI.Service/                    # 3. Tầng Service (Business Logic)
+│   └── Services/
+│       ├── AuthService.cs               # Mã hóa BCrypt, sinh JWT Token, xác thực
+│       ├── UserService.cs               # Quản lý người dùng, lọc chế độ ăn, khóa/mở khóa tài khoản
+│       ├── CategoryAndRecipeService.cs  # Quản lý danh mục chay, công thức & bài viết
+│       └── DashboardAndAdminServices.cs # Dashboard thống kê, Duyệt nội dung, Giám sát AI, Phân quyền
+│
+└── VeggieAI.API/                        # 4. Tầng API (Controllers & Presentation)
+    ├── Controllers/
+    │   ├── AuthAndUsersControllers.cs   # /api/auth, /api/users
+    │   ├── CategoriesAndRecipesControllers.cs # /api/categories, /api/recipes
+    │   └── DashboardAndAdminControllers.cs # /api/moderation, /api/ai, /api/dashboard, /api/roles
+    ├── Middlewares/
+    │   └── ExceptionMiddleware.cs       # Bắt lỗi toàn cục, trả về ApiResponse chuẩn hóa
+    ├── appsettings.json                 # Cấu hình chuỗi kết nối PostgreSQL, JWT, CORS
+    └── Program.cs                       # Cấu hình DI, JWT, Swagger, CORS, Tự động phát hiện DB
+```
+
+---
+
+## 🚀 Hướng Dẫn Khởi Chạy
+
+### 1. Yêu Cầu Môi Trường
+- **.NET SDK 10.0** (hoặc .NET 8.0/9.0)
+- **PostgreSQL 14+** (Tùy chọn: Hệ thống tự động chuyển sang `InMemory Database` kèm đầy đủ dữ liệu giả lập nếu chưa cấu hình mật khẩu PostgreSQL).
+
+### 2. Build Dự Án
+```powershell
+cd d:\VeggieAI\VeggieAI-BE
+dotnet build VeggieAI.sln
+```
+
+### 3. Chạy Backend
+```powershell
+dotnet run --project VeggieAI.API/VeggieAI.API.csproj
+```
+- Khi chạy, API sẽ lắng nghe tại: `http://localhost:5064`
+- Truy cập Swagger UI trực tiếp tại: `http://localhost:5064/` hoặc `http://localhost:5064/index.html`
+
+---
+
+## 🔑 Tài Khoản Mặc Định Đã Seed
+| Vai trò | Email | Mật khẩu | Quyền hạn |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `admin@veggie.vn` | `Password123!` | Toàn quyền quản trị hệ thống, giám sát AI, phân quyền |
+| **Moderator (Dinh dưỡng)** | `mod@veggie.vn` | `Password123!` | Kiểm duyệt bài viết, công thức, quản lý danh mục |
+| **User (Chef)** | `chef.maianh@gmail.com` | `Password123!` | Người dùng đăng công thức, tạo thực đơn |
+| **User (Bị khóa)** | `spammer@veggie.vn` | `Password123!` | Tài khoản mẫu bị khóa (Status: `locked`) |
+
+---
+
+## 📡 Danh Sách Các RESTful API Endpoints
+
+### 1. Xác thực & Phân quyền (`/api/auth`)
+- `POST /api/auth/login`: Đăng nhập (trả về JWT Token & thông tin người dùng)
+- `POST /api/auth/register`: Đăng ký tài khoản (hỗ trợ mã mời `VEGGIE_ADMIN_2026` / `VEGGIE_MOD_2026`)
+- `POST /api/auth/logout`: Đăng xuất
+- `GET /api/auth/me`: Lấy thông tin user hiện tại qua JWT Bearer
+
+### 2. Quản lý Người dùng (`/api/users`)
+- `GET /api/users`: Danh sách người dùng (hỗ trợ tìm kiếm theo tên/email/id, lọc theo chế độ ăn `diet`, vai trò `role`, trạng thái `status`)
+- `GET /api/users/{id}`: Chi tiết người dùng và hồ sơ dinh dưỡng
+- `POST /api/users`: Tạo tài khoản mới từ Admin
+- `PUT /api/users/{id}/role`: Thay đổi quyền tài khoản
+- `PUT /api/users/{id}/lock`: Khóa tài khoản
+- `PUT /api/users/{id}/unlock`: Mở khóa tài khoản
+- `DELETE /api/users/{id}`: Xóa tài khoản
+
+### 3. Quản lý Danh mục (`/api/categories`)
+- `GET /api/categories`: Danh sách danh mục (lọc theo `food_type` hoặc `recipe`)
+- `POST /api/categories`: Thêm danh mục mới
+- `PUT /api/categories/{id}`: Cập nhật danh mục
+- `DELETE /api/categories/{id}`: Xóa danh mục
+
+### 4. Quản lý Công thức (`/api/recipes`)
+- `GET /api/recipes`: Danh sách công thức (tìm kiếm, lọc trạng thái `published`/`hidden`, lọc theo danh mục)
+- `GET /api/recipes/{id}`: Chi tiết công thức & thành phần dinh dưỡng
+- `POST /api/recipes`: Tạo mới công thức
+- `PUT /api/recipes/{id}/status`: Đổi trạng thái (`published`, `hidden`, `draft`)
+- `DELETE /api/recipes/{id}`: Xóa công thức
+
+### 5. Hàng đợi Kiểm duyệt (`/api/moderation`)
+- `GET /api/moderation/pending`: Danh sách nội dung chờ duyệt (kèm điểm AI đánh giá độ thuần chay và dinh dưỡng)
+- `GET /api/moderation/count`: Số lượng bài viết đang chờ duyệt
+- `POST /api/moderation/{id}/approve`: Phê duyệt và tự động xuất bản
+- `POST /api/moderation/{id}/reject`: Từ chối bài viết vi phạm
+- `POST /api/moderation/{id}/revision`: Yêu cầu tác giả chỉnh sửa
+
+### 6. Giám sát AI (`/api/ai`)
+- `GET /api/ai/health`: Kiểm tra tình trạng sức khỏe cụm máy chủ AI
+- `GET /api/ai/models`: Danh sách các mô hình AI (`meal_planner`, `chatbot`, `vision`, `moderation`)
+- `PUT /api/ai/models/{id}/status`: Bật/Tắt mô hình (`active`, `inactive`, `retraining`)
+- `GET /api/ai/telemetry`: Lấy luồng log telemetry thời gian thực
+- `POST /api/ai/recipe/parse-macros`: Phân tích macro, vi chất (B12, Sắt, Canxi) và cảnh báo dị ứng từ nguyên liệu đầu vào
+
+### 7. Dashboard Thống kê (`/api/dashboard`)
+- `GET /api/dashboard/stats`: Số liệu tổng quan (Tổng user, tăng trưởng, GPU/RAM cluster, độ chính xác AI)
+- `GET /api/dashboard/diet-distribution`: Phân bổ chế độ ăn (Vegan, Lacto-Ovo, Flexitarian,...)
+- `GET /api/dashboard/charts`: Biểu đồ hoạt động theo tuần (công thức, truy vấn AI, người dùng)
+- `GET /api/dashboard/activities`: Hoạt động gần đây của hệ thống
+
+### 8. Quản lý Vai trò (`/api/roles`)
+- `GET /api/roles`: Danh sách vai trò và số lượng người dùng
+- `GET /api/roles/permissions`: Danh sách tất cả quyền hạn hệ thống
+- `POST /api/roles`: Tạo vai trò mới
+- `PUT /api/roles/{id}`: Cập nhật quyền hạn cho vai trò
