@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Button({ children, onClick, variant = 'primary', disabled = false, style = {} }) {
+export default function Button({ children, onClick, variant = 'primary', disabled = false, style = {}, className = '', type = 'button' }) {
   const baseStyle = {
     padding: '0.65rem 1.25rem',
     borderRadius: '8px',
@@ -22,8 +22,16 @@ export default function Button({ children, onClick, variant = 'primary', disable
   };
 
   return (
-    <button onClick={onClick} disabled={disabled} style={{ ...baseStyle, ...variants[variant] }}>
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
+      style={{ ...baseStyle, ...(variants[variant] || variants.primary) }}
+    >
       {children}
     </button>
   );
 }
+
+export { Button };
