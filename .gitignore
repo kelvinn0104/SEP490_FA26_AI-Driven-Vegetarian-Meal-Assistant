@@ -8,6 +8,7 @@ Thumbs.db
 desktop.ini
 
 # IDE & Editors
+.vs/
 .idea/
 .vscode/
 *.swp
@@ -16,6 +17,10 @@ desktop.ini
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Backups
+*-backup/
+*backup*/
 
 # .NET / C#
 bin/
