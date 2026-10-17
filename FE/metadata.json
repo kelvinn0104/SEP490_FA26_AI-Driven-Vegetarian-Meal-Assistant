@@ -1,0 +1,6 @@
+{
+  "name": "VeggieAI Portal",
+  "description": "Bảng điều khiển quản trị thông minh VeggieAI: giám sát mô hình AI, quản lý người dùng, duyệt nội dung và danh mục món chay.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

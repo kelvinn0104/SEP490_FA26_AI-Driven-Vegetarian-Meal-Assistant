@@ -1,23 +1,43 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState({
-    name: 'Phan Văn A',
-    email: 'user@veggieai.vn',
-    role: 'AuthorizedUser' // AuthorizedUser, Admin, Moderator, UnauthorizedUser
-  });
+export const AuthProvider = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState('admin');
+  const [currentUser, setCurrentUser] = useState({ name: 'Linh Nguyen', email: 'admin@veggie.vn' });
 
-  const logout = () => setUser(null);
+  const login = (role, user) => {
+    setUserRole(role);
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        userRole,
+        currentUser,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default AuthContext;

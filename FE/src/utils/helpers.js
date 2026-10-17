@@ -1,9 +1,16 @@
-export function formatCalorie(calories) {
-  return `${Math.round(calories)} kcal`;
+/**
+ * General helper utilities
+ */
+
+export function classNames(...classes) {
+  return classes.filter(Boolean).join(' ');
 }
 
-export function calculateBMI(weightKg, heightCm) {
-  if (!weightKg || !heightCm) return 0;
-  const heightM = heightCm / 100;
-  return (weightKg / (heightM * heightM)).toFixed(1);
+export function generateId(prefix = 'id') {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
+
+export default {
+  classNames,
+  generateId,
+};
