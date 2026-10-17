@@ -1,0 +1,6 @@
+bin/
+obj/
+.vs/
+*.user
+src/VeggieAI.API/wwwroot/uploads/
+appsettings.Local.json

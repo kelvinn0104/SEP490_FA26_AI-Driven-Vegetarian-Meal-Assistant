@@ -1,32 +1,34 @@
 namespace VeggieAI.Domain.Entities;
 
-public enum ModerationStatus
+public partial class Recipe
 {
-    Pending,
-    Approved,
-    Rejected,
-    FlaggedByAI
-}
+    public int Id { get; set; }
+    public int CategoryId { get; set; }
+    public int CreatedBy { get; set; }
+    public int? VerifiedBy { get; set; }
+    public string Title { get; set; } = null!;
+    public string? ImageUrl { get; set; }
+    public string Instructions { get; set; } = null!;
+    public int Servings { get; set; } = 1;
+    public decimal KcalPerServing { get; set; } = 0m;
+    public decimal ProteinG { get; set; } = 0m;
+    public decimal CarbG { get; set; } = 0m;
+    public decimal FatG { get; set; } = 0m;
+    public decimal IronMg { get; set; } = 0m;
+    public decimal B12Mcg { get; set; } = 0m;
+    public decimal CalciumMg { get; set; } = 0m;
+    public decimal ZincMg { get; set; } = 0m;
+    public string Status { get; set; } = "draft";
+    public DateTime? VerifiedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
-public class Recipe
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public List<string> Ingredients { get; set; } = new();
-    public List<string> Instructions { get; set; } = new();
-    
-    // Nutrition breakdown
-    public double Calories { get; set; }
-    public double ProteinGrams { get; set; }
-    public double IronMg { get; set; }
-    public double B12Mcg { get; set; }
-    public double Omega3Grams { get; set; }
-    
-    public string? VideoUrl { get; set; }
-    public string? AutoSummarizedText { get; set; }
-    
-    public ModerationStatus Status { get; set; } = ModerationStatus.Pending;
-    public Guid AuthorId { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public virtual Category Category { get; set; } = null!;
+    public virtual User CreatedByNavigation { get; set; } = null!;
+    public virtual User? VerifiedByNavigation { get; set; }
+    public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
+    public virtual ICollection<MealLog> MealLogs { get; set; } = new List<MealLog>();
+    public virtual ICollection<MealPlanItem> MealPlanItems { get; set; } = new List<MealPlanItem>();
+    public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+    public virtual ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
 }
