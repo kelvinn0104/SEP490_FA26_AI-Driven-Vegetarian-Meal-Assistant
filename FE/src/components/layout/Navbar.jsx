@@ -68,18 +68,21 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
   // - Authorized User: Trang chủ, Blog, Video nấu ăn, Thực đơn tuần, Hỏi AI, Quản lý bài đăng
   const guestNavLinks = [
     { id: 'home', label: 'Trang chủ' },
+    { id: 'planner', label: 'Thực đơn tuần' },
+    { id: 'user-profile', label: 'Hồ sơ BMI' },
+    { id: 'chatbot', label: 'Hỏi AI' },
     { id: 'blog', label: 'Blog' },
     { id: 'videos', label: 'Video nấu ăn' },
-    { id: 'chatbot', label: 'Hỏi AI' }
   ];
 
   const authorizedUserNavLinks = [
     { id: 'home', label: 'Trang chủ' },
+    { id: 'planner', label: 'Thực đơn tuần' },
+    { id: 'user-profile', label: 'Hồ sơ BMI' },
+    { id: 'chatbot', label: 'Hỏi AI' },
     { id: 'blog', label: 'Blog' },
     { id: 'videos', label: 'Video nấu ăn' },
-    { id: 'planner', label: 'Thực đơn tuần' },
-    { id: 'chatbot', label: 'Hỏi AI' },
-    { id: 'user-posts', label: 'Quản lý bài đăng' }
+    { id: 'user-posts', label: 'Quản lý bài' },
   ];
 
   const currentNavLinks = (() => {

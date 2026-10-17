@@ -1,1066 +1,356 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Send, Bot, Sparkles, Lock, ArrowRight, CheckCircle2, 
-  Bookmark, Sliders, Copy, Camera, Mic, ChevronRight, 
-  Activity, Flame, Leaf, RotateCcw, Trash2, 
-  Plus, MessageSquare, ShieldCheck, Home, Check
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Sparkles, Send, Bot, User, Maximize2, Minimize2,
+  ChefHat, Activity, RefreshCw, Paperclip, ChevronRight, Check
 } from 'lucide-react';
-import { askChatbot } from '../../utils/api';
-import { useAuth } from '../../context/AuthContext';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
+import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function ChatbotPage({ onNavigate }) {
-  const { user } = useAuth();
+  const {
+    profile,
+    metrics,
+    weeklyPlan,
+    selectedDayIdx,
+    recipesDb,
+    updateDayMeal,
+    showToast
+  } = useVeggieNutrition();
 
-  // Luôn đảm bảo cuộn lên đầu trang khi mở trang
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [agentMode, setAgentMode] = useState('nutritionist'); // 'nutritionist' | 'chef' | 'substitute' | 'bmi'
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
+  const messagesEndRef = useRef(null);
 
-  // =========================================================================
-  // 1. GIAO DIỆN DÀNH CHO KHÁCH CHƯA ĐĂNG NHẬP (GUEST INTERFACE - GIỮ NGUYÊN)
-  // =========================================================================
-  const [guestMessages, setGuestMessages] = useState([
-    { 
-      sender: 'bot', 
-      text: 'Xin chào! Tôi là Trợ lý Hỏi AI của VeggieAI. Bạn có thắc mắc gì về chế độ ăn chay, vi chất B12, Sắt hay cách thay thế nguyên liệu thực dưỡng không?' 
-    }
-  ]);
-  const [guestInput, setGuestInput] = useState('');
-  const [guestLoading, setGuestLoading] = useState(false);
-  const [guestQuestionsAsked, setGuestQuestionsAsked] = useState(0);
-
-  const GUEST_LIMIT = 3;
-  const isGuest = !user;
-  const remainingQuestions = Math.max(0, GUEST_LIMIT - guestQuestionsAsked);
-  const hasReachedLimit = isGuest && remainingQuestions === 0;
-
-  const handleGuestSend = async () => {
-    if (!guestInput.trim() || hasReachedLimit) return;
-    const userText = guestInput;
-    setGuestMessages(prev => [...prev, { sender: 'user', text: userText }]);
-    setGuestInput('');
-    setGuestLoading(true);
-
-    setGuestQuestionsAsked(prev => prev + 1);
-
-    try {
-      const data = await askChatbot(userText);
-      setGuestMessages(prev => [...prev, { sender: 'bot', text: data.answer }]);
-    } catch (err) {
-      console.error(err);
-      setGuestMessages(prev => [...prev, { 
-        sender: 'bot', 
-        text: 'Xin lỗi, hiện tại hệ thống Hỏi AI đang phản hồi chậm. Bạn có thể thử lại sau giây lát!' 
-      }]);
-    } finally {
-      setGuestLoading(false);
-    }
-  };
-
-  // =========================================================================
-  // 2. GIAO DIỆN WORKSPACE CAO CẤP DÀNH CHO NGƯỜI DÙNG ĐÃ ĐĂNG NHẬP
-  // =========================================================================
-  const [activeChatId, setActiveChatId] = useState('chat-1');
-  const [syncEnabled, setSyncEnabled] = useState(true);
-  const [toastMessage, setToastMessage] = useState('');
-  const [authInput, setAuthInput] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [copiedSuccess, setCopiedSuccess] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const chatBottomRef = useRef(null);
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 2800);
-  };
-
-  // Cuộc hội thoại mẫu đầy đủ theo thiết kế Workspace
-  const [chatMessages, setChatMessages] = useState([
+  const [messages, setMessages] = useState([
     {
       id: 'm1',
-      sender: 'bot',
-      time: '18:05',
-      type: 'text',
-      content: `Chào ${user?.name || 'Minh Tuấn'}! Theo Dashboard hôm nay, bạn đã nạp 1,420 / 2,080 kcal và đạt 72g đạm. Tuy nhiên chỉ số Canxi hiện mới đạt 62% (thiếu ~320mg). Mình sẵn sàng đồng hành cùng bữa tối tối ưu cho bạn!`
+      sender: 'ai',
+      time: '08:30',
+      text: `Xin chào **${profile.name}**! Tôi là **VeggieAI Chatbox** — Trợ lý Dinh dưỡng & Ẩm thực Thực vật Khoa học của bạn.\n\nDựa trên hồ sơ thể trạng hiện tại của bạn: **Chiều cao ${profile.height}cm**, **Cân nặng ${profile.weight}kg**, chỉ số **BMI ${metrics.bmi} (${metrics.category})**, mục tiêu năng lượng là **${metrics.tdee} kcal/ngày** và **${metrics.targetProtein}g Đạm thực vật**.\n\nHôm nay bạn muốn tối ưu dinh dưỡng, tìm món bù đắp vi chất hay cần gợi ý công thức nấu nướng nào?`
     },
     {
       id: 'm2',
       sender: 'user',
-      time: '18:07',
-      status: 'Đã xem',
-      type: 'text',
-      content: 'Tối nay mình còn nấm đùi gà và rau cải thìa trong tủ lạnh, bạn gợi ý món gì nấu dưới 20 phút mà bổ sung đủ lượng canxi và sắt còn thiếu trong ngày không? Nhớ là không dùng hành tỏi tây nhé.'
+      time: '08:31',
+      text: 'Gợi ý cho mình 1 món ăn giàu đạm thực vật và bổ sung Vitamin B12 cho bữa tối nhé!'
     },
     {
       id: 'm3',
-      sender: 'bot',
-      time: '18:08',
-      type: 'recommendation_card',
-      tags: [
-        '100% Không Dị Ứng Đậu Phộng',
-        'Không Ngũ Vị Tân (Chuẩn Chay Tu Tập)',
-        '15 Phút Chế Biến'
-      ],
-      titlePrefix: 'MÓN TÂM ĐIỂM BỮA TỐI ĐỀ XUẤT',
-      dishName: 'Nấm Đùi Gà Xào Cải Thìa Sốt Mè Rang & Đậu Hũ Non Áp Chảo Hạt Sen',
-      nutrition: '340 kcal • 18g đạm • 380mg Canxi (bù đắp 100% chỉ số canxi thiếu hụt trong ngày)'
+      sender: 'ai',
+      time: '08:31',
+      text: `Cho bữa tối giàu đạm và bổ sung trên **100% nhu cầu Vitamin B12** hàng ngày của bạn, tôi đề xuất món **Mì Ý Nấm Đùi Gà Sốt Kem Hạt Điều & Men Dinh Dưỡng B12**:\n\n• **25g Đạm thực vật** từ nấm đùi gà và sữa hạt nguyên chất.\n• **2.6µg Vitamin B12** (đạt 108% RDA) nhờ lớp sốt men dinh dưỡng tự nhiên.\n• Thời gian nấu chỉ **20 phút**, không chứa cholesterol động vật.`,
+      recipeId: 'r2'
     }
   ]);
 
-  // Cuộn xuống tin nhắn mới nhất
-  useEffect(() => {
-    if (chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages]);
-
-  const [showReportModal, setShowReportModal] = useState(null);
-  const [reportReason, setReportReason] = useState('Thông tin dinh dưỡng chưa chính xác');
-
-  const handleConfirmReport = () => {
-    if (!showReportModal) return;
-    const reportItem = {
-      id: `rep_${Date.now()}`,
-      targetId: showReportModal.id,
-      targetContent: showReportModal.content,
-      reason: reportReason,
-      reportedBy: user?.name || 'AuthorizedUser',
-      timestamp: new Date().toLocaleString()
-    };
-    try {
-      const existing = JSON.parse(localStorage.getItem('veggieai_reported_items') || '[]');
-      localStorage.setItem('veggieai_reported_items', JSON.stringify([reportItem, ...existing]));
-    } catch (e) {}
-    setShowReportModal(null);
-    showToast('✓ Đã gửi báo cáo câu trả lời đến Moderator kiểm duyệt (WF09)!');
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleAuthSend = async (customText = null) => {
-    const textToSend = customText || authInput;
-    if (!textToSend.trim() || authLoading) return;
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  const handleSendMessage = (e) => {
+    e?.preventDefault();
+    if (!inputText.trim()) return;
 
     const userMsg = {
-      id: `u_${Date.now()}`,
+      id: `u-${Date.now()}`,
       sender: 'user',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'Đã xem',
-      type: 'text',
-      content: textToSend.trim()
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: inputText.trim()
     };
 
-    setChatMessages(prev => [...prev, userMsg]);
-    if (!customText) setAuthInput('');
-    setAuthLoading(true);
+    setMessages(prev => [...prev, userMsg]);
+    const currentQuery = inputText.trim();
+    setInputText('');
+    setIsTyping(true);
 
-    try {
-      const res = await askChatbot(textToSend.trim());
-      const botMsg = {
-        id: `b_${Date.now()}`,
-        sender: 'bot',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'text',
-        content: res.answer || 'VeggieNutri AI đã ghi nhận yêu cầu của bạn và điều chỉnh vào hồ sơ dinh dưỡng!',
-        sources: res.sources || ['Hệ thống RAG Tri thức Dinh dưỡng VeggieAI v2.4']
-      };
-      setChatMessages(prev => [...prev, botMsg]);
-    } catch (err) {
-      // Fallback câu trả lời thông minh dựa theo ngữ cảnh
-      setTimeout(() => {
-        const botMsg = {
-          id: `b_${Date.now()}`,
-          sender: 'bot',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'text',
-          content: `Dạ, để tối ưu cho chế độ Chay trường và bổ sung đạm/canxi không dùng ngũ vị tân: Bạn nên kết hợp hạt mè rang giã thô cùng đậu hũ non và nấm đùi gà. Phương pháp này giúp tỷ lệ hấp thu canxi sinh học đạt trên 70% mà không gây nặng bụng buổi tối!`,
-          sources: [
-            'Bảng Thành Phần Thực Phẩm Việt Nam - Viện Dinh Dưỡng (TCVN 2023)',
-            'Journal of Agricultural and Food Chemistry - Calcium Bioavailability in Tofu'
-          ]
-        };
-        setChatMessages(prev => [...prev, botMsg]);
-      }, 700);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+    // AI Simulation response tailored to profile
+    setTimeout(() => {
+      let replyText = '';
+      let attachedRecipeId = null;
 
-  const handleNewChat = () => {
-    setChatMessages([
-      {
-        id: `m_${Date.now()}`,
-        sender: 'bot',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'text',
-        content: `Chào ${user?.name || 'Minh Tuấn'}! Cuộc trò chuyện mới đã sẵn sàng. Bạn muốn tham vấn thực đơn, kiểm tra vi chất hay tính toán lượng dinh dưỡng bữa ăn nào?`
+      const q = currentQuery.toLowerCase();
+      if (q.includes('đạm') || q.includes('protein') || q.includes('cơ')) {
+        replyText = `Để tăng cường đạm thực vật đạt mục tiêu **${metrics.targetProtein}g/ngày** của bạn, tôi gợi ý món **Mì Soba Đậu Hũ Áp Chảo Mè Rang & Đậu Nành Nhật** cung cấp **31g Đạm hoàn chỉnh** cùng đầy đủ 9 axit amin thiết yếu.`;
+        attachedRecipeId = 'r1';
+      } else if (q.includes('b12') || q.includes('vitamin b12')) {
+        replyText = `Vitamin B12 là vi chất quan trọng nhất ở người ăn chay. Món **Bánh Mì Nguyên Cám Phết Bơ Đậu Gà Hummus & Men B12** cung cấp **1.4µg B12** chỉ trong 12 phút chuẩn bị!`;
+        attachedRecipeId = 'r7';
+      } else if (q.includes('sắt') || q.includes('thiếu máu')) {
+        replyText = `Để bổ sung Sắt không heme hiệu quả, bạn nên chọn **Cà Ri Đậu Lăng Đỏ & Cải Bó Xôi** (cung cấp **7.8mg Sắt**). Đừng quên vắt chút chanh tươi để tăng 300% khả năng hấp thu vào cơ thể!`;
+        attachedRecipeId = 'r6';
+      } else {
+        replyText = `Theo chuẩn dinh dưỡng WHO cho thể trạng BMI **${metrics.bmi}** của bạn, thực đơn cân bằng hôm nay nên ưu tiên thực phẩm nguyên phần (Whole Foods) kết hợp rau củ sẫm màu và đậu hạt. Món **Tempeh Kho Tộ Sả Nghệ & Cơm Gạo Lứt** sẽ là lựa chọn tuyệt vời!`;
+        attachedRecipeId = 'r5';
       }
-    ]);
-    setActiveChatId(`chat-${Date.now()}`);
-    showToast('✨ Đã tạo cuộc trò chuyện mới');
+
+      const aiMsg = {
+        id: `ai-${Date.now()}`,
+        sender: 'ai',
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        text: replyText,
+        recipeId: attachedRecipeId
+      };
+
+      setMessages(prev => [...prev, aiMsg]);
+      setIsTyping(false);
+    }, 900);
   };
 
-  // NẾU LÀ GUEST: HIỂN THỊ GIAO DIỆN HỎI AI BAN ĐẦU
-  if (isGuest) {
-    return (
-      <Card style={{ height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', margin: 0 }}>
-            <Sparkles size={22} /> Hỏi AI - Trợ Lý Dinh Dưỡng Thực Dưỡng
-          </h2>
+  const handleApplyToDinner = (recipeId) => {
+    updateDayMeal(selectedDayIdx, 'dinner', recipeId);
+    showToast(`Đã áp dụng món vào bữa tối (${weeklyPlan[selectedDayIdx].day})`);
+  };
 
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            background: hasReachedLimit ? '#fee2e2' : '#ecfdf5', 
-            color: hasReachedLimit ? '#b91c1c' : '#047857',
-            padding: '0.35rem 0.85rem',
-            borderRadius: '20px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            border: `1px solid ${hasReachedLimit ? '#fca5a5' : '#a7f3d0'}`
-          }}>
-            <Sparkles size={14} />
-            <span>Dùng thử: Còn {remainingQuestions}/{GUEST_LIMIT} lượt hỏi</span>
+  const recipeMap = new Map(recipesDb.map(r => [r.id, r]));
+
+  return (
+    <div
+      className={`bg-alabaster/40 flex flex-col ${
+        isFullscreen
+          ? 'fixed inset-0 z-50 bg-white p-4'
+          : 'h-[calc(100vh-5rem)] max-w-6xl mx-auto py-4 px-4 sm:px-6'
+      }`}
+    >
+      {/* ====================================================================
+          1. CHAT CANVAS HEADER
+      ==================================================================== */}
+      <div className="bg-white rounded-2xl border border-hairline p-3 sm:p-4 shrink-0 shadow-xs flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-forest text-alabaster flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 text-emerald-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-editorial text-base sm:text-lg font-bold text-forest">
+                VeggieAI Chatbox
+              </h2>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <p className="text-[11px] text-olive font-medium">
+              Đồng bộ thể trạng {profile.name} (BMI {metrics.bmi} • {metrics.targetProtein}g Đạm)
+            </p>
           </div>
         </div>
 
-        {/* CHAT MESSAGES STREAM */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: '#f8fafc', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {guestMessages.map((msg, idx) => (
-            <div key={idx} style={{ alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start', maxWidth: '75%' }}>
-              <div style={{
-                padding: '0.85rem 1.15rem',
-                borderRadius: '16px',
-                background: msg.sender === 'user' ? '#046a47' : 'white',
-                color: msg.sender === 'user' ? 'white' : '#0f172a',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                border: msg.sender === 'bot' ? '1px solid #e2e8f0' : 'none',
-                lineHeight: '1.5'
-              }}>
-                {msg.text}
-              </div>
-            </div>
-          ))}
+        {/* Mode Selector Badges */}
+        <div className="flex items-center gap-1.5">
+          <div className="hidden md:flex items-center gap-1 bg-alabaster p-1 rounded-xl border border-hairline">
+            {[
+              { key: 'nutritionist', label: 'Dinh Dưỡng WHO', icon: Activity },
+              { key: 'chef', label: 'Bếp Trưởng 5★', icon: ChefHat },
+              { key: 'substitute', label: 'Đổi Món', icon: RefreshCw }
+            ].map(m => {
+              const Icon = m.icon;
+              const isActive = agentMode === m.key;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setAgentMode(m.key)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
+                    isActive ? 'bg-forest text-alabaster shadow-xs' : 'text-olive hover:text-forest'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline">{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-          {guestLoading && <div style={{ color: '#64748b', fontStyle: 'italic' }}>AI đang tra cứu tri thức dinh dưỡng...</div>}
-
-          {/* PROMPT WHEN LIMIT REACHED */}
-          {hasReachedLimit && (
-            <div style={{ 
-              padding: '1.25rem', 
-              background: '#fff7ed', 
-              border: '1.5px solid #fed7aa', 
-              borderRadius: '16px', 
-              textAlign: 'center', 
-              marginTop: '1rem' 
-            }}>
-              <Lock size={28} color="#ea580c" style={{ margin: '0 auto 0.5rem auto' }} />
-              <h4 style={{ color: '#9a3412', marginBottom: '0.35rem' }}>Bạn đã dùng hết {GUEST_LIMIT} lượt hỏi thử nghiệm miễn phí cùng Hỏi AI!</h4>
-              <p style={{ color: '#7c2d12', fontSize: '0.88rem', maxWidth: '500px', margin: '0 auto 1rem auto' }}>
-                Khách vãng lai được trải nghiệm tối đa {GUEST_LIMIT} câu hỏi. Hãy đăng ký tài khoản để sử dụng Hỏi AI không giới hạn và lưu trữ lịch sử tư vấn dinh dưỡng.
-              </p>
-              <Button onClick={() => onNavigate && onNavigate('register')} style={{ background: '#046a47', margin: '0 auto' }}>
-                <Sparkles size={16} /> Đăng ký miễn phí để tiếp tục sử dụng Hỏi AI <ArrowRight size={16} />
-              </Button>
-            </div>
-          )}
+          {/* Fullscreen Toggle */}
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 rounded-xl bg-alabaster hover:bg-sage border border-hairline text-forest transition cursor-pointer"
+            title={isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
         </div>
-
-        {/* INPUT ROW */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-          <input
-            type="text"
-            value={guestInput}
-            disabled={hasReachedLimit}
-            onChange={(e) => setGuestInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleGuestSend()}
-            placeholder={hasReachedLimit ? "Vui lòng đăng ký tài khoản để tiếp tục hỏi..." : "Đặt câu hỏi cùng Hỏi AI về dinh dưỡng chay, thiếu máu, vi chất B12..."}
-            style={{ 
-              flex: 1, 
-              padding: '0.75rem', 
-              borderRadius: '8px', 
-              border: '1px solid #cbd5e1',
-              background: hasReachedLimit ? '#f1f5f9' : 'white',
-              cursor: hasReachedLimit ? 'not-allowed' : 'text'
-            }}
-          />
-          <Button onClick={handleGuestSend} disabled={hasReachedLimit || guestLoading}>
-            <Send size={18} />
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
-  // =========================================================================
-  // GIAO DIỆN CHO NGƯỜI DÙNG ĐÃ ĐĂNG NHẬP (WORK AREA 3 CỘT ĐÚNG THEO ẢNH MẪU)
-  // =========================================================================
-  return (
-    <div style={{ background: '#f8fafc', minHeight: 'calc(100vh - 120px)', padding: '1rem 1.25rem 2.5rem 1.25rem' }}>
-      
-      {/* TOAST NOTIFICATION */}
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 9999,
-          background: '#047857',
-          color: '#ffffff',
-          padding: '0.8rem 1.25rem',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-          fontSize: '0.88rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.55rem'
-        }}>
-          <CheckCircle2 size={16} />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* BREADCRUMB */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
-        <button 
-          onClick={() => onNavigate && onNavigate('home')}
-          style={{ background: 'none', border: 'none', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer', padding: 0 }}
-        >
-          <Home size={14} /> Trang chủ
-        </button>
-        <span>/</span>
-        <span style={{ color: '#0f172a', fontWeight: 600 }}>VeggieAI Workspace</span>
       </div>
 
-      {/* BỐ CỤC 2 CỘT WORKSPACE: LỊCH SỬ/HỒ SƠ BÊN TRÁI & KHUNG CHAT RỘNG RÃI BÊN PHẢI */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '290px 1fr', 
-        gap: '1.5rem', 
-        alignItems: 'start',
-        maxWidth: '1440px',
-        margin: '0 auto'
-      }}>
+      {/* ====================================================================
+          2. MESSAGES STREAM (CHỈ SCROLL TRONG ĐOẠN CHAT)
+      ==================================================================== */}
+      <div className="flex-1 overflow-y-auto pr-1 space-y-4 rounded-2xl bg-white border border-hairline p-4 sm:p-6 shadow-xs">
+        {messages.map(msg => {
+          const isUser = msg.sender === 'user';
+          const attachedRecipe = msg.recipeId ? recipeMap.get(msg.recipeId) : null;
 
-        {/* ======================================================= */}
-        {/* CỘT TRÁI: LỊCH SỬ CHAT & HỒ SƠ ĐỒNG BỘ */}
-        {/* ======================================================= */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          
-          {/* NÚT TẠO CUỘC TRÒ CHUYỆN MỚI */}
-          <button 
-            onClick={handleNewChat}
-            style={{
-              width: '100%',
-              background: '#047857',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '0.85rem 1rem',
-              fontWeight: 700,
-              fontSize: '0.92rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(4, 120, 87, 0.25)',
-              transition: 'background 0.15s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#065f46'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#047857'}
-          >
-            <Plus size={18} /> Cuộc trò chuyện mới
-          </button>
-
-          {/* THẺ HỒ SƠ ĐỒNG BỘ */}
-          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 800, color: '#047857', letterSpacing: '0.3px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669', display: 'inline-block' }}></span>
-                <span>HỒ SƠ ĐỒNG BỘ</span>
-              </div>
-              
-              {/* TOGGLE SWITCH */}
-              <button 
-                type="button"
-                onClick={() => {
-                  setSyncEnabled(!syncEnabled);
-                  showToast(!syncEnabled ? 'Đã bật đồng bộ thể trạng AI' : 'Đã tạm ngưng đồng bộ');
-                }}
-                style={{
-                  width: '38px',
-                  height: '22px',
-                  borderRadius: '12px',
-                  background: syncEnabled ? '#047857' : '#cbd5e1',
-                  border: 'none',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'background 0.2s ease',
-                  padding: '2px'
-                }}
+          return (
+            <div
+              key={msg.id}
+              className={`flex gap-3 max-w-3xl ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
+            >
+              {/* Avatar Icon */}
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ${
+                  isUser ? 'bg-emeraldBotanic text-white' : 'bg-forest text-alabaster'
+                }`}
               >
-                <div style={{
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  position: 'absolute',
-                  top: '2px',
-                  left: syncEnabled ? '18px' : '2px',
-                  transition: 'left 0.2s ease'
-                }} />
-              </button>
-            </div>
-
-            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.65rem' }}>
-              {user?.name || 'Minh Tuấn'} (31 tuổi)
-            </div>
-
-            {/* TAGS HỒ SƠ (CHAY TRƯỜNG, LEAN MASS, KIÊNG NGŨ VỊ TÂN, DỊ ỨNG) */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '6px' }}>
-                Chay trường
-              </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#eff6ff', color: '#2563eb', padding: '3px 8px', borderRadius: '6px' }}>
-                Lean Mass
-              </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#fff7ed', color: '#c2410c', padding: '3px 8px', borderRadius: '6px' }}>
-                Kiêng ngũ vị tân
-              </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#fef2f2', color: '#b91c1c', padding: '3px 8px', borderRadius: '6px' }}>
-                Dị ứng đậu phộng
-              </span>
-            </div>
-          </div>
-
-          {/* DANH SÁCH LỊCH SỬ CUỘC TRÒ CHUYỆN */}
-          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            
-            {/* HÔM NAY */}
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
-                Hôm nay
+                {isUser ? profile.name.charAt(0) : <Sparkles className="w-4 h-4 text-emerald-300" />}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <div 
-                  onClick={() => setActiveChatId('chat-1')}
-                  style={{
-                    padding: '0.6rem 0.75rem',
-                    borderRadius: '10px',
-                    background: activeChatId === 'chat-1' ? '#ecfdf5' : 'transparent',
-                    color: activeChatId === 'chat-1' ? '#047857' : '#334155',
-                    border: activeChatId === 'chat-1' ? '1px solid #a7f3d0' : '1px solid transparent',
-                    fontWeight: activeChatId === 'chat-1' ? 700 : 500,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
+
+              {/* Message Bubble */}
+              <div className="space-y-2.5 max-w-[85%] sm:max-w-[78%]">
+                <div
+                  className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                    isUser
+                      ? 'bg-forest text-alabaster rounded-tr-none'
+                      : 'bg-alabaster text-forest border border-hairline rounded-tl-none'
+                  }`}
                 >
-                  <MessageSquare size={14} style={{ flexShrink: 0 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Tối ưu canxi & B12 cho bữa tối...</span>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.text}
+                  </ReactMarkdown>
                 </div>
 
-                <div 
-                  onClick={() => setActiveChatId('chat-2')}
-                  style={{
-                    padding: '0.6rem 0.75rem',
-                    borderRadius: '10px',
-                    background: activeChatId === 'chat-2' ? '#ecfdf5' : 'transparent',
-                    color: activeChatId === 'chat-2' ? '#047857' : '#475569',
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  <MessageSquare size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Thay thế đậu phụ trong thực đơn...</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 7 NGÀY QUA (ĐÃ BỎ "ĐÁNH GIÁ CHỈ SỐ VEGGIESCORE") */}
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
-                7 Ngày qua
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <div 
-                  style={{
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '8px',
-                    color: '#475569',
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <Leaf size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Nấu nước dùng phở không...</span>
-                </div>
-
-                <div 
-                  style={{
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '8px',
-                    color: '#475569',
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <Sparkles size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Giải cứu 500g nấm đùi gà...</span>
-                </div>
-
-                {/* THAY THẾ "ĐÁNH GIÁ CHỈ SỐ VEGGIESCORE" BẰNG MỤC GỢI Ý THỰC ĐƠN KHÁCH QUAN */}
-                <div 
-                  style={{
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '8px',
-                    color: '#475569',
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <Activity size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Gợi ý thực đơn giàu đạm...</span>
-                </div>
-              </div>
-            </div>
-
-            {/* THÁNG 10 */}
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
-                Tháng 10
-              </div>
-              <div 
-                style={{
-                  padding: '0.55rem 0.75rem',
-                  borderRadius: '8px',
-                  color: '#475569',
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem'
-                }}
-              >
-                <Flame size={14} style={{ flexShrink: 0, opacity: 0.6 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Ăn tăng cơ thực vật (2,08...</span>
-              </div>
-            </div>
-
-            {/* FOOTER BỘ NHỚ NGỮ CẢNH */}
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>Bộ nhớ ngữ cảnh AI</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#047857' }}>88%</span>
-              </div>
-              <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 0.65rem 0', lineHeight: 1.4 }}>
-                Đã ghi nhớ 42 thói quen ăn uống & phản ứng dinh dưỡng.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>
-                <span style={{ cursor: 'pointer' }} onClick={() => showToast('Đang mở cài đặt bộ nhớ...')}>Quản lý bộ nhớ</span>
-                <span style={{ cursor: 'pointer', color: '#94a3b8' }} onClick={() => showToast('Đã xóa bộ nhớ đệm lịch sử')}>Xóa lịch sử</span>
-              </div>
-            </div>
-
-          </div>
-        </aside>
-
-        {/* ======================================================= */}
-        {/* CỘT GIỮA: MÀN HÌNH CHAT CHÍNH VỚI VEGGIENUTRI AI */}
-        {/* ======================================================= */}
-        <main style={{ 
-          background: '#ffffff', 
-          borderRadius: '20px', 
-          border: '1px solid #e2e8f0', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          height: 'calc(100vh - 170px)',
-          boxShadow: '0 4px 20px -5px rgba(0,0,0,0.04)',
-          overflow: 'hidden'
-        }}>
-          
-          {/* HEADER CỦA KHUNG CHAT VEGGIENUTRI AI */}
-          <div style={{
-            padding: '1rem 1.25rem',
-            borderBottom: '1px solid #f1f5f9',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#ffffff'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #059669, #047857)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 10px rgba(4, 120, 87, 0.2)'
-              }}>
-                <Bot size={22} />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    VeggieNutri AI
-                  </h3>
-                  {/* ĐÃ BỎ HOÀN TOÀN BADGE "Chuẩn RNI 2024" THEO YÊU CẦU */}
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-                  <span>Trực tuyến & Đồng bộ hồ sơ thể trạng (Cập nhật 15 phút trước)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ACTION ICONS GÓC TRÊN PHẢI */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button 
-                type="button"
-                onClick={() => {
-                  setCopiedSuccess(true);
-                  showToast('📋 Đã sao chép nội dung cuộc trò chuyện');
-                  setTimeout(() => setCopiedSuccess(false), 2000);
-                }}
-                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: copiedSuccess ? '#047857' : '#64748b' }}
-                title="Sao chép cuộc trò chuyện"
-              >
-                {copiedSuccess ? <Check size={16} /> : <Copy size={16} />}
-              </button>
-
-              <button 
-                type="button"
-                onClick={() => {
-                  setBookmarked(!bookmarked);
-                  showToast(!bookmarked ? '⭐ Đã lưu cuộc trò chuyện này' : 'Đã bỏ lưu');
-                }}
-                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: bookmarked ? '#047857' : '#64748b' }}
-                title="Lưu vào mục quan trọng"
-              >
-                <Bookmark size={16} fill={bookmarked ? '#047857' : 'none'} />
-              </button>
-
-              <button 
-                type="button"
-                onClick={() => showToast('Tùy chỉnh phong cách phản hồi của AI')}
-                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748b' }}
-                title="Cài đặt trò chuyện"
-              >
-                <Sliders size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* KHÔNG GIAN CUỘN TIN NHẮN */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', background: '#fafaf9' }}>
-            {chatMessages.map((msg) => {
-              if (msg.sender === 'user') {
-                return (
-                  <div key={msg.id} style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-                    <div style={{ maxWidth: '78%' }}>
-                      <div style={{
-                        background: '#047857',
-                        color: '#ffffff',
-                        padding: '0.85rem 1.15rem',
-                        borderRadius: '18px 18px 4px 18px',
-                        fontSize: '0.9rem',
-                        lineHeight: 1.6,
-                        boxShadow: '0 2px 8px rgba(4, 120, 87, 0.15)'
-                      }}>
-                        {msg.content}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>
-                        {msg.time} • {msg.status}
+                {/* Embedded Recipe Card inside AI message */}
+                {attachedRecipe && (
+                  <div className="bg-white rounded-2xl border border-hairline p-3.5 shadow-xs space-y-2.5">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={attachedRecipe.image}
+                        alt={attachedRecipe.title}
+                        className="w-14 h-14 rounded-xl object-cover shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-metric font-bold text-emeraldBotanic uppercase">
+                          GỢI Ý TỐI ƯU • {attachedRecipe.matchScore}% MATCH
+                        </span>
+                        <h4 className="font-editorial text-sm font-bold text-forest truncate">
+                          {attachedRecipe.title}
+                        </h4>
+                        <p className="text-[11px] font-metric text-olive">
+                          {attachedRecipe.nutrients.calories} kcal • {attachedRecipe.nutrients.protein}g Đạm • {attachedRecipe.prepTime}p
+                        </p>
                       </div>
                     </div>
 
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: '#ea580c',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      MT
-                    </div>
-                  </div>
-                );
-              }
-
-              // TIN NHẮN TỪ VEGGIENUTRI AI
-              if (msg.type === 'recommendation_card') {
-                return (
-                  <div key={msg.id} style={{ display: 'flex', gap: '0.65rem', maxWidth: '85%' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '10px',
-                      background: '#047857',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <Bot size={18} />
-                    </div>
-
-                    {/* RECOMMENDATION CARD ĐẶC THÙ THEO MOCKUP */}
-                    <div style={{
-                      background: '#ffffff',
-                      border: '1px solid #bbf7d0',
-                      borderRadius: '18px',
-                      padding: '1.25rem',
-                      boxShadow: '0 4px 15px rgba(4, 120, 87, 0.06)',
-                      width: '100%'
-                    }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.85rem' }}>
-                        {msg.tags.map((t, idx) => (
-                          <span 
-                            key={idx}
-                            style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              background: idx === 0 ? '#f0fdf4' : idx === 1 ? '#ecfdf5' : '#fef3c7',
-                              color: idx === 0 ? '#15803d' : idx === 1 ? '#047857' : '#b45309',
-                              border: idx === 0 ? '1px solid #bbf7d0' : idx === 1 ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                              padding: '2px 8px',
-                              borderRadius: '6px'
-                            }}
-                          >
-                            {idx === 0 ? '🛡️ ' : idx === 1 ? '🌿 ' : '⏱️ '}{t}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#047857', letterSpacing: '0.4px', marginBottom: '0.35rem' }}>
-                        {msg.titlePrefix}
-                      </div>
-
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', lineHeight: 1.4 }}>
-                        {msg.dishName}
-                      </h4>
-
-                      <p style={{ fontSize: '0.82rem', color: '#475569', margin: '0 0 1rem 0' }}>
-                        {msg.nutrition}
-                      </p>
-
-                      <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-                        <button
-                          onClick={() => {
-                            if (onNavigate) onNavigate('article-detail');
-                          }}
-                          style={{
-                            background: '#047857',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '0.55rem 0.95rem',
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Xem công thức chi tiết →
-                        </button>
-
-                        <button
-                          onClick={() => showToast('✅ Đã thêm món vào thực đơn tối nay!')}
-                          style={{
-                            background: '#f8fafc',
-                            color: '#334155',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '8px',
-                            padding: '0.55rem 0.95rem',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          + Thêm vào thực đơn tối
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // TIN NHẮN DẠNG TEXT THÔNG THƯỜNG CỦA BOT
-              return (
-                <div key={msg.id} style={{ display: 'flex', gap: '0.65rem', maxWidth: '80%' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: '#047857',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <Bot size={18} />
-                  </div>
-
-                  <div>
-                    <div style={{
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      padding: '0.85rem 1.15rem',
-                      borderRadius: '4px 18px 18px 18px',
-                      fontSize: '0.9rem',
-                      lineHeight: 1.6,
-                      border: '1px solid #e2e8f0',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
-                    }}>
-                      <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-
-                      {/* RAG CITATION SOURCES */}
-                      {msg.sources && msg.sources.length > 0 && (
-                        <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px dashed #a7f3d0', fontSize: '0.76rem', color: '#047857' }}>
-                          <strong style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.35rem', color: '#047857' }}>
-                            <ShieldCheck size={14} /> Nguồn tri thức RAG y khoa đối chiếu:
-                          </strong>
-                          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', lineHeight: 1.5 }}>
-                            {msg.sources.map((src, sIdx) => (
-                              <li key={sIdx}>{src}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        {msg.time}
-                      </span>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-1 border-t border-hairline">
                       <button
                         type="button"
-                        onClick={() => setShowReportModal(msg)}
-                        style={{ border: 'none', background: 'transparent', color: '#94a3b8', fontSize: '0.72rem', cursor: 'pointer', padding: 0 }}
-                        title="Gửi báo cáo câu trả lời cho Moderator kiểm duyệt"
+                        onClick={() => setSelectedRecipeDetail(attachedRecipe)}
+                        className="w-full sm:flex-1 py-1.5 px-3 rounded-xl bg-alabaster hover:bg-sage border border-hairline text-xs font-semibold text-forest transition cursor-pointer text-center"
                       >
-                        🚩 Báo cáo phản hồi (WF09)
+                        Xem Công Thức
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyToDinner(attachedRecipe.id)}
+                        className="w-full sm:flex-1 py-1.5 px-3 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer text-center whitespace-nowrap shadow-xs"
+                      >
+                        ⚡ Áp Dụng Bữa Tối
                       </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                )}
 
-            {authLoading && (
-              <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', color: '#047857', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                <Bot size={18} />
-                <span>VeggieNutri AI đang tra cứu tri thức dinh dưỡng...</span>
+                <span className={`text-[10px] text-olive font-metric block ${isUser ? 'text-right' : 'text-left'}`}>
+                  {msg.time}
+                </span>
               </div>
-            )}
-
-            <div ref={chatBottomRef} />
-          </div>
-
-          {/* GỢI Ý CÂU HỎI NHANH (PROMPTS PILLS) */}
-          <div style={{ padding: '0.6rem 1.25rem', background: '#ffffff', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.65rem', overflowX: 'auto' }}>
-            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#94a3b8', flexShrink: 0 }}>GỢI Ý:</span>
-            <button
-              onClick={() => handleAuthSend('Bổ sung Vitamin B12 cho người thuần chay')}
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '4px 12px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              💊 Bổ sung Vitamin B12 thuần chay
-            </button>
-            <button
-              onClick={() => handleAuthSend('Mẹo thay thế ngũ vị tân trong món xào')}
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '4px 12px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              🌱 Thay thế ngũ vị tân (hành tỏi)
-            </button>
-            <button
-              onClick={() => handleAuthSend('Bổ sung canxi và sắt từ thực vật')}
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '4px 12px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              💧 Bổ sung Canxi & Sắt thực vật
-            </button>
-          </div>
-
-          {/* THANH NHẬP LIỆU CHAT */}
-          <div style={{ padding: '0.85rem 1.25rem', background: '#ffffff', borderTop: '1px solid #f1f5f9' }}>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAuthSend();
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.55rem',
-                background: '#f8fafc',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '4px 8px 4px 12px'
-              }}
-            >
-              <button 
-                type="button" 
-                onClick={() => showToast('📷 Tính năng tải ảnh đĩa thức ăn để nhận diện dinh dưỡng')}
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
-                title="Tải ảnh đĩa ăn"
-              >
-                <Camera size={18} />
-              </button>
-
-              <button 
-                type="button" 
-                onClick={() => showToast('🎙️ Tính năng thu âm giọng nói đang sẵn sàng')}
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
-                title="Thu âm câu hỏi"
-              >
-                <Mic size={18} />
-              </button>
-
-              <input
-                type="text"
-                value={authInput}
-                onChange={(e) => setAuthInput(e.target.value)}
-                placeholder="Hỏi VeggieNutri AI về dinh dưỡng, công thức món..."
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '0.88rem',
-                  color: '#0f172a',
-                  padding: '0.5rem 0.25rem'
-                }}
-              />
-
-              <button
-                type="submit"
-                disabled={!authInput.trim() || authLoading}
-                style={{
-                  background: authInput.trim() ? '#047857' : '#94a3b8',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '0.55rem 1.15rem',
-                  fontWeight: 700,
-                  fontSize: '0.84rem',
-                  cursor: authInput.trim() ? 'pointer' : 'default',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  transition: 'background 0.15s ease'
-                }}
-              >
-                Gửi ➤
-              </button>
-            </form>
-
-            <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.55rem' }}>
-              Thông tin do VeggieNutri AI cung cấp mang tính tham khảo chăm sóc sức khỏe.
             </div>
-          </div>
-        </main>
+          );
+        })}
 
+        {isTyping && (
+          <div className="flex items-center gap-2 text-xs text-olive p-2 bg-alabaster rounded-xl w-32 border border-hairline animate-pulse">
+            <Sparkles className="w-3.5 h-3.5 text-emeraldBotanic animate-spin" />
+            <span>AI đang soạn...</span>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* ========================================================================= */}
-      {/* REPORT MODAL POPUP (WF09 INTEGRATION) */}
-      {/* ========================================================================= */}
-      {showReportModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '1.25rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            maxWidth: '520px',
-            width: '100%',
-            padding: '1.75rem',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              🚩 Báo Cáo Câu Trả Lời AI Cần Kiểm Duyệt (WF09)
-            </h3>
-            <p style={{ fontSize: '0.86rem', color: '#64748b', margin: '0 0 1rem 0' }}>
-              Nội dung báo cáo sẽ được chuyển thẳng tới Hàng chờ Kiểm duyệt (Moderator Queue) để chuyên gia rà soát.
-            </p>
-
-            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#334155', marginBottom: '1.15rem', maxHeight: '100px', overflowY: 'auto' }}>
-              "{showReportModal.content}"
-            </div>
-
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-              Lý do báo cáo vi phạm:
-            </label>
-            <select
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', marginBottom: '1.5rem', outline: 'none' }}
+      {/* ====================================================================
+          3. SUGGESTIONS & INPUT BAR (NGĂN TRÀN NÚT)
+      ==================================================================== */}
+      <div className="mt-3 space-y-2 shrink-0">
+        {/* Topic Suggestion Chips */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar w-full min-w-0 flex-nowrap">
+          {[
+            'Bữa tối nhẹ bụng dưới 400 kcal',
+            'Bù đắp 100% Vitamin B12 hôm nay',
+            'Nạp 30g đạm thực vật không đậu nành',
+            'Cách tăng hấp thụ Sắt non-heme'
+          ].map((prompt, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setInputText(prompt);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-white border border-hairline text-[11px] font-medium text-forest hover:bg-sage/40 transition cursor-pointer whitespace-nowrap shrink-0 shadow-xs"
             >
-              <option value="Thông tin dinh dưỡng chưa chính xác">Thông tin dinh dưỡng chưa chính xác</option>
-              <option value="Gợi ý công thức dính chất dị ứng">Gợi ý công thức dính chất dị ứng</option>
-              <option value="Lỗi thuật ngữ hoặc nguồn trích dẫn">Lỗi thuật ngữ hoặc nguồn trích dẫn</option>
-              <option value="Nội dung không phù hợp thực dưỡng">Nội dung không phù hợp thực dưỡng</option>
-            </select>
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <Button variant="secondary" onClick={() => setShowReportModal(null)}>
-                Hủy bỏ
-              </Button>
-              <Button variant="primary" onClick={handleConfirmReport} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
-                Xác nhận Báo cáo (WF09)
-              </Button>
-            </div>
-          </div>
+              💡 {prompt}
+            </button>
+          ))}
         </div>
-      )}
 
+        {/* Input Bar Form */}
+        <form
+          onSubmit={handleSendMessage}
+          className="w-full max-w-full overflow-hidden bg-white rounded-2xl border border-hairline p-2 shadow-xs flex items-center gap-2"
+        >
+          <button
+            type="button"
+            onClick={() => showToast('Đính kèm ảnh món ăn hoặc nguyên liệu')}
+            className="p-2 rounded-xl text-olive hover:text-forest hover:bg-alabaster transition cursor-pointer shrink-0"
+            title="Đính kèm nguyên liệu"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
+
+          <textarea
+            value={inputText}
+            onChange={e => setInputText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            placeholder="Hỏi VeggieAI Chatbox về dinh dưỡng, công thức..."
+            rows={1}
+            className="flex-1 min-w-0 w-full resize-none bg-transparent text-xs sm:text-sm text-forest placeholder:text-olive/60 focus:outline-none py-1.5 px-1"
+          />
+
+          <button
+            type="submit"
+            disabled={!inputText.trim()}
+            className={`p-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+              inputText.trim()
+                ? 'bg-forest hover:bg-forestDark text-alabaster shadow-xs active:scale-95'
+                : 'bg-hairline text-olive/40 cursor-not-allowed'
+            }`}
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </form>
+      </div>
+
+      {/* Recipe Detail Modal */}
+      {selectedRecipeDetail && (
+        <RecipeDetailModal
+          recipe={selectedRecipeDetail}
+          onClose={() => setSelectedRecipeDetail(null)}
+          isSaved={(profile.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
+          onToggleSave={toggleSaveRecipe}
+        />
+      )}
     </div>
   );
 }
