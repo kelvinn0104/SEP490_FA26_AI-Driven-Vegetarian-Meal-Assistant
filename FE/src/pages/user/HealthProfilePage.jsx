@@ -1,1201 +1,709 @@
-﻿import React, { useState, useEffect } from 'react';
-import { 
-  HeartPulse, Scale, Flame, Activity, ShieldAlert, Sparkles, 
-  RotateCcw, Save, Smartphone, ChevronDown, Check, X, Plus, 
-  Info, Leaf, Award, ArrowRight, Utensils, CheckCircle2,
-  AlertTriangle, Heart, Pill, TrendingDown
+import React, { useState } from 'react';
+import {
+  Activity, Sliders, Bookmark, Check, ArrowLeft,
+  ChevronRight, MapPin, Users, UserCheck, Flame
 } from 'lucide-react';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import { useAuth } from '../../context/AuthContext';
+import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
+import { DEMO_PROFILES } from '../../data/nutritionData';
+import WhoAssessmentCard from '../../components/nutrition/WhoAssessmentCard';
+import RecipeCard from '../../components/recipes/RecipeCard';
+import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function HealthProfilePage({ onNavigate }) {
-  const { user } = useAuth();
+  const {
+    profile,
+    updateProfile,
+    switchDemoProfile,
+    metrics,
+    recipesDb,
+    toggleSaveRecipe,
+    showToast
+  } = useVeggieNutrition();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
+  const [profileTab, setProfileTab] = useState('health'); // 'health' | 'edit' | 'saved'
+  const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
 
-  // =========================================================================
-  // STATE CÁC CHỈ SỐ THỂ TRẠNG & ĐÁNH GIÁ BMI
-  // =========================================================================
-  const [gender, setGender] = useState('Nam');
-  const [age, setAge] = useState(28);
-  const [height, setHeight] = useState(175); // cm
-  const [currentWeight, setCurrentWeight] = useState(68); // kg
-  const [targetWeight, setTargetWeight] = useState(65); // kg
-  const [bodyFat, setBodyFat] = useState(16.5); // %
-
-  // TÍNH TOÁN BMI, BMR, TDEE THEO CÔNG THỨC CHUẨN WHO
-  const heightM = height / 100;
-  const bmi = (currentWeight / (heightM * heightM)).toFixed(1);
-
-  // BMR (Mifflin-St Jeor)
-  const bmr = Math.round(
-    gender === 'Nam' 
-      ? 10 * currentWeight + 6.25 * height - 5 * age + 5
-      : 10 * currentWeight + 6.25 * height - 5 * age - 161
-  );
-
-  // TDEE (Vận động vừa phải = BMR * 1.375)
-  const tdee = Math.round(bmr * 1.375);
-
-  // =========================================================================
-  // TRƯỜNG PHÁI ĂN CHAY & TRIẾT LÝ
-  // =========================================================================
-  const [dietType, setDietType] = useState(() => {
-    return user?.dietType || 'vegan';
-  }); // vegan, ovo-lacto, lacto, flexitarian
-
-  useEffect(() => {
-    if (user?.dietType) {
-      setDietType(user.dietType);
-    }
-  }, [user]);
-
-  const [strictPhilosophy, setStrictPhilosophy] = useState({
-    noNguViTan: true, // Kiêng ngũ vị tân
-    noProcessedMeat: true, // Hạn chế thực phẩm chế biến sẵn & giả thịt
-    organicLocavore: true // Ưu tiên nông sản Organic & Địa phương
-  });
-
-  // =========================================================================
-  // MỤC TIÊU SỨC KHỎE (TỐI ĐA 3)
-  // =========================================================================
-  const healthGoalOptions = [
-    { id: 'muscle', label: 'Tăng cơ nạc (Muscle Gain)', icon: '💪' },
-    { id: 'iron-b12', label: 'Bổ sung Sắt & B12', icon: '🩸' },
-    { id: 'gut', label: 'Cải thiện hệ vi sinh ruột', icon: '🦠' },
-    { id: 'bp-sugar', label: 'Cân bằng huyết áp / đường huyết', icon: '🩺' },
-    { id: 'detox', label: 'Thanh lọc & Tăng năng lượng', icon: '⚡' },
-    { id: 'sleep', label: 'Cải thiện giấc ngủ sâu', icon: '🌙' },
-  ];
-
-  const [selectedGoals, setSelectedGoals] = useState(['muscle', 'iron-b12', 'gut']);
-  const [activityLevel, setActivityLevel] = useState('moderate'); // moderate (3-5 buổi/tuần)
-
-  const handleToggleGoal = (id) => {
-    if (selectedGoals.includes(id)) {
-      if (selectedGoals.length > 1) {
-        setSelectedGoals(selectedGoals.filter(g => g !== id));
-      }
-    } else {
-      if (selectedGoals.length < 3) {
-        setSelectedGoals([...selectedGoals, id]);
-      }
-    }
-  };
-
-  // =========================================================================
-  // CẢNH BÁO DỊ ỨNG & THỰC PHẨM LOẠI TRỪ
-  // =========================================================================
-  const [allergens, setAllergens] = useState([
-    'Đậu phộng / Lạc',
-    'Gluten / Lúa mì',
-    'Sữa bò & Lactose',
-    'Nấm tuyết (nhạy cảm nhẹ)'
-  ]);
-  const [newAllergenInput, setNewAllergenInput] = useState('');
-
-  const handleAddAllergen = (item) => {
-    const clean = (item || newAllergenInput).trim();
-    if (clean && !allergens.includes(clean)) {
-      setAllergens([...allergens, clean]);
-      setNewAllergenInput('');
-    }
-  };
-
-  const handleRemoveAllergen = (item) => {
-    setAllergens(allergens.filter(a => a !== item));
-  };
-
-  // =========================================================================
-  // TRẠNG THÁI LƯU / KHÔI PHỤC
-  // =========================================================================
-  const [saveToast, setSaveToast] = useState('');
-
-  const handleSave = () => {
-    setSaveToast('✅ Đã lưu thay đổi hồ sơ sức khỏe! Thuật toán AI đã tự động cập nhật lại thực đơn tuần.');
-    setTimeout(() => setSaveToast(''), 3500);
-  };
-
-  const handleReset = () => {
-    setGender('Nam');
-    setAge(28);
-    setHeight(175);
-    setCurrentWeight(68);
-    setTargetWeight(65);
-    setDietType('vegan');
-    setStrictPhilosophy({
-      noNguViTan: true,
-      noProcessedMeat: true,
-      organicLocavore: true
-    });
-    setSelectedGoals(['muscle', 'iron-b12', 'gut']);
-    setAllergens([
-      'Đậu phộng / Lạc',
-      'Gluten / Lúa mì',
-      'Sữa bò & Lactose',
-      'Nấm tuyết (nhạy cảm nhẹ)'
-    ]);
-    setSaveToast('🔄 Đã khôi phục dữ liệu hồ sơ gốc.');
-    setTimeout(() => setSaveToast(''), 3000);
-  };
+  // Filter Bookmarked Recipes
+  const savedRecipes = recipesDb.filter(r => (profile.savedRecipeIds || []).includes(r.id));
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '1.75rem 1.5rem 5rem 1.5rem' }}>
-      <div style={{ maxWidth: '1360px', margin: '0 auto' }}>
-        
-        {/* TOAST THÔNG BÁO LƯU */}
-        {saveToast && (
-          <div style={{
-            position: 'fixed',
-            top: '80px',
-            right: '24px',
-            background: '#047857',
-            color: 'white',
-            padding: '0.85rem 1.4rem',
-            borderRadius: '14px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
-            zIndex: 2000,
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <CheckCircle2 size={18} />
-            <span>{saveToast}</span>
-          </div>
-        )}
-
-        {/* 1. TOP BREADCRUMB */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
-          <span 
-            style={{ cursor: 'pointer', color: '#059669', fontWeight: 600 }}
-            onClick={() => onNavigate && onNavigate('home')}
-          >
-            Trang chủ
-          </span>
-          <span>/</span>
-          <span style={{ color: '#475569', fontWeight: 600 }}>VeggieAI Workspace</span>
-          <span>/</span>
-          <span style={{ color: '#0f172a', fontWeight: 700 }}>Hồ sơ sức khỏe</span>
-        </div>
-
-        {/* 2. MAIN TITLE ROW & ACTION BUTTONS */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '2rem' }}>
-          <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.4rem 0', letterSpacing: '-0.5px' }}>
-              Hồ sơ sức khỏe & Mục tiêu dinh dưỡng
-            </h1>
-            <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '780px', margin: 0, lineHeight: 1.6 }}>
-              Thông tin thể trạng giúp AI Meal Planner & Chatbot cá nhân hóa thực đơn, tự động cân đối amino acid, vi chất non-heme và calo cho cơ thể bạn mỗi ngày.
-            </p>
-          </div>
-
-          {/* 3 NÚT HÀNH ĐỘNG GÓC TRÊN PHẢI (CHUẨN HÓA THEO PHÂN TÍCH) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            
-            {/* ĐỒNG BỘ APPLE HEALTH: DẠNG CHỈ HIỂN THỊ + NHÃN (CHỈ TRÊN APP) */}
-            <div 
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                color: '#64748b',
-                padding: '0.55rem 1rem',
-                borderRadius: '12px',
-                fontSize: '0.84rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                cursor: 'default',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-              }}
-              title="Tính năng đồng bộ Apple Health / Garmin chỉ khả dụng trên ứng dụng di động VeggieAI"
-            >
-              <Smartphone size={16} color="#059669" />
-              <span>Đồng bộ Apple Health</span>
-              <span style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '8px', fontWeight: 700 }}>
-                Chỉ trên App
-              </span>
+    <div className="min-h-screen bg-alabaster/40 py-8 px-4 sm:px-6 lg:px-8 space-y-8 max-w-7xl mx-auto animate-fade-up">
+      {/* ====================================================================
+          1. USER PROFILE HEADER CARD
+      ==================================================================== */}
+      <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-8 shadow-xs space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-6 border-b border-hairline">
+          {/* Left: Avatar & Identity */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
+            <div className="relative shrink-0">
+              <img
+                src={profile.avatar}
+                alt={profile.name}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-hairline shadow-xs"
+              />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
             </div>
 
-            {/* NÚT KHÔI PHỤC GỐC */}
-            <button
-              type="button"
-              onClick={handleReset}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                color: '#475569',
-                padding: '0.55rem 1rem',
-                borderRadius: '12px',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <RotateCcw size={15} />
-              <span>Khôi phục gốc</span>
-            </button>
-
-            {/* NÚT LƯU THAY ĐỔI */}
-            <button
-              type="button"
-              onClick={handleSave}
-              style={{
-                background: '#059669',
-                border: 'none',
-                color: '#ffffff',
-                padding: '0.58rem 1.25rem',
-                borderRadius: '12px',
-                fontSize: '0.88rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Save size={16} />
-              <span>Lưu thay đổi</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 3. MAIN 2-COLUMN GRID LAYOUT (62% LEFT / 38% RIGHT) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: '1.75rem', alignItems: 'start' }}>
-          
-          {/* ================================================================= */}
-          {/* CỘT TRÁI: 4 CARDS NỘI DUNG CHÍNH (WF01 / WF02) */}
-          {/* ================================================================= */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-            
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 1: CHỈ SỐ THỂ TRẠNG & ĐÁNH GIÁ BMI */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.75rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Scale size={20} />
-                  </div>
-                  <div>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                      Chỉ số thể trạng & Đánh giá BMI
-                    </h2>
-                    <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-                      Số liệu nhân trắc học dùng để tính toán BMR và TDEE chuẩn WHO
-                    </p>
-                  </div>
-                </div>
-
-                <span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '3px 10px', borderRadius: '10px', fontWeight: 700 }}>
-                  Tự động đồng bộ
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-forest">{profile.name}</h1>
+                <span className="font-metric text-xs text-olive font-medium">{profile.username}</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-xs font-semibold">
+                  {profile.diet}
                 </span>
               </div>
-
-              {/* 5 INPUT COLUMNS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.85rem', marginBottom: '1.5rem' }}>
-                {/* Giới tính sinh học */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem' }}>
-                    Giới tính sinh học
-                  </label>
-                  <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setGender('Nam')}
-                      style={{
-                        flex: 1,
-                        background: gender === 'Nam' ? '#059669' : 'transparent',
-                        color: gender === 'Nam' ? 'white' : '#64748b',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0.45rem 0',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Nam
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setGender('Nữ')}
-                      style={{
-                        flex: 1,
-                        background: gender === 'Nữ' ? '#059669' : 'transparent',
-                        color: gender === 'Nữ' ? 'white' : '#64748b',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0.45rem 0',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Nữ
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tuổi */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem' }}>
-                    Tuổi
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="number"
-                      value={age}
-                      onChange={(e) => setAge(Number(e.target.value))}
-                      style={{ width: '100%', padding: '0.45rem 2rem 0.45rem 0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}
-                    />
-                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#94a3b8' }}>tuổi</span>
-                  </div>
-                </div>
-
-                {/* Chiều cao */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem' }}>
-                    Chiều cao
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="number"
-                      value={height}
-                      onChange={(e) => setHeight(Number(e.target.value))}
-                      style={{ width: '100%', padding: '0.45rem 1.85rem 0.45rem 0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}
-                    />
-                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#94a3b8' }}>cm</span>
-                  </div>
-                </div>
-
-                {/* Cân nặng hiện tại */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem' }}>
-                    Cân nặng hiện tại
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="number"
-                      value={currentWeight}
-                      onChange={(e) => setCurrentWeight(Number(e.target.value))}
-                      style={{ width: '100%', padding: '0.45rem 1.85rem 0.45rem 0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}
-                    />
-                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#94a3b8' }}>kg</span>
-                  </div>
-                </div>
-
-                {/* Cân nặng mục tiêu */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem' }}>
-                    Cân nặng mục tiêu
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      type="number"
-                      value={targetWeight}
-                      onChange={(e) => setTargetWeight(Number(e.target.value))}
-                      style={{ width: '100%', padding: '0.45rem 1.85rem 0.45rem 0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}
-                    />
-                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#94a3b8' }}>kg</span>
-                  </div>
-                </div>
+              <p className="text-xs sm:text-sm text-olive max-w-xl leading-relaxed">{profile.bio}</p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-olive pt-0.5">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-terracotta" />
+                  <span>TP. Hồ Chí Minh</span>
+                </span>
+                <span>•</span>
+                <span className="text-emeraldBotanic font-semibold">Chuỗi {profile.streakDays} ngày ăn xanh</span>
               </div>
-
-              {/* BMI GAUGE & SCALE BAR */}
-              <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #eef2f6', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                  
-                  {/* BMI BADGE & TEXT */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ background: '#059669', color: 'white', borderRadius: '14px', padding: '0.65rem 1rem', textAlign: 'center', minWidth: '85px', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)' }}>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.85 }}>BMI</div>
-                      <div style={{ fontSize: '1.65rem', fontWeight: 800, lineHeight: 1 }}>{bmi}</div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                        <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                          Thể trạng Lý Tưởng
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          • Phạm vi chuẩn: 18.5 – 24.9
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0 }}>
-                        Cần giảm <strong>{(currentWeight - targetWeight).toFixed(1)} kg</strong> mỡ nội tạng để đạt mục tiêu vóc dáng săn chắc.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* BMI COLOR BAR */}
-                  <div style={{ minWidth: '220px', flex: 1, maxWidth: '280px' }}>
-                    <div style={{ display: 'flex', height: '8px', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.45rem' }}>
-                      <div style={{ flex: 18.5, background: '#3b82f6' }} title="Thiếu cân (< 18.5)" />
-                      <div style={{ flex: 6.4, background: '#10b981', position: 'relative' }} title="Chuẩn (18.5 - 24.9)" />
-                      <div style={{ flex: 5, background: '#f59e0b' }} title="Tiền thừa cân (25 - 29.9)" />
-                      <div style={{ flex: 10, background: '#ef4444' }} title="Thừa cân (> 30)" />
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
-                      <span>18.5</span>
-                      <span style={{ color: '#047857', fontWeight: 800 }}>● {bmi} (Bạn)</span>
-                      <span>24.9</span>
-                      <span>30.0</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* HÀNG THỐNG SÊ BMR, TDEE & MỠ */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Activity size={16} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tỷ lệ mỡ ước tính</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{bodyFat}%</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Flame size={16} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Chuyển hoá cơ bản (BMR)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{bmr.toLocaleString()} kcal</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Flame size={16} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tiêu thụ hàng ngày (TDEE)</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>{tdee.toLocaleString()} kcal</div>
-                  </div>
-                </div>
-              </div>
-
             </div>
+          </div>
 
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 2: TRƯỜNG PHÁI ĂN CHAY & TRIẾT LÝ DINH DƯỠNG */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.75rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Leaf size={20} />
+          {/* Right Action Bar */}
+          <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
+            <button
+              type="button"
+              onClick={() => setProfileTab(profileTab === 'edit' ? 'health' : 'edit')}
+              className="px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-alabaster text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95"
+            >
+              <Sliders className="w-3.5 h-3.5 text-emerald-300" />
+              <span>{profileTab === 'edit' ? 'Xem Thông Tin' : 'Chỉnh Sửa Chỉ Số'}</span>
+            </button>
+
+            {/* Profile Switcher Menu */}
+            <div className="flex items-center gap-1 bg-alabaster p-1 rounded-xl border border-hairline">
+              <Users className="w-3.5 h-3.5 text-emeraldBotanic ml-1" />
+              {DEMO_PROFILES.map(dp => (
+                <button
+                  key={dp.id}
+                  type="button"
+                  onClick={() => switchDemoProfile(dp.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    profile.name === dp.name ? 'bg-forest text-white' : 'text-olive hover:text-forest'
+                  }`}
+                >
+                  {dp.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Clinical Vitals Strip */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-olive">Thể Trọng & Chiều Cao</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-metric text-lg sm:text-xl font-bold text-forest">{profile.weight}</span>
+              <span className="text-xs text-olive font-medium">kg</span>
+              <span className="text-xs text-hairline mx-1">•</span>
+              <span className="font-metric text-sm font-semibold text-forest">{profile.height} cm</span>
+            </div>
+            <span className="text-[11px] text-olive font-medium block">
+              {profile.gender === 'male' ? 'Nam' : 'Nữ'} • {profile.age} tuổi
+            </span>
+          </div>
+
+          <div className="space-y-1 border-l-0 md:border-l border-hairline md:pl-5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-olive">Chỉ Số BMI (WHO)</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-metric text-lg sm:text-xl font-bold text-forest">{metrics.bmi}</span>
+              <span className="text-[11px] font-semibold text-emeraldBotanic bg-emeraldBotanic/10 px-2 py-0.5 rounded-full">
+                {metrics.category}
+              </span>
+            </div>
+            <span className="text-[11px] text-olive font-medium block">Khung chuẩn: 18.5 – 22.9</span>
+          </div>
+
+          <div className="space-y-1 border-l-0 sm:border-l border-hairline sm:pl-5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-olive">Năng Lượng TDEE</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-metric text-lg sm:text-xl font-bold text-forest">{metrics.tdee}</span>
+              <span className="text-xs text-olive font-medium">kcal/ngày</span>
+            </div>
+            <span className="text-[11px] text-olive font-medium block">BMR: {metrics.bmr} kcal</span>
+          </div>
+
+          <div className="space-y-1 border-l-0 md:border-l border-hairline md:pl-5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-olive">Nhu Cầu Đạm Thực Vật</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-metric text-lg sm:text-xl font-bold text-forest">{metrics.targetProtein}</span>
+              <span className="text-xs text-olive font-medium">g / ngày</span>
+            </div>
+            <span className="text-[11px] text-olive font-medium block">
+              ~{(metrics.targetProtein / profile.weight).toFixed(1)}g / kg thể trọng
+            </span>
+          </div>
+        </div>
+
+        {/* Sub-Navigation Tabs */}
+        <div className="flex gap-2 border-t border-hairline pt-4 overflow-x-auto no-scrollbar">
+          {[
+            { key: 'health', label: 'Thông Tin Thể Trạng', icon: Activity },
+            { key: 'edit', label: 'Chỉnh Sửa Chỉ Số', icon: Sliders },
+            { key: 'saved', label: `Món Đã Lưu (${savedRecipes.length})`, icon: Bookmark }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = profileTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setProfileTab(tab.key)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                  isActive
+                    ? 'bg-forest text-alabaster shadow-xs'
+                    : 'bg-alabaster text-olive hover:text-forest hover:bg-sage'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ====================================================================
+          TAB 1: READ-ONLY INFORMATION VIEW (THUẦN HIỂN THỊ THÔNG TIN)
+      ==================================================================== */}
+      {profileTab === 'health' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-fade-up">
+          {/* Left 7 cols: Information Cards */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Card 1: Goal */}
+            <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-7 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
+                    MỤC TIÊU THỂ TRẠNG
+                  </span>
+                  <h3 className="font-editorial text-xl font-bold text-forest mt-0.5">
+                    Mục Tiêu Cá Nhân Hóa
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileTab('edit')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-alabaster hover:bg-sage border border-hairline text-xs font-semibold text-forest transition cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-emeraldBotanic" />
+                  <span>Đổi Mục Tiêu</span>
+                </button>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-forest text-alabaster shadow-xs space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-[11px] font-metric font-bold px-2.5 py-1 rounded-md bg-emerald-400/20 text-emerald-300">
+                    {profile.goal === 'lose' ? '-350 kcal/ngày' : profile.goal === 'muscle' ? '+250 kcal/ngày' : 'Cân bằng TDEE'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Đang áp dụng</span>
+                  </span>
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    Trường phái ăn chay & Triết lý dinh dưỡng
-                  </h2>
-                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-                    Lựa chọn chế độ ăn giúp AI lọc thành phần và đề xuất phương pháp nấu nướng
+                  <h4 className="text-lg font-bold text-white">
+                    {profile.goal === 'lose'
+                      ? 'Giảm mỡ lành mạnh'
+                      : profile.goal === 'muscle'
+                      ? 'Tăng cơ thực vật'
+                      : 'Duy trì vóc dáng & Sức khỏe bền vững'}
+                  </h4>
+                  <p className="text-xs text-alabaster/80 mt-1 leading-relaxed">
+                    {profile.goal === 'lose'
+                      ? 'Thâm hụt calo nhẹ nhàng, ưu tiên chất xơ và đạm để duy trì cơ bắp.'
+                      : profile.goal === 'muscle'
+                      ? 'Thặng dư năng lượng có kiểm soát, nâng định mức đạm lên 1.6g/kg thể trọng.'
+                      : 'Giữ ổn định cân nặng, tối ưu hóa năng lượng và hệ vi sinh đường ruột.'}
                   </p>
                 </div>
-              </div>
-
-              {/* 4 CARDS GRID 2x2 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '1.25rem 0' }}>
-                
-                {/* 1. Thuần chay (Vegan) */}
-                <div 
-                  onClick={() => setDietType('vegan')}
-                  style={{
-                    padding: '1.15rem',
-                    borderRadius: '14px',
-                    border: dietType === 'vegan' ? '2px solid #059669' : '1px solid #e2e8f0',
-                    background: dietType === 'vegan' ? '#f0fdf4' : '#ffffff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    position: 'relative'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #059669', background: dietType === 'vegan' ? '#059669' : 'transparent' }} />
-                      <span>Thuần chay (Vegan)</span>
-                    </div>
-                    <Leaf size={16} color="#059669" />
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.45, margin: 0 }}>
-                    100% nguồn gốc thực vật, không thịt cá, trứng sữa, mật ong hay phụ gia từ động vật.
-                  </p>
+                <div className="pt-2 border-t border-white/10 flex flex-wrap gap-4 text-xs font-metric text-white/80">
+                  <span>BMR: <strong className="text-white">{metrics.bmr}</strong> kcal</span>
+                  <span>•</span>
+                  <span>TDEE: <strong className="text-emerald-300">{metrics.tdee}</strong> kcal</span>
+                  <span>•</span>
+                  <span>Đạm mục tiêu: <strong className="text-emerald-300">{metrics.targetProtein}g</strong></span>
                 </div>
-
-                {/* 2. Chay có trứng & sữa */}
-                <div 
-                  onClick={() => setDietType('ovo-lacto')}
-                  style={{
-                    padding: '1.15rem',
-                    borderRadius: '14px',
-                    border: dietType === 'ovo-lacto' ? '2px solid #059669' : '1px solid #e2e8f0',
-                    background: dietType === 'ovo-lacto' ? '#f0fdf4' : '#ffffff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #94a3b8', background: dietType === 'ovo-lacto' ? '#059669' : 'transparent' }} />
-                      <span>Chay có trứng & sữa</span>
-                    </div>
-                    <Award size={16} color="#94a3b8" />
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.45, margin: 0 }}>
-                    Lacto-Ovo Vegetarian: Bổ sung nguồn đạm từ trứng gà hữu cơ và sữa tiệt trùng sạch.
-                  </p>
-                </div>
-
-                {/* 3. Ăn chay có sữa (Lacto) */}
-                <div 
-                  onClick={() => setDietType('lacto')}
-                  style={{
-                    padding: '1.15rem',
-                    borderRadius: '14px',
-                    border: dietType === 'lacto' ? '2px solid #059669' : '1px solid #e2e8f0',
-                    background: dietType === 'lacto' ? '#f0fdf4' : '#ffffff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #94a3b8', background: dietType === 'lacto' ? '#059669' : 'transparent' }} />
-                      <span>Ăn chay có sữa (Lacto)</span>
-                    </div>
-                    <Award size={16} color="#94a3b8" />
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.45, margin: 0 }}>
-                    Sử dụng sữa, phô mai, sữa chua thực vật & bơ động vật; không sử dụng trứng.
-                  </p>
-                </div>
-
-                {/* 4. Chay linh hoạt (Flexitarian) */}
-                <div 
-                  onClick={() => setDietType('flexitarian')}
-                  style={{
-                    padding: '1.15rem',
-                    borderRadius: '14px',
-                    border: dietType === 'flexitarian' ? '2px solid #059669' : '1px solid #e2e8f0',
-                    background: dietType === 'flexitarian' ? '#f0fdf4' : '#ffffff',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800, color: '#0f172a', fontSize: '0.92rem' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #94a3b8', background: dietType === 'flexitarian' ? '#059669' : 'transparent' }} />
-                      <span>Chay linh hoạt (Flexitarian)</span>
-                    </div>
-                    <Award size={16} color="#94a3b8" />
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.45, margin: 0 }}>
-                    Chủ yếu ăn thực vật, chuyển đổi dần từng ngày hoặc ăn chay 4–5 ngày/tuần.
-                  </p>
-                </div>
-              </div>
-
-              {/* 3 CHECKBOXES TRIẾT LÝ ĂN CHAY VIỆT NAM */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.15rem' }}>
-                
-                {/* 1. Ngũ vị tân */}
-                <label 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.85rem 1rem',
-                    borderRadius: '12px',
-                    background: strictPhilosophy.noNguViTan ? '#f0fdf4' : '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span style={{ fontSize: '1.15rem' }}>🌱</span>
-                    <div>
-                      <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>
-                        Kiêng Ngũ vị tân (Hành, tỏi, hẹ, kiệu, củ nén)
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Phù hợp ăn chay Phật giáo, thiền định, tránh kích thích thân tâm.
-                      </div>
-                    </div>
-                  </div>
-                  <input 
-                    type="checkbox"
-                    checked={strictPhilosophy.noNguViTan}
-                    onChange={(e) => setStrictPhilosophy({ ...strictPhilosophy, noNguViTan: e.target.checked })}
-                    style={{ width: '18px', height: '18px', accentColor: '#059669', cursor: 'pointer' }}
-                  />
-                </label>
-
-                {/* 2. Thực phẩm chế biến sẵn */}
-                <label 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.85rem 1rem',
-                    borderRadius: '12px',
-                    background: strictPhilosophy.noProcessedMeat ? '#f0fdf4' : '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span style={{ fontSize: '1.15rem' }}>🥩</span>
-                    <div>
-                      <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>
-                        Hạn chế thực phẩm chế biến sẵn & giả thịt công nghiệp
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Ưu tiên đậu phụ tươi, tempeh lên men, nấm nguyên bản, không dùng chất bảo quản.
-                      </div>
-                    </div>
-                  </div>
-                  <input 
-                    type="checkbox"
-                    checked={strictPhilosophy.noProcessedMeat}
-                    onChange={(e) => setStrictPhilosophy({ ...strictPhilosophy, noProcessedMeat: e.target.checked })}
-                    style={{ width: '18px', height: '18px', accentColor: '#059669', cursor: 'pointer' }}
-                  />
-                </label>
-
-                {/* 3. Nông sản địa phương Locavore */}
-                <label 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.85rem 1rem',
-                    borderRadius: '12px',
-                    background: strictPhilosophy.organicLocavore ? '#f0fdf4' : '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span style={{ fontSize: '1.15rem' }}>🚜</span>
-                    <div>
-                      <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>
-                        Ưu tiên nông sản Organic & Địa phương theo mùa (Locavore)
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Hạn chế dấu chân carbon, tối đa lượng enzym sống từ rau củ tươi Đà Lạt.
-                      </div>
-                    </div>
-                  </div>
-                  <input 
-                    type="checkbox"
-                    checked={strictPhilosophy.organicLocavore}
-                    onChange={(e) => setStrictPhilosophy({ ...strictPhilosophy, organicLocavore: e.target.checked })}
-                    style={{ width: '18px', height: '18px', accentColor: '#059669', cursor: 'pointer' }}
-                  />
-                </label>
-
               </div>
             </div>
 
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 3: MỤC TIÊU SỨC KHỎE & CƯỜNG ĐỘ VẬN ĐỘNG */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.75rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Award size={20} />
-                </div>
+            {/* Card 2: Biometrics & Lifestyle */}
+            <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-7 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    Mục tiêu sức khỏe & Cường độ vận động
-                  </h2>
-                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-                    AI sẽ điều chỉnh tỷ lệ macro Đạm – Tinh bột – Chất béo khớp với chu kỳ vận động
+                  <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
+                    CHỈ SỐ SINH TRẮC HỌC (WHO)
+                  </span>
+                  <h3 className="font-editorial text-xl font-bold text-forest mt-0.5">
+                    Thể Trạng & Thói Quen Sống
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileTab('edit')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-alabaster hover:bg-sage border border-hairline text-xs font-semibold text-forest transition cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-emeraldBotanic" />
+                  <span>Sửa Chỉ Số</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-olive">Thể Trọng & Chiều Cao</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-metric text-2xl font-bold text-forest">{profile.weight}</span>
+                    <span className="text-xs text-olive font-semibold">kg</span>
+                    <span className="text-hairline mx-1">•</span>
+                    <span className="font-metric text-lg font-bold text-forest">{profile.height}</span>
+                    <span className="text-xs text-olive font-semibold">cm</span>
+                  </div>
+                  <p className="text-[11px] text-olive pt-0.5">
+                    BMI: <strong className="text-forest">{metrics.bmi}</strong> ({metrics.category})
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-olive">Độ Tuổi & Giới Tính</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-metric text-2xl font-bold text-forest">{profile.age}</span>
+                    <span className="text-xs text-olive font-semibold">tuổi</span>
+                    <span className="text-hairline mx-1">•</span>
+                    <span className="text-sm font-bold text-forest">{profile.gender === 'male' ? 'Nam' : 'Nữ'}</span>
+                  </div>
+                  <p className="text-[11px] text-olive pt-0.5">Chuẩn Mifflin-St Jeor</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-olive">Trường Phái Ăn Chay</span>
+                  <p className="text-sm font-bold text-forest truncate">{profile.diet}</p>
+                  <p className="text-[11px] text-olive pt-0.5">Cân đối vi chất thực vật tự động</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-olive">Mức Độ Vận Động (PAL)</span>
+                  <p className="text-sm font-bold text-forest">
+                    {profile.activity === 'sedentary'
+                      ? 'Ít vận động (PAL 1.2)'
+                      : profile.activity === 'active'
+                      ? 'Vận động cao (PAL 1.65)'
+                      : 'Vận động vừa (PAL 1.45)'}
+                  </p>
+                  <p className="text-[11px] text-olive pt-0.5">
+                    {profile.activity === 'sedentary'
+                      ? 'Làm việc bàn giấy, ít đi lại'
+                      : profile.activity === 'active'
+                      ? 'Gym, chạy bộ 5–7 ngày/tuần'
+                      : 'Yoga, đi bộ 3–4 buổi/tuần'}
                   </p>
                 </div>
               </div>
+            </div>
 
-              {/* CHỌN MỤC TIÊU HÀNG ĐẦU (TỐI ĐA 3) */}
-              <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.65rem' }}>
-                  CHỌN MỤC TIÊU HÀNG ĐẦU (TỐI ĐA 3)
+            {/* Card 3: Allergies */}
+            <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-7 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
+                    BỘ LỌC AN TOÀN
+                  </span>
+                  <h3 className="font-editorial text-xl font-bold text-forest mt-0.5">
+                    Dị Ứng & Nguyên Liệu Loại Trừ
+                  </h3>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileTab('edit')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-alabaster hover:bg-sage border border-hairline text-xs font-semibold text-forest transition cursor-pointer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-emeraldBotanic" />
+                  <span>Tùy Chỉnh</span>
+                </button>
+              </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
-                  {healthGoalOptions.map((goal) => {
-                    const isSelected = selectedGoals.includes(goal.id);
+              {(profile.allergies || []).length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {profile.allergies.map(allergy => (
+                      <span
+                        key={allergy}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-terracotta/10 text-terracotta border border-terracotta/20 inline-flex items-center gap-1.5"
+                      >
+                        <span>🚫 Tránh: {allergy}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-olive pt-1">
+                    Thực đơn và gợi ý món sẽ tự động loại bỏ các nguyên liệu trên.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-emeraldBotanic/10 border border-emeraldBotanic/20 flex items-center gap-3">
+                  <Check className="w-5 h-5 text-emeraldBotanic shrink-0" />
+                  <div className="text-xs">
+                    <p className="font-bold text-forest">Không có thành phần loại trừ</p>
+                    <p className="text-olive">Bạn có thể thưởng thức toàn bộ công thức phong phú trong hệ thống.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right 5 cols: WHO Assessment Card */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <WhoAssessmentCard
+              metrics={metrics}
+              onEditBiometrics={() => setProfileTab('edit')}
+              onApplyToPlanner={() => {
+                if (onNavigate) onNavigate('planner');
+                showToast('Đã áp dụng định mức thể trạng vào thực đơn');
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          TAB 2: DEDICATED EDIT MODE (CHỈNH SỬA CHỈ SỐ)
+      ==================================================================== */}
+      {profileTab === 'edit' && (
+        <div className="space-y-6 animate-fade-up">
+          {/* Header Action Bar */}
+          <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setProfileTab('health')}
+                className="p-2 rounded-xl bg-alabaster hover:bg-sage border border-hairline text-forest transition cursor-pointer"
+                title="Quay lại xem thông tin"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div>
+                <h3 className="font-editorial text-xl sm:text-2xl font-bold text-forest">
+                  Chỉnh Sửa Chỉ Số & Thể Trạng
+                </h3>
+                <p className="text-xs text-olive mt-0.5">
+                  Thay đổi chiều cao, cân nặng, mục tiêu calo và nguyên liệu dị ứng.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setProfileTab('health')}
+                className="px-3.5 py-2 rounded-xl border border-hairline text-xs font-semibold text-olive hover:text-forest hover:bg-alabaster transition cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileTab('health');
+                  showToast('Đã lưu và cập nhật chỉ số thể trạng thành công!');
+                }}
+                className="px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-alabaster text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5 active:scale-95"
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Hoàn Tất & Xem Hồ Sơ</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left 7 cols: Interactive Edit Forms */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Form 1: Goal */}
+              <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-7 shadow-xs space-y-4">
+                <h4 className="font-editorial text-lg font-bold text-forest">Chọn Mục Tiêu Cá Nhân</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { key: 'lose', title: 'Giảm mỡ lành mạnh', badge: '-350 kcal/ngày', desc: 'Thâm hụt nhẹ, duy trì cơ bắp' },
+                    { key: 'maintain', title: 'Duy trì vóc dáng', badge: 'Cân bằng TDEE', desc: 'Ổn định cân nặng và vi sinh' },
+                    { key: 'muscle', title: 'Tăng cơ thực vật', badge: '+250 kcal/ngày', desc: 'Thặng dư năng lượng + đạm 1.6g/kg' }
+                  ].map(g => (
+                    <button
+                      key={g.key}
+                      type="button"
+                      onClick={() => updateProfile({ ...profile, goal: g.key })}
+                      className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                        profile.goal === g.key
+                          ? 'border-forest bg-forest text-alabaster shadow-xs'
+                          : 'border-hairline bg-alabaster text-forest hover:bg-sage/40'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <span className={`inline-block text-[10px] font-metric font-bold px-2 py-0.5 rounded-md ${
+                          profile.goal === g.key ? 'bg-emerald-400/20 text-emerald-300' : 'bg-forest/10 text-forest'
+                        }`}>
+                          {g.badge}
+                        </span>
+                        <p className="text-xs font-bold pt-1">{g.title}</p>
+                        <p className={`text-[11px] leading-relaxed ${profile.goal === g.key ? 'text-alabaster/80' : 'text-olive'}`}>
+                          {g.desc}
+                        </p>
+                      </div>
+                      {profile.goal === g.key && (
+                        <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300 mt-3 pt-2 border-t border-white/10">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Đang áp dụng</span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Form 2: Biometrics */}
+              <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-7 shadow-xs space-y-5">
+                <h4 className="font-editorial text-lg font-bold text-forest">Chỉ Số Cơ Thể & Vận Động</h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Gender */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-olive mb-2">Giới tính sinh học</label>
+                    <div className="grid grid-cols-2 gap-2 bg-alabaster p-1 rounded-xl border border-hairline">
+                      <button
+                        type="button"
+                        onClick={() => updateProfile({ ...profile, gender: 'female' })}
+                        className={`py-2 text-xs font-bold rounded-lg transition cursor-pointer ${
+                          profile.gender === 'female' ? 'bg-forest text-white' : 'text-olive hover:text-forest'
+                        }`}
+                      >
+                        Nữ (Female)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateProfile({ ...profile, gender: 'male' })}
+                        className={`py-2 text-xs font-bold rounded-lg transition cursor-pointer ${
+                          profile.gender === 'male' ? 'bg-forest text-white' : 'text-olive hover:text-forest'
+                        }`}
+                      >
+                        Nam (Male)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Age */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-olive mb-2">Độ tuổi (năm)</label>
+                    <div className="flex items-center gap-2 bg-alabaster border border-hairline rounded-xl px-3 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateProfile({ ...profile, age: Math.max(16, profile.age - 1) })}
+                        className="w-8 h-8 rounded-lg bg-white border border-hairline font-bold text-sm text-forest hover:bg-sage transition"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={profile.age}
+                        onChange={e => updateProfile({ ...profile, age: Number(e.target.value) || 23 })}
+                        className="w-full text-center font-metric font-bold text-forest text-base bg-transparent focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateProfile({ ...profile, age: Math.min(90, profile.age + 1) })}
+                        className="w-8 h-8 rounded-lg bg-white border border-hairline font-bold text-sm text-forest hover:bg-sage transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Height */}
+                  <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold uppercase text-olive">Chiều cao</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={profile.height}
+                          onChange={e => updateProfile({ ...profile, height: Number(e.target.value) || 165 })}
+                          className="w-16 text-right font-metric text-sm font-bold text-forest bg-white border border-hairline rounded-lg px-2 py-1"
+                        />
+                        <span className="text-xs text-olive font-semibold">cm</span>
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min={140}
+                      max={205}
+                      value={profile.height}
+                      onChange={e => updateProfile({ ...profile, height: Number(e.target.value) })}
+                      className="w-full accent-forest cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Weight */}
+                  <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold uppercase text-olive">Cân nặng</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={profile.weight}
+                          onChange={e => updateProfile({ ...profile, weight: Number(e.target.value) || 56 })}
+                          className="w-16 text-right font-metric text-sm font-bold text-forest bg-white border border-hairline rounded-lg px-2 py-1"
+                        />
+                        <span className="text-xs text-olive font-semibold">kg</span>
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min={38}
+                      max={115}
+                      value={profile.weight}
+                      onChange={e => updateProfile({ ...profile, weight: Number(e.target.value) })}
+                      className="w-full accent-forest cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Diet Type */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-olive mb-2">Trường phái ăn thực vật</label>
+                    <select
+                      value={profile.diet}
+                      onChange={e => updateProfile({ ...profile, diet: e.target.value })}
+                      className="w-full bg-alabaster border border-hairline rounded-xl px-4 py-3 text-sm font-semibold text-forest focus:outline-none focus:border-forest cursor-pointer"
+                    >
+                      <option value="Thuần chay (Vegan)">Thuần chay (Vegan - 100% Thực vật)</option>
+                      <option value="Ăn chay có trứng sữa (Lacto-Ovo)">Chay có Sữa & Trứng (Lacto-Ovo)</option>
+                      <option value="Ăn chay Linh hoạt (Flexitarian)">Ăn chay Linh hoạt (Flexitarian)</option>
+                      <option value="Thực dưỡng (Macrobiotic)">Thực dưỡng Ohsawa (Macrobiotic)</option>
+                    </select>
+                  </div>
+
+                  {/* Activity Level */}
+                  <div className="sm:col-span-2 space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-olive">Mức độ vận động (PAL)</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { key: 'sedentary', title: 'Ít vận động (PAL 1.2)', desc: 'Làm việc bàn giấy, ít đi lại' },
+                        { key: 'moderate', title: 'Vận động vừa (PAL 1.45)', desc: 'Yoga, đi bộ 3–4 buổi/tuần' },
+                        { key: 'active', title: 'Vận động cao (PAL 1.65)', desc: 'Gym, chạy bộ 5–7 ngày/tuần' }
+                      ].map(act => (
+                        <button
+                          key={act.key}
+                          type="button"
+                          onClick={() => updateProfile({ ...profile, activity: act.key })}
+                          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                            profile.activity === act.key
+                              ? 'border-forest bg-forest text-white shadow-xs'
+                              : 'border-hairline bg-alabaster text-forest hover:bg-sage/40'
+                          }`}
+                        >
+                          <p className="text-xs font-bold">{act.title}</p>
+                          <p className={`text-[11px] mt-1 ${profile.activity === act.key ? 'text-white/80' : 'text-olive'}`}>
+                            {act.desc}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form 3: Allergies */}
+              <div className="bg-white rounded-3xl border border-hairline p-5 sm:p-7 shadow-xs space-y-4">
+                <h4 className="font-editorial text-lg font-bold text-forest">Nguyên Liệu Cần Loại Trừ</h4>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Đậu phộng', 'Gluten / Lúa mì', 'Đậu nành', 'Nấm hương',
+                    'Ớt cay', 'Đường tinh luyện', 'Ngũ vị tân (Hành tỏi)', 'Sữa bơ động vật'
+                  ].map(allergy => {
+                    const active = (profile.allergies || []).includes(allergy);
                     return (
                       <button
-                        key={goal.id}
+                        key={allergy}
                         type="button"
-                        onClick={() => handleToggleGoal(goal.id)}
-                        style={{
-                          padding: '0.75rem 0.65rem',
-                          borderRadius: '12px',
-                          border: isSelected ? '1px solid #059669' : '1px solid #e2e8f0',
-                          background: isSelected ? '#046a47' : '#ffffff',
-                          color: isSelected ? '#ffffff' : '#334155',
-                          fontSize: '0.82rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          textAlign: 'left',
-                          transition: 'all 0.15s ease'
+                        onClick={() => {
+                          const updatedAllergies = active
+                            ? profile.allergies.filter(a => a !== allergy)
+                            : [...profile.allergies, allergy];
+                          updateProfile({ ...profile, allergies: updatedAllergies });
                         }}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
+                          active
+                            ? 'bg-terracotta text-white border-terracotta shadow-xs'
+                            : 'bg-alabaster text-forest border-hairline hover:bg-sage/40'
+                        }`}
                       >
-                        <span>{goal.icon}</span>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.label}</span>
+                        <span>{active ? `✕ Tránh: ${allergy}` : allergy}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-
-              {/* MỨC ĐỘ HOẠT ĐỘNG THỂ CHẤT */}
-              <div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-                  MỨC ĐỘ HOẠT ĐỘNG THỂ CHẤT (ACTIVITY LEVEL)
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={activityLevel}
-                    onChange={(e) => setActivityLevel(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.85rem 1rem',
-                      borderRadius: '12px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.88rem',
-                      fontWeight: 700,
-                      color: '#0f172a',
-                      background: '#f8fafc',
-                      appearance: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="sedentary">Ít vận động (Công việc văn phòng, ít đi lại)</option>
-                    <option value="moderate">Vận động vừa phải (3–5 buổi/tuần – Gym, chạy bộ 5km, HIIT)</option>
-                    <option value="very_active">Cường độ cao (6–7 buổi/tuần – Tập tạ nặng, vận động viên)</option>
-                  </select>
-                  <ChevronDown size={18} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }} />
-                </div>
-              </div>
             </div>
 
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 4: CẢNH BÁO DỊ ỨNG & THỰC PHẨM LOẠI TRỪ */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.75rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AlertTriangle size={20} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    Cảnh báo Dị ứng & Thực phẩm loại trừ
-                  </h2>
-                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: '0.15rem 0 0 0' }}>
-                    Lớp bảo vệ tuyệt đối: AI sẽ loại bỏ triệt để các món hoặc gia vị chứa thành phần này
-                  </p>
-                </div>
-              </div>
-
-              {/* ALLERGEN GUARD BANNER */}
-              <div style={{
-                background: '#fff1f2',
-                border: '1px solid #fecdd3',
-                borderRadius: '12px',
-                padding: '0.75rem 1rem',
-                margin: '1.15rem 0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.65rem'
-              }}>
-                <ShieldAlert size={20} color="#e11d48" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.82rem', color: '#9f1239', lineHeight: 1.45 }}>
-                  <strong>Bảo vệ an toàn sức khỏe:</strong> Mọi công thức đề xuất sẽ chạy qua bộ lọc <em>Allergen Guard</em> trước khi xuất hiện trên thực đơn tuần.
-                </span>
-              </div>
-
-              {/* LIST OF CURRENT ALLERGENS */}
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700, marginBottom: '0.5rem' }}>
-                  Các thành phần hiện tại đang bị loại trừ:
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                  {allergens.map((item, idx) => (
-                    <span 
-                      key={idx}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #fecdd3',
-                        color: '#9f1239',
-                        padding: '5px 10px',
-                        borderRadius: '20px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem'
-                      }}
-                    >
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e11d48' }} />
-                      <span>{item}</span>
-                      <X 
-                        size={14} 
-                        style={{ cursor: 'pointer', opacity: 0.7 }}
-                        onClick={() => handleRemoveAllergen(item)}
-                      />
-                    </span>
-                  ))}
-
-                  {/* INPUT THÊM DỊ ỨNG */}
-                  <input
-                    type="text"
-                    placeholder="+ Gõ thêm chất dị ứng và Enter..."
-                    value={newAllergenInput}
-                    onChange={(e) => setNewAllergenInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddAllergen()}
-                    style={{
-                      border: '1px dashed #cbd5e1',
-                      borderRadius: '20px',
-                      padding: '5px 12px',
-                      fontSize: '0.8rem',
-                      outline: 'none',
-                      background: 'transparent',
-                      minWidth: '220px'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* GỢI Ý PHỔ BIẾN NHANH */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Gợi ý phổ biến nhanh:</span>
-                {['+ Đậu nành', '+ Hạt điều', '+ Mè / Vừng', '+ Quả Kiwi', '+ Rau cần tây'].map((s, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleAddAllergen(s.replace('+ ', ''))}
-                    style={{
-                      background: '#f1f5f9',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '2px 8px',
-                      fontSize: '0.74rem',
-                      color: '#475569',
-                      cursor: 'pointer',
-                      fontWeight: 600
-                    }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              {/* TÌNH TRẠNG TIÊU HOÁ & BỆNH LÝ */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
-                  Tình trạng tiêu hoá & bệnh lý kèm theo:
-                </span>
-                <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#334155', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                  Dạ dày nhạy cảm
-                </span>
-                <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#334155', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
-                  Thiếu máu nhẹ
-                </span>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* ================================================================= */}
-          {/* CỘT PHẢI: KHUYẾN NGHỊ TỪ AI, ĐỘ KHỚP THUẬT TOÁN, BIẾN ĐỘNG 4 TUẦN */}
-          {/* ================================================================= */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 1: KHUYẾN NGHỊ TỪ AI (RNI 2024) */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
-                  <Sparkles size={18} color="#059669" />
-                  <span>Khuyến nghị từ AI</span>
-                </div>
-                <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
-                  RNI 2024
-                </span>
-              </div>
-
-              <p style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.45, margin: '0 0 1rem 0' }}>
-                Chỉ số dinh dưỡng đa lượng tối ưu cho mục tiêu <strong>Tăng cơ nạc</strong> với cường độ <strong>Vận động vừa phải</strong>:
-              </p>
-
-              {/* NĂNG LƯỢNG MỤC TIÊU BOX */}
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 700, textTransform: 'uppercase' }}>
-                    NĂNG LƯỢNG MỤC TIÊU
-                  </div>
-                  <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0f172a' }}>
-                    2,150 <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>kcal / ngày</span>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Thâm hụt nhẹ</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#059669' }}>-100 kcal</div>
-                </div>
-              </div>
-
-              {/* 3 MACRO BARS */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                {/* Đạm thực vật */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: 800, color: '#0f172a' }}>● Đạm thực vật (Protein)</span>
-                    <span style={{ fontWeight: 800, color: '#059669' }}>85g (20%)</span>
-                  </div>
-                  <div style={{ fontSize: '0.73rem', color: '#64748b', marginBottom: '0.35rem' }}>
-                    1.25g / kg thể trọng • Đậu lăng, Tempeh, Hạt bí
-                  </div>
-                  <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '3px' }}>
-                    <div style={{ width: '20%', height: '100%', background: '#10b981', borderRadius: '3px' }} />
-                  </div>
-                </div>
-
-                {/* Carb phức hợp */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: 800, color: '#0f172a' }}>● Carb phức hợp (Chậm hấp thu)</span>
-                    <span style={{ fontWeight: 800, color: '#f59e0b' }}>270g (50%)</span>
-                  </div>
-                  <div style={{ fontSize: '0.73rem', color: '#64748b', marginBottom: '0.35rem' }}>
-                    Gạo lứt huyết rồng, yến mạch cán dẹt, khoai lang
-                  </div>
-                  <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '3px' }}>
-                    <div style={{ width: '50%', height: '100%', background: '#f59e0b', borderRadius: '3px' }} />
-                  </div>
-                </div>
-
-                {/* Chất béo tốt */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: 800, color: '#0f172a' }}>● Chất béo tốt (Omega-3 & 9)</span>
-                    <span style={{ fontWeight: 800, color: '#ea580c' }}>72g (30%)</span>
-                  </div>
-                  <div style={{ fontSize: '0.73rem', color: '#64748b', marginBottom: '0.35rem' }}>
-                    Dầu oliu nguyên chất, hạt lanh xay, quả bơ sáp
-                  </div>
-                  <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '3px' }}>
-                    <div style={{ width: '30%', height: '100%', background: '#ea580c', borderRadius: '3px' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3 MICRO NUTRIENTS BOXES */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px' }}>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Chất xơ tự nhiên</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>38g / ngày</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Sắt Non-heme</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>18 mg / ngày</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Vitamin B12 cần bổ sung</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                    <span>2.8 mcg</span>
-                    <Pill size={12} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 2: ĐỘ KHỚP THUẬT TOÁN AI */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>Độ khớp thuật toán AI</span>
-                <ShieldAlert size={16} color="#059669" />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                {/* Score Circle */}
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '50%',
-                  border: '4px solid #10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '1.25rem',
-                  color: '#047857',
-                  flexShrink: 0
-                }}>
-                  94
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Hồ sơ chi tiết xuất sắc!</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
-                    Thuật toán có đủ 9 chỉ số mấu chốt để tránh hoàn toàn dị ứng đậu phộng/gluten và bảo đảm đủ đạm.
-                  </div>
-                </div>
-              </div>
-
-              {/* GỢI Ý TỪ CHEF AI */}
-              <div style={{ background: '#ecfdf5', borderRadius: '12px', padding: '0.85rem', borderLeft: '3px solid #059669', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#047857', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <Sparkles size={13} /> Gợi ý từ Chef AI:
-                </div>
-                <p style={{ fontSize: '0.78rem', color: '#065f46', margin: 0, lineHeight: 1.5 }}>
-                  “Vì bạn kiêng ngũ vị tân nhưng cần nạp 85g đạm, AI sẽ thay thế hành tỏi bằng <strong>ngò gai, lá boa-rô và thì là</strong> kết hợp sốt men dinh dưỡng mặn thơm.”
-                </p>
-              </div>
-
-              {/* NÚT TẠO THỰC ĐƠN TUẦN TỪ HỒ SƠ NÀY */}
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate('create-plan')}
-                style={{
-                  width: '100%',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  color: '#1d4ed8',
-                  borderRadius: '12px',
-                  padding: '0.75rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.4rem',
-                  transition: 'all 0.15s ease'
+            {/* Right 5 cols: Live Preview WHO Card */}
+            <div className="lg:col-span-5 lg:sticky lg:top-24">
+              <WhoAssessmentCard
+                metrics={metrics}
+                onApplyToPlanner={() => {
+                  setProfileTab('health');
+                  showToast('Đã lưu và cập nhật chỉ số');
                 }}
-              >
-                <span>Tạo thực đơn tuần từ hồ sơ này</span>
-                <ArrowRight size={15} />
-              </button>
+              />
             </div>
-
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 3: BIẾN ĐỘNG 4 TUẦN (BIỂU ĐỒ BMI) */}
-            {/* ------------------------------------------------------------- */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>Biến động 4 tuần</span>
-                <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
-                  -1.8 kg
-                </span>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 1rem 0' }}>
-                BMI giảm từ 22.8 xuống 22.2 đạt chỉ số chuẩn.
-              </p>
-
-              {/* BIỂU ĐỒ SVG LINE CHART MƯỢT MÀ */}
-              <div style={{ height: '60px', width: '100%', marginBottom: '0.65rem' }}>
-                <svg viewBox="0 0 300 60" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-                  <path
-                    d="M 10,20 Q 80,35 150,28 T 290,45"
-                    fill="none"
-                    stroke="#059669"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-                  {/* Data Points */}
-                  <circle cx="10" cy="20" r="4" fill="#059669" />
-                  <circle cx="100" cy="30" r="4" fill="#059669" />
-                  <circle cx="200" cy="30" r="4" fill="#059669" />
-                  <circle cx="290" cy="45" r="5" fill="#047857" stroke="white" strokeWidth="2" />
-                </svg>
-              </div>
-
-              {/* 4 MỐC TUẦN */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>
-                <span>Tuần 1 (69.8kg)</span>
-                <span>Tuần 2</span>
-                <span>Tuần 3</span>
-                <span style={{ color: '#059669', fontWeight: 800 }}>Hiện tại (68kg)</span>
-              </div>
-            </div>
-
-            {/* ------------------------------------------------------------- */}
-            {/* CARD 4: ĐỀ XUẤT TUẦN NÀY (KẾT NỐI VỚI MEAL PLANNER) */}
-            {/* ------------------------------------------------------------- */}
-            <div 
-              onClick={() => onNavigate && onNavigate('planner')}
-              style={{
-                borderRadius: '20px',
-                overflow: 'hidden',
-                position: 'relative',
-                height: '190px',
-                backgroundImage: `url('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.2) 60%)' }} />
-              
-              <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', color: 'white' }}>
-                <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, display: 'inline-block', marginBottom: '0.35rem' }}>
-                  ĐỀ XUẤT TUẦN NÀY
-                </span>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 0.2rem 0', color: 'white' }}>
-                  Tempeh nướng ngò gai & bí đỏ hạt chia
-                </h3>
-                <p style={{ fontSize: '0.75rem', opacity: 0.85, margin: 0 }}>
-                  Chuẩn thuần chay • Giàu đạm thực vật
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* 4. FOOTER QUY ĐỊNH */}
-        <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '3.5rem', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontSize: '0.82rem', color: '#64748b' }}>
-          <div>© 2026 VeggieAI. Nền tảng dinh dưỡng thuần chay thông minh.</div>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <span style={{ cursor: 'pointer' }}>Chính sách bảo mật</span>
-            <span style={{ cursor: 'pointer' }}>Điều khoản sử dụng</span>
-            <span style={{ cursor: 'pointer' }}>Hỗ trợ chuyên gia</span>
           </div>
         </div>
+      )}
 
-      </div>
+      {/* ====================================================================
+          TAB 3: SAVED RECIPES (MÓN ĐÃ LƯU)
+      ==================================================================== */}
+      {profileTab === 'saved' && (
+        <div className="space-y-6 animate-fade-up">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-editorial text-2xl font-bold text-forest">Món Ăn Đã Lưu Vào Bộ Sưu Tập</h3>
+              <p className="text-xs text-olive">Các công thức bạn đã bookmark để tiện theo dõi và lên lịch ăn tuần.</p>
+            </div>
+            <span className="font-metric text-xs font-bold px-3 py-1 bg-white border border-hairline rounded-full text-emeraldBotanic">
+              {savedRecipes.length} món đã lưu
+            </span>
+          </div>
+
+          {savedRecipes.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-hairline p-12 text-center space-y-3">
+              <Bookmark className="w-8 h-8 text-olive/40 mx-auto" />
+              <p className="text-sm font-bold text-forest">Chưa có món ăn nào trong danh sách lưu</p>
+              <p className="text-xs text-olive">Khám phá các món ăn ngon ở Trang Chủ và bấm biểu tượng Bookmark để lưu lại.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {savedRecipes.map(recipe => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  isSaved={true}
+                  onToggleSave={toggleSaveRecipe}
+                  onSelectDetail={setSelectedRecipeDetail}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedRecipeDetail && (
+        <RecipeDetailModal
+          recipe={selectedRecipeDetail}
+          onClose={() => setSelectedRecipeDetail(null)}
+          isSaved={(profile.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
+          onToggleSave={toggleSaveRecipe}
+        />
+      )}
     </div>
   );
 }
