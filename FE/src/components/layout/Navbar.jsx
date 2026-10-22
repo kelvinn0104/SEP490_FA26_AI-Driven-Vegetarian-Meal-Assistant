@@ -5,10 +5,14 @@ import {
   CheckCheck, Clock, ExternalLink, Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import { notificationService } from '../../api';
 
 export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
   const { user, logout } = useAuth();
+  const veggieCtx = useVeggieNutrition();
+  const profile = veggieCtx?.profile;
+  const metrics = veggieCtx?.metrics;
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -243,29 +247,34 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
           ) : (
             /* KHI ĐÃ ĐĂNG NHẬP (AUTHORIZED USER / ADMIN / MOD): HIỂN THỊ WIDGET THỂ TRẠNG, CHUÔNG THÔNG BÁO VÀ AVATAR ▾ */
             <>
-              {/* WIDGET THỂ TRẠNG / STREAK (NHƯ MOCKUP) */}
-              <div 
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '20px',
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  color: '#334155'
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#ea580c' }}>
-                  🔥 5 ngày
-                </span>
-                <span style={{ color: '#cbd5e1' }}>•</span>
-                <span style={{ color: '#047857' }}>
-                  1,840 kcal
-                </span>
-              </div>
+              {/* WIDGET THỂ TRẠNG THỰC TẾ CỦA USER */}
+              {profile && metrics && metrics.bmi !== '--' && (
+                <div 
+                  onClick={() => handleNavClick('user-profile')}
+                  title="Xem chi tiết thể trạng BMI & Mục tiêu dinh dưỡng"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '20px',
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    color: '#334155',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#047857' }}>
+                    BMI {metrics.bmi}
+                  </span>
+                  <span style={{ color: '#cbd5e1' }}>•</span>
+                  <span style={{ color: '#334155' }}>
+                    {metrics.tdee} kcal
+                  </span>
+                </div>
+              )}
 
               {/* 1. ICON CHUÔNG THÔNG BÁO 🔔 */}
               <div ref={notifRef} style={{ position: 'relative' }}>
@@ -487,7 +496,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                       {user.name || 'Thành viên'}
                     </span>
                     <span style={{ fontSize: '0.72rem', color: '#047857', fontWeight: 600, whiteSpace: 'nowrap', display: 'block' }}>
-                      Chay trường
+                      {profile?.diet || (user.role === 'Admin' ? 'Quản trị viên' : user.role === 'Moderator' ? 'Kiểm duyệt viên' : 'Thuần chay')}
                     </span>
                   </div>
 

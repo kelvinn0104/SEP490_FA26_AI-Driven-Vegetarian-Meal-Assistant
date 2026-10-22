@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Sparkles, ShieldCheck, CheckCircle2, ChevronRight, X, Plus, 
   Calendar, RefreshCw, Smartphone, Camera, Box, AlertTriangle, 
@@ -97,6 +98,26 @@ export default function CreateMealPlanPage({ onNavigate }) {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3200);
   };
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showMobileAppModal || showHistoryModal || selectedPreviewRecipe) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setShowMobileAppModal(false);
+          setShowHistoryModal(false);
+          setSelectedPreviewRecipe(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showMobileAppModal, showHistoryModal, selectedPreviewRecipe]);
 
   // Toggle meal slot
   const toggleMealSlot = (slot) => {
@@ -1683,7 +1704,7 @@ export default function CreateMealPlanPage({ onNavigate }) {
       {/* ========================================================================= */}
       {/* MODAL 1: AI GENERATION IN PROGRESS ANIMATION */}
       {/* ========================================================================= */}
-      {isGenerating && (
+      {isGenerating && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1692,7 +1713,7 @@ export default function CreateMealPlanPage({ onNavigate }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 3000,
+          zIndex: 9999,
           padding: '1.5rem'
         }}>
           <div style={{
@@ -1765,13 +1786,14 @@ export default function CreateMealPlanPage({ onNavigate }) {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: MOBILE APP NOTICE FOR AI FRIDGE SCAN (STRICT CORRECTION) */}
       {/* ========================================================================= */}
-      {showMobileAppModal && (
+      {showMobileAppModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1835,13 +1857,14 @@ export default function CreateMealPlanPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 3: LỊCH SỬ THỰC ĐƠN TUẦN TRƯỚC */}
       {/* ========================================================================= */}
-      {showHistoryModal && (
+      {showHistoryModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1929,13 +1952,14 @@ export default function CreateMealPlanPage({ onNavigate }) {
               <Button variant="secondary" onClick={() => setShowHistoryModal(false)}>Đóng</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 4: RECIPE DETAIL PREVIEW */}
       {/* ========================================================================= */}
-      {selectedPreviewRecipe && (
+      {selectedPreviewRecipe && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -2000,7 +2024,8 @@ export default function CreateMealPlanPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

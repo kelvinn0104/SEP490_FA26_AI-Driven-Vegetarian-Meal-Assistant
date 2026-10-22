@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, Play, Clock, Sparkles, X, Heart, Eye, Bookmark, 
   Share2, CheckCircle2, ChevronRight, Youtube, Flame, Check,
@@ -47,6 +48,25 @@ export default function VideosPage({ onNavigate }) {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2800);
   };
+
+  // Lock body scroll and listen for Escape key when any modal is open
+  useEffect(() => {
+    if (selectedVideo || showRegisterPopup) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setSelectedVideo(null);
+          setShowRegisterPopup(false);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [selectedVideo, showRegisterPopup]);
 
   const categories = [
     'Tất cả',
@@ -785,106 +805,121 @@ export default function VideosPage({ onNavigate }) {
       {/* ====================================================================
           5. VIDEO MODAL / SPEECH-TO-RECIPE SUMMARY PREVIEW
       ==================================================================== */}
-      {selectedVideo && (
-        <div className="fixed inset-0 z-50 bg-forest/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-floating border border-hairline p-6 sm:p-8 space-y-6 animate-scale-up relative">
-            <button
-              type="button"
-              onClick={() => setSelectedVideo(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {selectedVideo && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setSelectedVideo(null)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] overflow-hidden shadow-floating border border-hairline flex flex-col relative my-auto animate-fade-up"
+          >
+            {/* Modal Header (shrink-0) */}
+            <div className="p-5 sm:p-6 border-b border-hairline relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedVideo(null)}
+                className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                title="Đóng cửa sổ"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
-            <div className="space-y-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-xs font-bold">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Tóm tắt thông minh Speech-to-Recipe</span>
-              </span>
+              <div className="space-y-1.5 pr-8">
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-[11px] font-bold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Tóm tắt thông minh Speech-to-Recipe</span>
+                </span>
 
-              <h2 className="font-editorial text-2xl font-bold text-forest leading-tight">
-                {selectedVideo.title}
-              </h2>
+                <h2 className="font-editorial text-xl sm:text-2xl font-bold text-forest leading-tight">
+                  {selectedVideo.title}
+                </h2>
 
-              <div className="flex items-center gap-2 text-xs text-olive font-metric">
-                <span className="font-bold text-forest">{selectedVideo.author}</span>
-                <span>•</span>
-                <span>{selectedVideo.views}</span>
-                <span>•</span>
-                <span>{selectedVideo.duration}</span>
-              </div>
-            </div>
-
-            {/* Video preview / thumbnail */}
-            <div className="relative aspect-video rounded-2xl overflow-hidden group">
-              <img
-                src={selectedVideo.img}
-                alt={selectedVideo.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-white/95 text-forest flex items-center justify-center shadow-lg">
-                  <Play className="w-6 h-6 fill-current ml-1 text-forest" />
+                <div className="flex items-center gap-2 text-xs text-olive font-metric">
+                  <span className="font-bold text-forest">{selectedVideo.author}</span>
+                  <span>•</span>
+                  <span>{selectedVideo.views}</span>
+                  <span>•</span>
+                  <span>{selectedVideo.duration}</span>
                 </div>
               </div>
             </div>
 
-            {/* Macros summary */}
-            {selectedVideo.macro && (
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-metric">
-                <div className="bg-alabaster p-3 rounded-2xl border border-hairline">
-                  <div className="text-[10px] text-olive">Năng lượng</div>
-                  <div className="font-bold text-forest">{selectedVideo.macro.calories}</div>
-                </div>
-                <div className="bg-alabaster p-3 rounded-2xl border border-hairline">
-                  <div className="text-[10px] text-olive">Đạm thực vật</div>
-                  <div className="font-bold text-emeraldBotanic">{selectedVideo.macro.protein}</div>
-                </div>
-                <div className="bg-alabaster p-3 rounded-2xl border border-hairline">
-                  <div className="text-[10px] text-olive">Carb phức</div>
-                  <div className="font-bold text-forest">{selectedVideo.macro.carbs}</div>
-                </div>
-              </div>
-            )}
-
-            {/* Core Tips */}
-            {selectedVideo.aiCoreTips && (
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-forest flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emeraldBotanic" />
-                  <span>Mẹo cốt lõi từ AI Speech-to-Recipe:</span>
-                </h4>
-                <div className="space-y-2 text-xs text-slate-700 bg-slate-50 p-4 rounded-2xl border border-hairline">
-                  {selectedVideo.aiCoreTips.map((tip, idx) => (
-                    <div key={idx} className="flex items-start gap-2">
-                      <span className="w-4 h-4 rounded-full bg-emeraldBotanic/15 text-emeraldBotanic text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <span><strong>{tip.title}</strong> {tip.desc}</span>
-                    </div>
-                  ))}
+            {/* Scrollable Body (flex-1 overflow-y-auto) */}
+            <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Video preview / thumbnail */}
+              <div className="relative aspect-video rounded-2xl overflow-hidden group bg-forest">
+                <img
+                  src={selectedVideo.img}
+                  alt={selectedVideo.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-white/95 text-forest flex items-center justify-center shadow-lg group-hover:scale-105 transition">
+                    <Play className="w-6 h-6 fill-current ml-1 text-forest" />
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Ingredients */}
-            {selectedVideo.ingredients && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-forest">
-                  Nguyên liệu bóc tách:
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-700">
-                  {selectedVideo.ingredients.map((ing, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 bg-alabaster px-3 py-1.5 rounded-xl border border-hairline">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emeraldBotanic"></span>
-                      <span>{ing}</span>
-                    </div>
-                  ))}
+              {/* Macros summary */}
+              {selectedVideo.macro && (
+                <div className="grid grid-cols-3 gap-2 text-center text-xs font-metric">
+                  <div className="bg-alabaster p-3 rounded-2xl border border-hairline">
+                    <div className="text-[10px] text-olive uppercase font-bold">Năng lượng</div>
+                    <div className="font-bold text-forest mt-0.5">{selectedVideo.macro.calories}</div>
+                  </div>
+                  <div className="bg-alabaster p-3 rounded-2xl border border-hairline">
+                    <div className="text-[10px] text-olive uppercase font-bold">Đạm thực vật</div>
+                    <div className="font-bold text-emeraldBotanic mt-0.5">{selectedVideo.macro.protein}</div>
+                  </div>
+                  <div className="bg-alabaster p-3 rounded-2xl border border-hairline">
+                    <div className="text-[10px] text-olive uppercase font-bold">Carb phức</div>
+                    <div className="font-bold text-forest mt-0.5">{selectedVideo.macro.carbs}</div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-3">
+              {/* Core Tips */}
+              {selectedVideo.aiCoreTips && (
+                <div className="space-y-2.5">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-forest flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emeraldBotanic" />
+                    <span>Mẹo cốt lõi từ AI Speech-to-Recipe:</span>
+                  </h4>
+                  <div className="space-y-2 text-xs text-slate-700 bg-slate-50 p-4 rounded-2xl border border-hairline">
+                    {selectedVideo.aiCoreTips.map((tip, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-emeraldBotanic/15 text-emeraldBotanic text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span><strong>{tip.title}</strong> {tip.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ingredients */}
+              {selectedVideo.ingredients && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-forest">
+                    Nguyên liệu bóc tách:
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-700">
+                    {selectedVideo.ingredients.map((ing, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 bg-alabaster px-3 py-1.5 rounded-xl border border-hairline">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emeraldBotanic"></span>
+                        <span>{ing}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pinned Action Footer (shrink-0) */}
+            <div className="p-4 sm:px-6 border-t border-hairline bg-alabaster/60 flex items-center justify-between gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedVideo(null)}
@@ -897,7 +932,7 @@ export default function VideosPage({ onNavigate }) {
                 <button
                   type="button"
                   onClick={handleSaveFavoriteVideo}
-                  className="px-4 py-2 rounded-xl border border-hairline bg-alabaster hover:bg-slate-200 text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl border border-hairline bg-white hover:bg-slate-100 text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Bookmark className={`w-3.5 h-3.5 ${savedSuccess ? 'fill-emeraldBotanic text-emeraldBotanic' : ''}`} />
                   <span>{savedSuccess ? 'Đã lưu' : 'Lưu video'}</span>
@@ -918,13 +953,21 @@ export default function VideosPage({ onNavigate }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Register modal popup when Guest reaches extraction limit */}
-      {showRegisterPopup && (
-        <div className="fixed inset-0 z-50 bg-forest/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-floating border border-hairline p-6 sm:p-8 space-y-5 animate-scale-up text-center relative">
+      {showRegisterPopup && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setShowRegisterPopup(false)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full shadow-floating border border-hairline p-6 sm:p-8 space-y-5 animate-fade-up text-center relative my-auto"
+          >
             <button
               type="button"
               onClick={() => setShowRegisterPopup(false)}
@@ -970,7 +1013,8 @@ export default function VideosPage({ onNavigate }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowLeft, Calendar, Search, CheckCircle2, ChevronRight, 
   RotateCw, Eye, ShoppingCart, MoreVertical, Sparkles, Filter, 
@@ -35,6 +36,26 @@ export default function MealHistoryPage({ onNavigate }) {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
   };
+
+  // Khoá cuộn trang và gán phím Esc khi mở modal
+  useEffect(() => {
+    if (!previewWeek && !marketWeek) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setPreviewWeek(null);
+        setMarketWeek(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [previewWeek, marketWeek]);
 
   // DỮ LIỆU CÁC TUẦN THỰC ĐƠN ĐÃ LƯU TRỮ (THEO CHUẨN MOCKUP)
   const historyWeeks = [
@@ -815,19 +836,25 @@ export default function MealHistoryPage({ onNavigate }) {
       {/* ========================================================================= */}
       {/* MODAL 1: XEM CHI TIẾT THỰC ĐƠN TUẦN (7 NGÀY & CHI TIẾT BỮA ĂN) */}
       {/* ========================================================================= */}
-      {previewWeek && (() => {
+      {previewWeek && createPortal((() => {
         const weekDays = getWeekDaysData(previewWeek);
         const currentDay = weekDays[modalSelectedDayIndex] || weekDays[0];
 
         return (
-          <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-          }}>
-            <div style={{
-              background: '#ffffff', borderRadius: '24px', maxWidth: '880px', width: '100%', maxHeight: '92vh',
-              overflowY: 'auto', padding: '1.75rem 2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-            }}>
+          <div 
+            onClick={() => setPreviewWeek(null)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+            }}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#ffffff', borderRadius: '24px', maxWidth: '880px', width: '100%', maxHeight: '92vh',
+                overflowY: 'auto', padding: '1.75rem 2rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+              }}
+            >
               <button 
                 onClick={() => setPreviewWeek(null)}
                 style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1052,20 +1079,26 @@ export default function MealHistoryPage({ onNavigate }) {
             </div>
           </div>
         );
-      })()}
+      })(), document.body)}
 
       {/* ========================================================================= */}
       {/* MODAL 2: XEM DANH SÁCH ĐI CHỢ ĐÃ LƯU */}
       {/* ========================================================================= */}
-      {marketWeek && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: '90vh',
-            overflowY: 'auto', padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-          }}>
+      {marketWeek && createPortal(
+        <div 
+          onClick={() => setMarketWeek(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: '90vh',
+              overflowY: 'auto', padding: '2rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <button 
               onClick={() => setMarketWeek(null)}
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1102,7 +1135,8 @@ export default function MealHistoryPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

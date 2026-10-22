@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, 
   Sparkles, Sprout, Plus, Bookmark, Check, CheckCircle2, Clock, User
@@ -28,6 +29,24 @@ export default function BlogPage({ onNavigate }) {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2800);
   };
+
+  // Lock body scroll and listen for Escape key when article modal is open
+  useEffect(() => {
+    if (selectedArticle) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setSelectedArticle(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [selectedArticle]);
 
   const handleToggleSaveArticle = (article, e) => {
     if (e) e.stopPropagation();
@@ -546,52 +565,67 @@ export default function BlogPage({ onNavigate }) {
       {/* ====================================================================
           5. ARTICLE READER MODAL
       ==================================================================== */}
-      {selectedArticle && (
-        <div className="fixed inset-0 z-50 bg-forest/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-floating border border-hairline p-6 sm:p-8 space-y-6 animate-scale-up relative">
-            <button
-              type="button"
-              onClick={() => setSelectedArticle(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {selectedArticle && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setSelectedArticle(null)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] overflow-hidden shadow-floating border border-hairline flex flex-col relative my-auto animate-fade-up"
+          >
+            {/* Modal Header (shrink-0) */}
+            <div className="p-5 sm:p-6 border-b border-hairline relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedArticle(null)}
+                className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                title="Đóng bài viết"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
-            <div className="space-y-3">
-              <span className="inline-block px-3 py-1 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-xs font-bold">
-                {selectedArticle.category}
-              </span>
+              <div className="space-y-2 pr-8">
+                <span className="inline-block px-3 py-0.5 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-[11px] font-bold">
+                  {selectedArticle.category}
+                </span>
 
-              <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-forest leading-tight">
-                {selectedArticle.title}
-              </h2>
+                <h2 className="font-editorial text-xl sm:text-2xl font-bold text-forest leading-tight">
+                  {selectedArticle.title}
+                </h2>
 
-              <div className="flex items-center gap-3 pt-1">
-                <img
-                  src={selectedArticle.authorAvatar}
-                  alt={selectedArticle.author}
-                  className="w-10 h-10 rounded-full object-cover border border-hairline"
-                />
-                <div className="text-xs">
-                  <div className="font-bold text-forest">{selectedArticle.author}</div>
-                  <div className="text-olive">{selectedArticle.date} • {selectedArticle.readTime}</div>
+                <div className="flex items-center gap-3 pt-1">
+                  <img
+                    src={selectedArticle.authorAvatar}
+                    alt={selectedArticle.author}
+                    className="w-8 h-8 rounded-full object-cover border border-hairline"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-forest">{selectedArticle.author}</span>
+                    <span className="text-olive ml-2 font-metric">{selectedArticle.date} • {selectedArticle.readTime}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="aspect-video rounded-2xl overflow-hidden">
-              <img
-                src={selectedArticle.img}
-                alt={selectedArticle.title}
-                className="w-full h-full object-cover"
-              />
+            {/* Scrollable Body (flex-1 overflow-y-auto) */}
+            <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="aspect-video rounded-2xl overflow-hidden bg-forest">
+                <img
+                  src={selectedArticle.img}
+                  alt={selectedArticle.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 whitespace-pre-line font-editorial">
+                {selectedArticle.fullContent}
+              </div>
             </div>
 
-            <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 whitespace-pre-line">
-              {selectedArticle.fullContent}
-            </div>
-
-            <div className="pt-4 border-t border-hairline flex flex-wrap items-center justify-between gap-3">
+            {/* Pinned Action Footer (shrink-0) */}
+            <div className="p-4 sm:px-6 border-t border-hairline bg-alabaster/60 flex items-center justify-between gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedArticle(null)}
@@ -604,7 +638,7 @@ export default function BlogPage({ onNavigate }) {
                 <button
                   type="button"
                   onClick={(e) => handleToggleSaveArticle(selectedArticle, e)}
-                  className="px-4 py-2 rounded-xl border border-hairline bg-alabaster hover:bg-slate-200 text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl border border-hairline bg-white hover:bg-slate-100 text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Bookmark className={`w-3.5 h-3.5 ${savedArticleIds.includes(selectedArticle.id) ? 'fill-emeraldBotanic text-emeraldBotanic' : ''}`} />
                   <span>{savedArticleIds.includes(selectedArticle.id) ? 'Đã lưu' : 'Lưu bài viết'}</span>
@@ -625,7 +659,8 @@ export default function BlogPage({ onNavigate }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

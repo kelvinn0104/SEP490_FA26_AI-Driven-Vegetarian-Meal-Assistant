@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowLeft, Bookmark, Check, Share2, Heart, MessageSquare, 
   Calendar, Clock, Users, ChefHat, Sparkles, CheckCircle2, 
@@ -98,6 +99,22 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('Nội dung công thức chưa chính xác');
 
+  // Lock body scroll and listen for Escape key when report modal is open
+  useEffect(() => {
+    if (showReportModal) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setShowReportModal(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showReportModal]);
+
   const handleConfirmReport = () => {
     const reportItem = {
       id: `rep_${Date.now()}`,
@@ -112,7 +129,7 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
       localStorage.setItem('veggieai_reported_items', JSON.stringify([reportItem, ...existing]));
     } catch (e) {}
     setShowReportModal(false);
-    showToast('✓ Đã gửi báo cáo bài viết đến Moderator kiểm duyệt (WF09)!');
+    showToast('✓ Đã gửi báo cáo bài viết đến ban quản trị kiểm duyệt!');
   };
 
   const handleRating = (stars) => {
@@ -744,66 +761,76 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
     </div>
 
       {/* ========================================================================= */}
-      {/* REPORT MODAL POPUP (WF09 INTEGRATION) */}
+      {/* REPORT MODAL POPUP */}
       {/* ========================================================================= */}
-      {showReportModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '1.25rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            maxWidth: '520px',
-            width: '100%',
-            padding: '1.75rem',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-              🚩 Báo Cáo Nội Dung Bài Viết / Công Thức Vi Phạm (WF09)
-            </h3>
-            <p style={{ fontSize: '0.86rem', color: '#64748b', margin: '0 0 1rem 0' }}>
-              Báo cáo sẽ chuyển trực tiếp tới Hàng chờ Kiểm duyệt (Moderator Queue) để chuyên gia xem xét.
-            </p>
-
-            <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '1.15rem' }}>
-              Bài viết: "{article.title}"
+      {showReportModal && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setShowReportModal(false)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-floating border border-hairline animate-fade-up my-auto"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-editorial text-lg font-bold text-forest">
+                  Báo cáo nội dung bài viết
+                </h3>
+                <p className="text-xs text-olive mt-0.5">
+                  Ý kiến của bạn sẽ được gửi tới ban kiểm duyệt để xem xét và xử lý.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-              Chọn lý do báo cáo vi phạm:
-            </label>
-            <select
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', marginBottom: '1.5rem', outline: 'none' }}
-            >
-              <option value="Nội dung công thức chưa chính xác">Nội dung công thức chưa chính xác</option>
-              <option value="Chứa thành phần dị ứng nguy hiểm">Chứa thành phần dị ứng nguy hiểm</option>
-              <option value="Hình ảnh hoặc nội dung vi phạm bản quyền">Hình ảnh hoặc nội dung vi phạm bản quyền</option>
-              <option value="Ngôn từ không phù hợp quy chuẩn cộng đồng">Ngôn từ không phù hợp quy chuẩn cộng đồng</option>
-            </select>
+            <div className="bg-alabaster p-3 rounded-2xl border border-hairline text-xs">
+              <span className="text-[10px] uppercase font-bold text-olive block mb-0.5">Bài viết được báo cáo:</span>
+              <p className="font-semibold text-forest line-clamp-2">{article.title}</p>
+            </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <Button variant="secondary" onClick={() => setShowReportModal(false)}>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-forest block">
+                Lý do báo cáo:
+              </label>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-hairline bg-white text-xs text-forest focus:outline-none focus:border-forest cursor-pointer"
+              >
+                <option value="Nội dung công thức chưa chính xác">Nội dung công thức chưa chính xác</option>
+                <option value="Chứa thành phần dị ứng nguy hiểm">Chứa thành phần dị ứng nguy hiểm</option>
+                <option value="Hình ảnh hoặc nội dung vi phạm bản quyền">Hình ảnh hoặc nội dung vi phạm bản quyền</option>
+                <option value="Ngôn từ không phù hợp quy chuẩn cộng đồng">Ngôn từ không phù hợp quy chuẩn cộng đồng</option>
+              </select>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                className="px-4 py-2 rounded-xl border border-hairline text-xs font-semibold text-olive hover:text-forest cursor-pointer transition"
+              >
                 Hủy bỏ
-              </Button>
-              <Button variant="primary" onClick={handleConfirmReport} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
-                Gửi Báo Cáo (WF09)
-              </Button>
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReport}
+                className="px-4 py-2 rounded-xl bg-terracotta hover:bg-terracottaDark text-white text-xs font-semibold cursor-pointer transition shadow-xs"
+              >
+                Gửi báo cáo
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

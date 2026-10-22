@@ -6,6 +6,7 @@ import {
 import { detectIngredients } from '../../utils/api';
 import { scanService } from '../../api';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
+import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function VisionPage({ onNavigate }) {
   const { generateAiMealPlan, isBackendConnected, showToast } = useVeggieNutrition();
@@ -442,7 +443,8 @@ export default function VisionPage({ onNavigate }) {
           {suggestedRecipes.map((r) => (
             <div
               key={r.id}
-              className="bg-white rounded-3xl border border-hairline overflow-hidden shadow-xs hover:shadow-card transition flex flex-col justify-between group"
+              className="bg-white rounded-3xl border border-hairline overflow-hidden shadow-xs hover:shadow-card transition flex flex-col justify-between group cursor-pointer"
+              onClick={() => setSelectedRecipeDetail(r)}
             >
               <div>
                 <div className="relative aspect-[16/10] overflow-hidden bg-alabaster">
@@ -483,7 +485,8 @@ export default function VisionPage({ onNavigate }) {
                 <span className="font-bold text-forest">{r.calories} kcal • {r.protein}</span>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     showToast(`Đã thêm "${r.title}" vào thực đơn bữa ăn!`);
                     if (onNavigate) onNavigate('planner');
                   }}
@@ -497,6 +500,18 @@ export default function VisionPage({ onNavigate }) {
           ))}
         </div>
       </div>
+
+      {/* Recipe Detail Modal */}
+      {selectedRecipeDetail && (
+        <RecipeDetailModal
+          recipe={selectedRecipeDetail}
+          onClose={() => setSelectedRecipeDetail(null)}
+          onApplyMeal={() => {
+            showToast(`Đã thêm "${selectedRecipeDetail.title}" vào thực đơn bữa ăn!`);
+            if (onNavigate) onNavigate('planner');
+          }}
+        />
+      )}
     </div>
   );
 }

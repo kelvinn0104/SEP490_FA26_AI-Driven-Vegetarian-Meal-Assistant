@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Bookmark, BookmarkCheck, Heart, Search, Plus, Filter, 
   Clock, Flame, Leaf, Calendar, ArrowRight, Play, Sparkles, 
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 import { recipeService } from '../../api';
 
 export default function MyCollectionPage({ onNavigate }) {
@@ -59,6 +61,25 @@ export default function MyCollectionPage({ onNavigate }) {
       setToastMessage('');
     }, 2800);
   };
+
+  // Lock body scroll and listen to Escape key when modal is open
+  useEffect(() => {
+    if (showCreateFolderModal || activeModalItem) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setShowCreateFolderModal(false);
+          setActiveModalItem(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showCreateFolderModal, activeModalItem]);
 
   // DỮ LIỆU MÓN ĂN YÊU THÍCH (16 món - hiển thị top 4 nổi bật)
   const [recipes, setRecipes] = useState([
@@ -1383,47 +1404,37 @@ export default function MyCollectionPage({ onNavigate }) {
       {/* ===================================================================== */}
       {/* MODAL 1: TẠO BỘ SƯU TẬP MỚI */}
       {/* ===================================================================== */}
-      {showCreateFolderModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '480px',
-            padding: '1.75rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {showCreateFolderModal && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setShowCreateFolderModal(false)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-7 shadow-floating border border-hairline animate-fade-up my-auto space-y-4"
+          >
+            <div className="flex justify-between items-center pb-2 border-b border-hairline">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emeraldBotanic/10 text-emeraldBotanic flex items-center justify-center">
                   <FolderPlus size={18} />
                 </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                <h3 className="font-editorial text-lg font-bold text-forest">
                   Tạo bộ sưu tập mới
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowCreateFolderModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer transition"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateFolder}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
+            <form onSubmit={handleCreateFolder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-forest mb-1.5">
                   Tên bộ sưu tập *
                 </label>
                 <input
@@ -1431,357 +1442,218 @@ export default function MyCollectionPage({ onNavigate }) {
                   placeholder="VD: Món ăn sáng 15 phút, Tiệc chay cuối tuần..."
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.85rem',
-                    outline: 'none'
-                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-hairline text-xs text-forest outline-none focus:border-emeraldBotanic transition"
                   autoFocus
                 />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
+              <div>
+                <label className="block text-xs font-bold text-forest mb-1.5">
                   Màu sắc đại diện
                 </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="flex gap-2">
                   {['#059669', '#0284c7', '#d97706', '#dc2626', '#7c3aed', '#ec4899'].map(c => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setNewFolderColor(c)}
+                      className="w-7 h-7 rounded-full cursor-pointer transition"
                       style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
                         background: c,
-                        border: newFolderColor === c ? '3px solid #0f172a' : 'none',
-                        cursor: 'pointer',
-                        transform: newFolderColor === c ? 'scale(1.1)' : 'scale(1)',
-                        transition: 'all 0.15s ease'
+                        boxShadow: newFolderColor === c ? '0 0 0 2px #ffffff, 0 0 0 4px #0f172a' : 'none'
                       }}
                     />
                   ))}
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
+              <div>
+                <label className="block text-xs font-bold text-forest mb-1.5">
                   Mô tả ngắn (không bắt buộc)
                 </label>
                 <textarea
                   placeholder="Ghi chú về nhóm món ăn hoặc mục tiêu dinh dưỡng..."
                   value={newFolderDesc}
                   onChange={(e) => setNewFolderDesc(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.85rem',
-                    outline: 'none',
-                    resize: 'none'
-                  }}
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-hairline text-xs text-forest outline-none focus:border-emeraldBotanic transition resize-none"
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-                <Button variant="secondary" onClick={() => setShowCreateFolderModal(false)} type="button">
-                  Huỷ
-                </Button>
-                <Button type="submit">
-                  Tạo ngay
-                </Button>
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateFolderModal(false)}
+                  className="px-4 py-2 rounded-xl border border-hairline text-xs font-semibold text-olive hover:text-forest transition cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+                >
+                  Tạo thư mục
+                </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===================================================================== */}
       {/* MODAL 2: TÓM TẮT AI CỦA VIDEO */}
       {/* ===================================================================== */}
-      {activeModalItem === 'ai_summary' && selectedItemData && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '540px',
-            padding: '1.75rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {activeModalItem === 'ai_summary' && selectedItemData && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setActiveModalItem(null)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl w-full max-w-lg p-6 sm:p-7 shadow-floating border border-hairline animate-fade-up my-auto space-y-4 max-h-[88vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-start pb-2 border-b border-hairline">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emeraldBotanic/10 text-emeraldBotanic flex items-center justify-center">
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  <h3 className="font-editorial text-lg font-bold text-forest">
                     Tóm tắt công thức AI trích xuất
                   </h3>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Từ video: {selectedItemData.channel}</span>
+                  <span className="text-xs text-olive">Kênh: {selectedItemData.channel}</span>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setActiveModalItem(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer transition"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', marginBottom: '1.25rem', border: '1px solid #e2e8f0' }}>
-              <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0' }}>
+            <div className="bg-alabaster p-3.5 rounded-2xl border border-hairline space-y-1">
+              <h4 className="font-editorial text-sm font-bold text-forest">
                 {selectedItemData.title}
               </h4>
-              <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#047857', fontWeight: 700 }}>
-                <span>⏱ Thời lượng: {selectedItemData.duration}</span>
+              <div className="flex items-center gap-2 text-xs text-olive font-metric">
+                <span>⏱ {selectedItemData.duration}</span>
                 <span>•</span>
-                <span>✨ VeggieAI Speech-to-Recipe</span>
+                <span className="text-emeraldBotanic font-bold">Speech-to-Recipe</span>
               </div>
             </div>
 
-            <h5 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#334155', marginBottom: '0.65rem' }}>
-              CHECKLIST CÁC BƯỚC NẤU NHANH:
-            </h5>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
-              {selectedItemData.aiSummary && selectedItemData.aiSummary.map((step, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', fontSize: '0.84rem', color: '#334155', lineHeight: 1.5, background: '#ffffff', border: '1px solid #f1f5f9', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
-                  <span style={{ color: '#059669', fontWeight: 800 }}>✔</span>
-                  <span>{step}</span>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-forest">
+                Checklist các bước nấu nhanh:
+              </h5>
+              <div className="space-y-2">
+                {selectedItemData.aiSummary && selectedItemData.aiSummary.map((step, idx) => (
+                  <div key={idx} className="flex items-start gap-2 p-2.5 rounded-xl bg-alabaster border border-hairline text-xs text-forest">
+                    <span className="w-5 h-5 rounded-full bg-emeraldBotanic text-white font-metric text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      ✓
+                    </span>
+                    <span className="leading-relaxed">{step}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-              <Button variant="secondary" onClick={() => setActiveModalItem(null)}>
+            <div className="pt-2 flex justify-end gap-2 border-t border-hairline">
+              <button
+                type="button"
+                onClick={() => setActiveModalItem(null)}
+                className="px-4 py-2 rounded-xl border border-hairline text-xs font-semibold text-olive hover:text-forest transition cursor-pointer"
+              >
                 Đóng
-              </Button>
-              <Button onClick={() => {
-                showToast(`📅 Đã lưu công thức từ video "${selectedItemData.title}" vào Thực đơn tuần!`);
-                setActiveModalItem(null);
-              }}>
-                <Calendar size={14} /> Thêm vào thực đơn
-              </Button>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  showToast(`📅 Đã lưu công thức từ video "${selectedItemData.title}" vào Thực đơn tuần!`);
+                  setActiveModalItem(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+              >
+                Thêm vào thực đơn
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===================================================================== */}
       {/* MODAL 3: XEM CHI TIẾT CÔNG THỨC MÓN ĂN */}
       {/* ===================================================================== */}
       {activeModalItem === 'recipe_detail' && selectedItemData && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '560px',
-            padding: '1.75rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                Chi tiết công thức nấu
-              </h3>
-              <button
-                onClick={() => setActiveModalItem(null)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <img 
-              src={selectedItemData.image} 
-              alt={selectedItemData.title}
-              style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '14px', marginBottom: '1rem' }}
-            />
-
-            <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0' }}>
-              {selectedItemData.title}
-            </h4>
-
-            <div style={{ display: 'flex', gap: '0.85rem', fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '1.25rem' }}>
-              <span>⏱ {selectedItemData.time}</span>
-              <span>•</span>
-              <span style={{ color: '#059669' }}>🌱 {selectedItemData.protein}</span>
-              <span>•</span>
-              <span style={{ color: '#e11d48' }}>🔥 {selectedItemData.calories}</span>
-            </div>
-
-            <h5 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155', marginBottom: '0.5rem' }}>
-              NGUYÊN LIỆU CHÍNH:
-            </h5>
-            <ul style={{ margin: '0 0 1.25rem 0', paddingLeft: '1.2rem', fontSize: '0.84rem', color: '#475569', lineHeight: 1.6 }}>
-              {selectedItemData.ingredients && selectedItemData.ingredients.map((ing, idx) => (
-                <li key={idx}>{ing}</li>
-              ))}
-            </ul>
-
-            <h5 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#334155', marginBottom: '0.5rem' }}>
-              CÁC BƯỚC THỰC HIỆN:
-            </h5>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
-              {selectedItemData.steps && selectedItemData.steps.map((step, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '0.55rem', fontSize: '0.84rem', color: '#334155', lineHeight: 1.5 }}>
-                  <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#ecfdf5', color: '#047857', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {idx + 1}
-                  </span>
-                  <span>{step}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-              <Button variant="secondary" onClick={() => setActiveModalItem(null)}>
-                Đóng
-              </Button>
-              <Button onClick={() => {
-                showToast(`📅 Đã thêm "${selectedItemData.title}" vào Thực đơn tuần!`);
-                setActiveModalItem(null);
-              }}>
-                <Calendar size={14} /> Thêm vào thực đơn tuần
-              </Button>
-            </div>
-          </div>
-        </div>
+        <RecipeDetailModal
+          recipe={selectedItemData}
+          onClose={() => setActiveModalItem(null)}
+          onApplyMeal={() => {
+            showToast(`📅 Đã thêm "${selectedItemData.title}" vào Thực đơn tuần!`);
+            if (onNavigate) onNavigate('planner');
+          }}
+        />
       )}
 
       {/* ===================================================================== */}
-      {/* MODAL 4: TRÌNH PHÁT VIDEO NẤU ĂN GIẢ LẬP */}
+      {/* MODAL 4: TRÌNH PHÁT VIDEO NẤU ĂN */}
       {/* ===================================================================== */}
-      {activeModalItem === 'video_player' && selectedItemData && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '680px',
-            overflow: 'hidden',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-          }}>
-            <div style={{ position: 'relative', height: '360px', background: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {activeModalItem === 'video_player' && selectedItemData && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setActiveModalItem(null)}
+          className="fixed inset-0 z-[9999] bg-forestDark/80 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-hairline animate-fade-up my-auto"
+          >
+            <div className="relative aspect-video bg-black flex items-center justify-center">
               <img 
                 src={selectedItemData.thumbnail} 
                 alt={selectedItemData.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}
+                className="w-full h-full object-cover opacity-85"
               />
-              <div style={{
-                position: 'absolute',
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: 'rgba(4, 106, 71, 0.9)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingLeft: '4px',
-                boxShadow: '0 0 30px rgba(4, 106, 71, 0.8)'
-              }}>
-                <Play size={28} fill="#ffffff" />
+              <div className="absolute w-16 h-16 rounded-full bg-emeraldBotanic/90 text-white flex items-center justify-center shadow-lg pl-1 cursor-pointer hover:scale-105 transition">
+                <Play size={28} fill="currentColor" />
               </div>
               <button
+                type="button"
                 onClick={() => setActiveModalItem(null)}
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: 'rgba(0,0,0,0.6)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '34px',
-                  height: '34px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
+                className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center transition cursor-pointer"
+                title="Đóng video"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.75rem' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0' }}>
-                    {selectedItemData.title}
-                  </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                    Kênh: <strong style={{ color: '#0f172a' }}>{selectedItemData.channel}</strong> • Thời lượng: {selectedItemData.duration}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setActiveModalItem('ai_summary');
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    background: '#ecfdf5',
-                    color: '#047857',
-                    border: '1px solid #a7f3d0',
-                    borderRadius: '10px',
-                    padding: '0.55rem 0.9rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  <Sparkles size={14} />
-                  <span>Xem tóm tắt AI</span>
-                </button>
+            <div className="p-5 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="font-editorial text-base sm:text-lg font-bold text-forest">
+                  {selectedItemData.title}
+                </h3>
+                <p className="text-xs text-olive mt-0.5">
+                  Kênh: <strong className="text-forest">{selectedItemData.channel}</strong> • {selectedItemData.duration}
+                </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveModalItem('ai_summary')}
+                className="px-4 py-2 rounded-xl bg-forest/5 hover:bg-forest/10 text-emeraldBotanic text-xs font-semibold border border-emeraldBotanic/30 flex items-center gap-1.5 shrink-0 transition cursor-pointer"
+              >
+                <Sparkles size={14} />
+                <span>Xem tóm tắt AI</span>
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

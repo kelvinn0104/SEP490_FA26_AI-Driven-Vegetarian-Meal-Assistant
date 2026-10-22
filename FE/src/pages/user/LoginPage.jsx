@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, Shield, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../api';
@@ -21,6 +22,22 @@ export default function LoginPage({ onNavigate, onLogin }) {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+
+  // Lock scroll and listen to Escape key when forgot modal is open
+  useEffect(() => {
+    if (showForgotModal) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setShowForgotModal(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showForgotModal]);
 
   const handleLoginSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -188,13 +205,20 @@ export default function LoginPage({ onNavigate, onLogin }) {
       </div>
 
       {/* Forgot Password Modal */}
-      {showForgotModal && (
-        <div className="fixed inset-0 z-50 bg-forest/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-floating border border-hairline relative animate-scale-up">
+      {showForgotModal && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setShowForgotModal(false)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-floating border border-hairline relative my-auto animate-fade-up"
+          >
             <button
               type="button"
               onClick={() => setShowForgotModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition"
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -216,7 +240,7 @@ export default function LoginPage({ onNavigate, onLogin }) {
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
-                  className="px-4 py-2 rounded-xl bg-forest text-white text-xs font-semibold hover:bg-forestDark transition"
+                  className="px-4 py-2 rounded-xl bg-forest text-white text-xs font-semibold hover:bg-forestDark transition cursor-pointer"
                 >
                   Hoàn tất
                 </button>
@@ -233,14 +257,15 @@ export default function LoginPage({ onNavigate, onLogin }) {
                 />
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition"
+                  className="w-full py-2.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer"
                 >
                   Gửi hướng dẫn
                 </button>
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
