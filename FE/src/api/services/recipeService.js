@@ -51,22 +51,34 @@ export const recipeService = {
    * Lấy danh sách món ăn đã yêu thích
    */
   getFavorites: async (page = 1, pageSize = 20) => {
-    const raw = await apiRequest(`/recipes/favorites?page=${page}&pageSize=${pageSize}`);
-    return unwrap(raw);
+    try {
+      const raw = await apiRequest(`/recipes/favorites?page=${page}&pageSize=${pageSize}`);
+      return unwrap(raw);
+    } catch {
+      return [];
+    }
   },
 
   /**
    * Thêm vào mục yêu thích
    */
   addFavorite: async (recipeId) => {
-    return await apiRequest(`/recipes/${recipeId}/favorite`, { method: 'POST' });
+    try {
+      return await apiRequest(`/recipes/${recipeId}/favorite`, { method: 'POST' });
+    } catch {
+      return null;
+    }
   },
 
   /**
    * Xóa khỏi mục yêu thích
    */
   removeFavorite: async (recipeId) => {
-    return await apiRequest(`/recipes/${recipeId}/favorite`, { method: 'DELETE' });
+    try {
+      return await apiRequest(`/recipes/${recipeId}/favorite`, { method: 'DELETE' });
+    } catch {
+      return null;
+    }
   },
 
   /**

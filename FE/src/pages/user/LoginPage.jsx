@@ -46,7 +46,10 @@ export default function LoginPage({ onNavigate, onLogin }) {
 
     try {
       const data = await authApi.login(identifier.trim(), password);
-      const u = data.user;
+      const u = data?.user || data;
+      if (!u) {
+        throw new Error('Không nhận được thông tin xác thực từ máy chủ.');
+      }
       const norm = (u.role || '').toLowerCase();
       const effectiveRole = norm === 'admin' ? 'admin' : (norm === 'moderator' || norm === 'mod' ? 'mod' : 'user');
       const userData = {

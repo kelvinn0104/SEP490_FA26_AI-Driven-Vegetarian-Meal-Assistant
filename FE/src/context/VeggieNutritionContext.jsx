@@ -227,6 +227,27 @@ export function VeggieNutritionProvider({ children }) {
     syncWithBackend();
   }, []);
 
+  // Đồng bộ khi trạng thái user thay đổi (đăng nhập / đăng xuất)
+  useEffect(() => {
+    if (user) {
+      if (!profile) {
+        const initial = {
+          ...DEFAULT_PROFILE,
+          name: user.name || 'Hội viên VeggieAI',
+          diet: user.dietType === 'vegan' ? 'Thuần chay (Vegan)' : user.dietType || 'Thuần chay (Vegan)',
+          allergies: user.allergies || []
+        };
+        setProfileState(initial);
+        try {
+          localStorage.setItem('veggie_user_profile', JSON.stringify(initial));
+        } catch {}
+      }
+      syncWithBackend();
+    } else {
+      setProfileState(null);
+    }
+  }, [user]);
+
   // 7. Update Profile helper (Local + Backend sync)
   const updateProfile = async (updated) => {
     setProfileState(updated);
@@ -330,7 +351,37 @@ export function VeggieNutritionProvider({ children }) {
 
     if (isBackendConnected && activePlanMeta?.id && itemId && getAuthToken()) {
       try {
-        await mealPlanService.swapMeal(activePlanMeta.id, itemId, reason);
+        const swapRes = await mealPlanService.swapMeal(activePlanMeta.id, itemId, reason);
+        if (swapRes && swapRes.plan && swapRes.plan.days) {
+          setActivePlanMeta(swapRes.plan);
+          const formatRId = (id, fallback) => {
+            if (!id) return fallback;
+            const s = String(id).trim();
+            return s.startsWith('r') ? s : `r${s}`;
+          };
+          const mappedWeekly = swapRes.plan.days.map((d, index) => {
+            const b = d.meals?.find(m => m.mealType === 'breakfast');
+            const l = d.meals?.find(m => m.mealType === 'lunch');
+            const din = d.meals?.find(m => m.mealType === 'dinner');
+            return {
+              day: `Ngày ${index + 1}`,
+              date: d.date,
+              breakfast: b?.recipeId ? formatRId(b.recipeId, 'r4') : (weeklyPlan[index]?.breakfast || 'r4'),
+              breakfastItemId: b?.id || null,
+              completedBreakfast: weeklyPlan[index]?.completedBreakfast || false,
+              lunch: l?.recipeId ? formatRId(l.recipeId, 'r1') : (weeklyPlan[index]?.lunch || 'r1'),
+              lunchItemId: l?.id || null,
+              completedLunch: weeklyPlan[index]?.completedLunch || false,
+              dinner: din?.recipeId ? formatRId(din.recipeId, 'r6') : (weeklyPlan[index]?.dinner || 'r6'),
+              dinnerItemId: din?.id || null,
+              completedDinner: weeklyPlan[index]?.completedDinner || false
+            };
+          });
+          setWeeklyPlan(mappedWeekly);
+          try {
+            localStorage.setItem('veggie_weekly_plan', JSON.stringify(mappedWeekly));
+          } catch (e) {}
+        }
         showToast('Đã đổi món và đồng bộ với máy chủ Backend!');
         return;
       } catch (err) {
@@ -401,15 +452,27 @@ export function VeggieNutritionProvider({ children }) {
     setLoadingApi(true);
     try {
       if (isBackendConnected && getAuthToken()) {
+        const rawGoal = (options.healthGoal || profile?.goal || 'maintain').toLowerCase();
+        const validGoal = rawGoal.includes('loss') || rawGoal.includes('fat') || rawGoal.includes('giảm')
+          ? 'loss'
+          : rawGoal.includes('gain') || rawGoal.includes('muscle') || rawGoal.includes('tăng')
+          ? 'gain'
+          : 'maintain';
+
         const res = await mealPlanService.generatePlan({
           days: options.days || 7,
           note: options.note || 'Thích món Việt, giàu đạm và B12',
-          healthGoal: profile?.goal || 'maintain',
+          healthGoal: validGoal,
           scanId: options.scanId || undefined
         });
 
         if (res && res.plan && res.plan.days) {
           setActivePlanMeta(res.plan);
+          const formatRId = (id, fallback) => {
+            if (!id) return fallback;
+            const s = String(id).trim();
+            return s.startsWith('r') ? s : `r${s}`;
+          };
           const mappedWeekly = res.plan.days.map((d, index) => {
             const breakfastItem = d.meals?.find(m => m.mealType === 'breakfast');
             const lunchItem = d.meals?.find(m => m.mealType === 'lunch');
@@ -418,13 +481,13 @@ export function VeggieNutritionProvider({ children }) {
             return {
               day: `Ngày ${index + 1}`,
               date: d.date,
-              breakfast: breakfastItem?.recipeId ? `r${breakfastItem.recipeId}` : 'r4',
+              breakfast: breakfastItem?.recipeId ? formatRId(breakfastItem.recipeId, 'r4') : 'r4',
               breakfastItemId: breakfastItem?.id || null,
               completedBreakfast: false,
-              lunch: lunchItem?.recipeId ? `r${lunchItem.recipeId}` : 'r1',
+              lunch: lunchItem?.recipeId ? formatRId(lunchItem.recipeId, 'r1') : 'r1',
               lunchItemId: lunchItem?.id || null,
               completedLunch: false,
-              dinner: dinnerItem?.recipeId ? `r${dinnerItem.recipeId}` : 'r6',
+              dinner: dinnerItem?.recipeId ? formatRId(dinnerItem.recipeId, 'r6') : 'r6',
               dinnerItemId: dinnerItem?.id || null,
               completedDinner: false
             };

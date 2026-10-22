@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { moderationApi } from '../../api';
 
 export const ContentModerationScreen = ({ onUpdatePendingCount }) => {
@@ -25,6 +26,20 @@ export const ContentModerationScreen = ({ onUpdatePendingCount }) => {
   useEffect(() => {
     fetchPendingQueue();
   }, []);
+
+  useEffect(() => {
+    if (!selectedItem) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setSelectedItem(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedItem]);
 
   const pendingItems = items.filter((i) => i.status === 'pending');
 
@@ -285,9 +300,15 @@ export const ContentModerationScreen = ({ onUpdatePendingCount }) => {
       )}
 
       {/* Item Detail Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="w-full max-w-[640px] bg-[#F8F9FE] rounded-[24px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[90vh]">
+      {selectedItem && createPortal(
+        <div 
+          onClick={() => setSelectedItem(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[640px] bg-[#F8F9FE] rounded-[24px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[90vh]"
+          >
             <div className="p-6 pb-4 shrink-0 bg-[#F8F9FE]">
               <div className="flex items-start justify-between">
                 <div>
@@ -406,7 +427,8 @@ export const ContentModerationScreen = ({ onUpdatePendingCount }) => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

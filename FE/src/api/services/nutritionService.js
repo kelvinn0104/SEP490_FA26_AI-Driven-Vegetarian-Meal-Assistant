@@ -8,11 +8,15 @@ export const nutritionService = {
    * 2. Gửi { recipeId, mealType, servings, logDate } khi ăn tự do
    */
   logMeal: async (payload) => {
-    const raw = await apiRequest('/nutrition/logs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return unwrap(raw);
+    try {
+      const raw = await apiRequest('/nutrition/logs', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return unwrap(raw);
+    } catch {
+      return null;
+    }
   },
 
   /**

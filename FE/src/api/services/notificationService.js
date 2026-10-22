@@ -5,8 +5,12 @@ export const notificationService = {
    * Lấy danh sách thông báo hệ thống
    */
   getNotifications: async (unreadOnly = false, page = 1, pageSize = 20) => {
-    const raw = await apiRequest(`/notifications?unreadOnly=${unreadOnly}&page=${page}&pageSize=${pageSize}`);
-    return unwrap(raw);
+    try {
+      const raw = await apiRequest(`/notifications?unreadOnly=${unreadOnly}&page=${page}&pageSize=${pageSize}`);
+      return unwrap(raw);
+    } catch {
+      return [];
+    }
   },
 
   /**
