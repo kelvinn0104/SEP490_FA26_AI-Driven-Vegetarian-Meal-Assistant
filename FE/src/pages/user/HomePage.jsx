@@ -3,12 +3,14 @@ import {
   Sparkles, Search, Clock, Check, ChevronRight, Flame,
   Leaf, Utensils, Heart, Bookmark, Filter, ArrowRight
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import DailyNutritionSummary from '../../components/nutrition/DailyNutritionSummary';
 import RecipeCard from '../../components/recipes/RecipeCard';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function HomePage({ onNavigate }) {
+  const { user } = useAuth();
   const {
     profile,
     metrics,
@@ -85,10 +87,16 @@ export default function HomePage({ onNavigate }) {
               Hôm nay ăn gì để <span className="text-emerald-300">đủ đạm & vi chất?</span>
             </h1>
 
-            <p className="text-xs sm:text-sm text-alabaster/80 leading-relaxed max-w-xl">
-              Mọi công thức được tính toán theo thể trạng <strong>BMI {metrics.bmi} ({metrics.category})</strong> và mục tiêu{' '}
-              <strong>{metrics.targetProtein}g Đạm • 2.4µg B12 • {metrics.tdee} kcal</strong> của bạn.
-            </p>
+            {user && profile ? (
+              <p className="text-xs sm:text-sm text-alabaster/80 leading-relaxed max-w-xl">
+                Mọi công thức được tính toán theo thể trạng <strong>BMI {metrics.bmi} ({metrics.category})</strong> và mục tiêu{' '}
+                <strong>{metrics.targetProtein}g Đạm • 2.4µg B12 • {metrics.tdee} kcal</strong> của bạn.
+              </p>
+            ) : (
+              <p className="text-xs sm:text-sm text-alabaster/80 leading-relaxed max-w-xl">
+                Hệ thống gợi ý thực đơn chay khoa học cân bằng dinh dưỡng, giàu đạm thực vật và vi chất thiết yếu theo thể trạng cá nhân hóa.
+              </p>
+            )}
 
             {/* Quick Action CTA */}
             <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -141,11 +149,11 @@ export default function HomePage({ onNavigate }) {
                     {heroRecipe.title}
                   </h3>
                   <div className="flex items-center gap-3 text-xs font-metric text-alabaster/80 pt-1">
-                    <span>{heroRecipe.nutrients.calories} kcal</span>
+                    <span>{heroRecipe.nutrients?.calories ?? heroRecipe.kcalPerServing ?? 400} kcal</span>
                     <span>•</span>
-                    <span>{heroRecipe.nutrients.protein}g Đạm</span>
+                    <span>{heroRecipe.nutrients?.protein ?? heroRecipe.proteinG ?? 18}g Đạm</span>
                     <span>•</span>
-                    <span>{heroRecipe.nutrients.b12}µg B12</span>
+                    <span>{heroRecipe.nutrients?.b12 ?? heroRecipe.b12Mcg ?? 1.2}µg B12</span>
                   </div>
                 </div>
               </div>
@@ -155,16 +163,48 @@ export default function HomePage({ onNavigate }) {
       </section>
 
       {/* ====================================================================
-          2. DAILY NUTRITION GLANCEABLE DASHBOARD
+          2. DAILY NUTRITION GLANCEABLE DASHBOARD / GUEST CALLOUT
       ==================================================================== */}
-      <section>
-        <DailyNutritionSummary
-          consumed={consumedToday}
-          metrics={metrics}
-          selectedDay={currentDayPlan.day}
-          onNavigateToPlanner={() => onNavigate && onNavigate('planner')}
-        />
-      </section>
+      {user && profile ? (
+        <section>
+          <DailyNutritionSummary
+            consumed={consumedToday}
+            metrics={metrics}
+            selectedDay={currentDayPlan?.day || 'Hôm nay'}
+            onNavigateToPlanner={() => onNavigate && onNavigate('planner')}
+          />
+        </section>
+      ) : (
+        <section className="bg-white rounded-3xl border border-hairline p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2">
+            <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
+              CHẾ ĐỘ KHÁCH THĂM
+            </span>
+            <h3 className="font-editorial text-xl sm:text-2xl font-bold text-forest">
+              Khám phá thực đơn dinh dưỡng thực vật chuẩn WHO
+            </h3>
+            <p className="text-xs sm:text-sm text-olive max-w-xl">
+              Đăng nhập để lưu hồ sơ sức khỏe cá nhân, nhận thực đơn 7 ngày tính toán riêng cho bạn và theo dõi lượng calo, đạm tiêu thụ mỗi ngày.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('login')}
+              className="px-5 py-2.5 rounded-xl bg-forest hover:bg-forestDark text-alabaster text-xs font-semibold cursor-pointer transition shadow-xs"
+            >
+              Đăng nhập ngay
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('user-profile')}
+              className="px-5 py-2.5 rounded-xl border border-forest text-forest hover:bg-forest/5 text-xs font-semibold cursor-pointer transition"
+            >
+              Tính nhanh BMI
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ====================================================================
           3. COLLECTION 1: MÓN CHAY THUẦN VIỆT
@@ -189,7 +229,7 @@ export default function HomePage({ onNavigate }) {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              isSaved={(profile.savedRecipeIds || []).includes(recipe.id)}
+              isSaved={(profile?.savedRecipeIds || []).includes(recipe.id)}
               onToggleSave={toggleSaveRecipe}
               onSelectDetail={setSelectedRecipeDetail}
             />
@@ -220,7 +260,7 @@ export default function HomePage({ onNavigate }) {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              isSaved={(profile.savedRecipeIds || []).includes(recipe.id)}
+              isSaved={(profile?.savedRecipeIds || []).includes(recipe.id)}
               onToggleSave={toggleSaveRecipe}
               onSelectDetail={setSelectedRecipeDetail}
             />
@@ -284,7 +324,7 @@ export default function HomePage({ onNavigate }) {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              isSaved={(profile.savedRecipeIds || []).includes(recipe.id)}
+              isSaved={(profile?.savedRecipeIds || []).includes(recipe.id)}
               onToggleSave={toggleSaveRecipe}
               onSelectDetail={setSelectedRecipeDetail}
             />
@@ -297,7 +337,7 @@ export default function HomePage({ onNavigate }) {
         <RecipeDetailModal
           recipe={selectedRecipeDetail}
           onClose={() => setSelectedRecipeDetail(null)}
-          isSaved={(profile.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
+          isSaved={(profile?.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
           onToggleSave={toggleSaveRecipe}
           onApplyMeal={() => {
             if (onNavigate) onNavigate('planner');

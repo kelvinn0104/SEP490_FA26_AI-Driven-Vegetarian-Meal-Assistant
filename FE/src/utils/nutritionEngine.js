@@ -3,12 +3,13 @@
 // ============================================================================
 
 export function calculateBiometrics(profile) {
-  const heightM = (profile.height || 165) / 100;
-  const weight = profile.weight || 56;
-  const age = profile.age || 23;
-  const gender = profile.gender || 'female';
-  const activity = profile.activity || 'moderate';
-  const goal = profile.goal || 'maintain';
+  const p = profile || {};
+  const heightM = (p.height || 165) / 100;
+  const weight = p.weight || 56;
+  const age = p.age || 23;
+  const gender = p.gender || 'female';
+  const activity = p.activity || 'moderate';
+  const goal = p.goal || 'maintain';
 
   // 1. BMI Calculation
   const bmiRaw = weight / (heightM * heightM);
@@ -22,7 +23,7 @@ export function calculateBiometrics(profile) {
   else category = 'Béo phì';
 
   // 3. Basal Metabolic Rate (Mifflin-St Jeor)
-  let bmrRaw = 10 * weight + 6.25 * (profile.height || 165) - 5 * age;
+  let bmrRaw = 10 * weight + 6.25 * (p.height || 165) - 5 * age;
   if (gender === 'female') {
     bmrRaw -= 161;
   } else {
@@ -88,11 +89,16 @@ export function calculateConsumedNutrition(dayPlan, recipesDb) {
   const checkAndAdd = (recipeId, isCompleted) => {
     if (isCompleted && recipeId && recipeMap.has(recipeId)) {
       const r = recipeMap.get(recipeId);
-      consumed.calories += r.nutrients.calories || 0;
-      consumed.protein += r.nutrients.protein || 0;
-      consumed.b12 += r.nutrients.b12 || 0;
-      consumed.iron += r.nutrients.iron || 0;
-      consumed.omega3 += r.nutrients.omega3 || 0;
+      const cal = Number(r.nutrients?.calories ?? r.kcalPerServing ?? r.calories ?? 0);
+      const pro = Number(r.nutrients?.protein ?? r.proteinG ?? r.protein ?? 0);
+      const b12 = Number(r.nutrients?.b12 ?? r.b12Mcg ?? r.b12 ?? 0);
+      const iron = Number(r.nutrients?.iron ?? r.ironMg ?? r.iron ?? 0);
+      const omega3 = Number(r.nutrients?.omega3 ?? r.omega3 ?? 0);
+      consumed.calories += cal;
+      consumed.protein += pro;
+      consumed.b12 += b12;
+      consumed.iron += iron;
+      consumed.omega3 += omega3;
       consumed.mealsCount += 1;
     }
   };

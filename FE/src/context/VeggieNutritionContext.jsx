@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 import {
   RECIPES_DB,
   DEFAULT_PROFILE,
@@ -21,19 +22,22 @@ import {
 const VeggieNutritionContext = createContext(null);
 
 export function VeggieNutritionProvider({ children }) {
+  const { user } = useAuth();
+
   // 1. Connection & Loading Status
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [loadingApi, setLoadingApi] = useState(false);
 
   // 2. User Profile State (persisted in localStorage + synced with Backend)
   const [profile, setProfileState] = useState(() => {
+    if (!getAuthToken() && !getStoredUser()) return null;
     try {
       const saved = localStorage.getItem('veggie_user_profile');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.warn('Failed to load profile from storage', e);
     }
-    return DEFAULT_PROFILE;
+    return null;
   });
 
   // 3. Weekly Plan State (persisted in localStorage + synced with Backend)
@@ -272,7 +276,11 @@ export function VeggieNutritionProvider({ children }) {
 
   // 9. Toggle Bookmark Recipe
   const toggleSaveRecipe = async (recipeId) => {
-    const currentSaved = profile.savedRecipeIds || [];
+    if (!profile) {
+      showToast('Vui lòng đăng nhập để lưu công thức yêu thích');
+      return;
+    }
+    const currentSaved = profile?.savedRecipeIds || [];
     const isSaved = currentSaved.includes(recipeId);
     const nextSaved = isSaved
       ? currentSaved.filter(id => id !== recipeId)
@@ -395,7 +403,7 @@ export function VeggieNutritionProvider({ children }) {
         const res = await mealPlanService.generatePlan({
           days: options.days || 7,
           note: options.note || 'Thích món Việt, giàu đạm và B12',
-          healthGoal: profile.goal || 'maintain',
+          healthGoal: profile?.goal || 'maintain',
           scanId: options.scanId || undefined
         });
 
@@ -450,14 +458,27 @@ export function VeggieNutritionProvider({ children }) {
 
   // 13. Memoized WHO Biometric Metrics
   const metrics = useMemo(() => {
+    if (!profile) {
+      return {
+        bmi: '--',
+        category: 'Chưa thiết lập',
+        bmr: 1500,
+        tdee: 2000,
+        targetProtein: 65,
+        targetCarbs: 240,
+        targetFat: 55,
+        bmiSpectrumPct: 50,
+        isGuest: true
+      };
+    }
     return calculateBiometrics(profile);
   }, [profile]);
 
   // 14. Memoized Actual Consumed Nutrition for Selected Day
   const currentDayPlan = weeklyPlan[selectedDayIdx] || weeklyPlan[0];
   const consumedToday = useMemo(() => {
-    return calculateConsumedNutrition(currentDayPlan, RECIPES_DB);
-  }, [currentDayPlan]);
+    return calculateConsumedNutrition(currentDayPlan, recipesDb);
+  }, [currentDayPlan, recipesDb]);
 
   const value = {
     profile,

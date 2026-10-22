@@ -74,6 +74,8 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('veggieai_active_tab');
       localStorage.removeItem('token');
       localStorage.removeItem('veggie_token');
+      localStorage.removeItem('veggie_user_profile');
+      localStorage.removeItem('veggie_weekly_plan');
     } catch (e) {}
   };
 

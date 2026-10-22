@@ -1,39 +1,69 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, Sparkles, Bookmark, Check, MapPin, ChefHat, Flame, Utensils } from 'lucide-react';
 
 export default function RecipeDetailModal({
   recipe,
   onClose,
-  isSaved,
+  isSaved = false,
   onToggleSave,
   onApplyMeal
 }) {
   if (!recipe) return null;
 
-  const nutrients = recipe.nutrients || recipe.nutritionPerServing || {
-    calories: recipe.kcalPerServing || 450,
-    protein: recipe.proteinG || 20,
-    carb: recipe.carbG || 55,
-    fat: recipe.fatG || 12,
-    b12: recipe.b12Mcg || 1.2,
-    iron: recipe.ironMg || 4.5,
-    omega3: 0.8
-  };
+  // Lock body scroll while modal is active & listen to Escape key
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
-  const calories = nutrients.calories ?? nutrients.kcal ?? 450;
-  const protein = nutrients.protein ?? nutrients.proteinG ?? 20;
-  const b12 = nutrients.b12 ?? nutrients.b12Mcg ?? 1.2;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = origOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  // Safe extraction of nutrients
+  const rawNutr = recipe.nutrients || recipe.nutritionPerServing || {};
+  const calories = rawNutr.calories ?? rawNutr.kcal ?? recipe.kcalPerServing ?? 450;
+  const protein = rawNutr.protein ?? rawNutr.proteinG ?? recipe.proteinG ?? 20;
+  const b12 = rawNutr.b12 ?? rawNutr.b12Mcg ?? recipe.b12Mcg ?? 1.2;
   const prepTime = recipe.prepTime || 20;
   const image = recipe.image || (recipe.imageUrl ? (recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `/uploads/${recipe.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80');
 
-  return (
+  // Safe extraction of ingredients list
+  const ingredientsList = Array.isArray(recipe.ingredients)
+    ? recipe.ingredients.map(ing => {
+        if (typeof ing === 'string') return { name: ing, amount: '' };
+        return {
+          name: ing.name || ing.ingredientName || 'Nguyên liệu',
+          amount: ing.amount || `${ing.quantity || ''} ${ing.unit || ''}`.trim()
+        };
+      })
+    : [];
+
+  // Safe extraction of cooking steps
+  const stepsList = Array.isArray(recipe.steps) && recipe.steps.length > 0
+    ? recipe.steps
+    : (typeof recipe.instructions === 'string' && recipe.instructions.trim().length > 0
+        ? recipe.instructions.split('\n').map(s => s.trim()).filter(s => s.length > 0)
+        : ['Sơ chế nguyên liệu tươi sạch.', 'Chế biến nhiệt vừa theo hướng dẫn.', 'Bày ra đĩa và thưởng thức khi còn ấm nóng.']);
+
+  const modalNode = (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-forestDark/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-up"
+      className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white border border-hairline rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col"
+        className="bg-white border border-hairline rounded-3xl max-w-2xl w-full max-h-[88vh] overflow-hidden shadow-floating flex flex-col relative my-auto animate-fade-up"
       >
         {/* Banner Image with Close Button */}
         <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full overflow-hidden bg-forest shrink-0">
@@ -42,148 +72,123 @@ export default function RecipeDetailModal({
             alt={recipe.title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-forestDark/90 via-forestDark/30 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-forest/90 via-forest/30 to-transparent"></div>
 
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2.5 rounded-full bg-forestDark/70 hover:bg-forestDark text-white backdrop-blur-xs transition cursor-pointer"
+            className="absolute top-3.5 right-3.5 p-2 rounded-full bg-forest/80 hover:bg-forest text-white backdrop-blur-xs transition cursor-pointer shadow-md"
+            title="Đóng cửa sổ"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
 
-          <div className="absolute bottom-4 left-4 right-4 text-white space-y-1">
-            <span className="text-[11px] font-metric font-semibold text-emerald-300 uppercase tracking-wider">
-              {recipe.season || 'Món chay khoa học'}
+          <div className="absolute bottom-3.5 left-4 right-4 text-white space-y-1">
+            <span className="text-[10px] font-metric font-semibold text-emerald-300 uppercase tracking-wider">
+              {recipe.season || recipe.category || 'Món chay khoa học'}
             </span>
-            <h2 className="font-editorial text-xl sm:text-3xl font-bold leading-tight">
+            <h2 className="font-editorial text-lg sm:text-2xl font-bold leading-tight">
               {recipe.title}
             </h2>
-            <p className="text-xs sm:text-sm text-alabaster/80 italic">
-              {recipe.englishSub || recipe.category || 'Món chính thực vật'}
-            </p>
+            {(recipe.subtitle || recipe.englishSub) && (
+              <p className="text-xs text-alabaster/85 italic line-clamp-1">
+                {recipe.subtitle || recipe.englishSub}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 sm:p-8 space-y-6">
+        {/* Scrollable Modal Body */}
+        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
           {/* Quick Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
+          <div className="grid grid-cols-4 gap-2 text-center text-xs font-metric">
+            <div className="p-2.5 rounded-2xl bg-alabaster border border-hairline">
               <span className="text-[10px] font-bold uppercase text-olive block">Thời Gian</span>
-              <p className="font-metric text-lg font-bold text-forest mt-0.5">{prepTime} phút</p>
+              <p className="font-metric text-sm sm:text-base font-bold text-forest mt-0.5">{prepTime}p</p>
             </div>
-            <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
+            <div className="p-2.5 rounded-2xl bg-alabaster border border-hairline">
               <span className="text-[10px] font-bold uppercase text-olive block">Năng Lượng</span>
-              <p className="font-metric text-lg font-bold text-forest mt-0.5">{calories} kcal</p>
+              <p className="font-metric text-sm sm:text-base font-bold text-forest mt-0.5">{calories} kcal</p>
             </div>
-            <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
+            <div className="p-2.5 rounded-2xl bg-alabaster border border-hairline">
               <span className="text-[10px] font-bold uppercase text-olive block">Đạm Thực Vật</span>
-              <p className="font-metric text-lg font-bold text-emeraldBotanic mt-0.5">{protein}g</p>
+              <p className="font-metric text-sm sm:text-base font-bold text-emeraldBotanic mt-0.5">{protein}g</p>
             </div>
-            <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
+            <div className="p-2.5 rounded-2xl bg-alabaster border border-hairline">
               <span className="text-[10px] font-bold uppercase text-olive block">Vitamin B12</span>
-              <p className="font-metric text-lg font-bold text-forest mt-0.5">{b12} µg</p>
+              <p className="font-metric text-sm sm:text-base font-bold text-forest mt-0.5">{b12}µg</p>
             </div>
           </div>
 
-          {/* Subtitle Description */}
-          <p className="text-sm text-forest/90 leading-relaxed bg-alabaster/60 p-4 rounded-2xl border border-hairline">
-            {recipe.subtitle}
-          </p>
+          {/* Description */}
+          {recipe.description && (
+            <p className="text-xs text-slate-700 leading-relaxed bg-alabaster/60 p-3.5 rounded-2xl border border-hairline">
+              {recipe.description}
+            </p>
+          )}
 
-          {/* Ingredients & Cooking Steps Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Ingredients & Steps */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             {/* Ingredients (5 cols) */}
-            <div className="md:col-span-5 space-y-3">
-              <h3 className="font-editorial text-base sm:text-lg font-bold text-forest flex items-center gap-2">
-                <Utensils className="w-4 h-4 text-emeraldBotanic" />
+            <div className="md:col-span-5 space-y-2.5">
+              <h3 className="font-editorial text-sm font-bold text-forest flex items-center gap-1.5">
+                <Utensils className="w-3.5 h-3.5 text-emeraldBotanic" />
                 <span>Nguyên Liệu Chuẩn Bị</span>
               </h3>
-              <div className="space-y-2">
-                {(recipe.ingredients || []).map((ing, idx) => (
+              <div className="space-y-1.5 text-xs">
+                {ingredientsList.map((ing, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded-xl bg-alabaster border border-hairline flex items-center justify-between text-xs"
+                    className="p-2 rounded-xl bg-alabaster border border-hairline flex items-center justify-between"
                   >
-                    <span className="font-medium text-forest">{ing.name}</span>
-                    <span className="font-metric font-bold text-emeraldBotanic">{ing.amount}</span>
+                    <span className="font-medium text-forest truncate">{ing.name}</span>
+                    {ing.amount && (
+                      <span className="font-metric font-bold text-emeraldBotanic shrink-0 ml-1.5">{ing.amount}</span>
+                    )}
                   </div>
                 ))}
+                {ingredientsList.length === 0 && (
+                  <p className="text-xs text-olive italic">Nguyên liệu thực vật tự nhiên.</p>
+                )}
               </div>
             </div>
 
             {/* Cooking Steps (7 cols) */}
-            <div className="md:col-span-7 space-y-3">
-              <h3 className="font-editorial text-base sm:text-lg font-bold text-forest flex items-center gap-2">
-                <Flame className="w-4 h-4 text-terracotta" />
+            <div className="md:col-span-7 space-y-2.5">
+              <h3 className="font-editorial text-sm font-bold text-forest flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-terracotta" />
                 <span>Các Bước Thực Hiện</span>
               </h3>
-              <div className="space-y-2.5">
-                {(recipe.steps || []).map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 rounded-2xl bg-alabaster border border-hairline">
-                    <span className="w-6 h-6 rounded-full bg-forest text-white font-metric text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+              <div className="space-y-2 text-xs">
+                {stepsList.map((step, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-alabaster border border-hairline">
+                    <span className="w-5 h-5 rounded-full bg-forest text-white font-metric text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                       {idx + 1}
                     </span>
-                    <p className="text-xs text-forest leading-relaxed">{step}</p>
+                    <p className="text-forest leading-relaxed">{step}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Chef Tips */}
-          {recipe.chefTips && recipe.chefTips.length > 0 && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-emeraldBotanic/10 border border-emeraldBotanic/20 space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-emeraldBotanic flex items-center gap-1.5">
-                <ChefHat className="w-4 h-4" />
-                <span>Bí Quyết Ẩm Thực & Hấp Thu Vi Chất Từ Chuyên Gia:</span>
-              </h4>
-              <ul className="space-y-1.5 text-xs text-forest list-disc list-inside">
-                {recipe.chefTips.map((tip, idx) => (
-                  <li key={idx} className="leading-relaxed">{tip}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+        {/* Pinned Action Footer */}
+        <div className="p-4 sm:px-6 bg-alabaster/60 border-t border-hairline flex items-center justify-between gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => onToggleSave && onToggleSave(recipe.id)}
+            className={`px-4 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+              isSaved
+                ? 'bg-terracotta text-white border-terracotta'
+                : 'bg-white text-forest border-hairline hover:bg-slate-100'
+            }`}
+          >
+            <Bookmark className="w-3.5 h-3.5" fill={isSaved ? 'currentColor' : 'none'} />
+            <span>{isSaved ? 'Đã Lưu' : 'Lưu món ăn'}</span>
+          </button>
 
-          {/* Local Spots (Nhà hàng chay gợi ý) */}
-          {recipe.localSpots && recipe.localSpots.length > 0 && (
-            <div className="space-y-3 pt-2 border-t border-hairline">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-olive flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-terracotta" />
-                <span>Thưởng Thức Món Tương Tự Tại Nhà Hàng Chay Gần Bạn:</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {recipe.localSpots.map((spot, idx) => (
-                  <div key={idx} className="p-3 rounded-2xl bg-alabaster border border-hairline space-y-1">
-                    <div className="flex justify-between items-start">
-                      <p className="text-xs font-bold text-forest">{spot.name}</p>
-                      <span className="text-[10px] font-metric font-bold text-emeraldBotanic">★ {spot.rating}</span>
-                    </div>
-                    <p className="text-[11px] text-olive truncate">{spot.address}</p>
-                    <p className="text-[10px] text-olive font-metric">{spot.dist} • {spot.priceRange}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Action Footer */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-hairline">
-            <button
-              type="button"
-              onClick={() => onToggleSave && onToggleSave(recipe.id)}
-              className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${
-                isSaved
-                  ? 'bg-terracotta text-white border-terracotta'
-                  : 'bg-alabaster text-forest border-hairline hover:bg-sage'
-              }`}
-            >
-              <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
-              <span>{isSaved ? 'Đã Lưu Công Thức' : 'Lưu Vào Món Yêu Thích'}</span>
-            </button>
-
+          <div className="flex items-center gap-2">
             {onApplyMeal && (
               <button
                 type="button"
@@ -191,15 +196,25 @@ export default function RecipeDetailModal({
                   onApplyMeal(recipe.id);
                   onClose();
                 }}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-forest hover:bg-forestDark text-alabaster text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+                className="px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
               >
-                <Check className="w-4 h-4 text-emerald-300" />
-                <span>Áp Dụng Vào Thực Đơn Tuần</span>
+                <Check className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Đưa vào thực đơn</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-slate-200/70 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+            >
+              Đóng
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 }

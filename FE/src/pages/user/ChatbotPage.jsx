@@ -34,7 +34,9 @@ export default function ChatbotPage({ onNavigate }) {
       id: 'm-welcome',
       sender: 'ai',
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      text: `Xin chào **${profile.name}**! Tôi có thể hỗ trợ bạn tìm kiếm công thức món chay, cân đối dinh dưỡng theo chỉ số thể trạng (BMI ${metrics.bmi}) hoặc giải đáp các câu hỏi về thực phẩm thực vật.`
+      text: profile?.name
+        ? `Xin chào **${profile.name}**! Tôi có thể hỗ trợ bạn tìm kiếm công thức món chay, cân đối dinh dưỡng theo chỉ số thể trạng (BMI ${metrics.bmi}) hoặc giải đáp các câu hỏi về thực phẩm thực vật.`
+        : 'Xin chào! Tôi có thể hỗ trợ bạn tìm kiếm công thức món chay, tính toán dinh dưỡng theo tiêu chuẩn WHO hoặc giải đáp các thắc mắc về thực dưỡng thực vật.'
     }
   ]);
 
@@ -182,7 +184,7 @@ export default function ChatbotPage({ onNavigate }) {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
             <p className="text-[11px] text-olive font-medium">
-              Đồng bộ thể trạng {profile.name} (BMI {metrics.bmi} • {metrics.targetProtein}g Đạm)
+              {profile ? `Đồng bộ thể trạng ${profile.name} (BMI ${metrics.bmi} • ${metrics.targetProtein}g Đạm)` : 'Chế độ Trợ lý Dinh dưỡng Thực vật'}
             </p>
           </div>
         </div>
@@ -244,7 +246,7 @@ export default function ChatbotPage({ onNavigate }) {
                   isUser ? 'bg-emeraldBotanic text-white' : 'bg-forest text-alabaster'
                 }`}
               >
-                {isUser ? profile.name.charAt(0) : <Sparkles className="w-4 h-4 text-emerald-300" />}
+                {isUser ? (profile?.name || 'U').charAt(0) : <Sparkles className="w-4 h-4 text-emerald-300" />}
               </div>
 
               {/* Message Bubble */}
@@ -278,7 +280,7 @@ export default function ChatbotPage({ onNavigate }) {
                           {attachedRecipe.title}
                         </h4>
                         <p className="text-[11px] font-metric text-olive">
-                          {attachedRecipe.nutrients.calories} kcal • {attachedRecipe.nutrients.protein}g Đạm • {attachedRecipe.prepTime}p
+                          {(attachedRecipe.nutrients?.calories ?? attachedRecipe.kcalPerServing ?? 400)} kcal • {(attachedRecipe.nutrients?.protein ?? attachedRecipe.proteinG ?? 18)}g Đạm • {attachedRecipe.prepTime || 20}p
                         </p>
                       </div>
                     </div>
@@ -393,7 +395,7 @@ export default function ChatbotPage({ onNavigate }) {
         <RecipeDetailModal
           recipe={selectedRecipeDetail}
           onClose={() => setSelectedRecipeDetail(null)}
-          isSaved={(profile.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
+          isSaved={(profile?.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
           onToggleSave={toggleSaveRecipe}
         />
       )}

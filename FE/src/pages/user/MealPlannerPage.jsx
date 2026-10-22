@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar, Check, RefreshCw, ShoppingBag, Sparkles,
   ChevronRight, Clock, Plus, X, Utensils, CheckSquare, Square
@@ -300,7 +301,10 @@ export default function MealPlannerPage({ onNavigate }) {
             recipe: dinnerRecipe,
             isCompleted: !!currentDayPlan.completedDinner
           }
-        ].map(slot => (
+        ].map(slot => {
+          const sNutr = getNutrients(slot.recipe);
+          const sImg = slot.recipe?.image || slot.recipe?.imageUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80';
+          return (
           <div
             key={slot.key}
             className={`bg-white rounded-3xl border p-4 sm:p-6 transition flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xs ${
@@ -329,8 +333,8 @@ export default function MealPlannerPage({ onNavigate }) {
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-alabaster shrink-0 cursor-pointer group"
               >
                 <img
-                  src={slot.recipe.image}
-                  alt={slot.recipe.title}
+                  src={sImg}
+                  alt={slot.recipe?.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                 />
               </div>
@@ -344,16 +348,16 @@ export default function MealPlannerPage({ onNavigate }) {
                   onClick={() => setSelectedRecipeDetail(slot.recipe)}
                   className="font-editorial text-base sm:text-lg font-bold text-forest truncate hover:text-emeraldBotanic cursor-pointer transition"
                 >
-                  {slot.recipe.title}
+                  {slot.recipe?.title}
                 </h4>
                 <div className="flex flex-wrap items-center gap-2 text-xs font-metric text-olive">
-                  <span>{slot.recipe.nutrients.calories} kcal</span>
+                  <span>{sNutr.calories} kcal</span>
                   <span>•</span>
-                  <span className="font-semibold text-emeraldBotanic">{slot.recipe.nutrients.protein}g Đạm</span>
+                  <span className="font-semibold text-emeraldBotanic">{sNutr.protein}g Đạm</span>
                   <span>•</span>
-                  <span>{slot.recipe.nutrients.b12}µg B12</span>
+                  <span>{sNutr.b12}µg B12</span>
                   <span>•</span>
-                  <span>{slot.recipe.prepTime} phút</span>
+                  <span>{slot.recipe?.prepTime || 20} phút</span>
                 </div>
               </div>
             </div>
@@ -378,7 +382,8 @@ export default function MealPlannerPage({ onNavigate }) {
               </button>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* ====================================================================
@@ -438,14 +443,15 @@ export default function MealPlannerPage({ onNavigate }) {
       {/* ====================================================================
           MODAL: SWAP MEAL QUICK SELECTOR
       ==================================================================== */}
-      {swapModalOpen && (
+      {swapModalOpen && typeof document !== 'undefined' && createPortal(
         <div
           onClick={() => setSwapModalOpen(false)}
-          className="fixed inset-0 z-50 bg-forestDark/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-up"
+          className="fixed inset-0 z-[9999] bg-forestDark/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="bg-white border border-hairline rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[85vh] overflow-y-auto"
+            className="bg-white border border-hairline rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[85vh] overflow-y-auto animate-fade-up my-auto"
           >
             <div className="flex items-center justify-between border-b border-hairline pb-4">
               <div>
@@ -453,7 +459,7 @@ export default function MealPlannerPage({ onNavigate }) {
                   Đổi Món Cho {swappingMealType === 'breakfast' ? 'Bữa Sáng' : swappingMealType === 'lunch' ? 'Bữa Trưa' : 'Bữa Tối'}
                 </h3>
                 <p className="text-xs text-olive mt-0.5">
-                  Món hiện tại: <strong>{currentSwappingRecipe.title}</strong> ({currentSwappingRecipe.nutrients.calories} kcal)
+                  Món hiện tại: <strong>{currentSwappingRecipe?.title}</strong> ({getNutrients(currentSwappingRecipe).calories} kcal)
                 </p>
               </div>
               <button
@@ -467,9 +473,12 @@ export default function MealPlannerPage({ onNavigate }) {
 
             <div className="space-y-3">
               {recipesDb.map(recipe => {
-                const calDiff = recipe.nutrients.calories - currentSwappingRecipe.nutrients.calories;
-                const proDiff = recipe.nutrients.protein - currentSwappingRecipe.nutrients.protein;
-                const isCurrent = recipe.id === currentSwappingRecipe.id;
+                const rNutr = getNutrients(recipe);
+                const curNutr = getNutrients(currentSwappingRecipe);
+                const calDiff = rNutr.calories - curNutr.calories;
+                const proDiff = rNutr.protein - curNutr.protein;
+                const isCurrent = recipe.id === currentSwappingRecipe?.id;
+                const rImg = recipe.image || recipe.imageUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80';
 
                 return (
                   <div
@@ -483,14 +492,14 @@ export default function MealPlannerPage({ onNavigate }) {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <img
-                        src={recipe.image}
+                        src={rImg}
                         alt={recipe.title}
                         className="w-14 h-14 rounded-xl object-cover shrink-0"
                       />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-forest truncate">{recipe.title}</p>
                         <p className="text-[11px] font-metric text-olive">
-                          {recipe.nutrients.calories} kcal • {recipe.nutrients.protein}g đạm • {recipe.prepTime}p
+                          {rNutr.calories} kcal • {rNutr.protein}g đạm • {recipe.prepTime || 20}p
                         </p>
                       </div>
                     </div>
@@ -519,7 +528,8 @@ export default function MealPlannerPage({ onNavigate }) {
               })}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Detail Modal */}
@@ -527,7 +537,7 @@ export default function MealPlannerPage({ onNavigate }) {
         <RecipeDetailModal
           recipe={selectedRecipeDetail}
           onClose={() => setSelectedRecipeDetail(null)}
-          isSaved={(profile.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
+          isSaved={(profile?.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
           onToggleSave={toggleSaveRecipe}
         />
       )}
