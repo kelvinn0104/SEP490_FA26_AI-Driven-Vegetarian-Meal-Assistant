@@ -18,6 +18,9 @@ export default function MealPlannerPage({ onNavigate }) {
     updateDayMeal,
     toggleMealCompleted,
     toggleSaveRecipe,
+    generateAiMealPlan,
+    loadingApi,
+    isBackendConnected,
     showToast
   } = useVeggieNutrition();
 
@@ -155,11 +158,14 @@ export default function MealPlannerPage({ onNavigate }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => showToast('AI đang đồng bộ lại vi chất cho 7 ngày')}
-              className="px-3.5 py-2 rounded-xl bg-white border border-hairline text-forest text-xs font-semibold hover:bg-sage transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+              disabled={loadingApi}
+              onClick={() => generateAiMealPlan({ days: 7, note: 'Tối ưu đạm và B12' })}
+              className={`px-3.5 py-2 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer ${
+                loadingApi ? 'bg-sage text-olive border-hairline cursor-not-allowed' : 'bg-white border-hairline text-forest hover:bg-sage'
+              }`}
             >
-              <RefreshCw className="w-3.5 h-3.5 text-emeraldBotanic" />
-              <span>Tự Động Cân Bằng Lại</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-emeraldBotanic ${loadingApi ? 'animate-spin' : ''}`} />
+              <span>{loadingApi ? 'AI Đang Lập Thực Đơn (Gemini)...' : 'Tạo Lại Thực Đơn AI'}</span>
             </button>
           </div>
         </div>

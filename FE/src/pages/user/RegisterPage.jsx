@@ -4,6 +4,7 @@ import {
   Lock, Mail, Phone, User, Sparkles, ArrowRight, Shield, Star, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { authService } from '../../api';
 
 export default function RegisterPage({ onNavigate }) {
   const { login } = useAuth();
@@ -42,7 +43,7 @@ export default function RegisterPage({ onNavigate }) {
     alert(`Tính năng đăng ký qua ${provider} (OAuth 2.0) đang được hoàn thiện. Vui lòng đăng ký tài khoản bằng biểu mẫu bên dưới!`);
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       alert('Vui lòng điền đầy đủ Email và Mật khẩu.');
@@ -52,26 +53,39 @@ export default function RegisterPage({ onNavigate }) {
       alert('Mật khẩu xác nhận không khớp.');
       return;
     }
+    if (password.length < 6) {
+      alert('Mật khẩu phải từ 6 ký tự trở lên.');
+      return;
+    }
 
     try {
+      let registeredUser = null;
+      let token = null;
+
+      try {
+        const res = await authService.register({
+          email: email.trim().toLowerCase(),
+          password,
+          displayName: fullName.trim() || email.split('@')[0],
+        });
+        token = res?.accessToken || res?.token;
+        registeredUser = res?.user;
+      } catch (backendErr) {
+        console.warn('Backend register failed or offline, fallback to local registration:', backendErr.message);
+      }
+
       const existingStr = localStorage.getItem('veggieai_registered_users');
       const existingList = existingStr ? JSON.parse(existingStr) : [];
       
-      const isExisted = existingList.some(u => u.email.toLowerCase() === email.trim().toLowerCase());
-      if (isExisted) {
-        alert('Email này đã được đăng ký trên hệ thống. Vui lòng đăng nhập!');
-        if (onNavigate) onNavigate('login');
-        return;
-      }
-
-      const newUser = {
+      const newUser = registeredUser || {
         name: fullName.trim() || email.split('@')[0],
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password: password,
         dietType: dietGoal === 'weight_loss' ? 'vegan' : dietGoal,
         role: 'AuthorizedUser',
-        roleLabel: 'Thành viên chính thức'
+        roleLabel: 'Thành viên chính thức',
+        hasHealthProfile: false
       };
 
       existingList.push(newUser);
@@ -81,7 +95,7 @@ export default function RegisterPage({ onNavigate }) {
 
       // TỰ ĐỘNG ĐĂNG NHẬP VÀ CHUYỂN THẲNG ĐẾN WF01 (HỒ SƠ DINH DƯỠNG)
       setTimeout(() => {
-        login(newUser);
+        login(newUser, token);
         try {
           localStorage.setItem('veggieai_active_tab', 'user-profile');
         } catch (err) {}
@@ -89,7 +103,7 @@ export default function RegisterPage({ onNavigate }) {
       }, 700);
 
     } catch (err) {
-      console.error(err);
+      alert(err.message || 'Đăng ký thất bại.');
     }
   };
 

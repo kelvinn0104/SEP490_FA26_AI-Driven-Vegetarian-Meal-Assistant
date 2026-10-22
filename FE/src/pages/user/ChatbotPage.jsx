@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
+import { chatService, getAuthToken } from '../../api';
 
 export default function ChatbotPage({ onNavigate }) {
   const {
@@ -16,6 +17,7 @@ export default function ChatbotPage({ onNavigate }) {
     selectedDayIdx,
     recipesDb,
     updateDayMeal,
+    isBackendConnected,
     showToast
   } = useVeggieNutrition();
 
@@ -23,6 +25,7 @@ export default function ChatbotPage({ onNavigate }) {
   const [agentMode, setAgentMode] = useState('nutritionist'); // 'nutritionist' | 'chef' | 'substitute' | 'bmi'
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState(null);
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const messagesEndRef = useRef(null);
 
@@ -56,7 +59,7 @@ export default function ChatbotPage({ onNavigate }) {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e?.preventDefault();
     if (!inputText.trim()) return;
 
@@ -71,6 +74,36 @@ export default function ChatbotPage({ onNavigate }) {
     const currentQuery = inputText.trim();
     setInputText('');
     setIsTyping(true);
+
+    // Call Backend live Gemini chatbot if connected
+    if (isBackendConnected && getAuthToken()) {
+      try {
+        let sid = activeSessionId;
+        if (!sid) {
+          const newSession = await chatService.createSession();
+          sid = newSession?.id;
+          setActiveSessionId(sid);
+        }
+
+        if (sid) {
+          const res = await chatService.sendMessage(sid, currentQuery);
+          const aiText = res?.aiMessage?.content || res?.content || res?.message;
+          if (aiText) {
+            const aiMsg = {
+              id: `ai-${Date.now()}`,
+              sender: 'ai',
+              time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+              text: aiText
+            };
+            setMessages(prev => [...prev, aiMsg]);
+            setIsTyping(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Backend chat failed, falling back to local simulation:', err.message);
+      }
+    }
 
     // AI Simulation response tailored to profile
     setTimeout(() => {

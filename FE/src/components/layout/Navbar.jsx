@@ -5,6 +5,7 @@ import {
   CheckCheck, Clock, ExternalLink, Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { notificationService } from '../../api';
 
 export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
   const { user, logout } = useAuth();
@@ -58,9 +59,40 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
     }
   ]);
 
-  const handleMarkAllRead = () => {
+  // Đồng bộ thông báo từ Backend nếu đăng nhập
+  useEffect(() => {
+    if (user) {
+      notificationService.getUnreadCount()
+        .then(cnt => {
+          if (typeof cnt === 'number') setUnreadCount(cnt);
+        })
+        .catch(() => {});
+
+      notificationService.getNotifications(false, 1, 10)
+        .then(res => {
+          const list = res?.items || (Array.isArray(res) ? res : null);
+          if (list && list.length > 0) {
+            const mapped = list.map(n => ({
+              id: n.id,
+              title: n.type === 'nutrition_alert' ? 'Cảnh báo dinh dưỡng 🥗' : n.type === 'profile_reminder' ? 'Nhắc nhở cập nhật hồ sơ ⚖️' : 'Thông báo VeggieAI',
+              desc: n.content,
+              time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+              read: !!n.isRead,
+              tab: n.type === 'nutrition_alert' ? 'planner' : 'home'
+            }));
+            setNotifications(mapped);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const handleMarkAllRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
+    try {
+      await notificationService.markAllAsRead();
+    } catch {}
   };
 
   // PHÂN QUYỀN HEADER THEO BẢNG ĐỀ XUẤT ĐÃ THỐNG NHẤT:

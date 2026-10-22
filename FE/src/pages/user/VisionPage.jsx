@@ -1,9 +1,10 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Camera, Sparkles, ArrowRight, CheckCircle2, ShieldCheck, Leaf, 
   Plus, X, Trash2, Check, RefreshCw, Upload, Utensils, AlertTriangle, Eye, Clock, Flame
 } from 'lucide-react';
 import { detectIngredients } from '../../utils/api';
+import { scanService } from '../../api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 
@@ -11,6 +12,7 @@ export default function VisionPage({ onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [detectedItems, setDetectedItems] = useState(null);
+  const [scanId, setScanId] = useState(null);
   const [manualInput, setManualInput] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [selectedRecipeModal, setSelectedRecipeModal] = useState(null);
@@ -61,22 +63,23 @@ export default function VisionPage({ onNavigate }) {
   const handleImageChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Tệp ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 10MB.');
+      if (file.size > 8 * 1024 * 1024) {
+        alert('Tệp ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 8MB theo chuẩn hệ thống.');
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
-        handleScan(reader.result);
       };
       reader.readAsDataURL(file);
+      handleScan(file);
     }
   };
 
   // 3. XỬ LÝ QUÉT MẪU PRESET
   const handleSelectPreset = (preset) => {
     setImagePreview(preset.img);
+    setScanId(null);
     setLoading(true);
     setTimeout(() => {
       setDetectedItems(preset.items);
@@ -85,11 +88,40 @@ export default function VisionPage({ onNavigate }) {
     }, 600);
   };
 
-  // 4. GIẢ LẬP NHẬN DIỆN MÔ HÌNH YOLOV8
-  const handleScan = async (imgSrc = null) => {
+  // 4. NHẬN DIỆN MÔ HÌNH YOLOV8 QUA BACKEND (CÓ DỰ PHÒNG CỤC BỘ)
+  const handleScan = async (fileOrSrc = null) => {
     setLoading(true);
-    if (!imagePreview && !imgSrc) {
+    if (!imagePreview && !fileOrSrc) {
       setImagePreview(samplePresets[0].img);
+    }
+
+    // Nếu là đối tượng File thực tế từ máy tính -> Gửi lên API /api/scans
+    if (fileOrSrc && typeof fileOrSrc === 'object' && fileOrSrc instanceof File) {
+      try {
+        const res = await scanService.uploadScan(fileOrSrc);
+        if (res) {
+          setScanId(res.scanId || null);
+          if (res.detectedItems && res.detectedItems.length > 0) {
+            const mapped = res.detectedItems.map(item => ({
+              ingredientId: item.ingredientId,
+              name: item.nameVi || item.name,
+              freshness: item.freshness === 'fresh' ? 'Fresh' : 'ExpiringSoon',
+              confidence: `${Math.round((item.confidence || 0.9) * 100)}%`,
+              note: item.freshness === 'fresh' ? '🟢 Tươi ngon' : '🌱 Cần dùng sớm',
+              confirmed: true
+            }));
+            setDetectedItems(mapped);
+          } else {
+            setDetectedItems(samplePresets[0].items);
+          }
+          showToast(res.message || '✨ AI Vision đã bóc tách nguyên liệu & độ tươi thành công!');
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend scan failed, fallback to local preset:', err.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
     try {
@@ -102,6 +134,7 @@ export default function VisionPage({ onNavigate }) {
       showToast('✨ YOLOv8 đã phân tích xong! Hãy rà soát danh sách trước khi lưu.');
     } catch (err) {
       console.error(err);
+      setDetectedItems(samplePresets[0].items);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Smartphone } from 'lucide-react';
+import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 
 export default function Footer({ onNavigate }) {
+  const { isBackendConnected } = useVeggieNutrition();
+
   const handleFooterNav = (e, tab) => {
     e.preventDefault();
     if (onNavigate) {
@@ -58,8 +61,8 @@ export default function Footer({ onNavigate }) {
               <li><a href="#chatbot" onClick={(e) => handleFooterNav(e, 'chatbot')}>Hỏi AI</a></li>
               <li><a href="#planner" onClick={(e) => handleFooterNav(e, 'planner')}>Thực đơn của tôi & Tính toán Macro</a></li>
               <li>
-                <a href="#vision" onClick={(e) => { e.preventDefault(); alert('Tính năng Quét nguyên liệu tủ lạnh bằng AI (YOLOv8) chỉ khả dụng trên ứng dụng di động VeggieAI.'); }}>
-                  Quét nguyên liệu tủ lạnh <span className="footer-app-tag">(Chỉ trên App)</span>
+                <a href="#vision" onClick={(e) => handleFooterNav(e, 'vision')}>
+                  Quét nguyên liệu tủ lạnh & Món ăn (AI Vision)
                 </a>
               </li>
               <li>
@@ -97,9 +100,17 @@ export default function Footer({ onNavigate }) {
         </div>
 
         {/* BOTTOM COPYRIGHT BAR */}
-        <div className="footer-bottom-bar">
-          <div className="copyright-text">
-            © 2026 VeggieAI. Trợ lý dinh dưỡng và ẩm thực thuần chay thông minh. Bảo lưu mọi quyền.
+        <div className="footer-bottom-bar flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="copyright-text flex flex-wrap items-center gap-2">
+            <span>© 2026 VeggieAI. Trợ lý dinh dưỡng và ẩm thực thuần chay thông minh.</span>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+              isBackendConnected
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isBackendConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+              <span>{isBackendConnected ? 'Backend API (.NET): Đã kết nối' : 'Chế độ mô phỏng (Offline)'}</span>
+            </span>
           </div>
           <div className="footer-legal-links">
             <a href="#terms">Điều khoản</a>

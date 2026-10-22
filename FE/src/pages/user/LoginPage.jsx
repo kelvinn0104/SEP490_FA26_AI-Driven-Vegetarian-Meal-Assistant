@@ -73,6 +73,8 @@ export default function LoginPage({ onNavigate, onLogin }) {
           if (onNavigate) onNavigate('dashboard');
         } else if (effectiveRole === 'mod') {
           if (onNavigate) onNavigate('dashboard');
+        } else if (userData?.hasHealthProfile === false) {
+          if (onNavigate) onNavigate('user-profile');
         } else {
           if (onNavigate) onNavigate('home');
         }
