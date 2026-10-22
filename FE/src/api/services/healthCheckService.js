@@ -6,10 +6,15 @@ export const healthCheckService = {
    */
   checkHealth: async () => {
     try {
-      const raw = await apiRequest('/health', { timeout: 5000 });
+      const raw = await apiRequest('/ai/health', { timeout: 4000 });
       return unwrap(raw);
-    } catch (err) {
-      return null;
+    } catch {
+      try {
+        const raw = await apiRequest('/health', { timeout: 2000 });
+        return unwrap(raw);
+      } catch (err) {
+        return null;
+      }
     }
   },
 };

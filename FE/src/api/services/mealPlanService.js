@@ -21,17 +21,16 @@ export const mealPlanService = {
    */
   generatePlan: async (params = {}) => {
     try {
-      // Endpoint chuẩn từ guide
-      const raw = await apiRequest('/meal-plans/generate', {
+      // Endpoint chuẩn từ controller BE: [Route("api/meal-plans/ai")] -> [HttpPost("generate")]
+      const raw = await apiRequest('/meal-plans/ai/generate', {
         method: 'POST',
         body: JSON.stringify(params),
         timeout: 60000,
       });
       return unwrap(raw);
     } catch (err) {
-      // Fallback nếu backend đăng ký route tại /meal-plans/ai/generate
       if (err.status === 404) {
-        const fallbackRaw = await apiRequest('/meal-plans/ai/generate', {
+        const fallbackRaw = await apiRequest('/meal-plans/generate', {
           method: 'POST',
           body: JSON.stringify(params),
           timeout: 60000,
@@ -50,7 +49,7 @@ export const mealPlanService = {
    */
   swapMeal: async (planId, itemId, reason = 'Muốn đổi món khác phù hợp hơn') => {
     try {
-      const raw = await apiRequest(`/meal-plans/${planId}/items/${itemId}/swap`, {
+      const raw = await apiRequest(`/meal-plans/ai/${planId}/items/${itemId}/swap`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
         timeout: 45000,
@@ -58,7 +57,7 @@ export const mealPlanService = {
       return unwrap(raw);
     } catch (err) {
       if (err.status === 404) {
-        const fallbackRaw = await apiRequest(`/meal-plans/ai/${planId}/items/${itemId}/swap`, {
+        const fallbackRaw = await apiRequest(`/meal-plans/${planId}/items/${itemId}/swap`, {
           method: 'POST',
           body: JSON.stringify({ reason }),
           timeout: 45000,

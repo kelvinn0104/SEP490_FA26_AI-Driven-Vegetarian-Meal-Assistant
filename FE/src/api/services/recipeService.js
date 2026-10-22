@@ -6,7 +6,12 @@ export const recipeService = {
    */
   getRecipes: async (params = {}) => {
     const query = new URLSearchParams();
-    if (params.keyword) query.append('keyword', params.keyword);
+    const searchTerm = params.search || params.keyword;
+    if (searchTerm) {
+      query.append('search', searchTerm);
+      query.append('keyword', searchTerm);
+    }
+    if (params.status) query.append('status', params.status);
     if (params.categoryId) query.append('categoryId', params.categoryId);
     if (params.maxKcal) query.append('maxKcal', params.maxKcal);
     if (params.minProtein) query.append('minProtein', params.minProtein);

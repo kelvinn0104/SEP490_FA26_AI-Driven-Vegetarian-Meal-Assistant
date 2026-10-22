@@ -17,6 +17,7 @@ export default function VisionPage({ onNavigate }) {
   const [scanId, setScanId] = useState(null);
   const [manualInput, setManualInput] = useState('');
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
+  const [serverSuggestedRecipes, setServerSuggestedRecipes] = useState(null);
 
   // 1. CÁC ẢNH MẪU TỦ LẠNH CHUẨN BỊ SẴN (PRESETS)
   const samplePresets = [
@@ -96,6 +97,20 @@ export default function VisionPage({ onNavigate }) {
         const res = await scanService.uploadScan(fileOrSrc);
         if (res) {
           setScanId(res.scanId || null);
+          if (res.suggestedRecipes && res.suggestedRecipes.length > 0) {
+            const mappedRecs = res.suggestedRecipes.map(r => ({
+              id: 'r' + r.recipeId,
+              title: r.title,
+              matchScore: r.reason || '95% Tận dụng',
+              time: '20 phút',
+              calories: Math.round(r.kcalPerServing || 350),
+              protein: '18g Đạm',
+              pantryUsed: res.detectedItems?.slice(0, 2).map(i => i.nameVi || i.name) || [],
+              img: r.imageUrl || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+              description: r.reason || 'Món ăn dinh dưỡng tận dụng nguyên liệu từ tủ lạnh của bạn.'
+            }));
+            setServerSuggestedRecipes(mappedRecs);
+          }
           if (res.detectedItems && res.detectedItems.length > 0) {
             const mapped = res.detectedItems.map(item => ({
               ingredientId: item.ingredientId,
@@ -440,7 +455,7 @@ export default function VisionPage({ onNavigate }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {suggestedRecipes.map((r) => (
+          {(serverSuggestedRecipes || suggestedRecipes).map((r) => (
             <div
               key={r.id}
               className="bg-white rounded-3xl border border-hairline overflow-hidden shadow-xs hover:shadow-card transition flex flex-col justify-between group cursor-pointer"
