@@ -16,7 +16,8 @@ import {
   mealPlanService,
   nutritionService,
   recipeService,
-  getAuthToken
+  getAuthToken,
+  getStoredUser
 } from '../api';
 
 const VeggieNutritionContext = createContext(null);
