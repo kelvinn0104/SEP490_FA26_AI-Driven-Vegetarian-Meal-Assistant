@@ -74,7 +74,14 @@ export default function CommunityPage({ onNavigate }) {
         {posts.map((post, idx) => (
           <div
             key={post.id || idx}
-            className="bg-white rounded-3xl border border-hairline p-5 shadow-xs hover:shadow-card transition flex flex-col justify-between group space-y-4"
+            onClick={() => {
+              if (post.postType === 'video') {
+                if (onNavigate) onNavigate('video-detail', post);
+              } else {
+                if (onNavigate) onNavigate('article-detail', post);
+              }
+            }}
+            className="bg-white rounded-3xl border border-hairline p-5 shadow-xs hover:shadow-card transition flex flex-col justify-between group space-y-4 cursor-pointer"
           >
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
@@ -104,7 +111,10 @@ export default function CommunityPage({ onNavigate }) {
             <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-olive font-metric">
               <button
                 type="button"
-                onClick={() => handleVote(post.id, post.score, idx)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVote(post.id, post.score, idx);
+                }}
                 className="flex items-center gap-1.5 hover:text-emeraldBotanic transition cursor-pointer px-2 py-1 rounded-lg hover:bg-alabaster"
               >
                 <ThumbsUp className={`w-3.5 h-3.5 ${post.myVote === 1 ? 'text-emeraldBotanic fill-current' : ''}`} />
