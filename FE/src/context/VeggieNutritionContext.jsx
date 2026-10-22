@@ -50,10 +50,13 @@ export function VeggieNutritionProvider({ children }) {
   // Active Plan Metadata from Backend (e.g. planId, status, dailyTargets)
   const [activePlanMeta, setActivePlanMeta] = useState(null);
 
-  // 4. Navigation & Day selection
+  // 4. Recipes State (synced from Backend if available)
+  const [recipesDb, setRecipesDb] = useState(RECIPES_DB);
+
+  // 5. Navigation & Day selection
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
 
-  // 5. Toast notification state
+  // 6. Toast notification state
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (message) => {
@@ -170,6 +173,44 @@ export function VeggieNutritionProvider({ children }) {
         }
       } catch (err) {
         console.warn('Không thể đồng bộ nhật ký dinh dưỡng từ Backend:', err.message);
+      }
+
+      // 6.4 Sync Real Recipes from Backend
+      try {
+        const recipeRes = await recipeService.getRecipes({ pageSize: 50 });
+        const items = recipeRes?.items || (Array.isArray(recipeRes) ? recipeRes : null);
+        if (items && items.length > 0) {
+          const mapped = items.map(r => ({
+            id: `r${r.id}`,
+            dbId: r.id,
+            title: r.title,
+            subtitle: r.description || r.instructions || '',
+            prepTime: r.prepTime || 20,
+            servings: r.servings || 2,
+            region: 'vietnam',
+            nutrients: {
+              calories: r.kcalPerServing || 400,
+              protein: r.proteinG || 18,
+              carbs: r.carbG || 45,
+              fat: r.fatG || 10,
+              b12: r.b12Mcg || 1.2,
+              iron: r.ironMg || 3.5,
+              zinc: r.zincMg || 2.5,
+              calcium: r.calciumMg || 150
+            },
+            ingredients: r.ingredients?.map(ing => ({
+              name: ing.name || ing.ingredientName || 'Nguyên liệu',
+              amount: `${ing.amount || ''} ${ing.unit || ''}`.trim()
+            })) || [],
+            instructions: r.instructions || '',
+            matchScore: 95,
+            matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
+            image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80'
+          }));
+          setRecipesDb(mapped);
+        }
+      } catch (err) {
+        console.warn('Không thể đồng bộ công thức từ Backend:', err.message);
       }
 
     } catch (e) {
@@ -429,7 +470,7 @@ export function VeggieNutritionProvider({ children }) {
     setSelectedDayIdx,
     currentDayPlan,
     consumedToday,
-    recipesDb: RECIPES_DB,
+    recipesDb,
     toggleSaveRecipe,
     updateDayMeal,
     toggleMealCompleted,

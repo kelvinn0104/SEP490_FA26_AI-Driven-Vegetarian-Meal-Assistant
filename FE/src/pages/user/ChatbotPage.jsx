@@ -31,25 +31,38 @@ export default function ChatbotPage({ onNavigate }) {
 
   const [messages, setMessages] = useState([
     {
-      id: 'm1',
+      id: 'm-welcome',
       sender: 'ai',
-      time: '08:30',
-      text: `Xin chào **${profile.name}**! Tôi là **VeggieAI Chatbox** — Trợ lý Dinh dưỡng & Ẩm thực Thực vật Khoa học của bạn.\n\nDựa trên hồ sơ thể trạng hiện tại của bạn: **Chiều cao ${profile.height}cm**, **Cân nặng ${profile.weight}kg**, chỉ số **BMI ${metrics.bmi} (${metrics.category})**, mục tiêu năng lượng là **${metrics.tdee} kcal/ngày** và **${metrics.targetProtein}g Đạm thực vật**.\n\nHôm nay bạn muốn tối ưu dinh dưỡng, tìm món bù đắp vi chất hay cần gợi ý công thức nấu nướng nào?`
-    },
-    {
-      id: 'm2',
-      sender: 'user',
-      time: '08:31',
-      text: 'Gợi ý cho mình 1 món ăn giàu đạm thực vật và bổ sung Vitamin B12 cho bữa tối nhé!'
-    },
-    {
-      id: 'm3',
-      sender: 'ai',
-      time: '08:31',
-      text: `Cho bữa tối giàu đạm và bổ sung trên **100% nhu cầu Vitamin B12** hàng ngày của bạn, tôi đề xuất món **Mì Ý Nấm Đùi Gà Sốt Kem Hạt Điều & Men Dinh Dưỡng B12**:\n\n• **25g Đạm thực vật** từ nấm đùi gà và sữa hạt nguyên chất.\n• **2.6µg Vitamin B12** (đạt 108% RDA) nhờ lớp sốt men dinh dưỡng tự nhiên.\n• Thời gian nấu chỉ **20 phút**, không chứa cholesterol động vật.`,
-      recipeId: 'r2'
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: `Xin chào **${profile.name}**! Tôi có thể hỗ trợ bạn tìm kiếm công thức món chay, cân đối dinh dưỡng theo chỉ số thể trạng (BMI ${metrics.bmi}) hoặc giải đáp các câu hỏi về thực phẩm thực vật.`
     }
   ]);
+
+  // Load real chat sessions from backend if authenticated
+  useEffect(() => {
+    if (isBackendConnected && getAuthToken()) {
+      chatService.getSessions()
+        .then(async (sessions) => {
+          if (Array.isArray(sessions) && sessions.length > 0) {
+            const latest = sessions[0];
+            setActiveSessionId(latest.id);
+            try {
+              const history = await chatService.getMessages(latest.id);
+              if (Array.isArray(history) && history.length > 0) {
+                const mapped = history.map(msg => ({
+                  id: msg.id ? `msg-${msg.id}` : `m-${Date.now()}`,
+                  sender: msg.role === 'user' || msg.sender === 'user' ? 'user' : 'ai',
+                  time: msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '',
+                  text: msg.content || ''
+                }));
+                setMessages(mapped);
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isBackendConnected]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

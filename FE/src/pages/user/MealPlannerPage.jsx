@@ -38,42 +38,53 @@ export default function MealPlannerPage({ onNavigate }) {
   const lunchRecipe = recipeMap.get(currentDayPlan.lunch) || recipesDb[0];
   const dinnerRecipe = recipeMap.get(currentDayPlan.dinner) || recipesDb[5];
 
+  const getNutrients = (rec, defaultCal = 400, defaultPro = 20) => {
+    return {
+      calories: rec?.nutrients?.calories ?? rec?.kcalPerServing ?? defaultCal,
+      protein: rec?.nutrients?.protein ?? rec?.proteinG ?? defaultPro,
+      b12: Number(rec?.nutrients?.b12 ?? rec?.b12Mcg ?? 1.0),
+      iron: Number(rec?.nutrients?.iron ?? rec?.ironMg ?? 3.0),
+      omega3: Number(rec?.nutrients?.omega3 ?? 0.6)
+    };
+  };
+
+  const bNutr = useMemo(() => getNutrients(breakfastRecipe, 350, 15), [breakfastRecipe]);
+  const lNutr = useMemo(() => getNutrients(lunchRecipe, 500, 25), [lunchRecipe]);
+  const dNutr = useMemo(() => getNutrients(dinnerRecipe, 450, 20), [dinnerRecipe]);
+
   // Daily Planned Totals
   const plannedTotals = useMemo(() => {
-    const b = breakfastRecipe.nutrients;
-    const l = lunchRecipe.nutrients;
-    const d = dinnerRecipe.nutrients;
     return {
-      calories: b.calories + l.calories + d.calories,
-      protein: b.protein + l.protein + d.protein,
-      b12: Number((b.b12 + l.b12 + d.b12).toFixed(1)),
-      iron: Number((b.iron + l.iron + d.iron).toFixed(1)),
-      omega3: Number((b.omega3 + l.omega3 + d.omega3).toFixed(1))
+      calories: bNutr.calories + lNutr.calories + dNutr.calories,
+      protein: bNutr.protein + lNutr.protein + dNutr.protein,
+      b12: Number((bNutr.b12 + lNutr.b12 + dNutr.b12).toFixed(1)),
+      iron: Number((bNutr.iron + lNutr.iron + dNutr.iron).toFixed(1)),
+      omega3: Number((bNutr.omega3 + lNutr.omega3 + dNutr.omega3).toFixed(1))
     };
-  }, [breakfastRecipe, lunchRecipe, dinnerRecipe]);
+  }, [bNutr, lNutr, dNutr]);
 
   // Daily Consumed Totals (only marked meals)
   const consumedTotals = useMemo(() => {
     let cal = 0, pro = 0, b12 = 0, iron = 0, count = 0;
-    if (currentDayPlan.completedBreakfast) {
-      cal += breakfastRecipe.nutrients.calories;
-      pro += breakfastRecipe.nutrients.protein;
-      b12 += breakfastRecipe.nutrients.b12;
-      iron += breakfastRecipe.nutrients.iron;
+    if (currentDayPlan?.completedBreakfast) {
+      cal += bNutr.calories;
+      pro += bNutr.protein;
+      b12 += bNutr.b12;
+      iron += bNutr.iron;
       count++;
     }
-    if (currentDayPlan.completedLunch) {
-      cal += lunchRecipe.nutrients.calories;
-      pro += lunchRecipe.nutrients.protein;
-      b12 += lunchRecipe.nutrients.b12;
-      iron += lunchRecipe.nutrients.iron;
+    if (currentDayPlan?.completedLunch) {
+      cal += lNutr.calories;
+      pro += lNutr.protein;
+      b12 += lNutr.b12;
+      iron += lNutr.iron;
       count++;
     }
-    if (currentDayPlan.completedDinner) {
-      cal += dinnerRecipe.nutrients.calories;
-      pro += dinnerRecipe.nutrients.protein;
-      b12 += dinnerRecipe.nutrients.b12;
-      iron += dinnerRecipe.nutrients.iron;
+    if (currentDayPlan?.completedDinner) {
+      cal += dNutr.calories;
+      pro += dNutr.protein;
+      b12 += dNutr.b12;
+      iron += dNutr.iron;
       count++;
     }
     return {
@@ -83,7 +94,7 @@ export default function MealPlannerPage({ onNavigate }) {
       iron: Number(iron.toFixed(1)),
       count
     };
-  }, [currentDayPlan, breakfastRecipe, lunchRecipe, dinnerRecipe]);
+  }, [currentDayPlan, bNutr, lNutr, dNutr]);
 
   // Aggregate Smart Grocery List from today's meals
   const groceryCategories = useMemo(() => {
