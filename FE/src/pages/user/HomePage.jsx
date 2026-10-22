@@ -41,17 +41,24 @@ export default function HomePage({ onNavigate }) {
   // Filtered Library Recipes
   const filteredRecipes = useMemo(() => {
     return recipesDb.filter(r => {
+      const title = r.title || '';
+      const sub = r.subtitle || r.instructions || '';
+      const ingredients = r.ingredients || [];
       const matchSearch =
         !searchQuery ||
-        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.ingredients.some(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sub.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ingredients.some(i => (i.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
       if (!matchSearch) return false;
 
-      if (filterTag === 'high-protein') return r.nutrients.protein >= 24;
-      if (filterTag === 'b12') return r.nutrients.b12 >= 1.0;
-      if (filterTag === 'quick') return r.prepTime <= 22;
+      const pro = r.nutrients?.protein ?? r.proteinG ?? 0;
+      const b12 = r.nutrients?.b12 ?? r.b12Mcg ?? 0;
+      const time = r.prepTime ?? 20;
+
+      if (filterTag === 'high-protein') return pro >= 24;
+      if (filterTag === 'b12') return b12 >= 1.0;
+      if (filterTag === 'quick') return time <= 22;
       if (filterTag === 'vietnam') return r.region === 'vietnam';
 
       return true;

@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Bookmark, Check, Share2, Heart, MessageSquare, 
   Calendar, Clock, Users, ChefHat, Sparkles, CheckCircle2, 
   AlertCircle, Send, Plus, ChevronRight, X, ExternalLink
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import { communityService } from '../../api';
 
 export default function ArticleDetailPage({ articleData, onNavigate }) {
   useEffect(() => {
@@ -192,9 +193,15 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
       setLikes(likes + 1);
       setHasLiked(true);
       showToast('👍 Cảm ơn bạn đã thích bài viết này!');
+      if (article?.id) {
+        communityService.votePost(article.id, 1).catch(() => {});
+      }
     } else {
       setLikes(likes - 1);
       setHasLiked(false);
+      if (article?.id) {
+        communityService.votePost(article.id, 0).catch(() => {});
+      }
     }
   };
 
@@ -214,8 +221,13 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
     };
 
     setComments([newCmt, ...comments]);
+    const textToSubmit = commentText.trim();
     setCommentText('');
     showToast('💬 Đã gửi bình luận của bạn thành công!');
+
+    if (article?.id) {
+      communityService.addComment(article.id, textToSubmit).catch(() => {});
+    }
   };
 
   return (

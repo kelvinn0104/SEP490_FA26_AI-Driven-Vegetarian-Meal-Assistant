@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Flame, TrendingUp, ShieldCheck, Zap, Activity, ChevronRight,
   FileText, Smartphone, Plus, Calendar, Clock, CheckCircle2,
@@ -9,6 +9,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
+import { nutritionService } from '../../api';
 
 export default function NutritionDashboardPage({ onNavigate }) {
   const { user } = useAuth();
@@ -17,6 +18,24 @@ export default function NutritionDashboardPage({ onNavigate }) {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    // Đồng bộ nhật ký dinh dưỡng hôm nay từ máy chủ
+    nutritionService.getDailyNutrition()
+      .then(res => {
+        if (res && res.logs && res.logs.length > 0) {
+          const mapped = res.logs.map(l => ({
+            id: l.id,
+            slot: l.mealType === 'breakfast' ? 'Sáng' : l.mealType === 'lunch' ? 'Trưa' : 'Tối',
+            dishName: l.recipeTitle || 'Món ăn dinh dưỡng',
+            calories: Math.round(l.kcalConsumed || 450),
+            protein: Math.round(l.nutrition?.proteinG || 20),
+            source: 'Đã dùng bữa',
+            time: l.logDate || 'Hôm nay'
+          }));
+          setTodayLoggedMeals(prev => [...mapped, ...prev]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // STATE BỘ LỌC THỜI GIAN

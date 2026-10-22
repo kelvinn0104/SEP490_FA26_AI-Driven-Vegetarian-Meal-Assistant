@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Image as ImageIcon, Clock, Flame, Users, ChefHat, 
   Plus, Trash2, X, Sparkles, Send, Save, CheckCircle2, AlertCircle, 
@@ -7,6 +7,7 @@ import {
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { communityService } from '../../api';
 
 export default function CreatePostPage({ onNavigate }) {
   const { user } = useAuth();
@@ -187,6 +188,14 @@ export default function CreatePostPage({ onNavigate }) {
     try {
       const existingPending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
       localStorage.setItem('veggieai_pending_posts', JSON.stringify([newPost, ...existingPending]));
+      
+      // Đồng bộ bài viết lên máy chủ Backend
+      communityService.createPost({
+        postType: 'blog',
+        title: title.trim(),
+        content: articleContent || steps.join('\n'),
+        mediaUrl: coverImage || undefined
+      }).catch(err => console.warn('Backend createPost call failed:', err.message));
     } catch (e) {
       console.error(e);
     }

@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Bookmark, Check, Share2, Heart, MessageSquare, 
   Calendar, Clock, Play, Sparkles, CheckCircle2, Send, Flame, Leaf, Droplet
 } from 'lucide-react';
+import { communityService } from '../../api';
 
 export default function VideoDetailPage({ videoData, onNavigate }) {
   useEffect(() => {
@@ -167,9 +168,15 @@ export default function VideoDetailPage({ videoData, onNavigate }) {
       setLikes(likes + 1);
       setHasLiked(true);
       showToast('👍 Cảm ơn bạn đã thích video này!');
+      if (video?.id) {
+        communityService.votePost(video.id, 1).catch(() => {});
+      }
     } else {
       setLikes(likes - 1);
       setHasLiked(false);
+      if (video?.id) {
+        communityService.votePost(video.id, 0).catch(() => {});
+      }
     }
   };
 
@@ -189,8 +196,13 @@ export default function VideoDetailPage({ videoData, onNavigate }) {
     };
 
     setComments([newCmt, ...comments]);
+    const textToSubmit = commentText.trim();
     setCommentText('');
     showToast('💬 Đã gửi bình luận của bạn thành công!');
+
+    if (video?.id) {
+      communityService.addComment(video.id, textToSubmit).catch(() => {});
+    }
   };
 
   return (

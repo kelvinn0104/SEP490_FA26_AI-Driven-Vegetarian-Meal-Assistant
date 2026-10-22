@@ -1,30 +1,122 @@
-﻿import React from 'react';
-import { Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, ThumbsUp, MessageSquare, Plus, Sparkles, Filter } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
+import { communityService } from '../../api';
 
-export default function CommunityPage() {
-  const posts = [
-    { title: 'Top 5 nguồn Protein thuần chay giúp tăng cơ hiệu quả', author: 'MinhTu_Nutrition', likes: 142, type: 'Blog' },
-    { title: 'Video: Hướng dẫn nấu Canh Nấm Hạt Sen bổ dưỡng', author: 'Chef_Veggie', likes: 289, type: 'Video' }
-  ];
+export default function CommunityPage({ onNavigate }) {
+  const [posts, setPosts] = useState([
+    { id: 1, title: 'Top 5 nguồn Protein thuần chay giúp tăng cơ hiệu quả', authorName: 'MinhTu_Nutrition', score: 142, commentCount: 18, postType: 'blog' },
+    { id: 2, title: 'Video: Hướng dẫn nấu Canh Nấm Hạt Sen bổ dưỡng', authorName: 'Chef_Veggie', score: 289, commentCount: 34, postType: 'video' },
+    { id: 3, title: 'Cách khắc phục tình trạng thiếu Vitamin B12 khi chuyển sang ăn chay hoàn toàn', authorName: 'Dr_Phuc_Nutrition', score: 198, commentCount: 25, postType: 'blog' }
+  ]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    communityService.getPosts({ page: 1, pageSize: 20 })
+      .then(res => {
+        const items = res?.items || (Array.isArray(res) ? res : null);
+        if (items && items.length > 0) {
+          setPosts(items);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleVote = async (postId, currentScore, idx) => {
+    try {
+      await communityService.votePost(postId, 1);
+      setPosts(prev => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], score: (copy[idx].score || 0) + 1, myVote: 1 };
+        return copy;
+      });
+    } catch {
+      // Local optimistic increment
+      setPosts(prev => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], score: (copy[idx].score || 0) + 1 };
+        return copy;
+      });
+    }
+  };
 
   return (
-    <div>
-      <Card>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669' }}>
-          <Users /> Cộng đồng Ăn chay VeggieAI
-        </h2>
-        <p style={{ color: '#64748b', margin: '0.5rem 0 1rem 0' }}>Chia sẻ bài viết, video hướng dẫn nấu ăn tự động tóm tắt văn bản và tìm nhà hàng chay gần bạn.</p>
-      </Card>
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 animate-fade-up">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-hairline shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-xs font-semibold mb-2">
+            <Users className="w-3.5 h-3.5" />
+            <span>MẠNG LƯỚI ẨM THỰC THỰC VẬT</span>
+          </div>
+          <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-forest">
+            Cộng Đồng Ăn Chay VeggieAI
+          </h1>
+          <p className="text-xs sm:text-sm text-olive mt-1 max-w-xl">
+            Chia sẻ công thức, kinh nghiệm bổ sung vi chất khoa học, thảo luận món ăn và kết nối cùng cộng đồng yêu ẩm thực xanh.
+          </p>
+        </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <button
+          type="button"
+          onClick={() => onNavigate && onNavigate('create-post')}
+          className="px-4 py-2.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-2 shrink-0 active:scale-95"
+        >
+          <Plus className="w-4 h-4 text-emerald-300" />
+          <span>Tạo Bài Viết Mới</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {posts.map((post, idx) => (
-          <Card key={idx}>
-            <Badge type="success">{post.type}</Badge>
-            <h3 style={{ color: '#0f172a', marginTop: '0.5rem' }}>{post.title}</h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.5rem' }}>Tác giả: {post.author} • ❤️ {post.likes} lượt thích</p>
-          </Card>
+          <div
+            key={post.id || idx}
+            className="bg-white rounded-3xl border border-hairline p-5 shadow-xs hover:shadow-card transition flex flex-col justify-between group space-y-4"
+          >
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                  post.postType === 'video'
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                  {post.postType === 'video' ? '🎬 Video' : '📖 Blog'}
+                </span>
+                <span className="text-[11px] text-olive font-metric">
+                  {post.authorName || 'Thành viên Veggie'}
+                </span>
+              </div>
+
+              <h3 className="font-editorial text-base font-bold text-forest group-hover:text-emeraldBotanic transition leading-snug line-clamp-2">
+                {post.title}
+              </h3>
+
+              {post.content && (
+                <p className="text-xs text-olive line-clamp-2 leading-relaxed">
+                  {post.content}
+                </p>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-olive font-metric">
+              <button
+                type="button"
+                onClick={() => handleVote(post.id, post.score, idx)}
+                className="flex items-center gap-1.5 hover:text-emeraldBotanic transition cursor-pointer px-2 py-1 rounded-lg hover:bg-alabaster"
+              >
+                <ThumbsUp className={`w-3.5 h-3.5 ${post.myVote === 1 ? 'text-emeraldBotanic fill-current' : ''}`} />
+                <span className="font-bold">{post.score || 0}</span>
+              </button>
+
+              <div className="flex items-center gap-1 text-olive">
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>{post.commentCount || 0} bình luận</span>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>

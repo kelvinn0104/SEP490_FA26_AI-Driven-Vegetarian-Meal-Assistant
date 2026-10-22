@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bookmark, BookmarkCheck, Heart, Search, Plus, Filter, 
   Clock, Flame, Leaf, Calendar, ArrowRight, Play, Sparkles, 
@@ -7,12 +7,34 @@ import {
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { recipeService } from '../../api';
 
 export default function MyCollectionPage({ onNavigate }) {
   useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    // Lấy công thức yêu thích thực tế từ Backend nếu có
+    recipeService.getFavorites(1, 20)
+      .then(res => {
+        const items = res?.items || (Array.isArray(res) ? res : null);
+        if (items && items.length > 0) {
+          const mapped = items.map(r => ({
+            id: r.id,
+            title: r.title,
+            time: `${r.prepTime || 25} phút`,
+            isFavorite: true,
+            tags: ['#GiauProtein', '#Thuanchay'],
+            protein: `${r.proteinG || 20}g Protein`,
+            calories: `${r.kcalPerServing || 450} kcal`,
+            image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80',
+            instructions: r.instructions || ''
+          }));
+          setRecipes(prev => [...mapped, ...prev]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // TABS: 'all' | 'recipes' | 'videos' | 'articles'

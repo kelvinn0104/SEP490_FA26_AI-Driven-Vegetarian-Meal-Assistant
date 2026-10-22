@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Video, Link2, Upload, Clock, CheckCircle2, 
   ShieldCheck, Sparkles, Send, Save, X, Plus, AlertCircle,
@@ -7,6 +7,7 @@ import {
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { communityService } from '../../api';
 
 export default function CreateVideoPage({ onNavigate }) {
   const { user } = useAuth();
@@ -136,6 +137,14 @@ export default function CreateVideoPage({ onNavigate }) {
     try {
       const existingPending = JSON.parse(localStorage.getItem('veggieai_pending_posts') || '[]');
       localStorage.setItem('veggieai_pending_posts', JSON.stringify([newVideoPost, ...existingPending]));
+
+      // Đồng bộ video lên máy chủ Backend
+      communityService.createPost({
+        postType: 'video',
+        title: title.trim(),
+        content: description || title,
+        mediaUrl: uploadMode === 'link' ? videoUrl : (videoFileName || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+      }).catch(err => console.warn('Backend create video post failed:', err.message));
     } catch (e) {
       console.error(e);
     }

@@ -10,6 +10,22 @@ export default function RecipeDetailModal({
 }) {
   if (!recipe) return null;
 
+  const nutrients = recipe.nutrients || recipe.nutritionPerServing || {
+    calories: recipe.kcalPerServing || 450,
+    protein: recipe.proteinG || 20,
+    carb: recipe.carbG || 55,
+    fat: recipe.fatG || 12,
+    b12: recipe.b12Mcg || 1.2,
+    iron: recipe.ironMg || 4.5,
+    omega3: 0.8
+  };
+
+  const calories = nutrients.calories ?? nutrients.kcal ?? 450;
+  const protein = nutrients.protein ?? nutrients.proteinG ?? 20;
+  const b12 = nutrients.b12 ?? nutrients.b12Mcg ?? 1.2;
+  const prepTime = recipe.prepTime || 20;
+  const image = recipe.image || (recipe.imageUrl ? (recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `/uploads/${recipe.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80');
+
   return (
     <div
       onClick={onClose}
@@ -22,7 +38,7 @@ export default function RecipeDetailModal({
         {/* Banner Image with Close Button */}
         <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full overflow-hidden bg-forest shrink-0">
           <img
-            src={recipe.image}
+            src={image}
             alt={recipe.title}
             className="w-full h-full object-cover"
           />
@@ -44,7 +60,7 @@ export default function RecipeDetailModal({
               {recipe.title}
             </h2>
             <p className="text-xs sm:text-sm text-alabaster/80 italic">
-              {recipe.englishSub}
+              {recipe.englishSub || recipe.category || 'Món chính thực vật'}
             </p>
           </div>
         </div>
@@ -55,19 +71,19 @@ export default function RecipeDetailModal({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
               <span className="text-[10px] font-bold uppercase text-olive block">Thời Gian</span>
-              <p className="font-metric text-lg font-bold text-forest mt-0.5">{recipe.prepTime} phút</p>
+              <p className="font-metric text-lg font-bold text-forest mt-0.5">{prepTime} phút</p>
             </div>
             <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
               <span className="text-[10px] font-bold uppercase text-olive block">Năng Lượng</span>
-              <p className="font-metric text-lg font-bold text-forest mt-0.5">{recipe.nutrients.calories} kcal</p>
+              <p className="font-metric text-lg font-bold text-forest mt-0.5">{calories} kcal</p>
             </div>
             <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
               <span className="text-[10px] font-bold uppercase text-olive block">Đạm Thực Vật</span>
-              <p className="font-metric text-lg font-bold text-emeraldBotanic mt-0.5">{recipe.nutrients.protein}g</p>
+              <p className="font-metric text-lg font-bold text-emeraldBotanic mt-0.5">{protein}g</p>
             </div>
             <div className="p-3 rounded-2xl bg-alabaster border border-hairline text-center">
               <span className="text-[10px] font-bold uppercase text-olive block">Vitamin B12</span>
-              <p className="font-metric text-lg font-bold text-forest mt-0.5">{recipe.nutrients.b12} µg</p>
+              <p className="font-metric text-lg font-bold text-forest mt-0.5">{b12} µg</p>
             </div>
           </div>
 
