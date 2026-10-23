@@ -120,7 +120,8 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
 
   const currentNavLinks = (() => {
     if (!user) return guestNavLinks;
-    if (user.role === 'Moderator') {
+    const role = String(user.role || '').toLowerCase();
+    if (role === 'moderator' || role === 'mod') {
       return [
         { id: 'moderation', label: '🛡️ Kiểm duyệt Mod' },
         { id: 'home', label: 'Trang chủ' },
@@ -130,7 +131,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
         { id: 'videos', label: 'Video nấu ăn' },
       ];
     }
-    if (user.role === 'Admin') {
+    if (role === 'admin') {
       return [
         { id: 'admin', label: '👑 Quản trị Admin' },
         { id: 'home', label: 'Trang chủ' },
@@ -528,8 +529,8 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                       <Settings size={16} color="#64748b" /> Cài đặt tài khoản
                     </button>
 
-                    {/* NÚT BẢNG ĐIỀU KHIỂN CHO ADMIN / MOD */}
-                    {user.role === 'Admin' && (
+                    {/* NÚT BẢNG ĐIỀU KHIỂN CHỈ DÀNH CHO ADMIN / MOD */}
+                    {String(user.role || '').toLowerCase() === 'admin' && (
                       <button 
                         className="dropdown-item"
                         onClick={() => handleNavClick('admin')}
@@ -538,7 +539,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                       </button>
                     )}
 
-                    {(user.role === 'Admin' || user.role === 'Moderator') && (
+                    {(String(user.role || '').toLowerCase() === 'admin' || String(user.role || '').toLowerCase() === 'moderator' || String(user.role || '').toLowerCase() === 'mod') && (
                       <button 
                         className="dropdown-item"
                         onClick={() => handleNavClick('moderation')}
