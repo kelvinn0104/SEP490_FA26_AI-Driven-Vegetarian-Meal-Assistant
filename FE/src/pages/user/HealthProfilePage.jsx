@@ -75,11 +75,22 @@ export default function HealthProfilePage({ onNavigate }) {
   ];
 
   const commonAllergies = ['Đậu phộng', 'Đậu nành', 'Gluten', 'Ngũ vị tân'];
+  const [customAllergyInput, setCustomAllergyInput] = useState('');
 
   const toggleAllergy = (item) => {
     setEditAllergies(prev =>
       prev.includes(item) ? prev.filter(a => a !== item) : [...prev, item]
     );
+  };
+
+  const handleAddCustomAllergy = (e) => {
+    if (e) e.preventDefault();
+    const val = customAllergyInput.trim();
+    if (!val) return;
+    if (!editAllergies.includes(val)) {
+      setEditAllergies(prev => [...prev, val]);
+    }
+    setCustomAllergyInput('');
   };
 
   return (
@@ -376,6 +387,59 @@ export default function HealthProfilePage({ onNavigate }) {
                       {editAllergies.includes(item) ? `✓ ${item}` : item}
                     </button>
                   ))}
+                </div>
+
+                {/* Thêm dị ứng khác ngoài danh sách phổ biến */}
+                <div className="pt-2">
+                  <span className="text-[11px] font-semibold text-forest block mb-1">
+                    Dị ứng khác ngoài danh sách trên (nếu có):
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={customAllergyInput}
+                      onChange={(e) => setCustomAllergyInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomAllergy();
+                        }
+                      }}
+                      placeholder="Ví dụ: Cần tây, Dâu tây, Mù tạt, Ngô..."
+                      className="flex-1 px-3 py-2 rounded-xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomAllergy}
+                      className="px-3.5 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shrink-0"
+                    >
+                      + Thêm
+                    </button>
+                  </div>
+
+                  {/* Danh sách các dị ứng khác đã thêm */}
+                  {editAllergies.filter(a => !commonAllergies.includes(a)).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {editAllergies
+                        .filter(a => !commonAllergies.includes(a))
+                        .map((customName) => (
+                          <span
+                            key={customName}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
+                          >
+                            <span>⚠️ {customName}</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleAllergy(customName)}
+                              className="text-rose-500 hover:text-rose-800 font-bold ml-0.5 cursor-pointer text-sm"
+                              title="Xóa dị ứng này"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

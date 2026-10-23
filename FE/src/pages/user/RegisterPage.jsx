@@ -81,10 +81,22 @@ export default function RegisterPage({ onNavigate }) {
 
   const bmiCategory = useMemo(() => {
     if (calculatedBmi < 18.5) return { label: 'Nhẹ cân', color: 'text-amber-600 bg-amber-50 border-amber-200' };
-    if (calculatedBmi <= 22.9) return { label: 'Thể trạng chuẩn (WHO Châu Á)', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
-    if (calculatedBmi <= 24.9) return { label: 'Tiền béo phì (Thừa cân nhẹ)', color: 'text-orange-600 bg-orange-50 border-orange-200' };
-    return { label: 'Thừa cân cần cải thiện', color: 'text-rose-600 bg-rose-50 border-rose-200' };
+    if (calculatedBmi <= 22.9) return { label: 'Bình thường', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' };
+    if (calculatedBmi <= 24.9) return { label: 'Thừa cân nhẹ', color: 'text-orange-600 bg-orange-50 border-orange-200' };
+    return { label: 'Thừa cân', color: 'text-rose-600 bg-rose-50 border-rose-200' };
   }, [calculatedBmi]);
+
+  const [customAllergyInput, setCustomAllergyInput] = useState('');
+
+  const handleAddCustomAllergy = (e) => {
+    if (e) e.preventDefault();
+    const val = customAllergyInput.trim();
+    if (!val) return;
+    if (!selectedAllergies.includes(val)) {
+      setSelectedAllergies(prev => [...prev, val]);
+    }
+    setCustomAllergyInput('');
+  };
 
   const estimatedTdee = useMemo(() => {
     const w = Number(weightKg);
@@ -395,22 +407,22 @@ export default function RegisterPage({ onNavigate }) {
         {step === 2 && (
           <form onSubmit={handleNextToStep3} className="space-y-5 animate-in fade-in duration-200">
             {/* LIVE BMI PREVIEW CARD */}
-            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between gap-3">
               <div>
-                <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
-                  Ước tính chỉ số thể trạng
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                  Chỉ số thể trạng
                 </span>
-                <div className="flex items-baseline gap-2 mt-0.5">
-                  <span className="text-2xl font-black text-forest font-mono">BMI {calculatedBmi}</span>
-                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${bmiCategory.color}`}>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xl sm:text-2xl font-black text-forest font-mono leading-none">BMI {calculatedBmi}</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold border ${bmiCategory.color}`}>
                     {bmiCategory.label}
                   </span>
                 </div>
               </div>
 
-              <div className="text-left sm:text-right">
-                <span className="text-[11px] text-olive font-semibold block">Nhu cầu năng lượng</span>
-                <span className="text-base font-bold text-forest font-mono">{estimatedTdee} kcal/ngày</span>
+              <div className="text-right">
+                <span className="text-[10px] text-olive font-semibold block uppercase tracking-wider">Mục tiêu</span>
+                <span className="text-sm sm:text-base font-bold text-forest font-mono">{estimatedTdee} kcal/ngày</span>
               </div>
             </div>
 
@@ -595,6 +607,59 @@ export default function RegisterPage({ onNavigate }) {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Thêm dị ứng khác ngoài danh sách */}
+              <div className="pt-2">
+                <label className="text-[11px] font-semibold text-forest block mb-1">
+                  Dị ứng khác ngoài danh sách trên (nếu có):
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={customAllergyInput}
+                    onChange={(e) => setCustomAllergyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomAllergy();
+                      }
+                    }}
+                    placeholder="Ví dụ: Cần tây, Dâu tây, Mù tạt, Ngô..."
+                    className="flex-1 px-3 py-2 rounded-xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomAllergy}
+                    className="px-3.5 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shrink-0"
+                  >
+                    + Thêm
+                  </button>
+                </div>
+
+                {/* Danh sách các dị ứng khác đã thêm */}
+                {selectedAllergies.filter(a => !allergyOptions.some(opt => opt.id === a)).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {selectedAllergies
+                      .filter(a => !allergyOptions.some(opt => opt.id === a))
+                      .map((customName) => (
+                        <span
+                          key={customName}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
+                        >
+                          <span>⚠️ {customName}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleAllergy(customName)}
+                            className="text-rose-500 hover:text-rose-800 font-bold ml-0.5 cursor-pointer text-sm"
+                            title="Xóa dị ứng này"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
 
