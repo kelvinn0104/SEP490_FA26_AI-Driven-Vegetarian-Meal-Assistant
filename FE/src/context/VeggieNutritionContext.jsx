@@ -75,7 +75,12 @@ export function VeggieNutritionProvider({ children }) {
   const syncWithBackend = useCallback(async () => {
     try {
       const health = await healthCheckService.checkHealth();
-      const isOnline = !!health && (health.status === 'Healthy' || !!health.service);
+      const isOnline = !!health && (
+        String(health.status || '').toLowerCase() === 'healthy' ||
+        health.success === true ||
+        !!health.cluster ||
+        !!health.service
+      );
       setIsBackendConnected(isOnline);
 
       if (!isOnline) {
