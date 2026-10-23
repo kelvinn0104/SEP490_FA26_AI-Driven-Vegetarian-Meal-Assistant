@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usersApi, categoriesApi, moderationApi } from '../../api';
 
 export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' }) => {
@@ -77,9 +78,16 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
       )
     : [];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-xs">
-      <div className="w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+  const modalContent = (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-start justify-center pt-20 px-4 bg-forestDark/70 backdrop-blur-sm"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high overflow-hidden animate-fade-up"
+      >
         {/* Search Input */}
         <div className="flex items-center px-4 py-3.5 border-b border-surface-container-high/60 gap-3">
           <span className="material-symbols-outlined text-outline text-[22px]">search</span>
@@ -300,4 +308,6 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

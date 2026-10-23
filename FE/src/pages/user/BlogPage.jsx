@@ -1,11 +1,14 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, Sparkles, Sprout, Plus, Bookmark, Check, CheckCircle2 } from 'lucide-react';
-import Button from '../../components/ui/Button';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { 
+  Search, ArrowRight, X, ChevronLeft, ChevronRight, Mail, 
+  Sparkles, Sprout, Plus, Bookmark, Check, CheckCircle2, Clock, User
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BlogPage({ onNavigate }) {
   const { user } = useAuth();
-  // Luôn đảm bảo khi mở trang Blog thì vị trí cuộn ở đỉnh trang (0, 0)
+
   useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
@@ -27,10 +30,29 @@ export default function BlogPage({ onNavigate }) {
     setTimeout(() => setToastMessage(''), 2800);
   };
 
-  const handleToggleSaveArticle = (article) => {
+  // Lock body scroll and listen for Escape key when article modal is open
+  useEffect(() => {
+    if (selectedArticle) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setSelectedArticle(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [selectedArticle]);
+
+  const handleToggleSaveArticle = (article, e) => {
+    if (e) e.stopPropagation();
     if (!article) return;
     if (!user) {
-      if (onNavigate) onNavigate('register');
+      if (onNavigate) onNavigate('login');
       return;
     }
     const isSaved = savedArticleIds.includes(article.id);
@@ -43,17 +65,23 @@ export default function BlogPage({ onNavigate }) {
     }
   };
 
-  // CATEGORIES ACCORDING TO DESIGN
-  const row1Categories = ['Tất cả', 'Dinh dưỡng & Vi chất', 'Bí quyết nấu ăn', 'Ăn chay theo mùa'];
-  const row2Categories = ['Khoa học thể hình', 'Sống tỉnh thức'];
+  // Categories list
+  const categories = [
+    'Tất cả',
+    'Dinh dưỡng & Vi chất',
+    'Bí quyết nấu ăn',
+    'Ăn chay theo mùa',
+    'Khoa học thể hình',
+    'Sống tỉnh thức'
+  ];
 
-  // FEATURED HERO ARTICLE (TIÊU ĐIỂM TUẦN)
+  // Featured hero article
   const featuredArticle = {
     id: 'featured-1',
     category: 'Dinh dưỡng & Vi chất',
     date: '12 Tháng 10, 2026',
     readTime: '9 phút đọc',
-    title: 'Giải Mã Vi Chất B12, Kẽm & Sắt Trong Chế Độ Thuần Chay : Phác Đồ Bổ Sung Chuẩn Khoa Học',
+    title: 'Giải Mã Vi Chất B12, Kẽm & Sắt Trong Chế Độ Thuần Chay: Phác Đồ Bổ Sung Chuẩn Khoa Học',
     desc: 'Đập tan nỗi lo thiếu máu và suy nhược khi kiêng đạm động vật. Khảo cứu lâm sàng mới nhất chỉ ra phương pháp hấp thụ Non-Heme Iron hiệu quả nhờ vitamin C bản địa cùng chiến lược tối ưu nồng độ kẽm từ các loại hạt mầm hữu cơ.',
     author: 'Bác sĩ Minh Đức',
     authorRole: 'Chuyên gia Dinh dưỡng Chay',
@@ -78,7 +106,6 @@ export default function BlogPage({ onNavigate }) {
     `
   };
 
-  // 6 LATEST ARTICLES EXACTLY MATCHING THE USER SCREENSHOT
   const baseArticles = [
     {
       id: 'art-1',
@@ -86,19 +113,11 @@ export default function BlogPage({ onNavigate }) {
       date: '14 Tháng 10, 2026',
       readTime: '6 phút đọc',
       title: 'Hướng dẫn tự ủ Tempeh đậu nành truyền thống tại nhà chuẩn vị Indonesia',
-      desc: 'Bí quyết kiểm soát nhiệt độ 31°C và độ ẩm hoàn hảo giúp mầm nấm Rhizopus phát triển mịn màng và nhã...',
+      desc: 'Bí quyết kiểm soát nhiệt độ 31°C và độ ẩm hoàn hảo giúp mầm nấm Rhizopus phát triển mịn màng, giàu đạm và thơm ngậy.',
       author: 'Chef Tuệ Tâm',
       authorAvatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=150&q=80',
       img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-      fullContent: `
-        Tempeh là món ăn lên men truyền thống từ đậu nành của người Indonesia. Khác với đậu hũ, tempeh giữ nguyên toàn bộ hạt đậu nành nên giữ trọn vẹn chất xơ, vitamin và khoáng chất.
-        
-        Quy trình ủ tại nhà:
-        1. Ngâm tách vỏ đậu nành kỹ càng trong 12 tiếng.
-        2. Luộc đậu chín tới cùng 1 thìa canh giấm táo để tạo môi trường axit nhẹ ưa thích cho nấm men.
-        3. Làm ráo nước thật khô ráo, trộn đều men Rhizopus Oligosporus.
-        4. Cho vào túi zip đục lỗ kim thoáng khí, ủ ở nhiệt độ ấm 30-32°C trong 36-48 giờ cho đến khi sợi nấm trắng bao phủ kín đặc hạt đậu.
-      `
+      fullContent: `Tempeh là món ăn lên men truyền thống từ đậu nành của người Indonesia. Khác với đậu hũ thông thường, tempeh giữ nguyên toàn bộ hạt đậu nành nên giữ trọn vẹn chất xơ, vitamin và khoáng chất.`
     },
     {
       id: 'art-2',
@@ -106,18 +125,11 @@ export default function BlogPage({ onNavigate }) {
       date: '13 Tháng 10, 2026',
       readTime: '8 phút đọc',
       title: 'Thực đơn thuần chay 7 ngày cho dân tập gym & yoga đạt phong độ đỉnh cao',
-      desc: 'Bảng phân bổ Macro cân bằng đạt 120g protein thuần chay mỗi ngày, tối ưu khả năng phục hồi mỏ c...',
+      desc: 'Bảng phân bổ Macro cân bằng đạt 120g protein thuần chay mỗi ngày, tối ưu khả năng phục hồi cơ bắp và dẻo dai khớp xương.',
       author: 'HLV Hoàng Nam',
       authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
       img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-      fullContent: `
-        Xây dựng cơ bắp không mỡ với chế độ thuần thực vật hoàn toàn khả thi nếu bạn làm chủ công thức phối hợp axit amin.
-        
-        Chiến lược phân bổ Macro:
-        - Tỷ lệ: 50% Carb phức hợp (Khoai lang, Yến mạch, Gạo lứt), 25% Protein (Tempeh, Đậu gà, Seitan), 25% Chất béo tốt (Bơ, Dầu ô liu, Hạt chia).
-        - Đảm bảo 1.6g - 2.0g Protein/kg trọng lượng cơ thể mỗi ngày.
-        - Uống đủ 2.5 - 3 lít nước và bổ sung điện giải từ nước dừa tự nhiên sau các buổi tập cường độ cao.
-      `
+      fullContent: `Xây dựng cơ bắp không mỡ với chế độ thuần thực vật hoàn toàn khả thi nếu bạn làm chủ công thức phối hợp axit amin thiết yếu.`
     },
     {
       id: 'art-3',
@@ -125,17 +137,11 @@ export default function BlogPage({ onNavigate }) {
       date: '11 Tháng 10, 2026',
       readTime: '4 phút đọc',
       title: 'Vì sao hạt mè nguyên cám là vua canxi của giới thực vật?',
-      desc: 'Khám phá hàm lượng canxi dồi dào trong hạt mè đen nguyên vỏ và cách chế biến bơ Tahini để cơ thể sấp...',
+      desc: 'Khám phá hàm lượng canxi dồi dào trong hạt mè đen nguyên vỏ và cách chế biến bơ Tahini để cơ thể hấp thu tối đa mà không gây nóng.',
       author: 'DS. An Nhiên',
       authorAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
       img: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=600&q=80',
-      fullContent: `
-        Trong 100g hạt mè đen nguyên vỏ chứa tới 975mg canxi, cao gấp gần 8 lần so với sữa bò thông thường (khoảng 120mg/100g).
-        
-        Cách tối ưu khả năng hấp thu:
-        - Hạt mè nếu để nguyên hạt nhai qua loa sẽ rất khó tiêu. Hãy rang thơm và xay nhuyễn thành bơ Tahini hoặc muối mè rang.
-        - Kết hợp Tahini cùng nước cốt chanh để làm nước sốt salad thơm ngon vừa kích thích vị giác vừa tăng cường chuyển hóa canxi.
-      `
+      fullContent: `Trong 100g hạt mè đen nguyên vỏ chứa tới 975mg canxi, cao gấp gần 8 lần so với sữa bò thông thường.`
     },
     {
       id: 'art-4',
@@ -143,17 +149,11 @@ export default function BlogPage({ onNavigate }) {
       date: '09 Tháng 10, 2026',
       readTime: '5 phút đọc',
       title: 'Canh dưỡng sinh Lập Đông: Cân bằng âm dương, dưỡng ấm tỳ vị trong gió lạnh',
-      desc: 'Sự phối hợp hoàn hảo của ngưu bàng, củ sen, nấm đông cô ninh chậm là chìa khóa ngừa cúm tự nhiê...',
+      desc: 'Sự phối hợp hoàn hảo của ngưu bàng, củ sen, nấm đông cô ninh chậm là chìa khóa ngừa cảm cúm tự nhiên cho cả gia đình.',
       author: 'Lương y Thu Thảo',
       authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
       img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80',
-      fullContent: `
-        Thời khắc giao mùa Lập Đông nhiệt độ giảm mạnh, hàn khí dễ xâm nhập tỳ vị gây suy giảm miễn dịch và mệt mỏi.
-        
-        Bài canh ngũ hành dưỡng sinh:
-        - Củ cải trắng (Hành Kim), Cà rốt (Hành Hỏa), Nấm đông cô (Hành Thủy), Ngưu bàng (Hành Mộc), Củ sen (Hành Thổ).
-        - Hầm nhỏ lửa trong nồi đất 45 phút, không nêm đường hay bột ngọt, chỉ dùng một chút muối biển hầm thô để giữ trọn vẹn khí vị thanh khiết của đất trời.
-      `
+      fullContent: `Thời khắc giao mùa Lập Đông nhiệt độ giảm mạnh, hàn khí dễ xâm nhập tỳ vị gây suy giảm miễn dịch và mệt mỏi.`
     },
     {
       id: 'art-5',
@@ -161,17 +161,11 @@ export default function BlogPage({ onNavigate }) {
       date: '06 Tháng 10, 2026',
       readTime: '8 phút đọc',
       title: 'Cách phân biệt và thay thế ngũ vị tân trong ẩm thực chay dưỡng tâm',
-      desc: 'Nghệ thuật sử dụng boaro, kiệu và hạt mùi để món ăn giữ trọn tầng vị thanh dịu mà vẫn giữ cho tâm trí thư...',
+      desc: 'Nghệ thuật sử dụng boaro, kiệu và hạt mùi để món ăn giữ trọn tầng vị thanh dịu mà vẫn giữ cho tâm trí thư thái nhẹ nhàng.',
       author: 'Thầy Quảng Tuệ',
       authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
       img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80',
-      fullContent: `
-        Ngũ vị tân (Hành, Tỏi, Kiệu, Hẹ, Nén) theo quan niệm dưỡng sinh cổ truyền chứa nhiều hoạt chất kích thích hệ thần kinh giao cảm.
-        
-        Nghệ thuật tạo hương thay thế:
-        - Sử dụng gốc ngò rí, lá chúc, tiêu sọ đập dập để tạo hương cay nồng ấm áp.
-        - Dùng dầu hạt điều màu và gốc sả băm nhuyễn phi thơm làm nền màu cho các món kho, xào thay vì tỏi ớt thông thường.
-      `
+      fullContent: `Ngũ vị tân theo quan niệm dưỡng sinh cổ truyền chứa nhiều hoạt chất kích thích hệ thần kinh giao cảm.`
     },
     {
       id: 'art-6',
@@ -179,18 +173,11 @@ export default function BlogPage({ onNavigate }) {
       date: '03 Tháng 10, 2026',
       readTime: '7 phút đọc',
       title: 'Kinh nghiệm 5 năm ăn chay trường: Tràn đầy sinh lực và tâm trí an yên',
-      desc: 'Hành trình điều chỉnh nhịp sinh học và cảm nhận sự chuyển biến tích cực của cơ thể, lột xác và nguồn năn...',
-      author: 'Mai Lan (Blogger)',
+      desc: 'Hành trình điều chỉnh nhịp sinh học và cảm nhận sự chuyển biến tích cực của cơ thể, tinh thần thư thái và tràn đầy năng lượng tích cực.',
+      author: 'Mai Lan',
       authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
       img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600&q=80',
-      fullContent: `
-        Bước sang năm thứ 5 ăn thuần thực vật, điều lớn nhất tôi nhận được không chỉ là các chỉ số xét nghiệm máu hoàn hảo, mà là một tâm thế nhẹ nhàng, thảnh thơi mỗi sáng thức dậy.
-        
-        3 đúc kết quan trọng:
-        1. Ăn chay không phải là kiêng khem khổ hạnh, mà là một bữa tiệc sắc màu của nông sản tự nhiên.
-        2. Lắng nghe cơ thể: Nếu cảm thấy thèm ngọt hay mệt, hãy bổ sung tinh bột chuyển hóa chậm và chất béo lành mạnh thay vì đồ chế biến sẵn.
-        3. Kết hợp hơi thở và sự tĩnh lặng trong mỗi bữa ăn để nuôi dưỡng trọn vẹn cả thân lẫn tâm.
-      `
+      fullContent: `Bước sang năm thứ 5 ăn thuần thực vật, điều lớn nhất tôi nhận được không chỉ là các chỉ số xét nghiệm máu hoàn hảo, mà là một tâm thế nhẹ nhàng.`
     }
   ];
 
@@ -199,19 +186,21 @@ export default function BlogPage({ onNavigate }) {
   useEffect(() => {
     try {
       const userPublished = JSON.parse(localStorage.getItem('veggieai_user_published_posts') || '[]');
-      if (userPublished.length > 0) {
+      if (Array.isArray(userPublished) && userPublished.length > 0) {
         setLatestArticles([...userPublished, ...baseArticles]);
       }
-    } catch (e) {}
+    } catch {}
   }, []);
 
-  // FILTERING LOGIC
-  const filteredArticles = latestArticles.filter(art => {
-    const matchesCategory = activeCategory === 'Tất cả' || art.category === activeCategory;
-    const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          art.desc.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredArticles = useMemo(() => {
+    return latestArticles.filter(art => {
+      const matchesCategory = activeCategory === 'Tất cả' || art.category === activeCategory;
+      const matchesSearch = !searchQuery || 
+        art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        art.desc.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [latestArticles, activeCategory, searchQuery]);
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -223,194 +212,189 @@ export default function BlogPage({ onNavigate }) {
   };
 
   return (
-    <div className="blog-container">
+    <div className="min-h-screen bg-alabaster/40 py-8 px-4 sm:px-6 lg:px-8 space-y-10 max-w-7xl mx-auto animate-fade-up">
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 9999,
-          background: '#047857',
-          color: '#ffffff',
-          padding: '0.9rem 1.4rem',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.6rem',
-          animation: 'slideUp 0.25s ease'
-        }}>
-          <CheckCircle2 size={18} />
+        <div className="fixed bottom-6 right-6 z-50 bg-forest text-white px-5 py-3 rounded-2xl shadow-floating flex items-center gap-2.5 text-xs sm:text-sm font-semibold animate-fade-up">
+          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* 1. HERO HEADER SECTION */}
-      <section className="blog-hero">
-        <div className="blog-kienthuc-badge">
-          <Sprout size={14} /> KIẾN THỨC SỐNG XANH
-        </div>
+      {/* ====================================================================
+          1. HERO HEADER SECTION
+      ==================================================================== */}
+      <section className="bg-forest text-alabaster rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden shadow-card">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
 
-        <h1 className="blog-main-title">Blog Kiến Thức & Ẩm Thực Chay</h1>
-        
-        <p className="blog-subtitle">
-          Khám phá dinh dưỡng khoa học, mẹo bếp tinh tế và cảm hứng sống thuần thực vật bền vững từ các chuyên gia dinh dưỡng hàng đầu.
-        </p>
+        <div className="relative z-10 space-y-6 max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/20 text-emerald-300 text-xs font-semibold">
+            <Sprout className="w-3.5 h-3.5" />
+            <span>KIẾN THỨC SỐNG XANH & DINH DƯỠNG KHOA HỌC</span>
+          </div>
 
-        {/* SEARCH BOX */}
-        <div className="blog-search-box-wrapper">
-          <Search size={18} color="#9ca3af" style={{ flexShrink: 0, marginRight: '0.65rem' }} />
-          <input
-            type="text"
-            className="blog-search-input"
-            placeholder="Tìm kiếm bài viết, món ăn..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && setSearchQuery(e.target.value)}
-          />
-          <button className="blog-search-btn" onClick={() => {}}>
-            Tìm kiếm
-          </button>
-        </div>
+          <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.15]">
+            Blog Ẩm Thực Chay & Sống Tỉnh Thức
+          </h1>
 
-        {/* NÚT ĐĂNG BÀI NỔI BẬT RIÊNG TRONG NỘI DUNG TRANG (CHO AUTHORIZED USER) */}
-        {user && (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.85rem 0 0.5rem 0' }}>
+          <p className="text-xs sm:text-sm text-alabaster/80 leading-relaxed max-w-2xl mx-auto">
+            Khám phá phác đồ dinh dưỡng thực vật chuẩn WHO, bí quyết nấu ăn tinh tế và nguồn cảm hứng sống bền vững từ các chuyên gia y tế hàng đầu.
+          </p>
+
+          {/* Search Box */}
+          <div className="max-w-xl mx-auto flex items-center bg-white rounded-full p-1.5 shadow-card border border-white/20">
+            <Search className="w-4 h-4 text-slate-400 ml-3 mr-2 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm bài viết, vi chất dinh dưỡng, mẹo nấu..."
+              className="w-full text-xs sm:text-sm text-slate-800 placeholder-slate-400 outline-none bg-transparent py-1"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="p-1 mr-1 text-slate-400 hover:text-slate-600 rounded-full"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => onNavigate && onNavigate('create-post')}
-              style={{
-                background: '#046a47',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '24px',
-                padding: '0.65rem 1.5rem',
-                fontWeight: 800,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                boxShadow: '0 4px 14px rgba(4, 106, 71, 0.25)',
-                transition: 'transform 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              className="px-4 py-2 rounded-full bg-emeraldBotanic hover:bg-forest text-white text-xs font-semibold transition shrink-0"
             >
-              <Plus size={16} />
-              <span>Tạo bài viết mới ✍️</span>
+              Tìm kiếm
             </button>
           </div>
-        )}
 
-        {/* FILTER PILLS */}
-        <div className="blog-filter-pills-row">
-          {row1Categories.map(cat => (
-            <button
-              key={cat}
-              className={`blog-pill-btn ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+          {/* User Create Post Button */}
+          {user && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('create-post')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition cursor-pointer backdrop-blur-xs"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Tạo bài viết mới ✍️</span>
+              </button>
+            </div>
+          )}
 
-        <div className="blog-filter-pills-row">
-          {row2Categories.map(cat => (
-            <button
-              key={cat}
-              className={`blog-pill-btn ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-            </button>
-          ))}
+          {/* Category Filter Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            {categories.map((cat) => {
+              const active = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition cursor-pointer ${
+                    active
+                      ? 'bg-emeraldBotanic text-white shadow-xs font-bold'
+                      : 'bg-white/10 text-alabaster/90 hover:bg-white/20 border border-white/10'
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* 2. FEATURED ARTICLE BANNER (TIÊU ĐIỂM TUẦN) */}
+      {/* ====================================================================
+          2. FEATURED ARTICLE BANNER (TIÊU ĐIỂM TUẦN)
+      ==================================================================== */}
       {activeCategory === 'Tất cả' && !searchQuery && (
-        <section 
-          className="blog-featured-card"
+        <section
           onClick={() => setSelectedArticle(featuredArticle)}
-          style={{ cursor: 'pointer' }}
+          className="bg-white rounded-3xl border border-hairline overflow-hidden shadow-xs hover:shadow-card transition duration-200 cursor-pointer group grid grid-cols-1 lg:grid-cols-12"
         >
-          {/* Left image */}
-          <div 
-            className="blog-featured-img-container"
-            style={{ backgroundImage: `url('${featuredArticle.img}')` }}
-          >
-            <div className="blog-featured-img-tag">
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-              Ẩm Thực Chay - VeggieAI • TIÊU ĐIỂM TUẦN
+          <div className="lg:col-span-5 relative min-h-[260px] lg:min-h-[380px] overflow-hidden">
+            <img
+              src={featuredArticle.img}
+              alt={featuredArticle.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            />
+            <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-forest/90 text-emerald-300 backdrop-blur-md text-[11px] font-bold">
+              <Sparkles className="w-3 h-3" />
+              <span>TIÊU ĐIỂM TUẦN</span>
             </div>
           </div>
 
-          {/* Right Content */}
-          <div className="blog-featured-content">
-            <div>
-              <div className="blog-featured-meta-row">
-                <span className="blog-featured-cat-tag">{featuredArticle.category}</span>
-                <span className="blog-featured-dot">•</span>
+          <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs text-olive font-metric">
+                <span className="font-bold text-emeraldBotanic uppercase tracking-wider">{featuredArticle.category}</span>
+                <span>•</span>
                 <span>{featuredArticle.date}</span>
-                <span className="blog-featured-dot">•</span>
-                <span className="blog-featured-readtime">{featuredArticle.readTime}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {featuredArticle.readTime}
+                </span>
               </div>
 
-              <h2 className="blog-featured-title">
+              <h2 className="font-editorial text-xl sm:text-2xl lg:text-3xl font-bold text-forest group-hover:text-emeraldBotanic transition leading-snug">
                 {featuredArticle.title}
               </h2>
 
-              <p className="blog-featured-desc">
+              <p className="text-xs sm:text-sm text-olive leading-relaxed line-clamp-3">
                 {featuredArticle.desc}
               </p>
             </div>
 
-            <div className="blog-featured-footer">
-              <div className="blog-author-box">
-                <img 
-                  src={featuredArticle.authorAvatar} 
-                  alt={featuredArticle.author} 
-                  className="blog-author-avatar"
+            <div className="pt-4 border-t border-hairline flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={featuredArticle.authorAvatar}
+                  alt={featuredArticle.author}
+                  className="w-10 h-10 rounded-full object-cover border border-hairline"
                 />
                 <div>
-                  <div className="blog-author-name">{featuredArticle.author}</div>
-                  <div className="blog-author-role">{featuredArticle.authorRole}</div>
+                  <div className="text-xs font-bold text-forest">{featuredArticle.author}</div>
+                  <div className="text-[11px] text-olive">{featuredArticle.authorRole}</div>
                 </div>
               </div>
 
-              <button 
-                className="blog-btn-readmore"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedArticle(featuredArticle);
-                }}
-              >
-                Đọc tiếp <ArrowRight size={15} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleSaveArticle(featuredArticle, e)}
+                  className="p-2 rounded-xl border border-hairline text-olive hover:text-forest hover:bg-alabaster transition"
+                  title="Lưu bài viết"
+                >
+                  <Bookmark className={`w-4 h-4 ${savedArticleIds.includes(featuredArticle.id) ? 'fill-emeraldBotanic text-emeraldBotanic' : ''}`} />
+                </button>
+                <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition">
+                  <span>Đọc tiếp</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* 3. LATEST ARTICLES SECTION */}
-      <section style={{ marginBottom: '4rem' }}>
-        <div className="blog-latest-header">
+      {/* ====================================================================
+          3. LATEST ARTICLES GRID
+      ==================================================================== */}
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="blog-latest-title">Bài Viết Mới Nhất</h2>
-            <p className="blog-latest-subtitle">Cập nhật những nghiên cứu dinh dưỡng và công thức sáng tạo</p>
+            <h2 className="font-editorial text-2xl font-bold text-forest">Bài Viết Mới Nhất</h2>
+            <p className="text-xs text-olive">Cập nhật những nghiên cứu dinh dưỡng và công thức ẩm thực mới nhất</p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.88rem', color: '#6b7280' }}>Sắp xếp:</span>
-            <select 
-              className="blog-sort-select"
+          <div className="flex items-center gap-2 text-xs text-olive font-metric">
+            <span>Sắp xếp:</span>
+            <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
+              className="bg-white border border-hairline rounded-xl px-3 py-1.5 text-xs text-forest font-semibold outline-none focus:border-emeraldBotanic transition"
             >
               <option value="Mới nhất">Mới nhất</option>
               <option value="Đọc nhiều nhất">Đọc nhiều nhất</option>
@@ -419,241 +403,264 @@ export default function BlogPage({ onNavigate }) {
           </div>
         </div>
 
-        {/* ARTICLES 3-COLUMN GRID */}
-        <div className="blog-cards-grid">
-          {filteredArticles.map((art) => (
-            <div 
-              key={art.id} 
-              className="blog-item-card"
-              onClick={() => setSelectedArticle(art)}
-            >
-              <div 
-                className="blog-item-img-box"
-                style={{ backgroundImage: `url('${art.img}')` }}
+        {/* 3-Column Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredArticles.map((art) => {
+            const isSaved = savedArticleIds.includes(art.id);
+            return (
+              <article
+                key={art.id}
+                onClick={() => setSelectedArticle(art)}
+                className="bg-white rounded-3xl border border-hairline overflow-hidden shadow-xs hover:shadow-card transition duration-200 cursor-pointer flex flex-col justify-between group"
               >
-                <span className="blog-item-category-tag">
-                  {art.category}
-                </span>
-              </div>
-
-              <div className="blog-item-body">
-                <div className="blog-item-meta">
-                  {art.date} • {art.readTime}
-                </div>
-
-                <h3 className="blog-item-title">
-                  {art.title}
-                </h3>
-
-                <p className="blog-item-desc">
-                  {art.desc}
-                </p>
-
-                <div className="blog-item-footer">
-                  <div className="blog-item-author">
-                    <img 
-                      src={art.authorAvatar} 
-                      alt={art.author} 
-                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                <div>
+                  <div className="relative aspect-video overflow-hidden">
+                    <img
+                      src={art.img}
+                      alt={art.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                     />
-                    <span>{art.author}</span>
+                    <div className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-forest/80 backdrop-blur-md text-emerald-300 text-[10px] font-bold">
+                      {art.category}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleSaveArticle(art, e)}
+                      className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 backdrop-blur-md text-slate-700 hover:text-emeraldBotanic shadow-xs transition"
+                    >
+                      <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-emeraldBotanic text-emeraldBotanic' : ''}`} />
+                    </button>
                   </div>
 
-                  <span className="blog-item-read-link">
-                    Đọc bài <ArrowRight size={14} />
+                  <div className="p-5 space-y-2.5">
+                    <div className="text-[11px] text-olive font-metric flex items-center gap-1.5">
+                      <span>{art.date}</span>
+                      <span>•</span>
+                      <span>{art.readTime}</span>
+                    </div>
+
+                    <h3 className="font-editorial text-base font-bold text-forest group-hover:text-emeraldBotanic transition leading-snug line-clamp-2">
+                      {art.title}
+                    </h3>
+
+                    <p className="text-xs text-olive line-clamp-2 leading-relaxed">
+                      {art.desc}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 py-3.5 border-t border-hairline flex items-center justify-between text-xs text-olive font-metric">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={art.authorAvatar}
+                      alt={art.author}
+                      className="w-6 h-6 rounded-full object-cover border border-hairline"
+                    />
+                    <span className="font-semibold text-forest text-[11px]">{art.author}</span>
+                  </div>
+
+                  <span className="flex items-center gap-1 text-emeraldBotanic font-bold group-hover:translate-x-0.5 transition text-[11px]">
+                    <span>Đọc bài</span>
+                    <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
-              </div>
-            </div>
-          ))}
+              </article>
+            );
+          })}
         </div>
 
         {filteredArticles.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
-            <p style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>Không tìm thấy bài viết nào phù hợp với bộ lọc hiện tại.</p>
-            <Button variant="secondary" onClick={() => { setSearchQuery(''); setActiveCategory('Tất cả'); }}>
+          <div className="text-center py-12 bg-white rounded-3xl border border-hairline p-8 space-y-3">
+            <p className="text-sm text-olive">Không tìm thấy bài viết nào phù hợp với từ khóa của bạn.</p>
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); setActiveCategory('Tất cả'); }}
+              className="px-4 py-2 rounded-xl bg-forest text-white text-xs font-semibold hover:bg-forestDark transition"
+            >
               Xem tất cả bài viết
-            </Button>
+            </button>
           </div>
         )}
 
-        {/* 4. PAGINATION */}
-        <div className="blog-pagination-wrapper">
-          <button 
-            className="blog-page-nav-btn"
+        {/* Pagination */}
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            type="button"
+            disabled={currentPage === 1}
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            className="p-2 rounded-xl border border-hairline bg-white hover:bg-alabaster disabled:opacity-40 transition cursor-pointer"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft className="w-4 h-4 text-olive" />
           </button>
 
-          <button 
-            className={`blog-page-nav-btn ${currentPage === 1 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(1)}
-          >
-            1
-          </button>
+          {[1, 2, 3].map((page) => (
+            <button
+              key={page}
+              type="button"
+              onClick={() => setCurrentPage(page)}
+              className={`w-9 h-9 rounded-xl text-xs font-metric font-bold transition cursor-pointer ${
+                currentPage === page
+                  ? 'bg-forest text-white shadow-xs'
+                  : 'bg-white border border-hairline text-olive hover:bg-alabaster'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
 
-          <button 
-            className={`blog-page-nav-btn ${currentPage === 2 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(2)}
+          <button
+            type="button"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            className="p-2 rounded-xl border border-hairline bg-white hover:bg-alabaster transition cursor-pointer"
           >
-            2
-          </button>
-
-          <button 
-            className={`blog-page-nav-btn ${currentPage === 3 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(3)}
-          >
-            3
-          </button>
-
-          <span style={{ color: '#9ca3af', padding: '0 0.35rem' }}>...</span>
-
-          <button 
-            className={`blog-page-nav-btn ${currentPage === 12 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(12)}
-          >
-            12
-          </button>
-
-          <button 
-            className="blog-page-nav-btn"
-            onClick={() => setCurrentPage(Math.min(12, currentPage + 1))}
-          >
-            <ChevronRight size={16} />
+            <ChevronRight className="w-4 h-4 text-olive" />
           </button>
         </div>
       </section>
 
-      {/* 5. NEWSLETTER CTA BOX (NUÔI DƯỠNG CƠ THỂ KHOA HỌC TỪNG NGÀY) */}
-      <section className="blog-newsletter-card">
-        <div className="blog-newsletter-icon">
-          <Mail size={22} color="#047857" />
+      {/* ====================================================================
+          4. NEWSLETTER SUBSCRIPTION SECTION
+      ==================================================================== */}
+      <section className="bg-forest text-alabaster rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-card text-center space-y-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-400/15 border border-emerald-400/20 text-emerald-300 mx-auto">
+          <Mail className="w-6 h-6" />
         </div>
 
-        <h2 className="blog-newsletter-title">
+        <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-white">
           Nuôi Dưỡng Cơ Thể Khoa Học Từng Ngày
         </h2>
 
-        <p className="blog-newsletter-sub">
-          Nhận thực đơn chay mẫu, công thức chất lượng cao và bài viết chuyên sâu từ bác sĩ dinh dưỡng vào mỗi sáng thứ Hai.
+        <p className="text-xs sm:text-sm text-alabaster/80 max-w-lg mx-auto">
+          Nhận thực đơn chay mẫu, công thức chất lượng cao và phân tích vi chất dinh dưỡng từ bác sĩ vào mỗi sáng thứ Hai.
         </p>
 
-        <form className="blog-newsletter-form" onSubmit={handleSubscribe}>
+        <form onSubmit={handleSubscribe} className="max-w-md mx-auto flex flex-col sm:flex-row gap-2 pt-2">
           <input
             type="email"
-            className="blog-newsletter-input"
-            placeholder="Nhập email của bạn..."
             value={newsletterEmail}
             onChange={(e) => setNewsletterEmail(e.target.value)}
+            placeholder="Nhập email của bạn..."
             required
+            className="flex-1 px-4 py-2.5 rounded-xl bg-white text-slate-800 placeholder-slate-400 text-xs sm:text-sm outline-none"
           />
-          <button type="submit" className="blog-newsletter-btn">
+          <button
+            type="submit"
+            className="px-5 py-2.5 rounded-xl bg-terracotta hover:bg-terracottaDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shrink-0 shadow-xs"
+          >
             Đăng ký ngay
           </button>
         </form>
 
         {subscribed && (
-          <p style={{ color: '#047857', fontWeight: 700, fontSize: '0.88rem', margin: '0.5rem 0' }}>
+          <p className="text-emerald-300 text-xs font-semibold">
             🎉 Cảm ơn bạn đã đăng ký nhận bản tin dinh dưỡng!
           </p>
         )}
 
-        <p className="blog-newsletter-note">
+        <p className="text-[11px] text-alabaster/60">
           Miễn phí 100%. Bạn có thể hủy nhận tin bất kỳ lúc nào.
         </p>
       </section>
 
-      {/* ARTICLE FULL DETAIL MODAL */}
-      {selectedArticle && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '740px', width: '100%', maxHeight: '90vh',
-            overflowY: 'auto', padding: '2.5rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.2)'
-          }}>
-            <button 
-              onClick={() => setSelectedArticle(null)}
-              style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <X size={20} />
-            </button>
+      {/* ====================================================================
+          5. ARTICLE READER MODAL
+      ==================================================================== */}
+      {selectedArticle && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setSelectedArticle(null)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-2xl w-full max-h-[88vh] overflow-hidden shadow-floating border border-hairline flex flex-col relative my-auto animate-fade-up"
+          >
+            {/* Modal Header (shrink-0) */}
+            <div className="p-5 sm:p-6 border-b border-hairline relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedArticle(null)}
+                className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                title="Đóng bài viết"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
-            <span className="badge badge-success" style={{ marginBottom: '0.65rem' }}>
-              {selectedArticle.category}
-            </span>
+              <div className="space-y-2 pr-8">
+                <span className="inline-block px-3 py-0.5 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-[11px] font-bold">
+                  {selectedArticle.category}
+                </span>
 
-            <h2 style={{ color: '#111827', margin: '0.5rem 0 0.85rem 0', fontSize: '1.85rem', lineHeight: '1.35', fontWeight: 800 }}>
-              {selectedArticle.title}
-            </h2>
+                <h2 className="font-editorial text-xl sm:text-2xl font-bold text-forest leading-tight">
+                  {selectedArticle.title}
+                </h2>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <img 
-                src={selectedArticle.authorAvatar} 
-                alt={selectedArticle.author} 
-                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-              />
-              <div>
-                <div style={{ fontWeight: 700, color: '#111827', fontSize: '0.92rem' }}>{selectedArticle.author}</div>
-                <div style={{ color: '#6b7280', fontSize: '0.8rem' }}>{selectedArticle.date} • {selectedArticle.readTime}</div>
+                <div className="flex items-center gap-3 pt-1">
+                  <img
+                    src={selectedArticle.authorAvatar}
+                    alt={selectedArticle.author}
+                    className="w-8 h-8 rounded-full object-cover border border-hairline"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-forest">{selectedArticle.author}</span>
+                    <span className="text-olive ml-2 font-metric">{selectedArticle.date} • {selectedArticle.readTime}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div style={{ height: '280px', backgroundImage: `url('${selectedArticle.img}')`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: '16px', marginBottom: '1.75rem' }}></div>
+            {/* Scrollable Body (flex-1 overflow-y-auto) */}
+            <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="aspect-video rounded-2xl overflow-hidden bg-forest">
+                <img
+                  src={selectedArticle.img}
+                  alt={selectedArticle.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-            <div style={{ color: '#374151', lineHeight: '1.75', whiteSpace: 'pre-line', fontSize: '1rem', marginBottom: '2rem' }}>
-              {selectedArticle.fullContent}
+              <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 whitespace-pre-line font-editorial">
+                {selectedArticle.fullContent}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem', flexWrap: 'wrap' }}>
-              <Button variant="secondary" onClick={() => setSelectedArticle(null)}>
-                Đóng
-              </Button>
-              {user ? (
-                <Button onClick={() => handleToggleSaveArticle(selectedArticle)}>
-                  {savedArticleIds.includes(selectedArticle?.id) ? (
-                    <>
-                      <Check size={16} /> Đã lưu vào Bài viết yêu thích
-                    </>
-                  ) : (
-                    <>
-                      <Bookmark size={16} /> Lưu vào Bài viết yêu thích
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button onClick={() => { setSelectedArticle(null); onNavigate && onNavigate('register'); }}>
-                  Đăng ký để lưu bài viết
-                </Button>
-              )}
+            {/* Pinned Action Footer (shrink-0) */}
+            <div className="p-4 sm:px-6 border-t border-hairline bg-alabaster/60 flex items-center justify-between gap-3 shrink-0">
               <button
-                onClick={() => {
-                  const art = selectedArticle;
-                  setSelectedArticle(null);
-                  if (onNavigate) onNavigate('article-detail', art);
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  background: '#046a47',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '0.62rem 1.15rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(4, 106, 71, 0.25)'
-                }}
+                type="button"
+                onClick={() => setSelectedArticle(null)}
+                className="px-4 py-2 rounded-xl border border-hairline text-olive hover:text-forest text-xs font-semibold transition cursor-pointer"
               >
-                <span>Xem chi tiết bài viết →</span>
+                Đóng
               </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleSaveArticle(selectedArticle, e)}
+                  className="px-4 py-2 rounded-xl border border-hairline bg-white hover:bg-slate-100 text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${savedArticleIds.includes(selectedArticle.id) ? 'fill-emeraldBotanic text-emeraldBotanic' : ''}`} />
+                  <span>{savedArticleIds.includes(selectedArticle.id) ? 'Đã lưu' : 'Lưu bài viết'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const art = selectedArticle;
+                    setSelectedArticle(null);
+                    if (onNavigate) onNavigate('article-detail', art);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                >
+                  <span>Xem chi tiết bài viết</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

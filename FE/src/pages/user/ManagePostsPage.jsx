@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Plus, Search, Edit3, Video, FileText, CheckCircle2, Clock, 
   Eye, MoreVertical, Trash2, ExternalLink, Sparkles, Filter, 
@@ -31,6 +32,21 @@ export default function ManagePostsPage({ onNavigate }) {
       setToastMessage('');
     }, 2800);
   };
+
+  // Khoá cuộn trang và gán phím Esc khi mở preview
+  useEffect(() => {
+    if (!previewItem) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setPreviewItem(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [previewItem]);
 
   // DỮ LIỆU BÀI VIẾT & VIDEO
   const defaultManageItems = [
@@ -958,28 +974,34 @@ export default function ManagePostsPage({ onNavigate }) {
       {/* ===================================================================== */}
       {/* MODAL PREVIEW XEM TRƯỚC BÀI VIẾT / VIDEO */}
       {/* ===================================================================== */}
-      {previewItem && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '560px',
-            padding: '1.75rem',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}>
+      {previewItem && createPortal(
+        <div 
+          onClick={() => setPreviewItem(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '560px',
+              padding: '1.75rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: '6px' }}>
                 {previewItem.typeLabel}
@@ -1030,7 +1052,8 @@ export default function ManagePostsPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

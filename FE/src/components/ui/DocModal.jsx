@@ -1,11 +1,19 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 export const DocModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-      <div className="w-full max-w-xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+  const modalContent = (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-forestDark/70 backdrop-blur-sm"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high overflow-hidden animate-fade-up my-auto"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-container-high/60 bg-surface-container-low/40">
           <div className="flex items-center gap-2.5">
             <span className="material-symbols-outlined text-primary text-[24px]">terminal</span>
@@ -16,7 +24,7 @@ export const DocModal = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -48,18 +56,20 @@ export const DocModal = ({ isOpen, onClose }) => {
               Tài liệu SDK nội bộ: v2.4.12-prod (Cập nhật 2025-10-24)
             </p>
           </div>
+        </div>
 
-          <div className="flex justify-end pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold text-xs hover:bg-primary-container"
-            >
-              Đã hiểu
-            </button>
-          </div>
+        <div className="px-6 py-3 border-t border-surface-container-high/60 bg-surface-container-low/40 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition cursor-pointer"
+          >
+            Đóng
+          </button>
         </div>
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };

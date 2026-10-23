@@ -8,6 +8,22 @@ export default function RecipeCard({
   onSelectDetail,
   actionButton = null
 }) {
+  if (!recipe) return null;
+
+  const nutrients = recipe.nutrients || recipe.nutritionPerServing || {
+    calories: recipe.kcalPerServing || 450,
+    protein: recipe.proteinG || 20,
+    b12: recipe.b12Mcg || 1.2,
+    iron: recipe.ironMg || 4.5,
+    omega3: 0.8
+  };
+
+  const calories = nutrients.calories ?? nutrients.kcal ?? 450;
+  const protein = nutrients.protein ?? nutrients.proteinG ?? 20;
+  const prepTime = recipe.prepTime || 20;
+  const matchScore = recipe.matchScore || 95;
+  const image = recipe.image || (recipe.imageUrl ? (recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `/uploads/${recipe.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80');
+
   return (
     <div
       onClick={() => onSelectDetail && onSelectDetail(recipe)}
@@ -17,7 +33,7 @@ export default function RecipeCard({
         {/* Image Container with Badges */}
         <div className="relative aspect-[16/10] overflow-hidden bg-alabaster">
           <img
-            src={recipe.image}
+            src={image}
             alt={recipe.title}
             className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
             loading="lazy"
@@ -26,14 +42,14 @@ export default function RecipeCard({
           {/* Top Left: Match Score Badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-forest/90 backdrop-blur-xs text-emerald-300 text-[11px] font-metric font-bold shadow-xs">
             <Sparkles className="w-3 h-3 text-emerald-300" />
-            <span>{recipe.matchScore}% Match</span>
+            <span>{matchScore}% Match</span>
           </div>
 
           {/* Top Right: Prep Time & Save Bookmark */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
             <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-forest text-[11px] font-metric font-bold flex items-center gap-1 shadow-xs">
               <Clock className="w-3 h-3 text-olive" />
-              <span>{recipe.prepTime}p</span>
+              <span>{prepTime}p</span>
             </span>
 
             {onToggleSave && (
@@ -68,12 +84,12 @@ export default function RecipeCard({
           </h3>
 
           <p className="text-xs text-olive line-clamp-2 leading-relaxed">
-            {recipe.subtitle}
+            {recipe.subtitle || recipe.instructions}
           </p>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {(recipe.tags || []).slice(0, 2).map((tag, idx) => (
+            {(recipe.tags || ['Giàu đạm', 'Thuần chay']).slice(0, 2).map((tag, idx) => (
               <span
                 key={idx}
                 className="text-[10px] px-2 py-0.5 rounded-md bg-alabaster border border-hairline text-olive font-medium"
@@ -88,9 +104,9 @@ export default function RecipeCard({
       {/* Footer Info: Calories & Protein */}
       <div className="p-4 sm:p-5 pt-0 border-t border-hairline/60 mt-3 flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs font-metric">
-          <span className="text-forest font-bold">{recipe.nutrients.calories} <span className="font-normal text-olive text-[11px]">kcal</span></span>
+          <span className="text-forest font-bold">{calories} <span className="font-normal text-olive text-[11px]">kcal</span></span>
           <span className="text-hairline">•</span>
-          <span className="text-forest font-bold">{recipe.nutrients.protein}g <span className="font-normal text-olive text-[11px]">Đạm</span></span>
+          <span className="text-forest font-bold">{protein}g <span className="font-normal text-olive text-[11px]">Đạm</span></span>
         </div>
 
         {actionButton || (

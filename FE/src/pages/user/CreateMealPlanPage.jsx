@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Sparkles, ShieldCheck, CheckCircle2, ChevronRight, X, Plus, 
   Calendar, RefreshCw, Smartphone, Camera, Box, AlertTriangle, 
@@ -9,9 +10,12 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
+import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 
 export default function CreateMealPlanPage({ onNavigate }) {
   const { user } = useAuth();
+  const veggieCtx = useVeggieNutrition();
+  const generateAiMealPlan = veggieCtx?.generateAiMealPlan;
 
   // Luôn scroll về đầu trang khi truy cập & Đồng bộ nguyên liệu quét từ WF04 (VisionPage)
   useEffect(() => {
@@ -98,6 +102,26 @@ export default function CreateMealPlanPage({ onNavigate }) {
     setTimeout(() => setToastMessage(''), 3200);
   };
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showMobileAppModal || showHistoryModal || selectedPreviewRecipe) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setShowMobileAppModal(false);
+          setShowHistoryModal(false);
+          setSelectedPreviewRecipe(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showMobileAppModal, showHistoryModal, selectedPreviewRecipe]);
+
   // Toggle meal slot
   const toggleMealSlot = (slot) => {
     setSelectedMeals(prev => ({ ...prev, [slot]: !prev[slot] }));
@@ -152,29 +176,39 @@ export default function CreateMealPlanPage({ onNavigate }) {
     setAppliances(prev => ({ ...prev, [app]: !prev[app] }));
   };
 
-  // Xử lý khởi tạo thực đơn AI với hiệu ứng step-by-step
-  const handleStartGeneratePlan = () => {
+  // Xử lý khởi tạo thực đơn AI với hiệu ứng step-by-step kết nối máy chủ
+  const handleStartGeneratePlan = async () => {
     setIsGenerating(true);
     setGenerationStep(1);
 
-    setTimeout(() => {
-      setGenerationStep(2);
-    }, 600);
+    const t1 = setTimeout(() => setGenerationStep(2), 600);
+    const t2 = setTimeout(() => setGenerationStep(3), 1200);
+    const t3 = setTimeout(() => setGenerationStep(4), 1800);
 
-    setTimeout(() => {
-      setGenerationStep(3);
-    }, 1200);
-
-    setTimeout(() => {
-      setGenerationStep(4);
-    }, 1800);
-
-    setTimeout(() => {
-      setIsGenerating(false);
-      if (onNavigate) {
-        onNavigate('planner');
+    try {
+      if (generateAiMealPlan) {
+        const goalStr = targetGoal === 'fatloss' ? 'loss' : targetGoal === 'maintain' ? 'maintain' : 'gain';
+        const noteStr = 'Khẩu phần ' + servings + ' người, mục tiêu ' + targetGoal + ', ưu tiên tận dụng ' + pantryIngredients.slice(0, 4).join(', ');
+        await generateAiMealPlan({
+          days: planDays || 7,
+          healthGoal: goalStr,
+          note: noteStr
+        });
       }
-    }, 2400);
+    } catch (err) {
+      console.warn('Backend AI Meal Plan generation failed, falling back:', err);
+    } finally {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      setGenerationStep(4);
+      setTimeout(() => {
+        setIsGenerating(false);
+        if (onNavigate) {
+          onNavigate('planner');
+        }
+      }, 500);
+    }
   };
 
   // Món mẫu AI preview
@@ -1683,7 +1717,7 @@ export default function CreateMealPlanPage({ onNavigate }) {
       {/* ========================================================================= */}
       {/* MODAL 1: AI GENERATION IN PROGRESS ANIMATION */}
       {/* ========================================================================= */}
-      {isGenerating && (
+      {isGenerating && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1692,7 +1726,7 @@ export default function CreateMealPlanPage({ onNavigate }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 3000,
+          zIndex: 9999,
           padding: '1.5rem'
         }}>
           <div style={{
@@ -1765,13 +1799,14 @@ export default function CreateMealPlanPage({ onNavigate }) {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: MOBILE APP NOTICE FOR AI FRIDGE SCAN (STRICT CORRECTION) */}
       {/* ========================================================================= */}
-      {showMobileAppModal && (
+      {showMobileAppModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1835,13 +1870,14 @@ export default function CreateMealPlanPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 3: LỊCH SỬ THỰC ĐƠN TUẦN TRƯỚC */}
       {/* ========================================================================= */}
-      {showHistoryModal && (
+      {showHistoryModal && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1929,13 +1965,14 @@ export default function CreateMealPlanPage({ onNavigate }) {
               <Button variant="secondary" onClick={() => setShowHistoryModal(false)}>Đóng</Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 4: RECIPE DETAIL PREVIEW */}
       {/* ========================================================================= */}
-      {selectedPreviewRecipe && (
+      {selectedPreviewRecipe && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -2000,7 +2037,8 @@ export default function CreateMealPlanPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

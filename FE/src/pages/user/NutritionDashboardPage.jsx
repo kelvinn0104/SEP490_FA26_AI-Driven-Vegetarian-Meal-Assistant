@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Flame, TrendingUp, ShieldCheck, Zap, Activity, ChevronRight,
   FileText, Smartphone, Plus, Calendar, Clock, CheckCircle2,
@@ -9,6 +10,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
+import { nutritionService } from '../../api';
 
 export default function NutritionDashboardPage({ onNavigate }) {
   const { user } = useAuth();
@@ -17,6 +19,24 @@ export default function NutritionDashboardPage({ onNavigate }) {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    // Đồng bộ nhật ký dinh dưỡng hôm nay từ máy chủ
+    nutritionService.getDailyNutrition()
+      .then(res => {
+        if (res && res.logs && res.logs.length > 0) {
+          const mapped = res.logs.map(l => ({
+            id: l.id,
+            slot: l.mealType === 'breakfast' ? 'Sáng' : l.mealType === 'lunch' ? 'Trưa' : 'Tối',
+            dishName: l.recipeTitle || 'Món ăn dinh dưỡng',
+            calories: Math.round(l.kcalConsumed || 450),
+            protein: Math.round(l.nutrition?.proteinG || 20),
+            source: 'Đã dùng bữa',
+            time: l.logDate || 'Hôm nay'
+          }));
+          setTodayLoggedMeals(prev => [...mapped, ...prev]);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // STATE BỘ LỌC THỜI GIAN
@@ -32,6 +52,27 @@ export default function NutritionDashboardPage({ onNavigate }) {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
   };
+
+  // Khoá cuộn trang và gán phím Esc khi mở modal
+  useEffect(() => {
+    const isModalOpen = showQuickLogModal || showPdfExportModal || showAppleHealthModal;
+    if (!isModalOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowQuickLogModal(false);
+        setShowPdfExportModal(false);
+        setShowAppleHealthModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showQuickLogModal, showPdfExportModal, showAppleHealthModal]);
 
   // DỮ LIỆU BIỂU ĐỒ CALO 7 NGÀY (STACKED BARS)
   const chartDays = [
@@ -1168,15 +1209,21 @@ export default function NutritionDashboardPage({ onNavigate }) {
       {/* ========================================================================= */}
       {/* MODAL 1: GHI NHANH BỮA ĂN (QUICK LOG MEAL) */}
       {/* ========================================================================= */}
-      {showQuickLogModal && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '520px', width: '100%',
-            padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-          }}>
+      {showQuickLogModal && createPortal(
+        <div 
+          onClick={() => setShowQuickLogModal(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: '24px', maxWidth: '520px', width: '100%',
+              padding: '2rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <button 
               onClick={() => setShowQuickLogModal(false)}
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1260,21 +1307,28 @@ export default function NutritionDashboardPage({ onNavigate }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: XUẤT BÁO CÁO PDF (ĐÃ BỎ CHỮ Y KHOA THEO YÊU CẦU SỐ 5) */}
       {/* ========================================================================= */}
-      {showPdfExportModal && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '560px', width: '100%',
-            padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-          }}>
+      {showPdfExportModal && createPortal(
+        <div 
+          onClick={() => setShowPdfExportModal(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: '24px', maxWidth: '560px', width: '100%',
+              padding: '2rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <button 
               onClick={() => setShowPdfExportModal(false)}
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1309,21 +1363,28 @@ export default function NutritionDashboardPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 3: APPLE HEALTH NOTICE (SỬA LỖI 6: THÔNG BÁO TÍNH NĂNG TRÊN APP) */}
       {/* ========================================================================= */}
-      {showAppleHealthModal && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '24px', maxWidth: '500px', width: '100%',
-            padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-          }}>
+      {showAppleHealthModal && createPortal(
+        <div 
+          onClick={() => setShowAppleHealthModal(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: '24px', maxWidth: '500px', width: '100%',
+              padding: '2rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <button 
               onClick={() => setShowAppleHealthModal(false)}
               style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1336,7 +1397,7 @@ export default function NutritionDashboardPage({ onNavigate }) {
             </div>
 
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0' }}>
-              Đồng Bộ Apple Health Chỉ Hỗ Trợ Trên App Di Động
+              Đồng Bộ Apple Health Chỉ Hỗ TrỢ Trên App Di Động
             </h3>
             <p style={{ fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
               Để đọc dữ liệu nhịp tim, số bước chân và calo tiêu hao thụ động từ Apple Watch hoặc cảm biến di động, bạn hãy cài đặt ứng dụng di động VeggieAI trên điện thoại.
@@ -1352,7 +1413,8 @@ export default function NutritionDashboardPage({ onNavigate }) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

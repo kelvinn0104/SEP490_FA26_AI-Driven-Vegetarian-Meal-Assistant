@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   HeartPulse, Activity, FileText, Settings, User, 
   ArrowLeft, CheckCircle2, Clock, AlertCircle, Plus, 
@@ -123,6 +124,24 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
   const [newPostType, setNewPostType] = useState('Blog');
   const [newPostContent, setNewPostContent] = useState('');
   const [postSubmitted, setPostSubmitted] = useState(false);
+
+  // Khoá cuộn trang và phím Esc cho modal
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showCreateModal]);
 
   const handleCreatePost = (e) => {
     e.preventDefault();
@@ -798,15 +817,21 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
           </div>
 
           {/* MODAL VIẾT BÀI / ĐĂNG CÔNG THỨC */}
-          {showCreateModal && (
-            <div style={{
-              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem'
-            }}>
-              <div style={{
-                background: 'white', borderRadius: '24px', maxWidth: '640px', width: '100%', maxHeight: '90vh',
-                overflowY: 'auto', padding: '2rem', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-              }}>
+          {showCreateModal && createPortal(
+            <div 
+              onClick={() => setShowCreateModal(false)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(6px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem'
+              }}
+            >
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'white', borderRadius: '24px', maxWidth: '640px', width: '100%', maxHeight: '90vh',
+                  overflowY: 'auto', padding: '2rem', position: 'relative', boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+                }}
+              >
                 <button 
                   onClick={() => setShowCreateModal(false)}
                   style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -882,7 +907,8 @@ export default function UserAccountPage({ defaultTab = 'profile', onNavigate }) 
                   </form>
                 )}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
       )}

@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Eye, EyeOff, Lock, Mail, User, ArrowRight, ShieldCheck, 
-  Camera, Utensils, Video, Star, Compass, Check, Sparkles, ShieldAlert
-} from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, Shield, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockLoginApi } from '../../utils/api';
 import { authApi } from '../../api';
 
 export default function LoginPage({ onNavigate, onLogin }) {
-  // Luôn đảm bảo khi mở trang Đăng nhập thì vị trí cuộn ở đỉnh trang (0, 0)
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
   }, []);
 
   const { login } = useAuth();
@@ -20,18 +14,30 @@ export default function LoginPage({ onNavigate, onLogin }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [loginStatus, setLoginStatus] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
-  // STATE FOR FORGOT PASSWORD MODAL
+  // Forgot password state
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSubmitted, setForgotSubmitted] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
-  const handleSocialLogin = (provider) => {
-    alert(`Tính năng đăng nhập qua ${provider} (OAuth 2.0) đang trong quá trình tích hợp. Vui lòng đăng nhập bằng Email và Mật khẩu bên dưới!`);
-  };
+  // Lock scroll and listen to Escape key when forgot modal is open
+  useEffect(() => {
+    if (showForgotModal) {
+      const orig = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setShowForgotModal(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = orig;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showForgotModal]);
 
   const handleLoginSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -39,476 +45,231 @@ export default function LoginPage({ onNavigate, onLogin }) {
     setLoading(true);
 
     try {
-      let userData = null;
-      let effectiveRole = 'user';
-
-      try {
-        const data = await authApi.login(identifier, password);
-        const u = data.user;
-        const norm = (u.role || '').toLowerCase();
-        effectiveRole = norm === 'admin' ? 'admin' : (norm === 'moderator' || norm === 'mod' ? 'mod' : 'user');
-        userData = {
-          name: u.displayName || u.name || u.email,
-          email: u.email,
-          role: effectiveRole === 'admin' ? 'Admin' : (effectiveRole === 'mod' ? 'Moderator' : 'AuthorizedUser'),
-          roleLabel: effectiveRole === 'admin' ? 'Admin' : (effectiveRole === 'mod' ? 'Moderator' : 'Thành viên chính thức'),
-          ...u
-        };
-      } catch (backendErr) {
-        // Fallback to mock API if backend is offline or mock user
-        const res = await mockLoginApi({ identifier, password });
-        userData = res.user;
-        const norm = (userData.role || '').toLowerCase();
-        effectiveRole = norm === 'admin' ? 'admin' : (norm === 'moderator' || norm === 'mod' ? 'mod' : 'user');
+      const data = await authApi.login(identifier.trim(), password);
+      const u = data?.user || data;
+      if (!u) {
+        throw new Error('Không nhận được thông tin xác thực từ máy chủ.');
       }
+      const norm = (u.role || '').toLowerCase();
+      const effectiveRole = norm === 'admin' ? 'admin' : (norm === 'moderator' || norm === 'mod' ? 'mod' : 'user');
+      const userData = {
+        name: u.displayName || u.name || u.email,
+        email: u.email,
+        role: effectiveRole === 'admin' ? 'Admin' : (effectiveRole === 'mod' ? 'Moderator' : 'AuthorizedUser'),
+        roleLabel: effectiveRole === 'admin' ? 'Admin' : (effectiveRole === 'mod' ? 'Moderator' : 'Thành viên'),
+        ...u
+      };
 
-      setLoginStatus('success');
+      setLoginSuccess(true);
       login(userData);
-      if (onLogin) {
-        onLogin(effectiveRole, userData);
-      }
+      if (onLogin) onLogin(effectiveRole, userData);
 
       setTimeout(() => {
-        if (effectiveRole === 'admin') {
+        if (effectiveRole === 'admin' || effectiveRole === 'mod') {
           if (onNavigate) onNavigate('dashboard');
-        } else if (effectiveRole === 'mod') {
-          if (onNavigate) onNavigate('dashboard');
+        } else if (userData?.hasHealthProfile === false) {
+          if (onNavigate) onNavigate('user-profile');
         } else {
           if (onNavigate) onNavigate('home');
         }
       }, 400);
     } catch (err) {
-      setErrorMessage(err.message || 'Đăng nhập thất bại.');
+      setErrorMessage(err.message || 'Email hoặc mật khẩu không chính xác.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgotPasswordSubmit = (e) => {
+  const handleForgotSubmit = (e) => {
     e.preventDefault();
     if (!forgotEmail) return;
-    setForgotSubmitted(true);
+    setForgotSent(true);
   };
 
   return (
-    <div className="register-page-container">
-      {/* 2-COLUMN MAIN LOGIN SECTION */}
-      <div className="register-main-grid">
+    <div className="min-h-[calc(100vh-140px)] flex items-center justify-center px-4 py-12 bg-alabaster/40 animate-fade-up">
+      <div className="w-full max-w-md bg-white rounded-3xl border border-hairline p-7 sm:p-9 shadow-card space-y-6">
         
-        {/* LEFT COLUMN: VALUE PROPOSITIONS & DOCTOR ENDORSEMENT */}
-        <div className="register-left-col">
-          <div className="trust-top-pill">
-            <span style={{ color: '#047857', fontSize: '1rem' }}>🌿</span>
-            <span>Hệ sinh thái ẩm thực chay 4.0 • Hơn 85.000+ bữa ăn được cá nhân hóa</span>
+        {/* Brand & Title */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 text-forest font-editorial text-2xl font-bold tracking-tight">
+            <span>🌱</span>
+            <span>VeggieAI</span>
           </div>
-
-          <h1 className="register-heading">
-            Bắt đầu hành trình <span style={{ color: '#047857' }}>ăn chay khoa học</span> & tràn đầy năng lượng cùng VeggieAI
+          <h1 className="text-xl sm:text-2xl font-editorial font-bold text-forest">
+            Đăng nhập tài khoản
           </h1>
-
-          <p className="register-subheading">
-            Khám phá thực đơn thực dưỡng chuẩn xác, thấu hiểu cơ thể bằng thuật toán AI và tận hưởng hương vị nguyên bản từ nông trại xanh.
+          <p className="text-xs text-olive">
+            Theo dõi thực đơn và chỉ số dinh dưỡng thực vật của bạn
           </p>
-
-          {/* 3 VALUE CARDS */}
-          <div className="register-features-list">
-            {/* Card 1 */}
-            <div className="reg-feature-item">
-              <div className="reg-feature-icon-box green-icon-box">
-                <Utensils size={20} />
-              </div>
-              <div className="reg-feature-content">
-                <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">AI Meal Planner</h3>
-                  <span className="auth-pill-blue">Cá nhân hoá 100%</span>
-                </div>
-                <p className="reg-feature-desc">
-                  Tự động tính toán theo chỉ số BMI, phân bổ tối ưu hàm lượng Protein thực vật, Sắt hữu cơ và bổ sung Vitamin B12 thiết yếu.
-                </p>
-                <div className="auth-metric-row">
-                  <span>• 24g Protein/bữa</span>
-                  <span>• Bù 100% B12</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="reg-feature-item">
-              <div className="reg-feature-icon-box pink-icon-box">
-                <Camera size={20} />
-              </div>
-              <div className="reg-feature-content">
-                <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">
-                    AI Fridge Vision <span style={{ color: '#059669', fontSize: '0.85rem', fontWeight: 600 }}>(Trên App)</span>
-                  </h3>
-                  <span className="auth-pill-peach">Tốc độ ~ 3 giây</span>
-                </div>
-                <p className="reg-feature-desc">
-                  Quét ảnh nguyên liệu còn thừa trong ngăn lạnh, nhận diện tức thì và đề xuất món chay thơm lành, triệt tiêu lãng phí thực phẩm.
-                </p>
-                <div className="auth-metric-row">
-                  <span>Độ chuẩn xác 98.4%</span>
-                  <span>• Giảm 35% rác hữu cơ gia đình</span>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span>📱 Chỉ khả dụng trên ứng dụng di động</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="reg-feature-item">
-              <div className="reg-feature-icon-box green-icon-box">
-                <Video size={20} />
-              </div>
-              <div className="reg-feature-content">
-                <div className="reg-feature-header">
-                  <h3 className="reg-feature-title">Video Recipe AI</h3>
-                  <span className="auth-pill-blue">Speech-to-Text</span>
-                </div>
-                <p className="reg-feature-desc">
-                  Bóc tách công thức nấu ăn trực quan từ YouTube & TikTok: phân đoạn thời gian, định lượng gia vị và danh mục chuẩn bị.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* DOCTOR ENDORSEMENT CARD */}
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '18px',
-            padding: '1.25rem 1.4rem',
-            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.02)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem' }}>
-              <div style={{ display: 'flex', color: '#f59e0b', fontSize: '0.9rem' }}>
-                <Star size={15} fill="#f59e0b" />
-                <Star size={15} fill="#f59e0b" />
-                <Star size={15} fill="#f59e0b" />
-                <Star size={15} fill="#f59e0b" />
-                <Star size={15} fill="#f59e0b" />
-              </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginLeft: '0.25rem' }}>
-                5.0 / 5.0
-              </span>
-            </div>
-
-            <p style={{ fontSize: '0.88rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.55, margin: '0 0 0.85rem 0' }}>
-              “VeggieAI đã giải quyết được nút thắt lớn nhất của người bắt đầu ăn chay: nỗi lo thiếu vi chất và cảm giác đơn điệu trong bữa ăn hằng ngày.”
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
-                  BS.CKI Nguyễn Lan Anh
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Chuyên gia Dinh dưỡng Lâm sàng Viện Dinh Dưỡng Tự Nhiên
-                </div>
-              </div>
-              <div style={{ color: '#047857' }} title="Đã xác thực chuyên gia dinh dưỡng">
-                <ShieldCheck size={24} />
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* RIGHT COLUMN: LOGIN CARD */}
-        <div className="register-right-col">
-          <div className="register-card">
-            
-            {/* TOP BRAND & WEB VERSION */}
-            <div className="login-top-brand-row">
-              <div className="login-brand-logo">
-                <span style={{ fontSize: '1.4rem' }}>🌱</span>
-                <span>VeggieAI</span>
-              </div>
-              <span className="login-web-version-badge">Phiên bản Web 2.4</span>
-            </div>
-
-            {/* TAB SWITCHER: ĐĂNG NHẬP VS ĐĂNG KÝ */}
-            <div className="auth-tabs-segmented">
-              <button 
-                type="button" 
-                className="auth-tab-btn active"
-                onClick={() => {}}
-              >
-                Đăng nhập
-              </button>
-              <button 
-                type="button" 
-                className="auth-tab-btn"
-                onClick={() => onNavigate && onNavigate('register')}
-              >
-                Đăng ký tài khoản mới
-              </button>
-            </div>
-
-            {/* SOCIAL LOGIN */}
-            <div className="auth-social-row">
-              <button type="button" className="auth-social-pill-btn" onClick={() => handleSocialLogin('Google')}>
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span>Đăng nhập với Google</span>
-              </button>
-            </div>
-
-            {/* DIVIDER */}
-            <div className="divider-row">
-              <span className="divider-line"></span>
-              <span className="divider-text">HOẶC ĐĂNG NHẬP VỚI EMAIL</span>
-              <span className="divider-line"></span>
-            </div>
-
-            {/* ERROR ALERT */}
-            {errorMessage && (
-              <div style={{
-                padding: '0.65rem 1rem',
-                background: '#fee2e2',
-                color: '#b91c1c',
-                borderRadius: '10px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                marginBottom: '1.15rem',
-                border: '1px solid #fca5a5',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <span>⚠️ {errorMessage}</span>
-              </div>
-            )}
-
-            {/* LOGIN FORM */}
-            <form onSubmit={handleLoginSubmit}>
-              {/* Field 1: Email hoặc Số điện thoại */}
-              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-                <label className="form-label">
-                  Email hoặc Số điện thoại
-                </label>
-                <div className="input-with-icon">
-                  <span style={{ color: '#94a3b8', fontSize: '1.05rem', fontWeight: 600 }}>@</span>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="admin@veggieai.vn, mod@... hoặc user@..." 
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Field 2: Mật khẩu & Quên mật khẩu */}
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <div className="auth-field-label-row">
-                  <label className="form-label">Mật khẩu</label>
-                  <a href="#forgot" className="auth-forgot-link" onClick={(e) => { e.preventDefault(); setShowForgotModal(true); setForgotSubmitted(false); }}>
-                    Quên mật khẩu?
-                  </a>
-                </div>
-                <div className="input-with-icon">
-                  <Lock size={18} className="field-icon" />
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    required 
-                    placeholder="••••••••" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button 
-                    type="button" 
-                    className="eye-toggle-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Checkbox: Ghi nhớ đăng nhập 30 ngày */}
-              <label className="auth-remember-row">
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span>Ghi nhớ đăng nhập 30 ngày</span>
-              </label>
-
-              {/* Submit Button */}
-              <button type="submit" className="auth-submit-btn" disabled={loading}>
-                <span>{loading ? 'Đang xác thực tài khoản...' : 'Đăng nhập vào VeggieAI'}</span>
-                <ArrowRight size={18} />
-              </button>
-
-              {loginStatus === 'success' && (
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  background: '#ecfdf5',
-                  color: '#047857',
-                  borderRadius: '10px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  textAlign: 'center',
-                  marginBottom: '1rem',
-                  border: '1px solid #a7f3d0'
-                }}>
-                  ✅ Đăng nhập thành công! Đang chuyển hướng theo phân quyền...
-                </div>
-              )}
-            </form>
-
-            {/* BOTTOM CALLOUT BOX */}
-            <div className="auth-trial-callout">
-              <div className="auth-trial-icon-box">
-                <Compass size={18} />
-              </div>
-              <div className="auth-trial-text">
-                Bạn muốn dùng thử trước? <strong>Trải nghiệm bản dùng thử giới hạn với Hỏi AI</strong>
-              </div>
-              <button 
-                type="button"
-                className="auth-trial-btn"
-                onClick={() => onNavigate && onNavigate('chatbot')}
-              >
-                Khám phá ngay
-              </button>
-            </div>
-
+        {/* Error Alert */}
+        {errorMessage && (
+          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{errorMessage}</span>
           </div>
+        )}
+
+        {/* Success Alert */}
+        {loginSuccess && (
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Đăng nhập thành công! Đang chuyển hướng...</span>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleLoginSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-forest">
+              Email hoặc tên đăng nhập
+            </label>
+            <div className="relative flex items-center">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+              <input
+                type="text"
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-forest">
+                Mật khẩu
+              </label>
+              <button
+                type="button"
+                onClick={() => { setShowForgotModal(true); setForgotSent(false); }}
+                className="text-[11px] font-semibold text-emeraldBotanic hover:text-forest transition cursor-pointer"
+              >
+                Quên mật khẩu?
+              </button>
+            </div>
+            <div className="relative flex items-center">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 transition"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-olive pt-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded text-forest focus:ring-emeraldBotanic accent-emeraldBotanic cursor-pointer"
+              />
+              <span>Ghi nhớ đăng nhập</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || loginSuccess}
+            className="w-full py-3 rounded-2xl bg-forest hover:bg-forestDark disabled:opacity-60 text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 active:scale-98"
+          >
+            <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        {/* Register CTA */}
+        <div className="text-center text-xs text-olive pt-1">
+          <span>Chưa có tài khoản? </span>
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('register')}
+            className="font-bold text-forest hover:text-emeraldBotanic transition cursor-pointer"
+          >
+            Đăng ký tài khoản mới
+          </button>
         </div>
       </div>
 
-      {/* MODAL QUÊN MẬT KHẨU */}
-      {showForgotModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '1rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            maxWidth: '460px',
-            width: '100%',
-            padding: '2rem',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            position: 'relative'
-          }}>
+      {/* Forgot Password Modal */}
+      {showForgotModal && typeof document !== 'undefined' && createPortal(
+        <div
+          onClick={() => setShowForgotModal(false)}
+          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-floating border border-hairline relative my-auto animate-fade-up"
+          >
             <button
               type="button"
               onClick={() => setShowForgotModal(false)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                border: 'none',
-                background: '#f1f5f9',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                fontWeight: 700,
-                color: '#64748b'
-              }}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition cursor-pointer"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
 
-            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ width: '54px', height: '54px', background: '#ecfdf5', borderRadius: '16px', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto' }}>
-                <Lock size={26} />
-              </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0' }}>
-                Khôi phục mật khẩu VeggieAI
+            <div className="text-center space-y-1">
+              <h3 className="font-editorial text-lg font-bold text-forest">
+                Khôi phục mật khẩu
               </h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                Nhập Email hoặc Số điện thoại đăng ký. Chúng tôi sẽ gửi liên kết tạo lại mật khẩu mới cho bạn.
+              <p className="text-xs text-olive">
+                Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.
               </p>
             </div>
 
-            {forgotSubmitted ? (
-              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '1.25rem', textAlign: 'center' }}>
-                <div style={{ color: '#047857', fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.35rem' }}>
-                  ✅ Đã gửi liên kết khôi phục!
-                </div>
-                <p style={{ fontSize: '0.82rem', color: '#065f46', margin: 0, lineHeight: 1.5 }}>
-                  Vui lòng kiểm tra hòm thư <strong>{forgotEmail}</strong> (bao gồm cả thư mục Spam/Quảng cáo) để kích hoạt lại tài khoản.
+            {forgotSent ? (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+                <p className="text-xs text-emerald-800 font-semibold">
+                  Đã gửi email khôi phục đến {forgotEmail}. Vui lòng kiểm tra hộp thư của bạn.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
-                  style={{
-                    marginTop: '1.25rem',
-                    background: '#059669',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '0.6rem 1.5rem',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
+                  className="px-4 py-2 rounded-xl bg-forest text-white text-xs font-semibold hover:bg-forestDark transition cursor-pointer"
                 >
-                  Đóng cửa sổ
+                  Hoàn tất
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleForgotPasswordSubmit}>
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
-                    Email hoặc Số điện thoại
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="nhapemail@domain.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.88rem'
-                    }}
-                  />
-                </div>
-
+              <form onSubmit={handleForgotSubmit} className="space-y-3">
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-hairline text-xs text-forest outline-none focus:border-emeraldBotanic transition"
+                />
                 <button
                   type="submit"
-                  style={{
-                    width: '100%',
-                    background: '#059669',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '0.75rem',
-                    fontSize: '0.9rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
+                  className="w-full py-2.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer"
                 >
-                  Gửi mã xác nhận OTP / Link
+                  Gửi hướng dẫn
                 </button>
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-
     </div>
   );
 }

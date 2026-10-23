@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
+import { chatService, getAuthToken } from '../../api';
 
 export default function ChatbotPage({ onNavigate }) {
   const {
@@ -16,6 +17,7 @@ export default function ChatbotPage({ onNavigate }) {
     selectedDayIdx,
     recipesDb,
     updateDayMeal,
+    isBackendConnected,
     showToast
   } = useVeggieNutrition();
 
@@ -23,30 +25,46 @@ export default function ChatbotPage({ onNavigate }) {
   const [agentMode, setAgentMode] = useState('nutritionist'); // 'nutritionist' | 'chef' | 'substitute' | 'bmi'
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState(null);
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const messagesEndRef = useRef(null);
 
   const [messages, setMessages] = useState([
     {
-      id: 'm1',
+      id: 'm-welcome',
       sender: 'ai',
-      time: '08:30',
-      text: `Xin chào **${profile.name}**! Tôi là **VeggieAI Chatbox** — Trợ lý Dinh dưỡng & Ẩm thực Thực vật Khoa học của bạn.\n\nDựa trên hồ sơ thể trạng hiện tại của bạn: **Chiều cao ${profile.height}cm**, **Cân nặng ${profile.weight}kg**, chỉ số **BMI ${metrics.bmi} (${metrics.category})**, mục tiêu năng lượng là **${metrics.tdee} kcal/ngày** và **${metrics.targetProtein}g Đạm thực vật**.\n\nHôm nay bạn muốn tối ưu dinh dưỡng, tìm món bù đắp vi chất hay cần gợi ý công thức nấu nướng nào?`
-    },
-    {
-      id: 'm2',
-      sender: 'user',
-      time: '08:31',
-      text: 'Gợi ý cho mình 1 món ăn giàu đạm thực vật và bổ sung Vitamin B12 cho bữa tối nhé!'
-    },
-    {
-      id: 'm3',
-      sender: 'ai',
-      time: '08:31',
-      text: `Cho bữa tối giàu đạm và bổ sung trên **100% nhu cầu Vitamin B12** hàng ngày của bạn, tôi đề xuất món **Mì Ý Nấm Đùi Gà Sốt Kem Hạt Điều & Men Dinh Dưỡng B12**:\n\n• **25g Đạm thực vật** từ nấm đùi gà và sữa hạt nguyên chất.\n• **2.6µg Vitamin B12** (đạt 108% RDA) nhờ lớp sốt men dinh dưỡng tự nhiên.\n• Thời gian nấu chỉ **20 phút**, không chứa cholesterol động vật.`,
-      recipeId: 'r2'
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: profile?.name
+        ? `Xin chào **${profile.name}**! Tôi có thể hỗ trợ bạn tìm kiếm công thức món chay, cân đối dinh dưỡng theo chỉ số thể trạng (BMI ${metrics.bmi}) hoặc giải đáp các câu hỏi về thực phẩm thực vật.`
+        : 'Xin chào! Tôi có thể hỗ trợ bạn tìm kiếm công thức món chay, tính toán dinh dưỡng theo tiêu chuẩn WHO hoặc giải đáp các thắc mắc về thực dưỡng thực vật.'
     }
   ]);
+
+  // Load real chat sessions from backend if authenticated
+  useEffect(() => {
+    if (isBackendConnected && getAuthToken()) {
+      chatService.getSessions()
+        .then(async (sessions) => {
+          if (Array.isArray(sessions) && sessions.length > 0) {
+            const latest = sessions[0];
+            setActiveSessionId(latest.id);
+            try {
+              const history = await chatService.getMessages(latest.id);
+              if (Array.isArray(history) && history.length > 0) {
+                const mapped = history.map(msg => ({
+                  id: msg.id ? `msg-${msg.id}` : `m-${Date.now()}`,
+                  sender: msg.role === 'user' || msg.sender === 'user' ? 'user' : 'ai',
+                  time: msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '',
+                  text: msg.content || ''
+                }));
+                setMessages(mapped);
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isBackendConnected]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,7 +74,7 @@ export default function ChatbotPage({ onNavigate }) {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e?.preventDefault();
     if (!inputText.trim()) return;
 
@@ -71,6 +89,36 @@ export default function ChatbotPage({ onNavigate }) {
     const currentQuery = inputText.trim();
     setInputText('');
     setIsTyping(true);
+
+    // Call Backend live Gemini chatbot if connected
+    if (isBackendConnected && getAuthToken()) {
+      try {
+        let sid = activeSessionId;
+        if (!sid) {
+          const newSession = await chatService.createSession();
+          sid = newSession?.id;
+          setActiveSessionId(sid);
+        }
+
+        if (sid) {
+          const res = await chatService.sendMessage(sid, currentQuery);
+          const aiText = res?.aiMessage?.content || res?.content || res?.message;
+          if (aiText) {
+            const aiMsg = {
+              id: `ai-${Date.now()}`,
+              sender: 'ai',
+              time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+              text: aiText
+            };
+            setMessages(prev => [...prev, aiMsg]);
+            setIsTyping(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Backend chat failed, falling back to local simulation:', err.message);
+      }
+    }
 
     // AI Simulation response tailored to profile
     setTimeout(() => {
@@ -136,7 +184,7 @@ export default function ChatbotPage({ onNavigate }) {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
             <p className="text-[11px] text-olive font-medium">
-              Đồng bộ thể trạng {profile.name} (BMI {metrics.bmi} • {metrics.targetProtein}g Đạm)
+              {profile ? `Đồng bộ thể trạng ${profile.name} (BMI ${metrics.bmi} • ${metrics.targetProtein}g Đạm)` : 'Chế độ Trợ lý Dinh dưỡng Thực vật'}
             </p>
           </div>
         </div>
@@ -198,7 +246,7 @@ export default function ChatbotPage({ onNavigate }) {
                   isUser ? 'bg-emeraldBotanic text-white' : 'bg-forest text-alabaster'
                 }`}
               >
-                {isUser ? profile.name.charAt(0) : <Sparkles className="w-4 h-4 text-emerald-300" />}
+                {isUser ? (profile?.name || 'U').charAt(0) : <Sparkles className="w-4 h-4 text-emerald-300" />}
               </div>
 
               {/* Message Bubble */}
@@ -232,7 +280,7 @@ export default function ChatbotPage({ onNavigate }) {
                           {attachedRecipe.title}
                         </h4>
                         <p className="text-[11px] font-metric text-olive">
-                          {attachedRecipe.nutrients.calories} kcal • {attachedRecipe.nutrients.protein}g Đạm • {attachedRecipe.prepTime}p
+                          {(attachedRecipe.nutrients?.calories ?? attachedRecipe.kcalPerServing ?? 400)} kcal • {(attachedRecipe.nutrients?.protein ?? attachedRecipe.proteinG ?? 18)}g Đạm • {attachedRecipe.prepTime || 20}p
                         </p>
                       </div>
                     </div>
@@ -347,7 +395,7 @@ export default function ChatbotPage({ onNavigate }) {
         <RecipeDetailModal
           recipe={selectedRecipeDetail}
           onClose={() => setSelectedRecipeDetail(null)}
-          isSaved={(profile.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
+          isSaved={(profile?.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
           onToggleSave={toggleSaveRecipe}
         />
       )}

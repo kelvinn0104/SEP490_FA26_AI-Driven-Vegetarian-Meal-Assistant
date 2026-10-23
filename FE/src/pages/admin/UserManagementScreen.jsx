@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usersApi } from '../../api';
 
 export const UserManagementScreen = () => {
@@ -32,6 +33,25 @@ export const UserManagementScreen = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const isAnyOpen = selectedUser || userToLock || isAddUserOpen;
+    if (!isAnyOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedUser(null);
+        setUserToLock(null);
+        setIsAddUserOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedUser, userToLock, isAddUserOpen]);
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
@@ -330,9 +350,15 @@ export const UserManagementScreen = () => {
       </div>
 
       {/* User Detail Drawer Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high p-6 space-y-4 animate-in fade-in zoom-in-95 duration-100">
+      {selectedUser && createPortal(
+        <div 
+          onClick={() => setSelectedUser(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high p-6 space-y-4 animate-in fade-in zoom-in-95 duration-100"
+          >
             <div className="flex items-start justify-between border-b border-surface-container-high/50 pb-4">
               <div className="flex items-center gap-3">
                 <img
@@ -396,7 +422,8 @@ export const UserManagementScreen = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Lock User Modal */}

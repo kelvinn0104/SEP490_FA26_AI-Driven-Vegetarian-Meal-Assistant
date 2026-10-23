@@ -313,29 +313,7 @@ export default function App() {
 
         {/* QUÉT TỦ LẠNH VISION */}
         {currentScreen === 'vision' && (
-          currentUser ? (
-            <VisionPage onNavigate={handleNavigate} />
-          ) : (
-            <div className="py-12 px-4">
-              <Card style={{ maxWidth: '620px', margin: '0 auto', textAlign: 'center', padding: '3rem 2rem' }}>
-                <div style={{ width: '64px', height: '64px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                  <Camera size={32} color="#059669" />
-                </div>
-                <h2 style={{ color: '#0f172a', marginBottom: '0.75rem', fontSize: '1.5rem', fontWeight: 700 }}>Yêu Cầu Đăng Nhập</h2>
-                <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                  Tính năng Nhận diện nguyên liệu tủ lạnh & đánh giá độ tươi bằng Computer Vision (YOLO) dành cho thành viên VeggieAI.
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <Button variant="primary" onClick={() => handleNavigate('login')}>
-                    🚀 Đăng nhập ngay
-                  </Button>
-                  <Button variant="secondary" onClick={() => handleNavigate('register')}>
-                    Đăng ký tài khoản
-                  </Button>
-                </div>
-              </Card>
-            </div>
-          )
+          <VisionPage onNavigate={handleNavigate} />
         )}
 
         {currentScreen === 'chatbot' && <ChatbotPage onNavigate={handleNavigate} />}

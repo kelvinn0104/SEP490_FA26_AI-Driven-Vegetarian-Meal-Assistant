@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { categoriesApi } from '../../api';
 
 export const CategoryManagementScreen = () => {
@@ -30,6 +31,26 @@ export const CategoryManagementScreen = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  // Escape key & scroll lock for modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsAddOpen(false);
+        setEditingCategory(null);
+      }
+    };
+    if (isAddOpen || editingCategory) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAddOpen, editingCategory]);
 
   const filteredCategories = categories.filter((c) =>
     (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -244,8 +265,8 @@ export const CategoryManagementScreen = () => {
       )}
 
       {/* Add Category Modal */}
-      {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+      {isAddOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="w-full max-w-[500px] bg-white rounded-[24px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[95vh]">
             {/* Header */}
             <div className="p-6 pb-4 shrink-0 flex items-start justify-between border-b border-[#F0F4F8]">
@@ -335,12 +356,13 @@ export const CategoryManagementScreen = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Category Modal */}
-      {editingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+      {editingCategory && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-surface-container-high/60">
               <h3 className="font-bold text-base text-on-surface">Chỉnh sửa danh mục #{editingCategory.id}</h3>
@@ -410,7 +432,8 @@ export const CategoryManagementScreen = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

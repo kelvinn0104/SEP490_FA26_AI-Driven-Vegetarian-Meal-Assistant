@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { recipesApi, categoriesApi } from '../../api';
 
 export const RecipeManagementScreen = () => {
@@ -41,6 +42,26 @@ export const RecipeManagementScreen = () => {
   useEffect(() => {
     fetchRecipesAndCategories();
   }, []);
+
+  // Escape key & scroll lock for modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedRecipe(null);
+        setIsAddModalOpen(false);
+      }
+    };
+    if (selectedRecipe || isAddModalOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedRecipe, isAddModalOpen]);
 
   const handleToggleStatus = async (recipe) => {
     const nextStatus = recipe.status === 'published' ? 'hidden' : 'published';
@@ -373,8 +394,8 @@ export const RecipeManagementScreen = () => {
       )}
 
       {/* Recipe Detail Modal */}
-      {selectedRecipe && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      {selectedRecipe && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[9999] flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest rounded-3xl max-w-2xl w-full border border-surface-container-high shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="p-6 border-b border-surface-container-high flex items-start justify-between gap-4">
@@ -470,12 +491,13 @@ export const RecipeManagementScreen = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Add Recipe Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      {isAddModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[9999] flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest rounded-3xl max-w-lg w-full border border-surface-container-high shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-surface-container-high flex items-center justify-between">
               <div>
@@ -573,7 +595,8 @@ export const RecipeManagementScreen = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
