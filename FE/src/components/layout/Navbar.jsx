@@ -64,31 +64,35 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
   ]);
 
   // Đồng bộ thông báo từ Backend nếu đăng nhập
+  // Bỏ qua với Admin/Moderator vì /api/notifications chưa được cấp quyền cho role này
+  // user.role chỉ có 3 giá trị: 'Admin', 'Moderator', 'AuthorizedUser' (xem AuthContext.jsx)
   useEffect(() => {
-    if (user) {
-      notificationService.getUnreadCount()
-        .then(cnt => {
-          if (typeof cnt === 'number') setUnreadCount(cnt);
-        })
-        .catch(() => {});
+    if (!user) return;
+    const role = (user.role || '').toLowerCase();
+    if (role === 'admin' || role === 'moderator') return;
 
-      notificationService.getNotifications(false, 1, 10)
-        .then(res => {
-          const list = res?.items || (Array.isArray(res) ? res : null);
-          if (list && list.length > 0) {
-            const mapped = list.map(n => ({
-              id: n.id,
-              title: n.type === 'nutrition_alert' ? 'Cảnh báo dinh dưỡng 🥗' : n.type === 'profile_reminder' ? 'Nhắc nhở cập nhật hồ sơ ⚖️' : 'Thông báo VeggieAI',
-              desc: n.content,
-              time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
-              read: !!n.isRead,
-              tab: n.type === 'nutrition_alert' ? 'planner' : 'home'
-            }));
-            setNotifications(mapped);
-          }
-        })
-        .catch(() => {});
-    }
+    notificationService.getUnreadCount()
+      .then(cnt => {
+        if (typeof cnt === 'number') setUnreadCount(cnt);
+      })
+      .catch(() => {});
+
+    notificationService.getNotifications(false, 1, 10)
+      .then(res => {
+        const list = res?.items || (Array.isArray(res) ? res : null);
+        if (list && list.length > 0) {
+          const mapped = list.map(n => ({
+            id: n.id,
+            title: n.type === 'nutrition_alert' ? 'Cảnh báo dinh dưỡng 🥗' : n.type === 'profile_reminder' ? 'Nhắc nhở cập nhật hồ sơ ⚖️' : 'Thông báo VeggieAI',
+            desc: n.content,
+            time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+            read: !!n.isRead,
+            tab: n.type === 'nutrition_alert' ? 'planner' : 'home'
+          }));
+          setNotifications(mapped);
+        }
+      })
+      .catch(() => {});
   }, [user]);
 
   const handleMarkAllRead = async () => {

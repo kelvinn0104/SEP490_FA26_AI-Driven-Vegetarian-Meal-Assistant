@@ -112,6 +112,11 @@ export default function App() {
 
     const { isAuthed, isAdmin, isMod } = checkAdminAccess();
 
+    // Mở tab mới tại '/' khi Admin/Mod vẫn còn phiên đăng nhập -> vào Dashboard
+    if ((path === '' || path === 'home') && isAuthed && (isAdmin || isMod)) {
+      window.history.replaceState({}, '', '/dashboard');
+      return 'dashboard';
+    }
     if (path === 'login' && isAuthed) {
       return (isAdmin || isMod) ? 'dashboard' : 'home';
     }
@@ -140,7 +145,10 @@ export default function App() {
 
       const { isAuthed, isAdmin, isMod } = checkAdminAccess();
 
-      if (path === 'login' && isAuthed) {
+      if ((path === '' || path === 'home') && isAuthed && (isAdmin || isMod)) {
+        window.history.replaceState({}, '', '/dashboard');
+        setCurrentScreen('dashboard');
+      } else if (path === 'login' && isAuthed) {
         setCurrentScreen((isAdmin || isMod) ? 'dashboard' : 'home');
       } else if (adminScreens.includes(path)) {
         if (isAuthed && (isAdmin || isMod)) {
@@ -157,6 +165,15 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [authUser]);
+
+  // Trường hợp authUser được khôi phục bất đồng bộ (refresh token/getMe) sau lần render đầu
+  useEffect(() => {
+    const path = window.location.pathname.replace('/', '');
+    if ((userRole === 'admin' || userRole === 'mod') && currentScreen === 'home' && (path === '' || path === 'home')) {
+      window.history.replaceState({}, '', '/dashboard');
+      setCurrentScreen('dashboard');
+    }
+  }, [userRole]);
 
   const handleNavigate = (screen, data = null, overrideUser = null) => {
     let target = screen;
