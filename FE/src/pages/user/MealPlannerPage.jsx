@@ -2,12 +2,17 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Calendar, Check, RefreshCw, ShoppingBag, Sparkles,
-  ChevronRight, Clock, Plus, X, Utensils, CheckSquare, Square
+  ChevronRight, Clock, Plus, X, Utensils, CheckSquare, Square,
+  ShieldCheck, Scale, ArrowRight, Lock, Eye, AlertTriangle
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function MealPlannerPage({ onNavigate }) {
+  const { user } = useAuth();
+  const [showDemoPreview, setShowDemoPreview] = useState(false);
+
   const {
     profile,
     metrics,
@@ -148,8 +153,136 @@ export default function MealPlannerPage({ onNavigate }) {
       ? lunchRecipe
       : dinnerRecipe;
 
+  // GUEST STATE: Chưa đăng nhập thì không thể tự tiện tính ra thực đơn cá nhân hóa
+  if (!user && !showDemoPreview) {
+    return (
+      <div className="min-h-screen bg-alabaster/40 py-10 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8 animate-fade-up">
+        {/* Main Hero Card */}
+        <div className="bg-white rounded-3xl border border-hairline p-6 sm:p-10 shadow-card text-center space-y-6">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-emeraldBotanic/10 border border-emeraldBotanic/20 flex items-center justify-center text-forest shadow-xs">
+            <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-emeraldBotanic" />
+          </div>
+
+          <div className="max-w-xl mx-auto space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emeraldBotanic/10 text-emeraldBotanic text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Cá nhân hóa bởi Veggie AI</span>
+            </div>
+            <h1 className="font-editorial text-2xl sm:text-4xl font-bold text-forest">
+              Bạn Chưa Đăng Nhập Để Nhận Thực Đơn Cá Nhân Hóa
+            </h1>
+            <p className="text-xs sm:text-sm text-olive leading-relaxed">
+              Veggie AI tính toán thực đơn dựa trên <strong>chỉ số thể trạng (BMI)</strong>, <strong>nhu cầu Calo (TDEE)</strong> và <strong>bộ lọc dị ứng thực phẩm riêng biệt</strong>. Hiện tại bạn đang xem ở chế độ Khách, hệ thống chưa có dữ liệu để tính toán thực đơn chính xác và an toàn cho riêng bạn.
+            </p>
+          </div>
+
+          {/* 3 Pillars */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left pt-2">
+            <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs text-forest">
+                <Scale className="w-4 h-4 text-emeraldBotanic" />
+              </div>
+              <h3 className="font-bold text-xs sm:text-sm text-forest">Chuẩn hóa thể trạng BMI</h3>
+              <p className="text-[11px] sm:text-xs text-olive leading-relaxed">
+                Tính toán chính xác Calo BMR & TDEE, đạm thực vật, sắt và B12 theo đúng chiều cao, cân nặng của bạn.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs text-forest">
+                <ShieldCheck className="w-4 h-4 text-emeraldBotanic" />
+              </div>
+              <h3 className="font-bold text-xs sm:text-sm text-forest">An toàn dị ứng 100%</h3>
+              <p className="text-[11px] sm:text-xs text-olive leading-relaxed">
+                Tự động quét và loại bỏ toàn bộ món chứa đậu phộng, mè, đậu nành, gluten... bạn đã khai báo.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs text-forest">
+                <ShoppingBag className="w-4 h-4 text-emeraldBotanic" />
+              </div>
+              <h3 className="font-bold text-xs sm:text-sm text-forest">Đi chợ & Đổi món</h3>
+              <p className="text-[11px] sm:text-xs text-olive leading-relaxed">
+                Tự động gom nguyên liệu đi chợ thông minh cả tuần, theo dõi bữa ăn và hoán đổi món ăn linh hoạt.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-4 border-t border-hairline flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('register')}
+              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
+            >
+              <span>Đăng Ký & Tạo Hồ Sơ Thể Trạng (Miễn Phí)</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('login')}
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl border border-hairline bg-white hover:bg-alabaster text-forest text-xs sm:text-sm font-semibold transition cursor-pointer"
+            >
+              Đã có tài khoản? Đăng nhập
+            </button>
+          </div>
+
+          {/* Option to preview demo plan */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowDemoPreview(true)}
+              className="text-xs text-olive hover:text-forest underline font-semibold transition cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Xem trước giao diện thực đơn mẫu minh họa (Demo)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-alabaster/40 py-8 px-4 sm:px-6 lg:px-8 space-y-8 max-w-7xl mx-auto animate-fade-up">
+      {/* GUEST PREVIEW BANNER */}
+      {!user && showDemoPreview && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-up">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block">
+                Chế độ xem trước (Thực đơn mẫu minh họa 2.000 kcal)
+              </span>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Dữ liệu này là thực đơn mẫu minh họa. Để AI tính toán riêng theo chỉ số BMI và loại trừ dị ứng của bạn, vui lòng đăng nhập hoặc tạo hồ sơ.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('register')}
+              className="px-3.5 py-1.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold cursor-pointer shadow-xs transition"
+            >
+              Tạo hồ sơ cá nhân
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDemoPreview(false)}
+              className="px-3 py-1.5 rounded-xl border border-amber-300 text-xs font-semibold text-amber-900 hover:bg-amber-100 cursor-pointer transition"
+            >
+              Ẩn xem trước
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ====================================================================
           1. HEADER & DAY SELECTOR
       ==================================================================== */}
