@@ -25,12 +25,34 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<AuthResponse>.Ok(result, "Đăng nhập thành công"));
     }
 
+    /// <summary>Bước 1: tạo tài khoản "pending", sinh OTP 6 số và gửi qua email. Không trả JWT.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<RegisterPendingResponse>>> Register([FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
-        return Ok(ApiResponse<AuthResponse>.Ok(result, "Đăng ký tài khoản thành công"));
+        var message = result.CodeSent
+            ? $"Mã xác thực 6 số đã được gửi tới email {result.Email}"
+            : $"Mã xác thực đã được gửi tới email {result.Email} trước đó, vui lòng kiểm tra hộp thư";
+        return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, message));
+    }
+
+    /// <summary>Bước 2: kiểm tra OTP → kích hoạt tài khoản (active) → trả JWT để đăng nhập luôn.</summary>
+    [HttpPost("verify-code")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyCode([FromBody] VerifyCodeRequest request)
+    {
+        var result = await _authService.VerifyCodeAsync(request);
+        return Ok(ApiResponse<AuthResponse>.Ok(result, "Xác thực email thành công"));
+    }
+
+    /// <summary>Hủy OTP cũ, sinh mã mới và gửi lại (chỉ cho phép sau 60 giây).</summary>
+    [HttpPost("resend-code")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<RegisterPendingResponse>>> ResendCode([FromBody] ResendCodeRequest request)
+    {
+        var result = await _authService.ResendCodeAsync(request);
+        return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, $"Đã gửi lại mã xác thực tới email {result.Email}"));
     }
 
     [HttpPost("logout")]

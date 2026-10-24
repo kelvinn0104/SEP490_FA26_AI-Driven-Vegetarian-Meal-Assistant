@@ -21,7 +21,7 @@ CREATE TABLE "User" (
     "Role"          VARCHAR(20)  NOT NULL DEFAULT 'user'
                     CHECK ("Role" IN ('admin', 'moderator', 'user')),
     "Status"        VARCHAR(20)  NOT NULL DEFAULT 'active'
-                    CHECK ("Status" IN ('active', 'locked')),
+                    CHECK ("Status" IN ('pending', 'active', 'locked')),
     "CreatedAt"     TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 

@@ -67,6 +67,15 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IModerationRepository, ModerationRepository>();
 builder.Services.AddScoped<IAiModelRepository, AiModelRepository>();
 
+// Email OTP verification (IMemoryCache + SMTP)
+builder.Services.AddMemoryCache();
+builder.Services.Configure<VeggieAI.Model.DTOs.EmailOptions>(
+    builder.Configuration.GetSection(VeggieAI.Model.DTOs.EmailOptions.Section));
+builder.Services.Configure<VeggieAI.Model.DTOs.OtpOptions>(
+    builder.Configuration.GetSection(VeggieAI.Model.DTOs.OtpOptions.Section));
+builder.Services.AddSingleton<IOtpService, OtpService>();
+builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
+
 // Business Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -77,6 +86,17 @@ builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISystemLogService, SystemLogService>();
+
+// AI services (Gemini/OpenAI)
+builder.Services.Configure<VeggieAI.Model.DTOs.AiOptions>(
+    builder.Configuration.GetSection(VeggieAI.Model.DTOs.AiOptions.Section));
+builder.Services.AddHttpClient<VeggieAI.Service.Services.AI.GeminiProvider>();
+builder.Services.AddHttpClient<VeggieAI.Service.Services.AI.OpenAiProvider>();
+builder.Services.AddScoped<VeggieAI.Service.Services.AI.ILlmClient, VeggieAI.Service.Services.AI.LlmClient>();
+builder.Services.AddSingleton<VeggieAI.Service.Services.AI.IFileStorage, VeggieAI.Service.Services.AI.LocalFileStorage>();
+builder.Services.AddScoped<VeggieAI.Service.Services.AI.IAiMealPlanner, VeggieAI.Service.Services.AI.AiMealPlanner>();
+builder.Services.AddScoped<VeggieAI.Service.Services.AI.IChatService, VeggieAI.Service.Services.AI.ChatService>();
+builder.Services.AddScoped<VeggieAI.Service.Services.AI.IIngredientScanService, VeggieAI.Service.Services.AI.IngredientScanService>();
 
 // 4. JWT Authentication & Authorization
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "VeggieAI_Super_Secret_Key_2026_Enterprise_Edition_Must_Be_Long_Enough!";
@@ -155,6 +175,23 @@ using (var scope = app.Services.CreateScope())
         if (canConnectToPostgres)
         {
             context.Database.EnsureCreated();
+            try
+            {
+                // Cho phép trạng thái 'pending' (chờ xác thực email OTP) trên bảng User
+                context.Database.ExecuteSqlRaw(@"
+DO $$
+BEGIN
+    IF to_regclass('veggieai.""User""') IS NOT NULL THEN
+        ALTER TABLE veggieai.""User"" DROP CONSTRAINT IF EXISTS ""User_Status_check"";
+        ALTER TABLE veggieai.""User"" ADD CONSTRAINT ""User_Status_check""
+            CHECK (""Status"" IN ('pending', 'active', 'locked'));
+    END IF;
+END $$;");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Không cập nhật được CHECK constraint User.Status — hãy chạy database/migrations/20261024_user_pending_status.sql thủ công.");
+            }
             await DatabaseSeeder.SeedAsync(context);
             logger.LogInformation("PostgreSQL Database connected and initialized successfully.");
         }

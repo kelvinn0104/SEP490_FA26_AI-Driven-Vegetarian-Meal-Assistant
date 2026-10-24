@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using VeggieAI.Model.DTOs;
+using VeggieAI.Model.Exceptions;
 
 namespace VeggieAI.API.Middlewares;
 
@@ -34,6 +35,8 @@ public class ExceptionMiddleware
 
         var statusCode = exception switch
         {
+            EmailNotVerifiedException => (int)HttpStatusCode.Forbidden,
+            TooManyRequestsException => (int)HttpStatusCode.TooManyRequests,
             UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
             InvalidOperationException => (int)HttpStatusCode.BadRequest,
             KeyNotFoundException => (int)HttpStatusCode.NotFound,
@@ -42,10 +45,19 @@ public class ExceptionMiddleware
 
         context.Response.StatusCode = statusCode;
 
-        var response = ApiResponse<object>.Fail(
-            exception.Message,
-            new List<string> { exception.InnerException?.Message ?? exception.Message }
-        );
+        // Mã lỗi máy đọc được để FE xử lý (chuyển sang bước OTP, khóa nút gửi lại...)
+        var errors = exception switch
+        {
+            EmailNotVerifiedException => new List<string> { EmailNotVerifiedException.Code },
+            TooManyRequestsException tm => new List<string> { TooManyRequestsException.Code, $"retryAfterSeconds={tm.RetryAfterSeconds}" },
+            _ => new List<string> { exception.InnerException?.Message ?? exception.Message }
+        };
+        if (exception is TooManyRequestsException tooMany)
+        {
+            context.Response.Headers.RetryAfter = tooMany.RetryAfterSeconds.ToString();
+        }
+
+        var response = ApiResponse<object>.Fail(exception.Message, errors);
 
         var json = JsonSerializer.Serialize(response, new JsonSerializerOptions
         {

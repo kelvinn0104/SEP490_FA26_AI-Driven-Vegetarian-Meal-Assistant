@@ -1,18 +1,21 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\VeggieAI\\VeggieAI-BE\\",
+  "WorkspaceRootPath": "D:\\FPTU\\Veggieai\\Source code\\BE\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|d:\\veggieai\\veggieai-be\\veggieai.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Admin\\AppData\\Local\\SourceServer\\a7e44ab9b398637c03def65d56da0578f2594c7057b8e8a960b6e2c3da498e43\\BE\\VeggieAI.API\\Program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|d:\\fptu\\veggieai\\source code\\be\\veggieai.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|solutionrelative:veggieai.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|d:\\veggieai\\veggieai-be\\veggieai.api\\controllers\\authanduserscontrollers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|solutionrelative:veggieai.api\\controllers\\authanduserscontrollers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|d:\\fptu\\veggieai\\source code\\be\\veggieai.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|solutionrelative:veggieai.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|d:\\veggieai\\veggieai-be\\veggieai.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|solutionrelative:veggieai.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|d:\\fptu\\veggieai\\source code\\be\\veggieai.api\\controllers\\authanduserscontrollers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9DB64A02-CC8E-411F-BAD9-30DAFAC99752}|VeggieAI.API\\VeggieAI.API.csproj|solutionrelative:veggieai.api\\controllers\\authanduserscontrollers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,49 +25,60 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Admin\\AppData\\Local\\SourceServer\\a7e44ab9b398637c03def65d56da0578f2594c7057b8e8a960b6e2c3da498e43\\BE\\VeggieAI.API\\Program.cs",
+              "ToolTip": "C:\\Users\\Admin\\AppData\\Local\\SourceServer\\a7e44ab9b398637c03def65d56da0578f2594c7057b8e8a960b6e2c3da498e43\\BE\\VeggieAI.API\\Program.cs",
+              "ViewState": "AgIAAKwAAAAAAAAAAAAqwL4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-24T03:24:42.852Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "appsettings.json",
-              "DocumentMoniker": "D:\\VeggieAI\\VeggieAI-BE\\VeggieAI.API\\appsettings.json",
+              "DocumentMoniker": "D:\\FPTU\\Veggieai\\Source code\\BE\\VeggieAI.API\\appsettings.json",
               "RelativeDocumentMoniker": "VeggieAI.API\\appsettings.json",
-              "ToolTip": "D:\\VeggieAI\\VeggieAI-BE\\VeggieAI.API\\appsettings.json",
+              "ToolTip": "D:\\FPTU\\Veggieai\\Source code\\BE\\VeggieAI.API\\appsettings.json",
               "RelativeToolTip": "VeggieAI.API\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAKAAAAAAAAAA==",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAAA4AAABMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-10-17T01:44:28.124Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "AuthAndUsersControllers.cs",
-              "DocumentMoniker": "D:\\VeggieAI\\VeggieAI-BE\\VeggieAI.API\\Controllers\\AuthAndUsersControllers.cs",
+              "DocumentMoniker": "D:\\FPTU\\Veggieai\\Source code\\BE\\VeggieAI.API\\Controllers\\AuthAndUsersControllers.cs",
               "RelativeDocumentMoniker": "VeggieAI.API\\Controllers\\AuthAndUsersControllers.cs",
-              "ToolTip": "D:\\VeggieAI\\VeggieAI-BE\\VeggieAI.API\\Controllers\\AuthAndUsersControllers.cs",
+              "ToolTip": "D:\\FPTU\\Veggieai\\Source code\\BE\\VeggieAI.API\\Controllers\\AuthAndUsersControllers.cs",
               "RelativeToolTip": "VeggieAI.API\\Controllers\\AuthAndUsersControllers.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-17T01:34:00.964Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-17T01:34:00.964Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "Program.cs",
-              "DocumentMoniker": "D:\\VeggieAI\\VeggieAI-BE\\VeggieAI.API\\Program.cs",
+              "DocumentMoniker": "D:\\FPTU\\Veggieai\\Source code\\BE\\VeggieAI.API\\Program.cs",
               "RelativeDocumentMoniker": "VeggieAI.API\\Program.cs",
-              "ToolTip": "D:\\VeggieAI\\VeggieAI-BE\\VeggieAI.API\\Program.cs",
+              "ToolTip": "D:\\FPTU\\Veggieai\\Source code\\BE\\VeggieAI.API\\Program.cs",
               "RelativeToolTip": "VeggieAI.API\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAxAAAAAAAAAA==",
+              "ViewState": "AgIAALYAAAAAAAAAAAApwMkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-17T01:33:37.828Z"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+              "WhenOpened": "2026-10-17T01:33:37.828Z",
+              "EditorCaption": ""
             }
           ]
         }
