@@ -123,7 +123,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
     const role = String(user.role || '').toLowerCase();
     if (role === 'moderator' || role === 'mod') {
       return [
-        { id: 'moderation', label: '🛡️ Kiểm duyệt Mod' },
+        { id: 'content-moderation', label: '🛡️ Kiểm duyệt Mod' },
         { id: 'home', label: 'Trang chủ' },
         { id: 'planner', label: 'Thực đơn tuần' },
         { id: 'chatbot', label: 'Hỏi AI' },
@@ -133,7 +133,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
     }
     if (role === 'admin') {
       return [
-        { id: 'admin', label: '👑 Quản trị Admin' },
+        { id: 'dashboard', label: '👑 Quản trị Admin' },
         { id: 'home', label: 'Trang chủ' },
         { id: 'planner', label: 'Thực đơn tuần' },
         { id: 'chatbot', label: 'Hỏi AI' },
@@ -170,7 +170,10 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
         {/* LOGO - Admin về Admin Dashboard, Mod về Mod Dashboard, User về Home */}
         <div 
           className="brand-logo" 
-          onClick={() => handleNavClick(user?.role === 'Admin' ? 'admin' : user?.role === 'Moderator' ? 'moderation' : 'home')}
+          onClick={() => {
+            const r = String(user?.role || '').toLowerCase();
+            handleNavClick(r === 'admin' ? 'dashboard' : (r === 'moderator' || r === 'mod') ? 'content-moderation' : 'home');
+          }}
           style={{ cursor: 'pointer' }}
         >
           <span className="brand-icon">🌱</span>
@@ -533,7 +536,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                     {String(user.role || '').toLowerCase() === 'admin' && (
                       <button 
                         className="dropdown-item"
-                        onClick={() => handleNavClick('admin')}
+                        onClick={() => handleNavClick('dashboard')}
                       >
                         <ShieldCheck size={16} color="#dc2626" /> Bảng điều khiển Admin
                       </button>
@@ -542,7 +545,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                     {(String(user.role || '').toLowerCase() === 'admin' || String(user.role || '').toLowerCase() === 'moderator' || String(user.role || '').toLowerCase() === 'mod') && (
                       <button 
                         className="dropdown-item"
-                        onClick={() => handleNavClick('moderation')}
+                        onClick={() => handleNavClick('content-moderation')}
                       >
                         <ShieldAlert size={16} color="#d97706" /> Bảng điều khiển Mod
                       </button>
