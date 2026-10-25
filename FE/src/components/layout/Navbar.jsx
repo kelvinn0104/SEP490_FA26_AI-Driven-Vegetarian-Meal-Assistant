@@ -64,31 +64,35 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
   ]);
 
   // Đồng bộ thông báo từ Backend nếu đăng nhập
+  // Bỏ qua với Admin/Moderator vì /api/notifications chưa được cấp quyền cho role này
+  // user.role chỉ có 3 giá trị: 'Admin', 'Moderator', 'AuthorizedUser' (xem AuthContext.jsx)
   useEffect(() => {
-    if (user) {
-      notificationService.getUnreadCount()
-        .then(cnt => {
-          if (typeof cnt === 'number') setUnreadCount(cnt);
-        })
-        .catch(() => {});
+    if (!user) return;
+    const role = (user.role || '').toLowerCase();
+    if (role === 'admin' || role === 'moderator') return;
 
-      notificationService.getNotifications(false, 1, 10)
-        .then(res => {
-          const list = res?.items || (Array.isArray(res) ? res : null);
-          if (list && list.length > 0) {
-            const mapped = list.map(n => ({
-              id: n.id,
-              title: n.type === 'nutrition_alert' ? 'Cảnh báo dinh dưỡng 🥗' : n.type === 'profile_reminder' ? 'Nhắc nhở cập nhật hồ sơ ⚖️' : 'Thông báo VeggieAI',
-              desc: n.content,
-              time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
-              read: !!n.isRead,
-              tab: n.type === 'nutrition_alert' ? 'planner' : 'home'
-            }));
-            setNotifications(mapped);
-          }
-        })
-        .catch(() => {});
-    }
+    notificationService.getUnreadCount()
+      .then(cnt => {
+        if (typeof cnt === 'number') setUnreadCount(cnt);
+      })
+      .catch(() => {});
+
+    notificationService.getNotifications(false, 1, 10)
+      .then(res => {
+        const list = res?.items || (Array.isArray(res) ? res : null);
+        if (list && list.length > 0) {
+          const mapped = list.map(n => ({
+            id: n.id,
+            title: n.type === 'nutrition_alert' ? 'Cảnh báo dinh dưỡng 🥗' : n.type === 'profile_reminder' ? 'Nhắc nhở cập nhật hồ sơ ⚖️' : 'Thông báo VeggieAI',
+            desc: n.content,
+            time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+            read: !!n.isRead,
+            tab: n.type === 'nutrition_alert' ? 'planner' : 'home'
+          }));
+          setNotifications(mapped);
+        }
+      })
+      .catch(() => {});
   }, [user]);
 
   const handleMarkAllRead = async () => {
@@ -123,7 +127,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
     const role = String(user.role || '').toLowerCase();
     if (role === 'moderator' || role === 'mod') {
       return [
-        { id: 'moderation', label: '🛡️ Kiểm duyệt Mod' },
+        { id: 'content-moderation', label: '🛡️ Kiểm duyệt Mod' },
         { id: 'home', label: 'Trang chủ' },
         { id: 'planner', label: 'Thực đơn tuần' },
         { id: 'chatbot', label: 'Hỏi AI' },
@@ -133,7 +137,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
     }
     if (role === 'admin') {
       return [
-        { id: 'admin', label: '👑 Quản trị Admin' },
+        { id: 'dashboard', label: '👑 Quản trị Admin' },
         { id: 'home', label: 'Trang chủ' },
         { id: 'planner', label: 'Thực đơn tuần' },
         { id: 'chatbot', label: 'Hỏi AI' },
@@ -170,7 +174,10 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
         {/* LOGO - Admin về Admin Dashboard, Mod về Mod Dashboard, User về Home */}
         <div 
           className="brand-logo" 
-          onClick={() => handleNavClick(user?.role === 'Admin' ? 'admin' : user?.role === 'Moderator' ? 'moderation' : 'home')}
+          onClick={() => {
+            const r = String(user?.role || '').toLowerCase();
+            handleNavClick(r === 'admin' ? 'dashboard' : (r === 'moderator' || r === 'mod') ? 'content-moderation' : 'home');
+          }}
           style={{ cursor: 'pointer' }}
         >
           <span className="brand-icon">🌱</span>
@@ -533,7 +540,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                     {String(user.role || '').toLowerCase() === 'admin' && (
                       <button 
                         className="dropdown-item"
-                        onClick={() => handleNavClick('admin')}
+                        onClick={() => handleNavClick('dashboard')}
                       >
                         <ShieldCheck size={16} color="#dc2626" /> Bảng điều khiển Admin
                       </button>
@@ -542,7 +549,7 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
                     {(String(user.role || '').toLowerCase() === 'admin' || String(user.role || '').toLowerCase() === 'moderator' || String(user.role || '').toLowerCase() === 'mod') && (
                       <button 
                         className="dropdown-item"
-                        onClick={() => handleNavClick('moderation')}
+                        onClick={() => handleNavClick('content-moderation')}
                       >
                         <ShieldAlert size={16} color="#d97706" /> Bảng điều khiển Mod
                       </button>

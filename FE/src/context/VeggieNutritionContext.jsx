@@ -71,6 +71,13 @@ export function VeggieNutritionProvider({ children }) {
     }, 3500);
   };
 
+  // Helper: Admin/Moderator không sử dụng các API cá nhân hóa của user thường
+  // user.role chỉ có 3 giá trị: 'Admin', 'Moderator', 'AuthorizedUser' (xem AuthContext.jsx)
+  const isAdminOrMod = useCallback(() => {
+    const role = (user?.role || '').toLowerCase();
+    return role === 'admin' || role === 'moderator';
+  }, [user]);
+
   // 6. Check Backend Health & Sync Data on Mount / Token change
   const syncWithBackend = useCallback(async () => {
     try {
@@ -128,6 +135,14 @@ export function VeggieNutritionProvider({ children }) {
 
       const token = getAuthToken();
       if (!token) return;
+
+      // Bỏ qua các API cá nhân hóa dành cho user thường nếu là Admin/Moderator
+      // (Các route /api/health-profile, /api/meal-plans/current, /api/nutrition/daily
+      //  chưa được cấp quyền cho Admin/Mod hoặc không cần thiết với vai trò quản trị)
+      if (isAdminOrMod()) {
+        console.info('[VeggieAI] Admin/Moderator đăng nhập - bỏ qua đồng bộ hồ sơ dinh dưỡng cá nhân.');
+        return;
+      }
 
       // 6.1 Sync Health Profile from Backend
       try {
@@ -226,7 +241,7 @@ export function VeggieNutritionProvider({ children }) {
     } catch (e) {
       setIsBackendConnected(false);
     }
-  }, [weeklyPlan, selectedDayIdx]);
+  }, [weeklyPlan, selectedDayIdx, isAdminOrMod]);
 
   useEffect(() => {
     syncWithBackend();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAuthToken, authApi } from './api';
+import { getAuthToken, getStoredUser, authApi } from './api';
 import { useAuth } from './context/AuthContext.jsx';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -93,11 +93,35 @@ export default function App() {
     return 'user';
   })();
 
-  // Mặc định khi truy cập trang web luôn là Trang chủ (HomePage)
+  // Helper kiểm tra quyền Admin/Mod động không phụ thuộc stale closure
+  const checkAdminAccess = (targetUser) => {
+    const u = targetUser || authUser || getStoredUser();
+    const token = getAuthToken();
+    if (!u || !token) return { isAuthed: false, isAdmin: false, isMod: false, role: 'user' };
+    const r = (u.role || '').toLowerCase();
+    const isAdmin = r === 'admin';
+    const isMod = r === 'moderator' || r === 'mod';
+    return { isAuthed: true, isAdmin, isMod, role: isAdmin ? 'admin' : (isMod ? 'mod' : 'user') };
+  };
+
+  // Mặc định khi truy cập trang web luôn là Trang chủ (HomePage) hoặc Dashboard nếu là Admin/Mod
   const [currentScreen, setCurrentScreen] = useState(() => {
-    const path = window.location.pathname.replace('/', '');
-    if (adminScreens.includes(path) && authUser) {
-      return path;
+    let path = window.location.pathname.replace('/', '');
+    if (path === 'admin' || path === 'mod') path = 'dashboard';
+    if (path === 'moderation') path = 'content-moderation';
+
+    const { isAuthed, isAdmin, isMod } = checkAdminAccess();
+
+    // Mở tab mới tại '/' khi Admin/Mod vẫn còn phiên đăng nhập -> vào Dashboard
+    if ((path === '' || path === 'home') && isAuthed && (isAdmin || isMod)) {
+      window.history.replaceState({}, '', '/dashboard');
+      return 'dashboard';
+    }
+    if (path === 'login' && isAuthed) {
+      return (isAdmin || isMod) ? 'dashboard' : 'home';
+    }
+    if (adminScreens.includes(path)) {
+      return isAuthed && (isAdmin || isMod) ? path : 'login';
     }
     if (userScreens.includes(path)) {
       return path;
@@ -115,9 +139,19 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
-      const path = window.location.pathname.replace('/', '');
-      if (adminScreens.includes(path)) {
-        if (isAuthenticated) {
+      let path = window.location.pathname.replace('/', '');
+      if (path === 'admin' || path === 'mod') path = 'dashboard';
+      if (path === 'moderation') path = 'content-moderation';
+
+      const { isAuthed, isAdmin, isMod } = checkAdminAccess();
+
+      if ((path === '' || path === 'home') && isAuthed && (isAdmin || isMod)) {
+        window.history.replaceState({}, '', '/dashboard');
+        setCurrentScreen('dashboard');
+      } else if (path === 'login' && isAuthed) {
+        setCurrentScreen((isAdmin || isMod) ? 'dashboard' : 'home');
+      } else if (adminScreens.includes(path)) {
+        if (isAuthed && (isAdmin || isMod)) {
           setCurrentScreen(path);
         } else {
           setCurrentScreen('login');
@@ -130,33 +164,49 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isAuthenticated]);
+  }, [authUser]);
 
-  const handleNavigate = (screen, data = null) => {
-    if (screen === 'article-detail' && data) {
+  // Trường hợp authUser được khôi phục bất đồng bộ (refresh token/getMe) sau lần render đầu
+  useEffect(() => {
+    const path = window.location.pathname.replace('/', '');
+    if ((userRole === 'admin' || userRole === 'mod') && currentScreen === 'home' && (path === '' || path === 'home')) {
+      window.history.replaceState({}, '', '/dashboard');
+      setCurrentScreen('dashboard');
+    }
+  }, [userRole]);
+
+  const handleNavigate = (screen, data = null, overrideUser = null) => {
+    let target = screen;
+    // Map screen aliases
+    if (target === 'admin' || target === 'mod') target = 'dashboard';
+    if (target === 'moderation') target = 'content-moderation';
+
+    if (target === 'article-detail' && data) {
       setSelectedArticleData(data);
     }
-    if (screen === 'video-detail' && data) {
+    if (target === 'video-detail' && data) {
       setSelectedVideoData(data);
     }
 
+    const { isAuthed, isAdmin, isMod, role } = checkAdminAccess(overrideUser);
+
     // Bảo vệ các màn hình Admin/Mod: nếu chưa đăng nhập thì chuyển hướng sang trang Đăng nhập chung
-    if (adminScreens.includes(screen)) {
-      if (!isAuthenticated || (userRole !== 'admin' && userRole !== 'mod')) {
+    if (adminScreens.includes(target)) {
+      if (!isAuthed || (!isAdmin && !isMod)) {
         setCurrentScreen('login');
         window.history.pushState({}, '', '/login');
         window.scrollTo(0, 0);
         return;
       }
       // Mod không truy cập được màn hình của Admin
-      if (userRole === 'mod' && ['user-management', 'ai-model-monitoring', 'role-management'].includes(screen)) {
+      if (isMod && ['user-management', 'ai-model-monitoring', 'role-management'].includes(target)) {
         setCurrentScreen('dashboard');
         window.history.pushState({}, '', '/dashboard');
         window.scrollTo(0, 0);
         return;
       }
       // Admin không truy cập được màn hình của Mod
-      if (userRole === 'admin' && ['category-management', 'content-moderation', 'recipe-management'].includes(screen)) {
+      if (isAdmin && ['category-management', 'content-moderation', 'recipe-management'].includes(target)) {
         setCurrentScreen('dashboard');
         window.history.pushState({}, '', '/dashboard');
         window.scrollTo(0, 0);
@@ -164,8 +214,17 @@ export default function App() {
       }
     }
 
-    setCurrentScreen(screen);
-    const newPath = screen === 'home' ? '/' : `/${screen}`;
+    // Nếu đã đăng nhập mà bấm vào login -> chuyển về dashboard hoặc home
+    if (target === 'login' && isAuthed) {
+      const dest = (isAdmin || isMod) ? 'dashboard' : 'home';
+      setCurrentScreen(dest);
+      window.history.pushState({}, '', dest === 'home' ? '/' : `/${dest}`);
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    setCurrentScreen(target);
+    const newPath = target === 'home' ? '/' : `/${target}`;
     window.history.pushState({}, '', newPath);
     window.scrollTo(0, 0);
   };
@@ -175,12 +234,10 @@ export default function App() {
     const normalizedRole = (role || user?.role || '').toLowerCase();
     const effectiveRole = normalizedRole === 'admin' ? 'admin' : (normalizedRole === 'moderator' || normalizedRole === 'mod' ? 'mod' : 'user');
 
-    if (effectiveRole === 'admin') {
-      handleNavigate('dashboard');
-    } else if (effectiveRole === 'mod') {
-      handleNavigate('dashboard');
+    if (effectiveRole === 'admin' || effectiveRole === 'mod') {
+      handleNavigate('dashboard', null, user);
     } else {
-      handleNavigate('home');
+      handleNavigate('home', null, user);
     }
   };
 
@@ -229,6 +286,7 @@ export default function App() {
             currentScreen={currentScreen}
             userRole={userRole}
             currentUser={currentUser || { name: 'Admin', email: 'admin@veggie.vn' }}
+            onNavigate={handleNavigate}
             onLogout={handleLogout}
             onToggleRole={handleToggleRole}
             onOpenSearch={() => setIsSearchOpen(true)}

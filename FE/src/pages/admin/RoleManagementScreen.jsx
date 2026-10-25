@@ -36,16 +36,6 @@ const INITIAL_ROLES = [
     icon: 'local_hospital',
   },
   {
-    id: 'role-3',
-    name: 'Đại sứ / Creator',
-    description: 'Tài khoản uy tín, đăng tải công thức được ưu tiên hiển thị.',
-    userCount: 142,
-    permissions: ['nutri_read'],
-    isSystem: false,
-    theme: 'secondary',
-    icon: 'stars',
-  },
-  {
     id: 'role-4',
     name: 'Người dùng chuẩn',
     description: 'Xem công thức, sử dụng tính năng tra cứu AI và lưu bộ sưu tập.',
