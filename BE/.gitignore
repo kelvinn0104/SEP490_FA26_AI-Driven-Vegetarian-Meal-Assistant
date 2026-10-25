@@ -4,3 +4,7 @@ obj/
 *.user
 src/VeggieAI.API/wwwroot/uploads/
 appsettings.Local.json
+
+.env
+**/appsettings.Development.json
+**/wwwroot/uploads/
