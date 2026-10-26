@@ -133,15 +133,19 @@ export default function App() {
   }, [isAuthenticated]);
 
   const handleNavigate = (screen, data = null) => {
-    if (screen === 'article-detail' && data) {
+    let target = screen;
+    if (target === 'admin' || target === 'mod') target = 'dashboard';
+    if (target === 'moderation') target = 'content-moderation';
+
+    if (target === 'article-detail' && data) {
       setSelectedArticleData(data);
     }
-    if (screen === 'video-detail' && data) {
+    if (target === 'video-detail' && data) {
       setSelectedVideoData(data);
     }
 
     // Bảo vệ các màn hình Admin/Mod: nếu chưa đăng nhập thì chuyển hướng sang trang Đăng nhập chung
-    if (adminScreens.includes(screen)) {
+    if (adminScreens.includes(target)) {
       if (!isAuthenticated || (userRole !== 'admin' && userRole !== 'mod')) {
         setCurrentScreen('login');
         window.history.pushState({}, '', '/login');
@@ -149,14 +153,14 @@ export default function App() {
         return;
       }
       // Mod không truy cập được màn hình của Admin
-      if (userRole === 'mod' && ['user-management', 'ai-model-monitoring', 'role-management'].includes(screen)) {
+      if (userRole === 'mod' && ['user-management', 'ai-model-monitoring', 'role-management'].includes(target)) {
         setCurrentScreen('dashboard');
         window.history.pushState({}, '', '/dashboard');
         window.scrollTo(0, 0);
         return;
       }
       // Admin không truy cập được màn hình của Mod
-      if (userRole === 'admin' && ['category-management', 'content-moderation', 'recipe-management'].includes(screen)) {
+      if (userRole === 'admin' && ['category-management', 'content-moderation', 'recipe-management'].includes(target)) {
         setCurrentScreen('dashboard');
         window.history.pushState({}, '', '/dashboard');
         window.scrollTo(0, 0);
@@ -164,8 +168,8 @@ export default function App() {
       }
     }
 
-    setCurrentScreen(screen);
-    const newPath = screen === 'home' ? '/' : `/${screen}`;
+    setCurrentScreen(target);
+    const newPath = target === 'home' ? '/' : `/${target}`;
     window.history.pushState({}, '', newPath);
     window.scrollTo(0, 0);
   };

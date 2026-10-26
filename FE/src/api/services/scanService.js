@@ -7,12 +7,13 @@ export const scanService = {
    */
   uploadScan: async (imageFile) => {
     const formData = new FormData();
+    formData.append('Image', imageFile);
     formData.append('image', imageFile);
 
     const raw = await apiRequest('/scans', {
       method: 'POST',
       body: formData,
-      timeout: 60000, // Nhận diện ảnh AI có thể mất 5-15s
+      timeout: 90000, // Nhận diện ảnh AI có thể mất 10-30s
     });
     return unwrap(raw);
   },
