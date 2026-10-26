@@ -49,7 +49,7 @@ export function VeggieNutritionProvider({ children }) {
     } catch (e) {
       console.warn('Failed to load plan from storage', e);
     }
-    return INITIAL_WEEKLY_PLAN;
+    return [];
   });
 
   // Active Plan Metadata from Backend (e.g. planId, status, dailyTargets)
@@ -84,7 +84,7 @@ export function VeggieNutritionProvider({ children }) {
       setIsBackendConnected(isOnline);
 
       if (!isOnline) {
-        console.info('[VeggieAI] Backend đang offline hoặc không kết nối được -> Dùng chế độ mô phỏng.');
+        console.info('[VeggieAI] Đang chờ kết nối tới Live Backend Render...');
         return;
       }
 
@@ -517,8 +517,11 @@ export function VeggieNutritionProvider({ children }) {
         }
       }
 
-      // Offline simulation fallback
-      showToast('Đã tạo mới thực đơn tuần theo chỉ số dinh dưỡng thể trạng!');
+      if (!getAuthToken()) {
+        showToast('Vui lòng đăng nhập để hệ thống AI tạo thực đơn cá nhân hóa.');
+        return null;
+      }
+      showToast('Máy chủ AI không trả về dữ liệu thực đơn hợp lệ. Vui lòng thử lại.');
       return null;
     } catch (err) {
       console.warn('Generate meal plan failed:', err.message);
@@ -548,8 +551,11 @@ export function VeggieNutritionProvider({ children }) {
   }, [profile]);
 
   // 14. Memoized Actual Consumed Nutrition for Selected Day
-  const currentDayPlan = weeklyPlan[selectedDayIdx] || weeklyPlan[0];
+  const currentDayPlan = (weeklyPlan && weeklyPlan.length > 0) ? (weeklyPlan[selectedDayIdx] || weeklyPlan[0]) : null;
   const consumedToday = useMemo(() => {
+    if (!currentDayPlan) {
+      return { calories: 0, protein: 0, carbs: 0, fat: 0, b12: 0, iron: 0, zinc: 0, calcium: 0 };
+    }
     return calculateConsumedNutrition(currentDayPlan, recipesDb);
   }, [currentDayPlan, recipesDb]);
 

@@ -109,7 +109,7 @@ export default function Footer({ onNavigate }) {
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isBackendConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
-              <span>{isBackendConnected ? 'Backend API (.NET): Đã kết nối' : 'Chế độ mô phỏng (Offline)'}</span>
+              <span>{isBackendConnected ? 'Backend Live API (.NET): Đã kết nối' : 'Đang kết nối Live API...'}</span>
             </span>
           </div>
           <div className="footer-legal-links">

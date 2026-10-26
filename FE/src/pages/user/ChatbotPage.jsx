@@ -90,67 +90,58 @@ export default function ChatbotPage({ onNavigate }) {
     setInputText('');
     setIsTyping(true);
 
-    // Call Backend live Gemini chatbot if connected
-    if (isBackendConnected && getAuthToken()) {
-      try {
-        let sid = activeSessionId;
-        if (!sid) {
-          const newSession = await chatService.createSession();
-          sid = newSession?.id;
-          setActiveSessionId(sid);
-        }
-
-        if (sid) {
-          const res = await chatService.sendMessage(sid, currentQuery);
-          const aiText = res?.aiMessage?.content || res?.content || res?.message;
-          if (aiText) {
-            const aiMsg = {
-              id: `ai-${Date.now()}`,
-              sender: 'ai',
-              time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-              text: aiText
-            };
-            setMessages(prev => [...prev, aiMsg]);
-            setIsTyping(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Backend chat failed, falling back to local simulation:', err.message);
-      }
+    // 1. Nếu là khách chưa đăng nhập, nhắc đăng nhập để kết nối AI thực tế
+    if (!getAuthToken()) {
+      setTimeout(() => {
+        const guestMsg = {
+          id: `ai-${Date.now()}`,
+          sender: 'ai',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          text: `Chào bạn! Tính năng tư vấn chuyên sâu cùng AI Trí Tuệ Nhân Tạo (Gemini Live) yêu cầu đăng nhập tài khoản để đồng bộ hồ sơ thể trạng và tiền sử dị ứng của bạn. Vui lòng đăng nhập hoặc tạo tài khoản miễn phí để trò chuyện trực tiếp với AI nhé!`,
+          isGuestPrompt: true
+        };
+        setMessages(prev => [...prev, guestMsg]);
+        setIsTyping(false);
+      }, 350);
+      return;
     }
 
-    // AI Simulation response tailored to profile
-    setTimeout(() => {
-      let replyText = '';
-      let attachedRecipeId = null;
-
-      const q = currentQuery.toLowerCase();
-      if (q.includes('đạm') || q.includes('protein') || q.includes('cơ')) {
-        replyText = `Để tăng cường đạm thực vật đạt mục tiêu **${metrics.targetProtein}g/ngày** của bạn, tôi gợi ý món **Mì Soba Đậu Hũ Áp Chảo Mè Rang & Đậu Nành Nhật** cung cấp **31g Đạm hoàn chỉnh** cùng đầy đủ 9 axit amin thiết yếu.`;
-        attachedRecipeId = 'r1';
-      } else if (q.includes('b12') || q.includes('vitamin b12')) {
-        replyText = `Vitamin B12 là vi chất quan trọng nhất ở người ăn chay. Món **Bánh Mì Nguyên Cám Phết Bơ Đậu Gà Hummus & Men B12** cung cấp **1.4µg B12** chỉ trong 12 phút chuẩn bị!`;
-        attachedRecipeId = 'r7';
-      } else if (q.includes('sắt') || q.includes('thiếu máu')) {
-        replyText = `Để bổ sung Sắt không heme hiệu quả, bạn nên chọn **Cà Ri Đậu Lăng Đỏ & Cải Bó Xôi** (cung cấp **7.8mg Sắt**). Đừng quên vắt chút chanh tươi để tăng 300% khả năng hấp thu vào cơ thể!`;
-        attachedRecipeId = 'r6';
-      } else {
-        replyText = `Theo chuẩn dinh dưỡng WHO cho thể trạng BMI **${metrics.bmi}** của bạn, thực đơn cân bằng hôm nay nên ưu tiên thực phẩm nguyên phần (Whole Foods) kết hợp rau củ sẫm màu và đậu hạt. Món **Tempeh Kho Tộ Sả Nghệ & Cơm Gạo Lứt** sẽ là lựa chọn tuyệt vời!`;
-        attachedRecipeId = 'r5';
+    // 2. Gọi Live Gemini chatbot qua máy chủ Render
+    try {
+      let sid = activeSessionId;
+      if (!sid) {
+        const newSession = await chatService.createSession();
+        sid = newSession?.id;
+        setActiveSessionId(sid);
       }
 
-      const aiMsg = {
-        id: `ai-${Date.now()}`,
+      if (sid) {
+        const res = await chatService.sendMessage(sid, currentQuery);
+        const aiText = res?.aiMessage?.content || res?.content || res?.message;
+        if (aiText) {
+          const aiMsg = {
+            id: `ai-${Date.now()}`,
+            sender: 'ai',
+            time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+            text: aiText
+          };
+          setMessages(prev => [...prev, aiMsg]);
+          setIsTyping(false);
+          return;
+        }
+      }
+      throw new Error('Máy chủ AI không trả về phản hồi.');
+    } catch (err) {
+      console.warn('Backend live chat failed:', err.message);
+      const errorMsg = {
+        id: `ai-err-${Date.now()}`,
         sender: 'ai',
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        text: replyText,
-        recipeId: attachedRecipeId
+        text: `Xin lỗi bạn, dịch vụ AI Gemini trên máy chủ phản hồi: "${err.message || 'Hệ thống AI đang bận'}". Vui lòng thử lại sau ít phút.`
       };
-
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages(prev => [...prev, errorMsg]);
       setIsTyping(false);
-    }, 900);
+    }
   };
 
   const handleApplyToDinner = (recipeId) => {
@@ -261,6 +252,25 @@ export default function ChatbotPage({ onNavigate }) {
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {msg.text}
                   </ReactMarkdown>
+
+                  {msg.isGuestPrompt && (
+                    <div className="pt-2.5 flex flex-wrap items-center gap-2 border-t border-hairline/60 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => onNavigate && onNavigate('login')}
+                        className="px-3.5 py-1.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold cursor-pointer shadow-xs transition"
+                      >
+                        Đăng nhập ngay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onNavigate && onNavigate('register')}
+                        className="px-3.5 py-1.5 rounded-xl border border-forest/30 bg-white hover:bg-forest/5 text-forest text-xs font-semibold cursor-pointer transition"
+                      >
+                        Đăng ký tài khoản (Miễn phí)
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Embedded Recipe Card inside AI message */}

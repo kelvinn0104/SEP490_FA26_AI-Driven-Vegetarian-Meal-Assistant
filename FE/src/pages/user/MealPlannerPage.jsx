@@ -40,9 +40,9 @@ export default function MealPlannerPage({ onNavigate }) {
     return new Map(recipesDb.map(r => [r.id, r]));
   }, [recipesDb]);
 
-  const breakfastRecipe = recipeMap.get(currentDayPlan.breakfast) || recipesDb[3];
-  const lunchRecipe = recipeMap.get(currentDayPlan.lunch) || recipesDb[0];
-  const dinnerRecipe = recipeMap.get(currentDayPlan.dinner) || recipesDb[5];
+  const breakfastRecipe = recipeMap.get(currentDayPlan?.breakfast) || recipesDb[3];
+  const lunchRecipe = recipeMap.get(currentDayPlan?.lunch) || recipesDb[0];
+  const dinnerRecipe = recipeMap.get(currentDayPlan?.dinner) || recipesDb[5];
 
   const getNutrients = (rec, defaultCal = 400, defaultPro = 20) => {
     return {
@@ -316,47 +316,78 @@ export default function MealPlannerPage({ onNavigate }) {
         </div>
 
         {/* 7 Days Button Strip */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-3 bg-white p-2 rounded-2xl border border-hairline shadow-xs">
-          {weeklyPlan.map((d, idx) => {
-            const isSelected = selectedDayIdx === idx;
-            const completedCount =
-              (d.completedBreakfast ? 1 : 0) +
-              (d.completedLunch ? 1 : 0) +
-              (d.completedDinner ? 1 : 0);
+        {weeklyPlan && weeklyPlan.length > 0 && (
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-3 bg-white p-2 rounded-2xl border border-hairline shadow-xs">
+            {weeklyPlan.map((d, idx) => {
+              const isSelected = selectedDayIdx === idx;
+              const completedCount =
+                (d.completedBreakfast ? 1 : 0) +
+                (d.completedLunch ? 1 : 0) +
+                (d.completedDinner ? 1 : 0);
 
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setSelectedDayIdx(idx)}
-                className={`py-3 px-1 sm:px-2 rounded-xl text-center transition cursor-pointer flex flex-col items-center justify-between gap-1 ${
-                  isSelected
-                    ? 'bg-forest text-white shadow-xs'
-                    : 'hover:bg-alabaster text-forest'
-                }`}
-              >
-                <span className="text-[11px] font-bold block">{d.day}</span>
-                <span className={`text-[10px] font-metric block ${isSelected ? 'text-emerald-300' : 'text-olive'}`}>
-                  {d.date}
-                </span>
-
-                {/* Status Dot */}
-                <span
-                  className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                    completedCount === 3
-                      ? 'bg-emerald-400'
-                      : completedCount > 0
-                      ? 'bg-amber-400'
-                      : isSelected
-                      ? 'bg-white/40'
-                      : 'bg-hairline'
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedDayIdx(idx)}
+                  className={`py-3 px-1 sm:px-2 rounded-xl text-center transition cursor-pointer flex flex-col items-center justify-between gap-1 ${
+                    isSelected
+                      ? 'bg-forest text-white shadow-xs'
+                      : 'hover:bg-alabaster text-forest'
                   }`}
-                ></span>
-              </button>
-            );
-          })}
-        </div>
+                >
+                  <span className="text-[11px] font-bold block">{d.day}</span>
+                  <span className={`text-[10px] font-metric block ${isSelected ? 'text-emerald-300' : 'text-olive'}`}>
+                    {d.date}
+                  </span>
+
+                  {/* Status Dot */}
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                      completedCount === 3
+                        ? 'bg-emerald-400'
+                        : completedCount > 0
+                        ? 'bg-amber-400'
+                        : isSelected
+                        ? 'bg-white/40'
+                        : 'bg-hairline'
+                    }`}
+                  ></span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {(!weeklyPlan || weeklyPlan.length === 0) ? (
+        <div className="bg-white rounded-3xl border border-hairline p-8 sm:p-14 text-center max-w-2xl mx-auto space-y-6 shadow-xs animate-fade-up my-6">
+          <div className="w-16 h-16 rounded-2xl bg-emeraldBotanic/10 text-emeraldBotanic flex items-center justify-center mx-auto">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
+              CHƯA CÓ THỰC ĐƠN TUẦN CÁ NHÂN HÓA
+            </span>
+            <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-forest">
+              Khởi Tạo Kế Hoạch Dinh Dưỡng 7 Ngày
+            </h2>
+            <p className="text-xs sm:text-sm text-olive max-w-md mx-auto leading-relaxed">
+              Trí tuệ nhân tạo Gemini trên máy chủ sẽ tự động tính toán nhu cầu dinh dưỡng ({metrics?.tdee || 2000} kcal/ngày), phân bổ vi chất và loại trừ các nguyên liệu dị ứng của bạn.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={loadingApi}
+            onClick={() => generateAiMealPlan({ days: 7, note: 'Tối ưu dinh dưỡng và cân bằng vi chất' })}
+            className="px-6 py-3.5 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-bold transition cursor-pointer shadow-xs inline-flex items-center gap-2 active:scale-95"
+          >
+            <RefreshCw className={`w-4 h-4 ${loadingApi ? 'animate-spin' : ''}`} />
+            <span>{loadingApi ? 'AI Đang Lập Thực Đơn (Gemini)...' : 'Khởi Tạo Thực Đơn AI 7 Ngày Ngay'}</span>
+          </button>
+        </div>
+      ) : (
+        <>
 
       {/* ====================================================================
           2. NUTRITION COMPARISON: PLANNED VS CONSUMED
@@ -365,7 +396,7 @@ export default function MealPlannerPage({ onNavigate }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline pb-4">
           <div>
             <span className="font-metric text-xs font-bold uppercase text-emeraldBotanic">
-              ĐỐI SOÁT THỰC ĐƠN ({currentDayPlan.day} • {currentDayPlan.date})
+              ĐỐI SOÁT THỰC ĐƠN ({currentDayPlan?.day || 'Ngày 1'} • {currentDayPlan?.date || ''})
             </span>
             <h3 className="font-editorial text-lg sm:text-xl font-bold text-forest">
               Năng Lượng Dự Kiến vs. Thực Tế Đã Dùng
@@ -529,7 +560,7 @@ export default function MealPlannerPage({ onNavigate }) {
               DANH SÁCH ĐI CHỢ THÔNG MINH
             </span>
             <h3 className="font-editorial text-xl font-bold text-forest mt-0.5">
-              Nguyên Liệu Cần Mua Hôm Nay ({currentDayPlan.day})
+              Nguyên Liệu Cần Mua Hôm Nay ({currentDayPlan?.day || 'Ngày 1'})
             </h3>
           </div>
           <span className="text-xs text-olive">
@@ -572,6 +603,8 @@ export default function MealPlannerPage({ onNavigate }) {
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {/* ====================================================================
           MODAL: SWAP MEAL QUICK SELECTOR

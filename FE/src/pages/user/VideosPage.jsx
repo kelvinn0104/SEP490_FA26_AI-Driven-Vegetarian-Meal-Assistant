@@ -6,6 +6,7 @@ import {
   Lock, ArrowRight, Plus, ChevronLeft, Volume2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { chatService, getAuthToken } from '../../api';
 
 export default function VideosPage({ onNavigate }) {
   useEffect(() => {
@@ -281,60 +282,95 @@ export default function VideosPage({ onNavigate }) {
     });
   }, [videoList, activeCategory, activeTimeFilter, searchQuery]);
 
-  const handleExtractRecipe = (e) => {
+  const handleExtractRecipe = async (e) => {
     e.preventDefault();
 
-    if (hasReachedExtractLimit) {
+    if (!extractUrl.trim()) {
+      showToast('Vui lòng nhập đường dẫn video YouTube hoặc TikTok.');
+      return;
+    }
+
+    if (hasReachedExtractLimit || isGuest || !getAuthToken()) {
       setShowRegisterPopup(true);
       return;
     }
 
     setIsExtracting(true);
 
-    if (isGuest) {
-      setGuestExtractionsUsed(prev => {
-        const next = prev + 1;
-        try {
-          localStorage.setItem('veggieai_guest_extractions_used', next.toString());
-        } catch {}
-        return next;
-      });
-    }
+    try {
+      const session = await chatService.createSession();
+      const prompt = `Bạn là trợ lý ẩm thực thuần chay của VeggieAI. Hãy phân tích nội dung từ liên kết video sau: "${extractUrl.trim()}". Trả về định dạng công thức món chay:
+Tên món: [Tên món ăn]
+Calo & Đạm: [Kcal] • [g đạm]
+Nguyên liệu:
+- [nguyên liệu 1 và định lượng]
+- [nguyên liệu 2 và định lượng]
+- [nguyên liệu 3 và định lượng]
+- [nguyên liệu 4 và định lượng]
+Các bước nấu:
+- [01:00 - bước 1]
+- [03:00 - bước 2]
+- [06:00 - bước 3]
+Mẹo AI:
+- [Mẹo 1]
+- [Mẹo 2]`;
 
-    setTimeout(() => {
-      setIsExtracting(false);
-      const mockResult = {
+      const res = await chatService.sendMessage(session.id, prompt);
+      const text = res?.aiMessage?.content || res?.content || '';
+
+      const titleMatch = text.match(/Tên món:\s*(.+)/i);
+      const title = titleMatch ? titleMatch[1].trim() : 'Món chay trích xuất từ Video';
+
+      const macroMatch = text.match(/Calo & Đạm:\s*(.+)/i);
+      const macroShort = macroMatch ? macroMatch[1].trim() : '280 kcal • 12g đạm';
+
+      const lines = text.split('\n');
+      const ingredients = [];
+      const steps = [];
+      const tips = [];
+      let currentSec = '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (/^Nguyên liệu/i.test(trimmed)) { currentSec = 'ing'; continue; }
+        if (/^Các bước/i.test(trimmed)) { currentSec = 'step'; continue; }
+        if (/^Mẹo AI/i.test(trimmed)) { currentSec = 'tip'; continue; }
+
+        if (trimmed.startsWith('-') || trimmed.startsWith('*') || /^\d+\./.test(trimmed)) {
+          const itemText = trimmed.replace(/^[-*\d.]\s*/, '').trim();
+          if (!itemText) continue;
+          if (currentSec === 'ing') ingredients.push(itemText);
+          else if (currentSec === 'step') steps.push(itemText);
+          else if (currentSec === 'tip') tips.push({ title: 'Mẹo tối ưu:', desc: itemText });
+        }
+      }
+
+      const extractedData = {
         id: `extracted-${Date.now()}`,
-        title: 'Công thức trích xuất từ Video: Canh Chua Nấm Đùi Gà Dọc Mùng',
-        author: 'Nguồn: Kênh Nấu Ăn Tự Nhiên (YouTube)',
-        views: 'Trích xuất tự động thành công (30 giây)',
-        duration: '08:45',
-        macroShort: '185 kcal • 8.5g đạm',
-        macro: { calories: '185 kcal', protein: '8.5g', carbs: '24.0g', fat: '4.2g' },
+        title: title,
+        author: 'Trích xuất từ: ' + extractUrl.trim(),
+        views: 'Trích xuất AI Gemini thời gian thực',
+        duration: '08:30',
+        macroShort: macroShort,
+        macro: {
+          calories: macroShort.split('•')[0]?.trim() || '280 kcal',
+          protein: macroShort.split('•')[1]?.trim() || '12g'
+        },
         img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80',
-        aiCoreTips: [
-          { title: 'Vị chua thanh mát:', desc: 'Dùng nước cốt me tươi hoặc cơm mẻ lọc mịn thay vì giấm công nghiệp.' },
-          { title: 'Dọc mùng giòn không ngứa:', desc: 'Tước vỏ, bóp đều cùng muối hạt trong 5 phút rồi rửa sạch vắt ráo nước.' },
-          { title: 'Nấm đùi gà thấm vị:', desc: 'Ướp nấm với xíu hạt nêm và nước tương 10 phút trước khi nấu.' }
-        ],
-        ingredients: [
-          'Nấm đùi gà cắt lát xéo: 150g',
-          'Dọc mùng (bạc hà) đã sơ chế: 100g',
-          'Cà chua chín & dứa thơm: 150g',
-          'Nước cốt me chua: 3 thìa canh',
-          'Ngò gai, ngổ điếc, ớt sừng'
-        ],
-        steps: [
-          '00:30 - Xào thơm cà chua và dứa cùng 1 thìa dầu hoa cải.',
-          '02:15 - Thêm 600ml nước, rót nước cốt me và đun sôi.',
-          '05:00 - Thả nấm đùi gà và dọc mùng, nêm đường phèn và muối hầm.',
-          '07:30 - Tắt bếp, rắc rau ngổ, ngò gai thái nhỏ và dọn ra tô ăn nóng.'
-        ]
+        aiCoreTips: tips.length > 0 ? tips : [{ title: 'Mẹo chế biến:', desc: 'Giữ nhiệt vừa phải để bảo toàn vitamin trong rau củ.' }],
+        ingredients: ingredients.length > 0 ? ingredients : ['Đậu hũ non: 200g', 'Nấm tươi: 150g', 'Rau xanh: 100g'],
+        steps: steps.length > 0 ? steps : ['01:00 - Sơ chế và làm sạch nguyên liệu', '04:00 - Nấu chín và nêm gia vị thanh đạm']
       };
-      setExtractedResult(mockResult);
-      setSelectedVideo(mockResult);
-      showToast('✨ Trích xuất Speech-to-Recipe AI thành công!');
-    }, 1200);
+
+      setExtractedResult(extractedData);
+      setSelectedVideo(extractedData);
+      showToast('✨ Live AI đã bóc tách công thức video thành công!');
+    } catch (err) {
+      console.warn('AI video extract failed:', err);
+      showToast(`Không thể bóc tách video qua AI: ${err.message || 'Lỗi kết nối máy chủ'}`);
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handleSaveFavoriteVideo = () => {
