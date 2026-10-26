@@ -15,6 +15,7 @@ export default function LoginPage({ onNavigate, onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
 
@@ -74,7 +75,13 @@ export default function LoginPage({ onNavigate, onLogin }) {
         }
       }, 400);
     } catch (err) {
-      setErrorMessage(err.message || 'Email hoặc mật khẩu không chính xác.');
+      if (err?.status === 403 || err?.data?.errors?.includes('EMAIL_NOT_VERIFIED') || (err.message && err.message.toLowerCase().includes('chưa xác thực'))) {
+        setUnverifiedEmail(identifier.trim());
+        setErrorMessage(err.message || 'Tài khoản chưa xác thực email. Vui lòng nhập mã OTP để kích hoạt tài khoản.');
+      } else {
+        setUnverifiedEmail('');
+        setErrorMessage(err.message || 'Email hoặc mật khẩu không chính xác.');
+      }
     } finally {
       setLoading(false);
     }
@@ -104,13 +111,33 @@ export default function LoginPage({ onNavigate, onLogin }) {
           </p>
         </div>
 
-        {/* Error Alert */}
-        {errorMessage && (
+        {/* Error / Unverified Alert */}
+        {unverifiedEmail ? (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2.5 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2">
+              <span className="text-base leading-none">⚠️</span>
+              <p className="font-semibold leading-relaxed">
+                {errorMessage}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('pending_verify_email', unverifiedEmail);
+                localStorage.setItem('pending_verify_step', '2');
+                if (onNavigate) onNavigate('register');
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-forest hover:bg-forestDark text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+            >
+              <span>👉 Nhập mã xác thực OTP ngay</span>
+            </button>
+          </div>
+        ) : errorMessage ? (
           <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
             <span>⚠️</span>
             <span>{errorMessage}</span>
           </div>
-        )}
+        ) : null}
 
         {/* Success Alert */}
         {loginSuccess && (

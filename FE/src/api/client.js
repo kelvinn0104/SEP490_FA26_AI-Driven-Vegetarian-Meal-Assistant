@@ -4,7 +4,7 @@
  * Compliant with VeggieAI_API_Frontend_Guide.md
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://veggieai-api.onrender.com/api';
 
 // Resolve image path to absolute backend URL
 export const imgUrl = (path) => {
@@ -89,8 +89,8 @@ export async function apiRequest(endpoint, options = {}) {
     ...options.headers,
   };
 
-  // Configure timeout controller (60 seconds for AI operations)
-  const timeoutMs = options.timeout || 60000;
+  // Configure timeout controller (100 seconds for AI operations & cold starts)
+  const timeoutMs = options.timeout || 100000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 

@@ -1,9 +1,9 @@
-const API_BASE_URL = 'http://localhost:5064/api';
+import { API_BASE_URL, apiRequest } from '../api/client';
 
 export async function fetchHealth() {
   try {
-    const res = await fetch(`${API_BASE_URL}/health`);
-    return await res.json();
+    const res = await apiRequest('/Ai/health');
+    return res?.data || res;
   } catch (e) {
     return { status: 'healthy', timestamp: new Date().toISOString() };
   }
@@ -11,36 +11,40 @@ export async function fetchHealth() {
 
 export async function generateMealPlan(ingredients) {
   try {
-    const res = await fetch(`${API_BASE_URL}/mealplanner/generate`, {
+    const res = await apiRequest('/meal-plans/ai/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ingredients)
     });
-    if (res.ok) return await res.json();
+    return res?.data || res;
   } catch (e) {}
   return { success: true, message: 'Thực đơn AI được tạo thành công' };
 }
 
-export async function detectIngredients() {
+export async function detectIngredients(imageFile) {
   try {
-    const res = await fetch(`${API_BASE_URL}/vision/detect`, {
-      method: 'POST'
-    });
-    if (res.ok) return await res.json();
-  } catch (e) {}
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('Image', imageFile);
+      const res = await apiRequest('/scans', {
+        method: 'POST',
+        body: formData,
+        timeout: 90000
+      });
+      return res?.data || res;
+    }
+  } catch (e) {
+    console.warn('detectIngredients scan failed:', e);
+  }
   return null;
 }
 
 export async function askChatbot(query) {
   try {
-    const res = await fetch(`${API_BASE_URL}/chatbot/ask`, {
+    const res = await apiRequest('/chat/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ message: query })
     });
-    if (res.ok) {
-      return await res.json();
-    }
+    if (res) return res?.data || res;
   } catch (err) {
     // Fallback Mock RAG Engine when BE endpoint is not available
   }

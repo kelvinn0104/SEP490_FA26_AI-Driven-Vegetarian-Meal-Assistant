@@ -93,33 +93,37 @@ export function VeggieNutritionProvider({ children }) {
         const recipeRes = await recipeService.getRecipes({ pageSize: 50 });
         const items = recipeRes?.items || (Array.isArray(recipeRes) ? recipeRes : null);
         if (items && items.length > 0) {
-          const mapped = items.map(r => ({
-            id: `r${r.id}`,
-            dbId: r.id,
-            title: r.title,
-            subtitle: r.description || r.instructions || '',
-            prepTime: r.prepTime || 20,
-            servings: r.servings || 2,
-            region: 'vietnam',
-            nutrients: {
-              calories: r.kcalPerServing || 400,
-              protein: r.proteinG || 18,
-              carbs: r.carbG || 45,
-              fat: r.fatG || 10,
-              b12: r.b12Mcg || 1.2,
-              iron: r.ironMg || 3.5,
-              zinc: r.zincMg || 2.5,
-              calcium: r.calciumMg || 150
-            },
-            ingredients: r.ingredients?.map(ing => ({
-              name: ing.name || ing.ingredientName || 'Nguyên liệu',
-              amount: `${ing.amount || ''} ${ing.unit || ''}`.trim()
-            })) || [],
-            instructions: r.instructions || '',
-            matchScore: 95,
-            matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
-            image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80'
-          }));
+          const mapped = items.map(r => {
+            const rawId = String(r.id || '').trim();
+            const normalizedId = rawId.startsWith('r') ? rawId : `r${rawId}`;
+            return {
+              id: normalizedId,
+              dbId: r.id,
+              title: r.title,
+              subtitle: r.description || r.instructions || '',
+              prepTime: r.prepTime || 20,
+              servings: r.servings || 2,
+              region: 'vietnam',
+              nutrients: {
+                calories: r.kcalPerServing || 400,
+                protein: r.proteinG || 18,
+                carbs: r.carbG || 45,
+                fat: r.fatG || 10,
+                b12: r.b12Mcg || 1.2,
+                iron: r.ironMg || 3.5,
+                zinc: r.zincMg || 2.5,
+                calcium: r.calciumMg || 150
+              },
+              ingredients: r.ingredients?.map(ing => ({
+                name: ing.name || ing.ingredientName || 'Nguyên liệu',
+                amount: `${ing.amount || ''} ${ing.unit || ''}`.trim()
+              })) || [],
+              instructions: r.instructions || '',
+              matchScore: 95,
+              matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
+              image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80'
+            };
+          });
           setRecipesDb(mapped);
         }
       } catch (err) {

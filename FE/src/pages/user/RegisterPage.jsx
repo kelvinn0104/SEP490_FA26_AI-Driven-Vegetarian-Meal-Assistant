@@ -1,46 +1,91 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Eye, EyeOff, Lock, Mail, User, ArrowRight, ArrowLeft, 
-  CheckCircle2, Scale, Activity, Flame, ShieldAlert, Sparkles, HeartPulse
+  CheckCircle2, Scale, Activity, Flame, ShieldAlert, Sparkles, HeartPulse,
+  RefreshCw, KeyRound, Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import { authService, healthProfileService } from '../../api';
 
 export default function RegisterPage({ onNavigate }) {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   const { login } = useAuth();
   const veggieCtx = useVeggieNutrition();
 
-  // Step state: 1 = Account Credentials, 2 = BMI & Body Metrics, 3 = Diet & Allergies
-  const [step, setStep] = useState(1);
+  // Step state: 
+  // 1 = Account Credentials
+  // 2 = OTP Email Verification
+  // 3 = BMI & Body Metrics
+  // 4 = Diet & Allergies
+  const [step, setStep] = useState(() => {
+    try {
+      const pendingEmail = localStorage.getItem('pending_verify_email');
+      const pendingStep = localStorage.getItem('pending_verify_step');
+      if (pendingEmail && pendingStep === '2') return 2;
+    } catch {}
+    return 1;
+  });
 
-  // STEP 1: ACCOUNT
+  // STEP 1: ACCOUNT CREDENTIALS
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem('pending_verify_email') || '';
+    } catch {
+      return '';
+    }
+  });
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // STEP 2: BMI & PHYSICAL METRICS
+  // STEP 2: OTP EMAIL VERIFICATION
+  const [otpCode, setOtpCode] = useState('');
+  const [countdown, setCountdown] = useState(60);
+  const [resendSuccessMsg, setResendSuccessMsg] = useState('');
+  const [verifiedToken, setVerifiedToken] = useState('');
+  const [verifiedUser, setVerifiedUser] = useState(null);
+  const otpInputRef = useRef(null);
+
+  // STEP 3: BMI & PHYSICAL METRICS
   const [gender, setGender] = useState('female');
   const [heightCm, setHeightCm] = useState(162);
   const [weightKg, setWeightKg] = useState(52);
   const [activityLevel, setActivityLevel] = useState('moderate');
   const [healthGoal, setHealthGoal] = useState('maintain');
 
-  // STEP 3: DIET & ALLERGIES
+  // STEP 4: DIET & ALLERGIES
   const [dietType, setDietType] = useState('vegan');
   const [selectedAllergies, setSelectedAllergies] = useState([]);
+  const [customAllergyInput, setCustomAllergyInput] = useState('');
 
   // STATUS & ALERTS
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
+
+  // Scroll to top on mount and step change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+
+  // Focus OTP input when entering step 2
+  useEffect(() => {
+    if (step === 2 && otpInputRef.current) {
+      setTimeout(() => otpInputRef.current?.focus(), 150);
+    }
+  }, [step]);
+
+  // Countdown timer for OTP Resend (60s cooldown)
+  useEffect(() => {
+    if (step === 2 && countdown > 0) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [step, countdown]);
 
   // OPTIONS CONSTANTS
   const dietOptions = [
@@ -86,8 +131,6 @@ export default function RegisterPage({ onNavigate }) {
     return { label: 'Thừa cân', color: 'text-rose-600 bg-rose-50 border-rose-200' };
   }, [calculatedBmi]);
 
-  const [customAllergyInput, setCustomAllergyInput] = useState('');
-
   const handleAddCustomAllergy = (e) => {
     if (e) e.preventDefault();
     const val = customAllergyInput.trim();
@@ -119,12 +162,16 @@ export default function RegisterPage({ onNavigate }) {
     );
   };
 
-  // STEP NAVIGATION HANDLERS
-  const handleNextToStep2 = (e) => {
+  // =========================================================================
+  // STEP 1 HANDLER: REGISTER ACCOUNT -> SEND OTP EMAIL
+  // =========================================================================
+  const handleRegisterStep1 = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setResendSuccessMsg('');
 
-    if (!email.trim() || !password) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !password) {
       setErrorMessage('Vui lòng nhập đầy đủ Email và Mật khẩu.');
       return;
     }
@@ -137,11 +184,103 @@ export default function RegisterPage({ onNavigate }) {
       return;
     }
 
-    setStep(2);
-    window.scrollTo(0, 0);
+    setLoading(true);
+    try {
+      const res = await authService.register({
+        email: trimmedEmail,
+        password,
+        displayName: fullName.trim() || trimmedEmail.split('@')[0],
+        role: 'user',
+      });
+
+      const resendCooldown = res?.resendAfterSeconds || 60;
+      setCountdown(resendCooldown);
+      localStorage.setItem('pending_verify_email', trimmedEmail);
+      localStorage.setItem('pending_verify_step', '2');
+      setStep(2);
+      setOtpCode('');
+    } catch (err) {
+      setErrorMessage(err.message || 'Đăng ký tài khoản không thành công. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNextToStep3 = (e) => {
+  // =========================================================================
+  // STEP 2 HANDLERS: VERIFY OTP CODE & RESEND OTP
+  // =========================================================================
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setResendSuccessMsg('');
+
+    const cleanOtp = otpCode.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setErrorMessage('Vui lòng nhập đủ 6 chữ số mã xác thực OTP.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await authService.verifyCode({
+        email: email.trim().toLowerCase(),
+        otpCode: cleanOtp,
+      });
+
+      const token = data?.accessToken || data?.token;
+      const u = data?.user || {
+        name: fullName.trim() || email.split('@')[0],
+        email: email.trim().toLowerCase(),
+        role: 'user',
+        roleLabel: 'Thành viên',
+        status: 'active',
+        dietType,
+      };
+
+      setVerifiedToken(token);
+      setVerifiedUser(u);
+
+      // Đăng nhập chính thức vào AuthContext
+      login(u, token);
+
+      // Xóa cờ pending
+      localStorage.removeItem('pending_verify_email');
+      localStorage.removeItem('pending_verify_step');
+
+      // Chuyển sang Bước 3: Hồ sơ thể trạng BMI
+      setStep(3);
+    } catch (err) {
+      setErrorMessage(err.message || 'Mã xác thực OTP không chính xác hoặc đã hết hạn.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0 || loading) return;
+    setErrorMessage('');
+    setResendSuccessMsg('');
+    setLoading(true);
+
+    try {
+      const res = await authService.resendCode({
+        email: email.trim().toLowerCase(),
+      });
+      const nextCooldown = res?.resendAfterSeconds || 60;
+      setCountdown(nextCooldown);
+      setResendSuccessMsg(`✓ Đã gửi mã xác thực mới tới email ${email.trim().toLowerCase()}.`);
+      setOtpCode('');
+    } catch (err) {
+      setErrorMessage(err.message || 'Không thể gửi lại mã xác thực. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // =========================================================================
+  // STEP 3 HANDLER: BMI METRICS -> STEP 4
+  // =========================================================================
+  const handleNextToStep4 = (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -156,35 +295,19 @@ export default function RegisterPage({ onNavigate }) {
       return;
     }
 
-    setStep(3);
-    window.scrollTo(0, 0);
+    setStep(4);
   };
 
-  // FINAL SUBMISSION: REGISTER ACCOUNT + SAVE FULL BMI & ALLERGY PROFILE
-  const handleFinalSubmit = async (e) => {
+  // =========================================================================
+  // STEP 4 HANDLER: FINAL PROFILE SAVE & NAVIGATE TO PLANNER
+  // =========================================================================
+  const handleFinalProfileSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setLoading(true);
 
     try {
-      // 1. Tạo tài khoản người dùng trên Backend C#
-      const res = await authService.register({
-        email: email.trim().toLowerCase(),
-        password,
-        displayName: fullName.trim() || email.split('@')[0],
-      });
-
-      const token = res?.accessToken || res?.token;
-      const user = res?.user || {
-        name: fullName.trim() || email.split('@')[0],
-        email: email.trim().toLowerCase(),
-        role: 'user',
-        roleLabel: 'Thành viên',
-        dietType,
-        hasHealthProfile: true
-      };
-
-      // 2. Chuẩn bị hồ sơ sức khỏe & thể trạng hoàn chỉnh
+      // 1. Chuẩn bị hồ sơ sức khỏe & thể trạng hoàn chỉnh
       const finalProfile = {
         name: fullName.trim() || email.split('@')[0],
         gender,
@@ -203,7 +326,7 @@ export default function RegisterPage({ onNavigate }) {
         fatTarget: Math.round((estimatedTdee * 0.27) / 9)
       };
 
-      // 3. Cập nhật hồ sơ vào Context và CSDL
+      // 2. Cập nhật hồ sơ vào Context và LocalStorage
       try {
         localStorage.setItem('veggie_user_profile', JSON.stringify(finalProfile));
       } catch {}
@@ -212,7 +335,7 @@ export default function RegisterPage({ onNavigate }) {
         await veggieCtx.updateProfile(finalProfile);
       }
 
-      // Gửi lên backend nếu có token
+      // 3. Gửi hồ sơ lên máy chủ nếu có endpoint
       try {
         await healthProfileService.updateHealthProfile({
           gender,
@@ -224,18 +347,17 @@ export default function RegisterPage({ onNavigate }) {
           allergyIds: []
         });
       } catch (err) {
-        console.warn('Đã lưu hồ sơ cục bộ:', err.message);
+        console.warn('Lưu hồ sơ backend (nếu có):', err.message);
       }
 
       setRegisterSuccess(true);
 
       setTimeout(() => {
-        login(user, token);
         if (onNavigate) onNavigate('planner');
       }, 700);
 
     } catch (err) {
-      setErrorMessage(err.message || 'Đăng ký tài khoản không thành công. Vui lòng kiểm tra lại thông tin.');
+      setErrorMessage(err.message || 'Lưu hồ sơ thể trạng không thành công. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -255,34 +377,47 @@ export default function RegisterPage({ onNavigate }) {
             Đăng ký & Thiết lập hồ sơ dinh dưỡng
           </h1>
           <p className="text-xs text-olive max-w-md mx-auto">
-            Hồ sơ thể trạng và dị ứng là thông tin bắt buộc để AI cá nhân hóa thực đơn chính xác và an toàn cho bạn.
+            Quy trình 4 bước hoàn tất xác thực email và cá nhân hóa thực đơn theo chỉ số thể trạng riêng của bạn.
           </p>
 
-          {/* 3-STEP PROGRESS STEPPER */}
-          <div className="pt-2 flex items-center justify-center gap-2 sm:gap-4">
-            <div className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${step >= 1 ? 'text-forest' : 'text-slate-400'}`}>
+          {/* 4-STEP PROGRESS STEPPER */}
+          <div className="pt-2 flex items-center justify-center gap-1 sm:gap-2">
+            {/* Step 1 */}
+            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 1 ? 'text-forest' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 1 ? 'bg-forest text-white shadow-xs' : step > 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
                 {step > 1 ? '✓' : '1'}
               </span>
-              <span>Tài khoản</span>
+              <span className="hidden sm:inline">Tài khoản</span>
             </div>
 
-            <div className={`w-8 sm:w-12 h-0.5 rounded-full transition-colors ${step >= 2 ? 'bg-forest' : 'bg-slate-200'}`} />
+            <div className={`w-5 sm:w-8 h-0.5 rounded-full transition-colors ${step >= 2 ? 'bg-forest' : 'bg-slate-200'}`} />
 
-            <div className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${step >= 2 ? 'text-forest' : 'text-slate-400'}`}>
+            {/* Step 2 */}
+            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 2 ? 'text-forest' : 'text-slate-400'}`}>
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 2 ? 'bg-forest text-white shadow-xs' : step > 2 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
                 {step > 2 ? '✓' : '2'}
               </span>
-              <span>Thể trạng BMI</span>
+              <span className="hidden sm:inline">Xác thực OTP</span>
             </div>
 
-            <div className={`w-8 sm:w-12 h-0.5 rounded-full transition-colors ${step >= 3 ? 'bg-forest' : 'bg-slate-200'}`} />
+            <div className={`w-5 sm:w-8 h-0.5 rounded-full transition-colors ${step >= 3 ? 'bg-forest' : 'bg-slate-200'}`} />
 
-            <div className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${step >= 3 ? 'text-forest' : 'text-slate-400'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 3 ? 'bg-forest text-white shadow-xs' : 'bg-slate-100 text-slate-500'}`}>
-                3
+            {/* Step 3 */}
+            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 3 ? 'text-forest' : 'text-slate-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 3 ? 'bg-forest text-white shadow-xs' : step > 3 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                {step > 3 ? '✓' : '3'}
               </span>
-              <span>Chế độ & Dị ứng</span>
+              <span className="hidden sm:inline">Thể trạng BMI</span>
+            </div>
+
+            <div className={`w-5 sm:w-8 h-0.5 rounded-full transition-colors ${step >= 4 ? 'bg-forest' : 'bg-slate-200'}`} />
+
+            {/* Step 4 */}
+            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 4 ? 'text-forest' : 'text-slate-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 4 ? 'bg-forest text-white shadow-xs' : 'bg-slate-100 text-slate-500'}`}>
+                4
+              </span>
+              <span className="hidden sm:inline">Chế độ & Dị ứng</span>
             </div>
           </div>
         </div>
@@ -295,117 +430,261 @@ export default function RegisterPage({ onNavigate }) {
           </div>
         )}
 
-        {/* Success Alert */}
+        {/* Resend Success Note */}
+        {resendSuccessMsg && (
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{resendSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* Final Registration Success Alert */}
         {registerSuccess && (
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-3 animate-in zoom-in-95">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
-              <div className="font-bold text-sm">Tạo tài khoản và kích hoạt hồ sơ thành công!</div>
-              <div className="text-emerald-700 font-normal mt-0.5">Hệ thống đang chuyển hướng bạn tới Thực đơn tuần cá nhân hóa...</div>
+              <p className="font-bold text-sm">Hồ sơ đã hoàn tất thành công!</p>
+              <p className="text-emerald-700 font-normal mt-0.5">
+                AI đang khởi tạo thực đơn tuần chuẩn dinh dưỡng theo chỉ số BMI của bạn...
+              </p>
             </div>
           </div>
         )}
 
-        {/* ================= STEP 1: ACCOUNT CREDENTIALS ================= */}
+        {/* ====================================================================
+            BƯỚC 1: THÔNG TIN TÀI KHOẢN (GỬI OTP EMAIL)
+        ==================================================================== */}
         {step === 1 && (
-          <form onSubmit={handleNextToStep2} className="space-y-4 animate-in fade-in duration-200">
+          <form onSubmit={handleRegisterStep1} className="space-y-4 animate-in fade-in duration-200">
+            <div className="border-b border-hairline pb-2 mb-3">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                Bước 1 / 4
+              </span>
+              <h2 className="text-base font-bold text-forest">Thông tin đăng nhập ban đầu</h2>
+            </div>
+
+            {/* Họ và tên */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-forest">
-                Họ và tên của bạn <span className="text-rose-500">*</span>
+              <label className="text-xs font-semibold text-forest flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-olive" />
+                <span>Họ và tên</span>
               </label>
-              <div className="relative flex items-center">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Ví dụ: Hoàng Nam"
+                className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-forest flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-olive" />
+                <span>Địa chỉ Email <strong className="text-rose-500">*</strong></span>
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition"
+              />
+              <span className="text-[11px] text-olive block">
+                * Mã OTP 6 chữ số sẽ được gửi về hộp thư này để kích hoạt tài khoản.
+              </span>
+            </div>
+
+            {/* Mật khẩu */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-forest flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-olive" />
+                <span>Mật khẩu <strong className="text-rose-500">*</strong></span>
+              </label>
+              <div className="relative">
                 <input
-                  type="text"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Mai Anh"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Tối thiểu 6 ký tự"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition pr-10"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-olive hover:text-forest transition cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
+            {/* Xác nhận Mật khẩu */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-forest">
-                Địa chỉ Email <span className="text-rose-500">*</span>
+              <label className="text-xs font-semibold text-forest flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-olive" />
+                <span>Xác nhận mật khẩu <strong className="text-rose-500">*</strong></span>
               </label>
-              <div className="relative flex items-center">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+              <div className="relative">
                 <input
-                  type="email"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu phía trên"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition pr-10"
                 />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-forest">
-                  Mật khẩu (tối thiểu 6 ký tự) <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative flex items-center">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 transition"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-forest">
-                  Xác nhận mật khẩu <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative flex items-center">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 transition"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-olive hover:text-forest transition cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-2"
+              disabled={loading}
+              className={`w-full py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-4 ${
+                loading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              <span>Tiếp tục: Điền chỉ số thể trạng BMI</span>
+              <span>{loading ? 'Đang gửi mã OTP...' : 'Tiếp tục: Nhận mã xác thực qua Email'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+
+            <div className="text-center pt-2">
+              <span className="text-xs text-olive">Đã có tài khoản? </span>
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('login')}
+                className="text-xs font-bold text-forest hover:underline cursor-pointer"
+              >
+                Đăng nhập ngay
+              </button>
+            </div>
           </form>
         )}
 
-        {/* ================= STEP 2: BMI & PHYSICAL METRICS ================= */}
+        {/* ====================================================================
+            BƯỚC 2: XÁC THỰC EMAIL QUA MÃ OTP 6 SỐ
+        ==================================================================== */}
         {step === 2 && (
-          <form onSubmit={handleNextToStep3} className="space-y-5 animate-in fade-in duration-200">
+          <form onSubmit={handleVerifyOtp} className="space-y-5 animate-in fade-in duration-200">
+            <div className="border-b border-hairline pb-2 mb-2">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                Bước 2 / 4
+              </span>
+              <h2 className="text-base font-bold text-forest">Xác thực tài khoản qua Email</h2>
+            </div>
+
+            {/* Email destination reminder */}
+            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-forest flex items-center justify-center shrink-0">
+                <Mail className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-forest leading-relaxed">
+                  Mã xác thực 6 số đã được gửi tới:
+                </p>
+                <p className="text-sm font-bold text-forest font-mono">
+                  {email || 'email của bạn'}
+                </p>
+                <p className="text-[11px] text-olive leading-relaxed pt-0.5">
+                  Vui lòng kiểm tra hộp thư đến (hoặc hòm thư Spam/Rác) và nhập 6 chữ số vào bên dưới.
+                </p>
+              </div>
+            </div>
+
+            {/* OTP Input Box */}
+            <div className="space-y-2 text-center py-2">
+              <label className="text-xs font-semibold text-forest block">
+                Nhập mã OTP 6 số:
+              </label>
+              <input
+                ref={otpInputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="\d*"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setOtpCode(val);
+                }}
+                placeholder="••••••"
+                className="w-full max-w-[280px] mx-auto py-3 px-4 rounded-2xl border-2 border-hairline text-2xl sm:text-3xl font-mono font-black text-center tracking-[0.45em] text-forest placeholder-slate-300 outline-none focus:border-emeraldBotanic focus:ring-2 focus:ring-emerald-200 bg-slate-50 transition"
+              />
+              <span className="text-[11px] text-olive block">
+                Mã có hiệu lực trong 5 phút
+              </span>
+            </div>
+
+            {/* Cooldown Timer & Resend Button */}
+            <div className="p-3 rounded-2xl bg-slate-50 border border-hairline flex items-center justify-between gap-3 text-xs">
+              <span className="text-olive">Chưa nhận được mã?</span>
+              {countdown > 0 ? (
+                <span className="text-olive font-semibold font-mono">
+                  Gửi lại sau <strong className="text-forest">{countdown}s</strong>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={loading}
+                  className="text-xs font-bold text-forest hover:text-emerald-700 underline transition cursor-pointer flex items-center gap-1"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Gửi lại mã OTP</span>
+                </button>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  setErrorMessage('');
+                }}
+                className="py-3 px-4 rounded-2xl border border-hairline text-xs font-semibold text-olive hover:bg-slate-100 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Sửa email</span>
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading || otpCode.length !== 6}
+                className={`flex-1 py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 ${
+                  loading || otpCode.length !== 6 ? 'opacity-60 cursor-not-allowed' : ''
+                }`}
+              >
+                <span>{loading ? 'Đang xác thực...' : 'Xác thực & Tiếp tục'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ====================================================================
+            BƯỚC 3: CHỈ SỐ THỂ TRẠNG BMI & MỤC TIÊU CALO
+        ==================================================================== */}
+        {step === 3 && (
+          <form onSubmit={handleNextToStep4} className="space-y-5 animate-in fade-in duration-200">
+            <div className="border-b border-hairline pb-2 mb-2">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                Bước 3 / 4
+              </span>
+              <h2 className="text-base font-bold text-forest">Thông số thể trạng & Nhu cầu năng lượng</h2>
+            </div>
+
             {/* LIVE BMI PREVIEW CARD */}
             <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between gap-3">
               <div>
@@ -426,95 +705,117 @@ export default function RegisterPage({ onNavigate }) {
               </div>
             </div>
 
+            {/* Giới tính */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-forest block">Giới tính sinh học</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGender('female')}
+                  className={`py-2 px-3 rounded-2xl text-xs font-semibold border transition cursor-pointer flex items-center justify-center gap-2 ${
+                    gender === 'female' 
+                      ? 'bg-forest text-white border-forest shadow-xs' 
+                      : 'bg-slate-50 border-hairline text-olive hover:bg-slate-100'
+                  }`}
+                >
+                  <span>Nữ giới</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGender('male')}
+                  className={`py-2 px-3 rounded-2xl text-xs font-semibold border transition cursor-pointer flex items-center justify-center gap-2 ${
+                    gender === 'male' 
+                      ? 'bg-forest text-white border-forest shadow-xs' 
+                      : 'bg-slate-50 border-hairline text-olive hover:bg-slate-100'
+                  }`}
+                >
+                  <span>Nam giới</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Chiều cao & Cân nặng */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-forest block mb-1">Giới tính sinh học</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setGender('female')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      gender === 'female' ? 'bg-forest text-white border-forest' : 'bg-slate-50 border-hairline text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>Nữ giới</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGender('male')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                      gender === 'male' ? 'bg-forest text-white border-forest' : 'bg-slate-50 border-hairline text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>Nam giới</span>
-                  </button>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-forest">Chiều cao</label>
+                  <span className="font-mono text-xs font-bold text-forest">{heightCm} cm</span>
+                </div>
+                <input
+                  type="range"
+                  min="130"
+                  max="210"
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(Number(e.target.value))}
+                  className="w-full accent-emeraldBotanic cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-olive font-mono">
+                  <span>130cm</span>
+                  <span>170cm</span>
+                  <span>210cm</span>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-forest block mb-1">Mục tiêu thể trạng</label>
-                <select
-                  value={healthGoal}
-                  onChange={(e) => setHealthGoal(e.target.value)}
-                  className="w-full py-2 px-3 rounded-xl border border-hairline text-xs font-semibold text-forest bg-slate-50 focus:outline-none focus:ring-1 focus:ring-emeraldBotanic"
-                >
-                  <option value="loss">Giảm mỡ & Giảm cân</option>
-                  <option value="maintain">Duy trì cân nặng & Cân bằng</option>
-                  <option value="gain">Tăng cân & Tăng cơ nạc</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-forest flex items-center justify-between">
-                  <span>Chiều cao (cm)</span>
-                  <span className="font-mono text-emerald-700 font-bold">{heightCm} cm</span>
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-forest">Cân nặng</label>
+                  <span className="font-mono text-xs font-bold text-forest">{weightKg} kg</span>
+                </div>
                 <input
-                  type="number"
-                  min="100"
-                  max="230"
-                  required
-                  value={heightCm}
-                  onChange={(e) => setHeightCm(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest font-semibold bg-alabaster/30 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-forest flex items-center justify-between">
-                  <span>Cân nặng (kg)</span>
-                  <span className="font-mono text-emerald-700 font-bold">{weightKg} kg</span>
-                </label>
-                <input
-                  type="number"
-                  min="30"
-                  max="200"
-                  required
+                  type="range"
+                  min="35"
+                  max="130"
                   value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest font-semibold bg-alabaster/30 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic"
+                  onChange={(e) => setWeightKg(Number(e.target.value))}
+                  className="w-full accent-emeraldBotanic cursor-pointer"
                 />
+                <div className="flex justify-between text-[10px] text-olive font-mono">
+                  <span>35kg</span>
+                  <span>80kg</span>
+                  <span>130kg</span>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-forest block mb-1.5">Tần suất vận động thể chất</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {activityOptions.map((act) => (
+            {/* Mức độ vận động */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-forest block">Mức độ vận động hàng tuần</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {activityOptions.map((opt) => (
                   <button
-                    key={act.id}
+                    key={opt.id}
                     type="button"
-                    onClick={() => setActivityLevel(act.id)}
-                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
-                      activityLevel === act.id
-                        ? 'bg-emerald-50 border-emeraldBotanic text-forest font-bold ring-1 ring-emeraldBotanic'
-                        : 'bg-white border-hairline text-slate-600 hover:bg-slate-50'
+                    onClick={() => setActivityLevel(opt.id)}
+                    className={`p-2.5 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      activityLevel === opt.id
+                        ? 'border-emeraldBotanic bg-emerald-50/50 text-forest shadow-xs'
+                        : 'border-hairline bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    <span className="text-xs">{act.label}</span>
-                    <span className="text-[10px] text-olive font-normal mt-0.5">{act.desc}</span>
+                    <span className="text-xs font-bold block">{opt.label}</span>
+                    <span className="text-[10px] text-olive block mt-0.5 leading-tight">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mục tiêu sức khỏe */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-forest block">Mục tiêu dinh dưỡng</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {goalOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setHealthGoal(opt.id)}
+                    className={`p-2.5 rounded-2xl border text-left transition cursor-pointer ${
+                      healthGoal === opt.id
+                        ? 'border-emeraldBotanic bg-emerald-50/50 text-forest shadow-xs'
+                        : 'border-hairline bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">{opt.label}</span>
+                    <span className="text-[10px] text-olive block mt-0.5">{opt.desc}</span>
                   </button>
                 ))}
               </div>
@@ -522,88 +823,90 @@ export default function RegisterPage({ onNavigate }) {
 
             <div className="flex items-center gap-3 pt-2">
               <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-1/3 py-2.5 rounded-2xl border border-hairline text-slate-600 text-xs font-semibold hover:bg-slate-100 transition cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Quay lại</span>
-              </button>
-              <button
                 type="submit"
-                className="w-2/3 py-2.5 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
               >
-                <span>Tiếp tục: Dị ứng & Chế độ ăn</span>
+                <span>Tiếp tục: Chế độ ăn & Dị ứng</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </form>
         )}
 
-        {/* ================= STEP 3: DIET & ALLERGIES ================= */}
-        {step === 3 && (
-          <form onSubmit={handleFinalSubmit} className="space-y-5 animate-in fade-in duration-200">
-            {/* Chế độ ăn chay */}
+        {/* ====================================================================
+            BƯỚC 4: CHẾ ĐỘ ĂN & KHAI BÁO DỊ ỨNG (HOÀN TẤT)
+        ==================================================================== */}
+        {step === 4 && (
+          <form onSubmit={handleFinalProfileSubmit} className="space-y-5 animate-in fade-in duration-200">
+            <div className="border-b border-hairline pb-2 mb-2">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                Bước 4 / 4
+              </span>
+              <h2 className="text-base font-bold text-forest">Chế độ ăn & Khai báo dị ứng</h2>
+            </div>
+
+            {/* Loại chế độ ăn chay */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-forest flex items-center justify-between">
-                <span>Chế độ ăn thực dưỡng bạn hướng tới</span>
-                <span className="text-[11px] text-emerald-700 font-bold">Chọn 1 chế độ</span>
+              <label className="text-xs font-semibold text-forest block">
+                Chọn hình thức ăn thuần thực vật phù hợp với bạn:
               </label>
               <div className="space-y-2">
-                {dietOptions.map((opt) => (
-                  <div
-                    key={opt.id}
-                    onClick={() => setDietType(opt.id)}
-                    className={`p-3 rounded-2xl border text-left transition cursor-pointer flex items-start gap-3 ${
-                      dietType === opt.id
-                        ? 'bg-emerald-50/80 border-emeraldBotanic ring-1 ring-emeraldBotanic text-forest'
-                        : 'bg-white border-hairline text-slate-700 hover:bg-slate-50'
+                {dietOptions.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setDietType(d.id)}
+                    className={`w-full p-3 rounded-2xl border text-left transition cursor-pointer flex items-center justify-between ${
+                      dietType === d.id
+                        ? 'border-emeraldBotanic bg-emerald-50/60 shadow-xs'
+                        : 'border-hairline bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center ${
-                      dietType === opt.id ? 'border-emeraldBotanic bg-emeraldBotanic text-white' : 'border-slate-300'
-                    }`}>
-                      {dietType === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
                     <div>
-                      <div className="text-xs font-bold text-forest">{opt.label}</div>
-                      <div className="text-[11px] text-olive mt-0.5 leading-snug">{opt.desc}</div>
+                      <span className="text-xs font-bold text-forest block">{d.label}</span>
+                      <span className="text-[11px] text-olive block mt-0.5">{d.desc}</span>
                     </div>
-                  </div>
+                    {dietType === d.id && (
+                      <span className="w-5 h-5 rounded-full bg-forest text-white flex items-center justify-center text-xs shrink-0 ml-2">
+                        ✓
+                      </span>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Dị ứng thực phẩm */}
+            {/* Dị ứng thực phẩm (Allergen Guard) */}
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-forest">
-                  Dị ứng thực phẩm cần loại trừ
+                  Khai báo chất gây dị ứng (Allergen Guard)
                 </label>
-                <span className="text-[11px] text-olive font-mono">
-                  Đã chọn: {selectedAllergies.length}
-                </span>
+                <span className="text-[10px] text-rose-600 font-bold">AI sẽ loại trừ 100%</span>
               </div>
-              <p className="text-[11px] text-olive leading-relaxed">
-                AI sẽ tự động loại trừ các nguyên liệu này trong tất cả gợi ý thực đơn và công thức món ăn của bạn.
+              <p className="text-[11px] text-olive">
+                Chọn các nguyên liệu khiến bạn bị dị ứng hoặc đầy bụng để hệ thống không bao giờ gợi ý trong thực đơn:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                {allergyOptions.map((alg) => {
-                  const isChecked = selectedAllergies.includes(alg.id);
+                {allergyOptions.map((item) => {
+                  const isChecked = selectedAllergies.includes(item.id);
                   return (
                     <button
-                      key={alg.id}
+                      key={item.id}
                       type="button"
-                      onClick={() => toggleAllergy(alg.id)}
-                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex items-center gap-2 ${
+                      onClick={() => toggleAllergy(item.id)}
+                      className={`p-2.5 rounded-2xl border text-left transition cursor-pointer flex items-center justify-between gap-2 ${
                         isChecked
                           ? 'bg-rose-50 border-rose-300 text-rose-800 font-bold shadow-xs'
-                          : 'bg-slate-50 border-hairline text-slate-600 hover:bg-slate-100'
+                          : 'bg-slate-50 border-hairline text-slate-700 hover:bg-slate-100'
                       }`}
                     >
-                      <span className="text-base">{alg.icon}</span>
-                      <span className="text-xs truncate">{alg.label}</span>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span>{item.icon}</span>
+                        <span className="text-xs truncate">{item.label}</span>
+                      </div>
+                      {isChecked && <span className="text-rose-600 text-xs">✓</span>}
                     </button>
                   );
                 })}
@@ -666,36 +969,27 @@ export default function RegisterPage({ onNavigate }) {
             <div className="flex items-center gap-3 pt-3">
               <button
                 type="button"
-                onClick={() => setStep(2)}
-                disabled={loading || registerSuccess}
-                className="w-1/3 py-3 rounded-2xl border border-hairline text-slate-600 text-xs font-semibold hover:bg-slate-100 transition cursor-pointer flex items-center justify-center gap-1.5"
+                onClick={() => setStep(3)}
+                className="py-3 px-4 rounded-2xl border border-hairline text-xs font-semibold text-olive hover:bg-slate-100 transition cursor-pointer flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay lại</span>
               </button>
+
               <button
                 type="submit"
                 disabled={loading || registerSuccess}
-                className="w-2/3 py-3 rounded-2xl bg-forest hover:bg-forestDark disabled:opacity-60 text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                className={`flex-1 py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 ${
+                  loading || registerSuccess ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                <span>{loading ? 'Đang kích hoạt tài khoản...' : 'Hoàn tất & Khởi tạo thực đơn'}</span>
-                <CheckCircle2 className="w-4 h-4" />
+                <span>{loading ? 'Đang lưu hồ sơ...' : 'Hoàn tất hồ sơ & Lập thực đơn'}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </form>
         )}
 
-        {/* Login CTA */}
-        <div className="text-center text-xs text-olive pt-2 border-t border-hairline/60">
-          <span>Đã có tài khoản? </span>
-          <button
-            type="button"
-            onClick={() => onNavigate && onNavigate('login')}
-            className="font-bold text-forest hover:text-emeraldBotanic transition cursor-pointer"
-          >
-            Đăng nhập ngay
-          </button>
-        </div>
       </div>
     </div>
   );
