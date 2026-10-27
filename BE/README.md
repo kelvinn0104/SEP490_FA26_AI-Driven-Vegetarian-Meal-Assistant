@@ -87,7 +87,7 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 
 ### 1. Xác thực & Phân quyền (`/api/auth`)
 - `POST /api/auth/login`: Đăng nhập (trả về JWT Token & thông tin người dùng)
-- `POST /api/auth/register`: Đăng ký tài khoản (hỗ trợ mã mời `VEGGIE_ADMIN_2026` / `VEGGIE_MOD_2026`)
+- `POST /api/auth/register`: Đăng ký tài khoản. Mặc định role `user`; đăng ký `admin`/`moderator` cần mã mời cấu hình qua biến môi trường `Auth__AdminInviteCodes` / `Auth__ModeratorInviteCodes` (nhiều mã cách nhau dấu phẩy)
 - `POST /api/auth/logout`: Đăng xuất
 - `GET /api/auth/me`: Lấy thông tin user hiện tại qua JWT Bearer
 

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
@@ -7,6 +8,7 @@ namespace VeggieAI.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class LogsController : ControllerBase
 {
     private readonly ISystemLogService _logService;
@@ -17,6 +19,7 @@ public class LogsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<List<SystemLogDto>>>> GetLogs(
         [FromQuery] string? type,
         [FromQuery] string? search,
