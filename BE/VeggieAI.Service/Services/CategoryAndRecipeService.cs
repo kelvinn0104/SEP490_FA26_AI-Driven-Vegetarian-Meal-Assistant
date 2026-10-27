@@ -129,6 +129,9 @@ public interface IRecipeService
     Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId, string? creatorRole);
     Task<bool> UpdateRecipeStatusAsync(string id, string status, int verifierId);
     Task<bool> DeleteRecipeAsync(string id);
+    Task<PagedResult<RecipeDto>> GetFavoritesAsync(int userId, int page, int pageSize);
+    Task AddFavoriteAsync(int userId, string recipeId);
+    Task RemoveFavoriteAsync(int userId, string recipeId);
 }
 
 public class RecipeService : IRecipeService
@@ -150,7 +153,7 @@ public class RecipeService : IRecipeService
     {
         var intId = ParseRecipeId(id);
         var r = await _unitOfWork.Recipes.GetRecipeDetailAsync(intId);
-        return r == null ? null : MapRecipeToDto(r);
+        return r == null ? null : MapRecipeToDto(r, includeIngredients: true);
     }
 
     private static readonly HashSet<string> AllowedStatuses = new(StringComparer.Ordinal)
@@ -232,7 +235,7 @@ public class RecipeService : IRecipeService
         await _unitOfWork.CommitAsync();
 
         var created = await _unitOfWork.Recipes.GetRecipeDetailAsync(recipe.Id);
-        return MapRecipeToDto(created ?? recipe);
+        return MapRecipeToDto(created ?? recipe, includeIngredients: true);
     }
 
     public async Task<bool> UpdateRecipeStatusAsync(string id, string status, int verifierId)
@@ -283,7 +286,65 @@ public class RecipeService : IRecipeService
         }
     }
 
-    private static RecipeDto MapRecipeToDto(Recipe r)
+    // ---------------- Favorites ----------------
+
+    public async Task<PagedResult<RecipeDto>> GetFavoritesAsync(int userId, int page, int pageSize)
+    {
+        page = Math.Max(1, page);
+        pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
+        var db = _unitOfWork.Context;
+
+        var baseQuery = db.Favorites.AsNoTracking().Where(f => f.UserId == userId);
+        var total = await baseQuery.CountAsync();
+        var ids = await baseQuery
+            .OrderByDescending(f => f.CreatedAt)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(f => f.RecipeId)
+            .ToListAsync();
+
+        var recipes = await db.Recipes.AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.Creator)
+            .Where(r => ids.Contains(r.Id))
+            .ToListAsync();
+
+        return new PagedResult<RecipeDto>
+        {
+            Items = ids.Select(id => recipes.FirstOrDefault(r => r.Id == id))
+                .Where(r => r != null)
+                .Select(r => MapRecipeToDto(r!))
+                .ToList(),
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task AddFavoriteAsync(int userId, string recipeId)
+    {
+        var id = ParseRecipeId(recipeId);
+        var db = _unitOfWork.Context;
+        if (!await db.Recipes.AnyAsync(r => r.Id == id && r.Status == "published"))
+            throw AppException.NotFound("Công thức");
+        if (await db.Favorites.AnyAsync(f => f.UserId == userId && f.RecipeId == id)) return; // idempotent
+
+        db.Favorites.Add(new Favorite { UserId = userId, RecipeId = id, CreatedAt = DateTime.UtcNow });
+        await _unitOfWork.CommitAsync();
+    }
+
+    public async Task RemoveFavoriteAsync(int userId, string recipeId)
+    {
+        var id = ParseRecipeId(recipeId);
+        var db = _unitOfWork.Context;
+        var fav = await db.Favorites.FirstOrDefaultAsync(f => f.UserId == userId && f.RecipeId == id);
+        if (fav == null) return; // idempotent
+        db.Favorites.Remove(fav);
+        await _unitOfWork.CommitAsync();
+    }
+
+    private static RecipeDto MapRecipeToDto(Recipe r) => MapRecipeToDto(r, includeIngredients: false);
+
+    private static RecipeDto MapRecipeToDto(Recipe r, bool includeIngredients)
     {
         return new RecipeDto
         {
@@ -301,7 +362,22 @@ public class RecipeService : IRecipeService
             ProteinG = r.ProteinG,
             CarbG = r.CarbG,
             FatG = r.FatG,
-            Instructions = r.Instructions
+            IronMg = r.IronMg,
+            B12Mcg = r.B12Mcg,
+            CalciumMg = r.CalciumMg,
+            ZincMg = r.ZincMg,
+            Instructions = r.Instructions,
+            Ingredients = includeIngredients
+                ? r.RecipeIngredients
+                    .OrderByDescending(ri => ri.QuantityG)
+                    .Select(ri => new RecipeIngredientDto
+                    {
+                        IngredientId = ri.IngredientId,
+                        Name = ri.Ingredient?.Name ?? string.Empty,
+                        QuantityG = ri.QuantityG
+                    })
+                    .ToList()
+                : null
         };
     }
 

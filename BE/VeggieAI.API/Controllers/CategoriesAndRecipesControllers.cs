@@ -68,9 +68,41 @@ public class RecipesController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] int? categoryId)
     {
+        // Khách/người dùng thường chỉ xem công thức đã duyệt; admin/mod xem được mọi trạng thái
+        if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
         var result = await _recipeService.GetRecipesAsync(search, status, categoryId);
         return Ok(ApiResponse<List<RecipeDto>>.Ok(result));
     }
+
+    /// <summary>Danh sách công thức người dùng đã lưu yêu thích.</summary>
+    [HttpGet("favorites")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<PagedResult<RecipeDto>>>> GetFavorites([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var result = await _recipeService.GetFavoritesAsync(CurrentUserId(), page, pageSize);
+        return Ok(ApiResponse<PagedResult<RecipeDto>>.Ok(result));
+    }
+
+    [HttpPost("{id}/favorite")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> AddFavorite(string id)
+    {
+        await _recipeService.AddFavoriteAsync(CurrentUserId(), id);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã thêm vào yêu thích"));
+    }
+
+    [HttpDelete("{id}/favorite")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> RemoveFavorite(string id)
+    {
+        await _recipeService.RemoveFavoriteAsync(CurrentUserId(), id);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã bỏ khỏi yêu thích"));
+    }
+
+    private int CurrentUserId() =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+            ? id
+            : throw AppException.Unauthorized("Bạn cần đăng nhập.");
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RecipeDto>>> GetRecipeById(string id)

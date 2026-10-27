@@ -50,7 +50,22 @@ public class RecipeDto
     public decimal ProteinG { get; set; }
     public decimal CarbG { get; set; }
     public decimal FatG { get; set; }
+    public decimal IronMg { get; set; }
+    public decimal B12Mcg { get; set; }
+    public decimal CalciumMg { get; set; }
+    public decimal ZincMg { get; set; }
     public string? Instructions { get; set; }
+
+    /// <summary>Chỉ trả ở GET /api/recipes/{id} (null ở danh sách).</summary>
+    public List<RecipeIngredientDto>? Ingredients { get; set; }
+}
+
+public class RecipeIngredientDto
+{
+    public int IngredientId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Khối lượng cho cả công thức (ứng với Servings khẩu phần).</summary>
+    public decimal QuantityG { get; set; }
 }
 
 public class CreateRecipeRequest

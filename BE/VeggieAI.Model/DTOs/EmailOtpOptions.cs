@@ -10,6 +10,16 @@ public class EmailOptions
     public const string Section = "Email";
 
     public bool Enabled { get; set; } = false;
+
+    /// <summary>
+    /// "smtp" (mặc định) | "brevo" | "resend". Brevo/Resend gửi qua HTTPS API (cổng 443) — dùng khi host
+    /// (vd. Render gói free) chặn cổng SMTP 25/465/587. Cần ApiKey + FromEmail đã xác minh ở nhà cung cấp.
+    /// </summary>
+    public string Provider { get; set; } = "smtp";
+
+    /// <summary>API key của Brevo/Resend (biến môi trường Email__ApiKey).</summary>
+    public string? ApiKey { get; set; }
+
     public string Host { get; set; } = "smtp.gmail.com";
     public int Port { get; set; } = 587;
     public bool EnableSsl { get; set; } = true;

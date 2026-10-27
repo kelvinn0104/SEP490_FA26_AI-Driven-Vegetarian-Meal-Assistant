@@ -87,6 +87,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISystemLogService, SystemLogService>();
 builder.Services.AddScoped<IHealthProfileService, HealthProfileService>();
+builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 
 // AI services (Gemini/OpenAI)
 builder.Services.Configure<VeggieAI.Model.DTOs.AiOptions>(

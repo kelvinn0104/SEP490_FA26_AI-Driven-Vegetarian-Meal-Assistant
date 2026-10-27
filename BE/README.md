@@ -138,3 +138,28 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 - `GET /api/roles/permissions`: Danh sách tất cả quyền hạn hệ thống
 - `POST /api/roles`: Tạo vai trò mới
 - `PUT /api/roles/{id}`: Cập nhật quyền hạn cho vai trò
+
+### 9. Hồ sơ sức khỏe & dị ứng (`/api/health-profile`, `/api/allergies`) 🔒
+- `GET /api/health-profile`: Hồ sơ của user đang đăng nhập (404 nếu chưa tạo)
+- `PUT /api/health-profile`: Tạo/cập nhật hồ sơ, tự tính BMI/BMR/TDEE + mục tiêu dinh dưỡng/ngày
+- `POST /api/health-profile/preview`: Tính thử, không lưu (không cần token)
+- `GET|PUT /api/health-profile/allergies`: Dị ứng của user (`{ allergyIds: [1,3] }`)
+- `GET /api/allergies`: Danh mục dị ứng (không cần token)
+
+### 10. Thực đơn đã lưu & đi chợ (`/api/meal-plans`) 🔒
+- `POST /api/meal-plans/ai/generate` (alias `/api/meal-plans/generate`), `POST /api/meal-plans/ai/{planId}/items/{itemId}/swap` (alias `/api/meal-plans/{planId}/items/{itemId}/swap`)
+- `GET /api/meal-plans/current` (204 nếu chưa có thực đơn active), `GET /api/meal-plans?status=&page=&pageSize=`, `GET /api/meal-plans/{id}`
+- `PATCH /api/meal-plans/{id}/status` `{ status: "active" }`, `DELETE /api/meal-plans/{id}`
+- `POST|GET /api/meal-plans/{planId}/shopping-list`, `PATCH /api/meal-plans/{planId}/shopping-list/items/{itemId}` `{ isBought: true }`
+
+### 11. Yêu thích (`/api/recipes`) 🔒
+- `GET /api/recipes/favorites?page=&pageSize=`, `POST /api/recipes/{id}/favorite`, `DELETE /api/recipes/{id}/favorite`
+
+### Phân quyền
+- `admin`: Users, Roles, Logs (GET), đổi trạng thái model AI.
+- `admin` + `moderator`: Moderation, Dashboard, Ai, ghi Categories, đổi trạng thái/xóa Recipes.
+- Đăng nhập (mọi role): tạo Recipe (user → `pending_verification`), hồ sơ sức khỏe, thực đơn, yêu thích, scan, chat.
+
+### Email OTP
+- `Email__Provider=smtp|brevo|resend`. Render gói free có thể chặn cổng SMTP → dùng `brevo`/`resend` (HTTPS) với `Email__ApiKey`, `Email__FromEmail` (đã xác minh), `Email__Enabled=true`.
+- Demo không có email: để `Email__Enabled=false` (OTP in ra log) hoặc `Otp__ExposeOtpInResponse=true` (chỉ dùng khi demo).
