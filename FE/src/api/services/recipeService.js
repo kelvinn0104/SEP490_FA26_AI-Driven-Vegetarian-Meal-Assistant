@@ -88,6 +88,51 @@ export const recipeService = {
     const raw = await apiRequest(`/categories?type=${encodeURIComponent(type)}`);
     return unwrap(raw) || [];
   },
+
+  /**
+   * Tạo công thức / bài viết nấu ăn mới
+   * @param {{ title: string, categoryId: number, instructions: string, imageUrl?: string, servings?: number, ingredients?: any[] }} data
+   */
+  createRecipe: async (data) => {
+    const raw = await apiRequest('/recipes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(raw);
+  },
+
+  /**
+   * Cập nhật trạng thái công thức (published, draft, pending_verification, hidden)
+   */
+  updateRecipeStatus: async (id, status) => {
+    const raw = await apiRequest(`/recipes/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+    return unwrap(raw);
+  },
+
+  /**
+   * Xóa công thức
+   */
+  deleteRecipe: async (id) => {
+    const raw = await apiRequest(`/recipes/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(raw);
+  },
+
+  /**
+   * Phân tích Macro dinh dưỡng & kiểm tra dị ứng thuần chay bằng AI (Gemini)
+   * @param {string} recipeText
+   */
+  parseMacros: async (recipeText) => {
+    const raw = await apiRequest('/ai/recipe/parse-macros', {
+      method: 'POST',
+      body: JSON.stringify({ recipeText }),
+    });
+    return unwrap(raw);
+  },
 };
 
 export default recipeService;
