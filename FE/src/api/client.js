@@ -89,8 +89,8 @@ export async function apiRequest(endpoint, options = {}) {
     ...options.headers,
   };
 
-  // Configure timeout controller (100 seconds for AI operations & cold starts)
-  const timeoutMs = options.timeout || 100000;
+  // Configure timeout controller (150 seconds for AI operations & cold starts)
+  const timeoutMs = options.timeout || 150000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -148,7 +148,8 @@ export async function apiRequest(endpoint, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      const timeoutErr = new Error('Quá thời gian phản hồi từ máy chủ (Timeout 60s).');
+      const timeoutSec = Math.round(timeoutMs / 1000);
+      const timeoutErr = new Error(`Quá thời gian phản hồi từ máy chủ (${timeoutSec}s). Hệ thống AI đang xử lý khối lượng lớn hoặc máy chủ khởi động chậm, vui lòng thử lại.`);
       timeoutErr.status = 408;
       throw timeoutErr;
     }

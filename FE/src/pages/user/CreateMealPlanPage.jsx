@@ -181,9 +181,8 @@ export default function CreateMealPlanPage({ onNavigate }) {
     setIsGenerating(true);
     setGenerationStep(1);
 
-    const t1 = setTimeout(() => setGenerationStep(2), 600);
-    const t2 = setTimeout(() => setGenerationStep(3), 1200);
-    const t3 = setTimeout(() => setGenerationStep(4), 1800);
+    const t1 = setTimeout(() => setGenerationStep(2), 3000);
+    const t2 = setTimeout(() => setGenerationStep(3), 8000);
 
     try {
       if (generateAiMealPlan) {
@@ -195,19 +194,20 @@ export default function CreateMealPlanPage({ onNavigate }) {
           note: noteStr
         });
       }
-    } catch (err) {
-      console.warn('Backend AI Meal Plan generation failed, falling back:', err);
-    } finally {
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
       setGenerationStep(4);
+    } catch (err) {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      console.warn('Backend AI Meal Plan generation failed, falling back:', err);
+    } finally {
       setTimeout(() => {
         setIsGenerating(false);
         if (onNavigate) {
           onNavigate('planner');
         }
-      }, 500);
+      }, 700);
     }
   };
 
@@ -1797,6 +1797,19 @@ export default function CreateMealPlanPage({ onNavigate }) {
                   <span>{item.text}</span>
                 </div>
               ))}
+            </div>
+
+            <div style={{
+              marginTop: '1.25rem',
+              padding: '0.75rem',
+              borderRadius: '14px',
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              fontSize: '0.78rem',
+              color: '#065f46',
+              textAlign: 'left'
+            }}>
+              ⏱️ <strong>Thời gian xử lý:</strong> khoảng 60 - 90 giây do Google Gemini tối ưu và kiểm định 21 bữa ăn thuần chay. Vui lòng giữ kết nối và không đóng trang.
             </div>
           </div>
         </div>,

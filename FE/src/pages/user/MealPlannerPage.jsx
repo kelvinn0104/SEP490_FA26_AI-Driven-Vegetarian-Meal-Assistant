@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Calendar, Check, RefreshCw, ShoppingBag, Sparkles,
   ChevronRight, Clock, Plus, X, Utensils, CheckSquare, Square,
-  ShieldCheck, Scale, ArrowRight, Lock, Eye, AlertTriangle
+  ShieldCheck, Scale, ArrowRight, Lock, Eye, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
@@ -706,6 +706,57 @@ export default function MealPlannerPage({ onNavigate }) {
           isSaved={(profile?.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
           onToggleSave={toggleSaveRecipe}
         />
+      )}
+
+      {/* AI Meal Plan Generation Loading Modal */}
+      {loadingApi && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-forest/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-floating border border-hairline text-center animate-fade-up">
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="absolute inset-0 rounded-3xl bg-emeraldBotanic/20 animate-ping opacity-75"></div>
+              <div className="relative w-20 h-20 rounded-3xl bg-forest flex items-center justify-center text-white shadow-card">
+                <Sparkles className="w-10 h-10 text-emerald-400 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="font-metric text-[11px] font-bold uppercase tracking-wider text-emeraldBotanic">
+                TRỢ LÝ DINH DƯỠNG GOOGLE GEMINI
+              </span>
+              <h3 className="font-editorial text-2xl font-bold text-forest">
+                Đang Khởi Tạo Thực Đơn 7 Ngày
+              </h3>
+              <p className="text-xs text-olive leading-relaxed">
+                Hệ thống AI đang phân tích hồ sơ thể trạng, tối ưu 21 bữa ăn thuần chay và cân bằng mục tiêu năng lượng ({metrics?.tdee || 2000} kcal/ngày), Đạm, Sắt và B12.
+              </p>
+            </div>
+
+            {/* Stepper info */}
+            <div className="bg-alabaster p-4 rounded-2xl border border-hairline text-left space-y-2.5 text-xs text-forest">
+              <div className="flex items-center gap-2.5 text-forest font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emeraldBotanic shrink-0" />
+                <span>1. Đọc hồ sơ thể trạng & mục tiêu dinh dưỡng</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-forest font-bold">
+                <RefreshCw className="w-4 h-4 text-emeraldBotanic animate-spin shrink-0" />
+                <span>2. AI Gemini chọn món & cân bằng vi chất 7 ngày...</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-olive">
+                <div className="w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px] shrink-0 font-metric">3</div>
+                <span>3. Thẩm định calo (±12%) & lưu trữ vào hệ thống</span>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-olive bg-emerald-50/80 p-3 rounded-xl border border-emerald-100 flex items-center gap-2 text-left">
+              <Clock className="w-4 h-4 text-emeraldBotanic shrink-0" />
+              <span>Thời gian xử lý: <strong>khoảng 60 - 90 giây</strong> do Gemini giải bài toán 21 bữa ăn. Vui lòng không tắt hoặc tải lại trang!</span>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
