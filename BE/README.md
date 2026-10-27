@@ -155,6 +155,19 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 ### 11. Yêu thích (`/api/recipes`) 🔒
 - `GET /api/recipes/favorites?page=&pageSize=`, `POST /api/recipes/{id}/favorite`, `DELETE /api/recipes/{id}/favorite`
 
+### 12. Theo dõi dinh dưỡng (`/api/nutrition`) 🔒
+- `POST /api/nutrition/logs` `{ planItemId }` hoặc `{ recipeId, mealType?, servings?, logDate? }`, `DELETE /api/nutrition/logs/{id}`
+- `GET /api/nutrition/daily?date=` (tổng đã ăn, mục tiêu, vận động, cảnh báo thiếu chất — hôm nay chỉ cảnh báo sau 19h VN)
+- `GET /api/nutrition/trend?from=&to=` (mặc định 7 ngày, tối đa 93), `PUT /api/nutrition/activity` `{ activityDate?, kcalBurned, steps }`
+
+### 13. Cộng đồng (`/api/community`)
+- `GET /api/community/posts?keyword=&postType=blog|video&sort=newest|top&page=&pageSize=` (không cần token), `GET /api/community/posts/{id}`
+- 🔒 `GET /api/community/posts/mine`, `POST /api/community/posts` (trạng thái `pending`, duyệt qua `/api/Moderation`), `DELETE /api/community/posts/{id}`
+- 🔒 `POST /api/community/posts/{id}/comments`, `DELETE /api/community/comments/{id}`, `PUT /api/community/posts/{id}/vote` `{ value: 1|-1|0 }`, `POST /api/community/reports`
+
+### Gemini
+- `Ai__Gemini__ThinkingLevel` (mặc định `low`) cho Gemini 3 / alias `*-latest`; `Ai__Gemini__ThinkingBudget` (mặc định 0) cho model 2.5. Model không hỗ trợ → tự gọi lại không kèm cấu hình suy nghĩ.
+
 ### Phân quyền
 - `admin`: Users, Roles, Logs (GET), đổi trạng thái model AI.
 - `admin` + `moderator`: Moderation, Dashboard, Ai, ghi Categories, đổi trạng thái/xóa Recipes.
