@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiRequest, unwrap } from '../api/client';
+import { apiRequest, unwrap } from '../api/client';
 import { scanService } from '../api/services/scanService';
 import { chatService } from '../api/services/chatService';
 import { mealPlanService } from '../api/services/mealPlanService';

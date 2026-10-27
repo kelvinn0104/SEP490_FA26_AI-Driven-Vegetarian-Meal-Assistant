@@ -8,7 +8,7 @@ import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function VisionPage({ onNavigate }) {
-  const { generateAiMealPlan, isBackendConnected, showToast } = useVeggieNutrition();
+  const { generateAiMealPlan, showToast } = useVeggieNutrition();
 
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);

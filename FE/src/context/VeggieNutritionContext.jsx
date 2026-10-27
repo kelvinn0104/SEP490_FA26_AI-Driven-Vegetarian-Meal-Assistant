@@ -3,8 +3,7 @@ import { useAuth } from './AuthContext';
 import {
   RECIPES_DB,
   DEFAULT_PROFILE,
-  DEMO_PROFILES,
-  INITIAL_WEEKLY_PLAN
+  DEMO_PROFILES
 } from '../data/nutritionData';
 import {
   calculateBiometrics,

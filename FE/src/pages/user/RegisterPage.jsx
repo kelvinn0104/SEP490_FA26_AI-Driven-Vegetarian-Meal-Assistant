@@ -198,7 +198,12 @@ export default function RegisterPage({ onNavigate }) {
       localStorage.setItem('pending_verify_email', trimmedEmail);
       localStorage.setItem('pending_verify_step', '2');
       setStep(2);
-      setOtpCode('');
+      if (res?.devOtp) {
+        setOtpCode(res.devOtp);
+        setResendSuccessMsg(`(Mã xác thực thử nghiệm: ${res.devOtp})`);
+      } else {
+        setOtpCode('');
+      }
     } catch (err) {
       setErrorMessage(err.message || 'Đăng ký tài khoản không thành công. Vui lòng thử lại.');
     } finally {
@@ -268,8 +273,13 @@ export default function RegisterPage({ onNavigate }) {
       });
       const nextCooldown = res?.resendAfterSeconds || 60;
       setCountdown(nextCooldown);
-      setResendSuccessMsg(`✓ Đã gửi mã xác thực mới tới email ${email.trim().toLowerCase()}.`);
-      setOtpCode('');
+      if (res?.devOtp) {
+        setOtpCode(res.devOtp);
+        setResendSuccessMsg(`✓ Đã gửi mã xác thực mới (Mã: ${res.devOtp}).`);
+      } else {
+        setResendSuccessMsg(`✓ Đã gửi mã xác thực mới tới email ${email.trim().toLowerCase()}.`);
+        setOtpCode('');
+      }
     } catch (err) {
       setErrorMessage(err.message || 'Không thể gửi lại mã xác thực. Vui lòng thử lại sau.');
     } finally {
