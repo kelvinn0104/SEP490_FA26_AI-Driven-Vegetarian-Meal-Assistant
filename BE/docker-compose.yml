@@ -1,0 +1,41 @@
+# Chạy thử local: docker compose up --build
+# Swagger: http://localhost:8080
+services:
+  db:
+    image: pgvector/pgvector:pg17   # Postgres 17 có sẵn pgvector (cho RAG sau này)
+    environment:
+      POSTGRES_DB: veggieai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5433:5432"   # 5433 để không đụng PostgreSQL 18 đang cài trên máy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Lần đầu tạo DB sẽ tự chạy VeggieAI_Database.sql rồi VeggieAI_Seed_Demo.sql
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d veggieai"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=veggieai;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres};SearchPath=veggieai"
+      Jwt__Key: ${JWT_KEY}
+      Ai__Provider: Gemini
+      Ai__TimeoutSeconds: "90"
+      Ai__Gemini__ApiKey: ${GEMINI_API_KEY}
+      Ai__Gemini__Model: gemini-flash-latest
+      Ai__Gemini__VisionModel: gemini-flash-latest
+    volumes:
+      - uploads:/app/wwwroot/uploads
+
+volumes:
+  pgdata:
+  uploads:

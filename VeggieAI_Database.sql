@@ -637,7 +637,6 @@ INSERT INTO "Permission" ("Id", "Label", "GroupName") VALUES
 INSERT INTO "Role" ("Id", "Name", "Description", "IsSystem", "Theme", "Icon") VALUES
     ('role-1', 'Super Admin', 'Quyền quản trị cao nhất, toàn quyền truy cập và thay đổi hệ thống.', TRUE, 'error', 'admin_panel_settings'),
     ('role-2', 'Chuyên gia Dinh dưỡng', 'Quản lý nguồn gốc thực phẩm và duyệt công thức theo tiêu chuẩn.', TRUE, 'primary', 'local_hospital'),
-    ('role-3', 'Đại sứ / Creator', 'Tài khoản uy tín, đăng tải công thức được ưu tiên hiển thị.', FALSE, 'secondary', 'stars'),
     ('role-4', 'Người dùng chuẩn', 'Xem công thức, sử dụng tính năng tra cứu AI và lưu bộ sưu tập.', TRUE, 'surface', 'person');
 
 INSERT INTO "RolePermission" ("RoleId", "PermissionId")
@@ -645,6 +644,5 @@ SELECT 'role-1', "Id" FROM "Permission";
 
 INSERT INTO "RolePermission" ("RoleId", "PermissionId") VALUES
     ('role-2', 'usr_read'), ('role-2', 'nutri_read'), ('role-2', 'nutri_write'),
-    ('role-2', 'content_approve'), ('role-2', 'content_delete'),
-    ('role-3', 'nutri_read');
+    ('role-2', 'content_approve'), ('role-2', 'content_delete');
 

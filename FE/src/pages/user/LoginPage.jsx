@@ -9,7 +9,7 @@ export default function LoginPage({ onNavigate, onLogin }) {
     window.scrollTo(0, 0);
   }, []);
 
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +18,18 @@ export default function LoginPage({ onNavigate, onLogin }) {
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // Tự động chuyển hướng nếu tài khoản đã đăng nhập từ trước
+  useEffect(() => {
+    if (user && !loginSuccess) {
+      const norm = (user.role || '').toLowerCase();
+      if (norm === 'admin' || norm === 'moderator' || norm === 'mod') {
+        if (onNavigate) onNavigate('dashboard');
+      } else {
+        if (onNavigate) onNavigate('home');
+      }
+    }
+  }, [user, loginSuccess, onNavigate]);
 
   // Forgot password state
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -53,6 +65,7 @@ export default function LoginPage({ onNavigate, onLogin }) {
       }
       const norm = (u.role || '').toLowerCase();
       const effectiveRole = norm === 'admin' ? 'admin' : (norm === 'moderator' || norm === 'mod' ? 'mod' : 'user');
+      const token = data?.accessToken || data?.token;
       const userData = {
         name: u.displayName || u.name || u.email,
         email: u.email,
@@ -62,16 +75,19 @@ export default function LoginPage({ onNavigate, onLogin }) {
       };
 
       setLoginSuccess(true);
-      login(userData);
-      if (onLogin) onLogin(effectiveRole, userData);
+      login(userData, token);
 
       setTimeout(() => {
-        if (effectiveRole === 'admin' || effectiveRole === 'mod') {
-          if (onNavigate) onNavigate('dashboard');
-        } else if (userData?.hasHealthProfile === false) {
-          if (onNavigate) onNavigate('user-profile');
-        } else {
-          if (onNavigate) onNavigate('home');
+        if (onLogin) {
+          onLogin(effectiveRole, userData);
+        } else if (onNavigate) {
+          if (effectiveRole === 'admin' || effectiveRole === 'mod') {
+            onNavigate('dashboard');
+          } else if (userData?.hasHealthProfile === false) {
+            onNavigate('user-profile');
+          } else {
+            onNavigate('home');
+          }
         }
       }, 400);
     } catch (err) {

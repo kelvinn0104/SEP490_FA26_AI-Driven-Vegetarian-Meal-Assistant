@@ -63,10 +63,11 @@ export default function Navbar({ activeTab, setActiveTab, onNavigate }) {
     }
   ]);
 
-  // Đồng bộ thông báo từ Backend nếu đăng nhập với vai trò User
+  // Đồng bộ thông báo từ Backend nếu đăng nhập
+  // Bỏ qua với Admin/Moderator vì /api/notifications chưa được cấp quyền cho role này
   useEffect(() => {
     if (!user) return;
-    const role = String(user.role || '').toLowerCase();
+    const role = (user.role || '').toLowerCase();
     if (role === 'admin' || role === 'moderator' || role === 'mod') return;
 
     notificationService.getUnreadCount()

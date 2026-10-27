@@ -403,8 +403,6 @@ public class RoleService : IRoleService
                 "Người dùng chuẩn" => users.Count(u => u.Role == "user"),
                 _ => 0
             };
-            if (userCount == 0 && r.Name == "Người dùng chuẩn") userCount = 12580;
-            if (userCount == 0 && r.Name == "Đại sứ / Creator") userCount = 142;
 
             return new RoleDto
             {
@@ -560,8 +558,7 @@ public class RoleService : IRoleService
     {
         new() { Id = "role-1", Name = "Super Admin", Description = "Quyền quản trị cao nhất, toàn quyền truy cập.", UserCount = 2, Permissions = GetFallbackPermissions().Select(p => p.Id).ToList(), IsSystem = true, Theme = "error", Icon = "admin_panel_settings" },
         new() { Id = "role-2", Name = "Chuyên gia Dinh dưỡng", Description = "Quản lý nguồn gốc thực phẩm và duyệt công thức.", UserCount = 5, Permissions = new List<string> { "usr_read", "nutri_read", "nutri_write", "content_approve", "content_delete" }, IsSystem = true, Theme = "primary", Icon = "local_hospital" },
-        new() { Id = "role-3", Name = "Đại sứ / Creator", Description = "Tài khoản uy tín, đăng tải công thức.", UserCount = 142, Permissions = new List<string> { "nutri_read" }, IsSystem = false, Theme = "secondary", Icon = "stars" },
-        new() { Id = "role-4", Name = "Người dùng chuẩn", Description = "Xem công thức, tra cứu AI.", UserCount = 12580, Permissions = new List<string>(), IsSystem = true, Theme = "surface", Icon = "person" }
+        new() { Id = "role-4", Name = "Người dùng chuẩn", Description = "Xem công thức, tra cứu AI.", UserCount = 0, Permissions = new List<string>(), IsSystem = true, Theme = "surface", Icon = "person" }
     };
 }
 

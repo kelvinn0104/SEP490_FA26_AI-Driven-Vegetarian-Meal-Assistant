@@ -7,6 +7,7 @@ export const Header = ({
   onOpenMobileSidebar,
   userRole = 'admin',
   currentUser = { name: 'Linh Nguyen', email: 'admin@veggie.vn' },
+  onNavigate,
   onLogout,
   onToggleRole,
 }) => {
@@ -215,6 +216,17 @@ export const Header = ({
                   {userRole === 'admin' ? 'Quyền Quản Trị Cao Cấp' : 'Chuyên gia Dinh dưỡng'}
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  if (onNavigate) onNavigate('home');
+                }}
+                className="flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors text-left"
+              >
+                <span className="material-symbols-outlined text-[16px]">public</span>
+                <span>Xem trang web người dùng</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
