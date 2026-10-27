@@ -1,14 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import {
-  RECIPES_DB,
   DEFAULT_PROFILE,
   DEMO_PROFILES
 } from '../data/nutritionData';
-import {
-  getIngredientsForRecipe,
-  assignIngredientCategory
-} from '../data/recipeIngredientsData';
 import {
   calculateBiometrics,
   calculateConsumedNutrition
@@ -58,8 +53,8 @@ export function VeggieNutritionProvider({ children }) {
   // Active Plan Metadata from Backend (e.g. planId, status, dailyTargets)
   const [activePlanMeta, setActivePlanMeta] = useState(null);
 
-  // 4. Recipes State (synced from Backend if available)
-  const [recipesDb, setRecipesDb] = useState(RECIPES_DB);
+  // 4. Recipes State (chỉ lấy trực tiếp từ Backend API, không dùng mock)
+  const [recipesDb, setRecipesDb] = useState([]);
 
   // 5. Navigation & Day selection
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
@@ -117,13 +112,13 @@ export function VeggieNutritionProvider({ children }) {
                 zinc: r.zincMg || 2.5,
                 calcium: r.calciumMg || 150
               },
-              ingredients: (Array.isArray(r.ingredients) && r.ingredients.length > 0)
+              ingredients: Array.isArray(r.ingredients)
                 ? r.ingredients.map(ing => ({
                     name: ing.name || ing.ingredientName || 'Nguyên liệu',
-                    amount: `${ing.amount || ''} ${ing.unit || ''}`.trim(),
-                    category: ing.category || assignIngredientCategory(ing.name || ing.ingredientName)
+                    amount: ing.amount || `${ing.quantityG || ing.quantity || ''} ${ing.unit || 'g'}`.trim(),
+                    category: ing.category || 'Nguyên liệu thực vật'
                   }))
-                : getIngredientsForRecipe({ id: normalizedId, title: r.title, instructions: r.instructions }),
+                : [],
               instructions: r.instructions || '',
               matchScore: 95,
               matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',

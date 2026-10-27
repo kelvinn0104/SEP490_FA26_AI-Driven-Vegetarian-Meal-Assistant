@@ -8,10 +8,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
-import {
-  getIngredientsForRecipe,
-  assignIngredientCategory
-} from '../../data/recipeIngredientsData';
 
 export default function MealPlannerPage({ onNavigate }) {
   const { user } = useAuth();
@@ -134,14 +130,14 @@ export default function MealPlannerPage({ onNavigate }) {
     const seenNames = new Set();
 
     todayRecipes.forEach(r => {
-      const ings = getIngredientsForRecipe(r);
+      const ings = Array.isArray(r?.ingredients) ? r.ingredients : [];
       ings.forEach(ing => {
         if (!ing || !ing.name) return;
         const key = ing.name.toLowerCase().trim();
         if (seenNames.has(key)) return;
         seenNames.add(key);
 
-        const cat = ing.category || assignIngredientCategory(ing.name);
+        const cat = ing.category || '';
         if (cat.includes('Rau') || cat.includes('Nấm') || cat.includes('Củ')) {
           catMap['Rau củ tươi'].push(ing);
         } else if (cat.includes('Đậu') || cat.includes('Đạm') || cat.includes('Hạt') || cat.includes('Tempeh')) {
@@ -156,6 +152,10 @@ export default function MealPlannerPage({ onNavigate }) {
 
     return catMap;
   }, [breakfastRecipe, lunchRecipe, dinnerRecipe]);
+
+  const totalGroceryItems = useMemo(() => {
+    return Object.values(groceryCategories).reduce((sum, list) => sum + list.length, 0);
+  }, [groceryCategories]);
 
   const toggleGroceryCheck = (itemName) => {
     setCheckedGroceryItems(prev =>
@@ -595,40 +595,50 @@ export default function MealPlannerPage({ onNavigate }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(groceryCategories).map(([catName, items]) => (
-            <div key={catName} className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-forest block border-b border-hairline/80 pb-2">
-                {catName} ({items.length})
-              </span>
+        {totalGroceryItems === 0 ? (
+          <div className="p-8 rounded-2xl bg-alabaster border border-hairline text-center space-y-2">
+            <Utensils className="w-8 h-8 text-olive/50 mx-auto" />
+            <p className="text-sm font-semibold text-forest">Chưa có dữ liệu nguyên liệu từ máy chủ Backend</p>
+            <p className="text-xs text-olive max-w-md mx-auto">
+              Máy chủ Backend hiện chưa cung cấp danh sách nguyên liệu (field `ingredients`) trong API công thức ({[breakfastRecipe?.title, lunchRecipe?.title, dinnerRecipe?.title].filter(Boolean).join(', ')}). Danh sách đi chợ sẽ tự động xuất hiện khi Backend bổ sung trường này.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(groceryCategories).map(([catName, items]) => (
+              <div key={catName} className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-forest block border-b border-hairline/80 pb-2">
+                  {catName} ({items.length})
+                </span>
 
-              <div className="space-y-1.5">
-                {items.map((ing, idx) => {
-                  const isChecked = checkedGroceryItems.includes(ing.name);
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => toggleGroceryCheck(ing.name)}
-                      className="flex items-center gap-2 text-xs cursor-pointer group py-0.5"
-                    >
-                      <button type="button" className="text-emeraldBotanic shrink-0">
-                        {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Square className="w-4 h-4 text-olive/60 group-hover:text-forest" />
-                        )}
-                      </button>
-                      <span className={`flex-1 ${isChecked ? 'line-through text-olive/50' : 'text-forest font-medium'}`}>
-                        {ing.name}
-                      </span>
-                      <span className="font-metric text-[11px] text-olive font-semibold">{ing.amount}</span>
-                    </div>
-                  );
-                })}
+                <div className="space-y-1.5">
+                  {items.map((ing, idx) => {
+                    const isChecked = checkedGroceryItems.includes(ing.name);
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => toggleGroceryCheck(ing.name)}
+                        className="flex items-center gap-2 text-xs cursor-pointer group py-0.5"
+                      >
+                        <button type="button" className="text-emeraldBotanic shrink-0">
+                          {isChecked ? (
+                            <CheckSquare className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-olive/60 group-hover:text-forest" />
+                          )}
+                        </button>
+                        <span className={`flex-1 ${isChecked ? 'line-through text-olive/50' : 'text-forest font-medium'}`}>
+                          {ing.name}
+                        </span>
+                        <span className="font-metric text-[11px] text-olive font-semibold">{ing.amount}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
       </>
       )}
