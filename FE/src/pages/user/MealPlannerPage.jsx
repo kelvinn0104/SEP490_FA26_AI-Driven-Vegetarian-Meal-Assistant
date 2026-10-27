@@ -8,6 +8,10 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
+import {
+  getIngredientsForRecipe,
+  assignIngredientCategory
+} from '../../data/recipeIngredientsData';
 
 export default function MealPlannerPage({ onNavigate }) {
   const { user } = useAuth();
@@ -35,9 +39,24 @@ export default function MealPlannerPage({ onNavigate }) {
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const [checkedGroceryItems, setCheckedGroceryItems] = useState([]);
 
-  // Map Recipe by ID
+  // Map Recipe by ID (hỗ trợ linh hoạt 'r1', 1, '1')
   const recipeMap = useMemo(() => {
-    return new Map(recipesDb.map(r => [r.id, r]));
+    const map = new Map();
+    recipesDb.forEach(r => {
+      if (!r) return;
+      const rawId = String(r.id || '').trim();
+      const numId = parseInt(rawId.replace(/\D/g, ''), 10);
+      map.set(rawId, r);
+      if (rawId.startsWith('r')) {
+        map.set(rawId.slice(1), r);
+      } else {
+        map.set(`r${rawId}`, r);
+      }
+      if (!isNaN(numId)) {
+        map.set(numId, r);
+      }
+    });
+    return map;
   }, [recipesDb]);
 
   const breakfastRecipe = recipeMap.get(currentDayPlan?.breakfast) || recipesDb[3];
@@ -104,7 +123,7 @@ export default function MealPlannerPage({ onNavigate }) {
 
   // Aggregate Smart Grocery List from today's meals
   const groceryCategories = useMemo(() => {
-    const todayRecipes = [breakfastRecipe, lunchRecipe, dinnerRecipe];
+    const todayRecipes = [breakfastRecipe, lunchRecipe, dinnerRecipe].filter(Boolean);
     const catMap = {
       'Rau củ tươi': [],
       'Đậu hạt & Đạm thực vật': [],
@@ -112,14 +131,22 @@ export default function MealPlannerPage({ onNavigate }) {
       'Gia vị & Vi chất B12': []
     };
 
+    const seenNames = new Set();
+
     todayRecipes.forEach(r => {
-      (r.ingredients || []).forEach(ing => {
-        const cat = ing.category || '';
-        if (cat.includes('Rau')) {
+      const ings = getIngredientsForRecipe(r);
+      ings.forEach(ing => {
+        if (!ing || !ing.name) return;
+        const key = ing.name.toLowerCase().trim();
+        if (seenNames.has(key)) return;
+        seenNames.add(key);
+
+        const cat = ing.category || assignIngredientCategory(ing.name);
+        if (cat.includes('Rau') || cat.includes('Nấm') || cat.includes('Củ')) {
           catMap['Rau củ tươi'].push(ing);
-        } else if (cat.includes('Đậu') || cat.includes('Đạm')) {
+        } else if (cat.includes('Đậu') || cat.includes('Đạm') || cat.includes('Hạt') || cat.includes('Tempeh')) {
           catMap['Đậu hạt & Đạm thực vật'].push(ing);
-        } else if (cat.includes('Ngũ cốc')) {
+        } else if (cat.includes('Ngũ cốc') || cat.includes('Mì') || cat.includes('Bún') || cat.includes('Phở') || cat.includes('Gạo') || cat.includes('Cơm') || cat.includes('Bánh')) {
           catMap['Ngũ cốc & Mì'].push(ing);
         } else {
           catMap['Gia vị & Vi chất B12'].push(ing);

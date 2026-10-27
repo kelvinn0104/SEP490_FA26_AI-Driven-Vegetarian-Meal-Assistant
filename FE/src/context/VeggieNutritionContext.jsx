@@ -6,6 +6,10 @@ import {
   DEMO_PROFILES
 } from '../data/nutritionData';
 import {
+  getIngredientsForRecipe,
+  assignIngredientCategory
+} from '../data/recipeIngredientsData';
+import {
   calculateBiometrics,
   calculateConsumedNutrition
 } from '../utils/nutritionEngine';
@@ -113,10 +117,13 @@ export function VeggieNutritionProvider({ children }) {
                 zinc: r.zincMg || 2.5,
                 calcium: r.calciumMg || 150
               },
-              ingredients: r.ingredients?.map(ing => ({
-                name: ing.name || ing.ingredientName || 'Nguyên liệu',
-                amount: `${ing.amount || ''} ${ing.unit || ''}`.trim()
-              })) || [],
+              ingredients: (Array.isArray(r.ingredients) && r.ingredients.length > 0)
+                ? r.ingredients.map(ing => ({
+                    name: ing.name || ing.ingredientName || 'Nguyên liệu',
+                    amount: `${ing.amount || ''} ${ing.unit || ''}`.trim(),
+                    category: ing.category || assignIngredientCategory(ing.name || ing.ingredientName)
+                  }))
+                : getIngredientsForRecipe({ id: normalizedId, title: r.title, instructions: r.instructions }),
               instructions: r.instructions || '',
               matchScore: 95,
               matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
