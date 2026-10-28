@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm --prefix FE run build",
+  "installCommand": "npm --prefix FE install",
+  "outputDirectory": "FE/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/FE/dist/index.html"
+    }
+  ]
+}
