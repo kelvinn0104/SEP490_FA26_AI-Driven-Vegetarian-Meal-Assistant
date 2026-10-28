@@ -56,6 +56,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
+    [AllowAnonymous]
     public ActionResult<ApiResponse<string>> Logout()
     {
         return Ok(ApiResponse<string>.Ok("Logged out", "Đăng xuất thành công"));
@@ -83,6 +84,7 @@ public class AuthController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Admin)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

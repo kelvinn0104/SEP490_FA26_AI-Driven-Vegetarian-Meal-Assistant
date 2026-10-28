@@ -36,7 +36,7 @@ public class AiMealPlanner : IAiMealPlanner
     public async Task<GeneratedMealPlanDto> GenerateAsync(int userId, GenerateMealPlanRequest req, CancellationToken ct = default)
     {
         var profile = await _db.HealthProfiles.AsNoTracking().FirstOrDefaultAsync(h => h.UserId == userId, ct)
-                      ?? throw new AppException("Bạn cần tạo hồ sơ sức khỏe trước khi lập thực đơn.");
+                      ?? throw new AppException("Bạn cần tạo hồ sơ sức khỏe trước khi lập thực đơn.", 409);
         var goal = req.HealthGoal ?? profile.HealthGoal;
         var targets = goal == profile.HealthGoal ? profile.Targets() : await TargetsForGoalAsync(profile, goal, ct);
 
@@ -468,15 +468,9 @@ public class AiMealPlanner : IAiMealPlanner
 
     private async Task<NutrientAmountsDto> TargetsForGoalAsync(HealthProfile p, string goal, CancellationToken ct)
     {
-        var age = NutritionCalculator.AgeAt(p.DateOfBirth, AiMappers.TodayVn());
-        var g = await _db.GoalStandards.AsNoTracking().FirstOrDefaultAsync(x => x.HealthGoal == goal, ct);
-        var goalRule = g is null ? new GoalRule(0, 1.0m, 50, 30) : new GoalRule(g.KcalAdjustmentPercent, g.ProteinGPerKg, g.CarbPercent, g.FatPercent);
-        var standards = await _db.NutrientStandards.AsNoTracking().Where(x => x.Gender == p.Gender).ToListAsync(ct);
-        var s = standards.FirstOrDefault(x => age >= x.AgeFrom && age <= x.AgeTo) ?? standards.OrderBy(x => Math.Abs(x.AgeFrom - age)).FirstOrDefault();
-        var micro = s is null ? new MicroRule(p.Gender == "male" ? 14.4m : 32.4m, 2.4m, 1000, p.Gender == "male" ? 11 : 8) : new MicroRule(s.IronMg, s.B12Mcg, s.CalciumMg, s.ZincMg);
-
-        var t = NutritionCalculator.Calculate(p.Gender, age, p.HeightCm, p.WeightKg, p.ActivityLevel, goalRule, micro);
-        return new NutrientAmountsDto(t.DailyKcal, t.ProteinG, t.CarbG, t.FatG, t.IronMg, t.B12Mcg, t.CalciumMg, t.ZincMg);
+        var t = await NutritionTargetsResolver.ResolveAsync(_db, p.Gender, p.DateOfBirth, p.HeightCm, p.WeightKg,
+            p.ActivityLevel, goal, ct);
+        return t.ToAmounts();
     }
 
     private async Task<List<int>> ScanIngredientIdsAsync(int userId, int scanId, CancellationToken ct)

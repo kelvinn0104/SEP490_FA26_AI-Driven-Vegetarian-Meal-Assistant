@@ -89,6 +89,9 @@ public class UserDto
     public int AiQueriesCount { get; set; }
     public string? Bio { get; set; }
     public List<string> Allergies { get; set; } = new();
+
+    /// <summary>false → FE chuyển người dùng tới màn hình nhập hồ sơ sức khỏe.</summary>
+    public bool HasHealthProfile { get; set; }
 }
 
 public class CreateUserRequest

@@ -129,6 +129,7 @@ public class AiMealPlanController : AiApiControllerBase
     }
 
     [HttpPost("generate")]
+    [HttpPost("~/api/meal-plans/generate")] // alias theo tài liệu FE guide
     public async Task<ActionResult<ApiResponse<GeneratedMealPlanDto>>> Generate([FromBody] GenerateMealPlanRequest req, CancellationToken ct)
     {
         var result = await _planner.GenerateAsync(UserId, req, ct);
@@ -136,6 +137,7 @@ public class AiMealPlanController : AiApiControllerBase
     }
 
     [HttpPost("{planId:int}/items/{itemId:int}/swap")]
+    [HttpPost("~/api/meal-plans/{planId:int}/items/{itemId:int}/swap")] // alias theo tài liệu FE guide
     public async Task<ActionResult<ApiResponse<GeneratedMealPlanDto>>> Swap(int planId, int itemId, [FromBody] SwapMealRequest req, CancellationToken ct)
     {
         var result = await _planner.SwapItemAsync(UserId, planId, itemId, req, ct);

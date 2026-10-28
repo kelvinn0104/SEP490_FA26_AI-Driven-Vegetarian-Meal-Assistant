@@ -128,12 +128,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Email này đã được sử dụng trên hệ thống.");
         }
 
-        var allowedRole = (request.Role ?? "user").ToLower() switch
-        {
-            "admin" when request.InviteCode == "VEGGIE2026" || request.InviteCode == "VEGGIE_ADMIN_2026" => "admin",
-            "moderator" or "mod" => "moderator",
-            _ => "user"
-        };
+        var allowedRole = ResolveRegisterRole(request.Role, request.InviteCode);
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         User user;
@@ -176,6 +171,30 @@ public class AuthService : IAuthService
         }
 
         return await IssueAndSendOtpAsync(user);
+    }
+
+    /// <summary>
+    /// Vai trò khi tự đăng ký: mặc định "user". Muốn đăng ký admin/moderator phải nhập đúng mã mời
+    /// cấu hình qua biến môi trường Auth__AdminInviteCodes / Auth__ModeratorInviteCodes (nhiều mã cách nhau dấu phẩy).
+    /// Không cấu hình mã → không cho tự đăng ký vai trò đó (admin tạo tài khoản qua /api/Users).
+    /// </summary>
+    private string ResolveRegisterRole(string? requestedRole, string? inviteCode)
+    {
+        var role = (requestedRole ?? AppRoles.User).Trim().ToLowerInvariant();
+        if (role == "mod") role = AppRoles.Moderator;
+        if (role != AppRoles.Admin && role != AppRoles.Moderator) return AppRoles.User;
+
+        var key = role == AppRoles.Admin ? "Auth:AdminInviteCodes" : "Auth:ModeratorInviteCodes";
+        var codes = (_config[key] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var code = inviteCode?.Trim();
+        if (string.IsNullOrEmpty(code) || !codes.Contains(code, StringComparer.Ordinal))
+        {
+            throw AppException.Forbidden(role == AppRoles.Admin
+                ? "Mã mời Admin không hợp lệ."
+                : "Mã mời Moderator không hợp lệ.");
+        }
+        return role;
     }
 
     /// <summary>
@@ -363,7 +382,8 @@ public class AuthService : IAuthService
             RecipesCount = user.CreatedRecipes?.Count ?? 0,
             AiQueriesCount = 12,
             Bio = $"Thành viên {user.Role} hệ thống VeggieAI.",
-            Allergies = allergies
+            Allergies = allergies,
+            HasHealthProfile = user.HealthProfile != null
         };
     }
 }

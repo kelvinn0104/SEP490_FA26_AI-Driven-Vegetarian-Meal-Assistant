@@ -35,6 +35,7 @@ public class ExceptionMiddleware
 
         var statusCode = exception switch
         {
+            AppException app => app.StatusCode,
             EmailNotVerifiedException => (int)HttpStatusCode.Forbidden,
             TooManyRequestsException => (int)HttpStatusCode.TooManyRequests,
             UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,

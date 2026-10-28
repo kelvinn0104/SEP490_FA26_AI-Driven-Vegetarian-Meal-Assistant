@@ -87,7 +87,7 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 
 ### 1. Xác thực & Phân quyền (`/api/auth`)
 - `POST /api/auth/login`: Đăng nhập (trả về JWT Token & thông tin người dùng)
-- `POST /api/auth/register`: Đăng ký tài khoản (hỗ trợ mã mời `VEGGIE_ADMIN_2026` / `VEGGIE_MOD_2026`)
+- `POST /api/auth/register`: Đăng ký tài khoản. Mặc định role `user`; đăng ký `admin`/`moderator` cần mã mời cấu hình qua biến môi trường `Auth__AdminInviteCodes` / `Auth__ModeratorInviteCodes` (nhiều mã cách nhau dấu phẩy)
 - `POST /api/auth/logout`: Đăng xuất
 - `GET /api/auth/me`: Lấy thông tin user hiện tại qua JWT Bearer
 
@@ -138,3 +138,41 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 - `GET /api/roles/permissions`: Danh sách tất cả quyền hạn hệ thống
 - `POST /api/roles`: Tạo vai trò mới
 - `PUT /api/roles/{id}`: Cập nhật quyền hạn cho vai trò
+
+### 9. Hồ sơ sức khỏe & dị ứng (`/api/health-profile`, `/api/allergies`) 🔒
+- `GET /api/health-profile`: Hồ sơ của user đang đăng nhập (404 nếu chưa tạo)
+- `PUT /api/health-profile`: Tạo/cập nhật hồ sơ, tự tính BMI/BMR/TDEE + mục tiêu dinh dưỡng/ngày
+- `POST /api/health-profile/preview`: Tính thử, không lưu (không cần token)
+- `GET|PUT /api/health-profile/allergies`: Dị ứng của user (`{ allergyIds: [1,3] }`)
+- `GET /api/allergies`: Danh mục dị ứng (không cần token)
+
+### 10. Thực đơn đã lưu & đi chợ (`/api/meal-plans`) 🔒
+- `POST /api/meal-plans/ai/generate` (alias `/api/meal-plans/generate`), `POST /api/meal-plans/ai/{planId}/items/{itemId}/swap` (alias `/api/meal-plans/{planId}/items/{itemId}/swap`)
+- `GET /api/meal-plans/current` (204 nếu chưa có thực đơn active), `GET /api/meal-plans?status=&page=&pageSize=`, `GET /api/meal-plans/{id}`
+- `PATCH /api/meal-plans/{id}/status` `{ status: "active" }`, `DELETE /api/meal-plans/{id}`
+- `POST|GET /api/meal-plans/{planId}/shopping-list`, `PATCH /api/meal-plans/{planId}/shopping-list/items/{itemId}` `{ isBought: true }`
+
+### 11. Yêu thích (`/api/recipes`) 🔒
+- `GET /api/recipes/favorites?page=&pageSize=`, `POST /api/recipes/{id}/favorite`, `DELETE /api/recipes/{id}/favorite`
+
+### 12. Theo dõi dinh dưỡng (`/api/nutrition`) 🔒
+- `POST /api/nutrition/logs` `{ planItemId }` hoặc `{ recipeId, mealType?, servings?, logDate? }`, `DELETE /api/nutrition/logs/{id}`
+- `GET /api/nutrition/daily?date=` (tổng đã ăn, mục tiêu, vận động, cảnh báo thiếu chất — hôm nay chỉ cảnh báo sau 19h VN)
+- `GET /api/nutrition/trend?from=&to=` (mặc định 7 ngày, tối đa 93), `PUT /api/nutrition/activity` `{ activityDate?, kcalBurned, steps }`
+
+### 13. Cộng đồng (`/api/community`)
+- `GET /api/community/posts?keyword=&postType=blog|video&sort=newest|top&page=&pageSize=` (không cần token), `GET /api/community/posts/{id}`
+- 🔒 `GET /api/community/posts/mine`, `POST /api/community/posts` (trạng thái `pending`, duyệt qua `/api/Moderation`), `DELETE /api/community/posts/{id}`
+- 🔒 `POST /api/community/posts/{id}/comments`, `DELETE /api/community/comments/{id}`, `PUT /api/community/posts/{id}/vote` `{ value: 1|-1|0 }`, `POST /api/community/reports`
+
+### Gemini
+- `Ai__Gemini__ThinkingLevel` (mặc định `low`) cho Gemini 3 / alias `*-latest`; `Ai__Gemini__ThinkingBudget` (mặc định 0) cho model 2.5. Model không hỗ trợ → tự gọi lại không kèm cấu hình suy nghĩ.
+
+### Phân quyền
+- `admin`: Users, Roles, Logs (GET), đổi trạng thái model AI.
+- `admin` + `moderator`: Moderation, Dashboard, Ai, ghi Categories, đổi trạng thái/xóa Recipes.
+- Đăng nhập (mọi role): tạo Recipe (user → `pending_verification`), hồ sơ sức khỏe, thực đơn, yêu thích, scan, chat.
+
+### Email OTP
+- `Email__Provider=smtp|brevo|resend`. Render gói free có thể chặn cổng SMTP → dùng `brevo`/`resend` (HTTPS) với `Email__ApiKey`, `Email__FromEmail` (đã xác minh), `Email__Enabled=true`.
+- Demo không có email: để `Email__Enabled=false` (OTP in ra log) hoặc `Otp__ExposeOtpInResponse=true` (chỉ dùng khi demo).

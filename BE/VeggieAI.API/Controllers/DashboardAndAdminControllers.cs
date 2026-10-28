@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
@@ -7,6 +8,7 @@ namespace VeggieAI.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Staff)]
 public class ModerationController : ControllerBase
 {
     private readonly IModerationService _moderationService;
@@ -75,6 +77,7 @@ public class ModerationController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Staff)]
 public class AiController : ControllerBase
 {
     private readonly IAiService _aiService;
@@ -105,6 +108,7 @@ public class AiController : ControllerBase
     }
 
     [HttpPut("models/{id}/status")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateModelStatus(int id, [FromBody] UpdateAiModelStatusRequest request)
     {
         var ok = await _aiService.UpdateModelStatusAsync(id, request.Status);
@@ -129,6 +133,7 @@ public class AiController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Staff)]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
@@ -169,6 +174,7 @@ public class DashboardController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Admin)]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;

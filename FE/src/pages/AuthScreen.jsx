@@ -38,8 +38,9 @@ export const AuthScreen = ({ onLogin }) => {
           return;
         }
 
-        if (role === 'admin' && inviteCode !== 'VEGGIE2026' && inviteCode !== 'VEGGIE_ADMIN_2026') {
-          setError('Mã mời Admin không hợp lệ (Gợi ý: VEGGIE2026)');
+        // Mã mời được kiểm tra ở Backend (Auth__AdminInviteCodes / Auth__ModeratorInviteCodes)
+        if (!inviteCode.trim()) {
+          setError('Vui lòng nhập mã mời do quản trị viên cung cấp');
           setIsLoading(false);
           return;
         }
@@ -196,10 +197,10 @@ export const AuthScreen = ({ onLogin }) => {
                   </div>
                 </div>
 
-                {role === 'admin' && (
+                {(role === 'admin' || role === 'mod') && (
                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[13px] font-bold text-on-surface">Mã mời Admin (Invite Code)</label>
+                      <label className="text-[13px] font-bold text-on-surface">Mã mời {role === 'admin' ? 'Admin' : 'Moderator'} (Invite Code)</label>
                       <span className="text-[11px] font-bold text-error">BẮT BUỘC</span>
                     </div>
                     <div className="relative">
