@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Eye, EyeOff, Lock, Mail, User, ArrowRight, ArrowLeft, 
   CheckCircle2, Scale, Activity, Flame, ShieldAlert, Sparkles, HeartPulse,
-  RefreshCw, KeyRound, Check
+  RefreshCw, KeyRound, Check, Leaf, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
@@ -378,64 +378,64 @@ export default function RegisterPage({ onNavigate }) {
       <div className="w-full max-w-xl bg-white rounded-3xl border border-hairline p-6 sm:p-9 shadow-card space-y-6">
         
         {/* Brand & Stepper Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 text-forest font-editorial text-2xl font-bold tracking-tight">
-            <span>🌱</span>
-            <span>VeggieAI</span>
+        <div className="text-center space-y-2.5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-forest/5 border border-forest/10 text-forest text-xs font-semibold tracking-wider uppercase mb-0.5">
+            <Leaf className="w-3.5 h-3.5 text-emeraldBotanic" />
+            <span>VeggieAI • Thiết Lập Dinh Dưỡng</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-editorial font-bold text-forest">
-            Đăng ký & Thiết lập hồ sơ dinh dưỡng
+          <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-forest tracking-tight">
+            Tạo tài khoản &amp; Hồ sơ dinh dưỡng
           </h1>
-          <p className="text-xs text-olive max-w-md mx-auto">
-            Quy trình 4 bước hoàn tất xác thực email và cá nhân hóa thực đơn theo chỉ số thể trạng riêng của bạn.
+          <p className="text-xs sm:text-sm text-olive max-w-md mx-auto">
+            4 bước cá nhân hóa thực đơn theo thể trạng và mục tiêu sức khỏe của bạn
           </p>
 
           {/* 4-STEP PROGRESS STEPPER */}
-          <div className="pt-2 flex items-center justify-center gap-1 sm:gap-2">
+          <div className="pt-3 pb-1 flex items-center justify-center gap-1.5 sm:gap-2.5">
             {/* Step 1 */}
-            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 1 ? 'text-forest' : 'text-slate-400'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 1 ? 'bg-forest text-white shadow-xs' : step > 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                {step > 1 ? '✓' : '1'}
+            <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${step >= 1 ? 'text-forest font-semibold' : 'text-slate-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${step === 1 ? 'bg-forest text-white shadow-xs' : step > 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                {step > 1 ? <Check className="w-3.5 h-3.5" /> : '1'}
               </span>
               <span className="hidden sm:inline">Tài khoản</span>
             </div>
 
-            <div className={`w-5 sm:w-8 h-0.5 rounded-full transition-colors ${step >= 2 ? 'bg-forest' : 'bg-slate-200'}`} />
+            <div className={`w-4 sm:w-7 h-0.5 rounded-full transition-colors ${step >= 2 ? 'bg-forest' : 'bg-slate-200'}`} />
 
             {/* Step 2 */}
-            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 2 ? 'text-forest' : 'text-slate-400'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 2 ? 'bg-forest text-white shadow-xs' : step > 2 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                {step > 2 ? '✓' : '2'}
+            <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${step >= 2 ? 'text-forest font-semibold' : 'text-slate-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${step === 2 ? 'bg-forest text-white shadow-xs' : step > 2 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                {step > 2 ? <Check className="w-3.5 h-3.5" /> : '2'}
               </span>
               <span className="hidden sm:inline">Xác thực OTP</span>
             </div>
 
-            <div className={`w-5 sm:w-8 h-0.5 rounded-full transition-colors ${step >= 3 ? 'bg-forest' : 'bg-slate-200'}`} />
+            <div className={`w-4 sm:w-7 h-0.5 rounded-full transition-colors ${step >= 3 ? 'bg-forest' : 'bg-slate-200'}`} />
 
             {/* Step 3 */}
-            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 3 ? 'text-forest' : 'text-slate-400'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 3 ? 'bg-forest text-white shadow-xs' : step > 3 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                {step > 3 ? '✓' : '3'}
+            <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${step >= 3 ? 'text-forest font-semibold' : 'text-slate-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${step === 3 ? 'bg-forest text-white shadow-xs' : step > 3 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                {step > 3 ? <Check className="w-3.5 h-3.5" /> : '3'}
               </span>
               <span className="hidden sm:inline">Thể trạng BMI</span>
             </div>
 
-            <div className={`w-5 sm:w-8 h-0.5 rounded-full transition-colors ${step >= 4 ? 'bg-forest' : 'bg-slate-200'}`} />
+            <div className={`w-4 sm:w-7 h-0.5 rounded-full transition-colors ${step >= 4 ? 'bg-forest' : 'bg-slate-200'}`} />
 
             {/* Step 4 */}
-            <div className={`flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-colors ${step >= 4 ? 'text-forest' : 'text-slate-400'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${step === 4 ? 'bg-forest text-white shadow-xs' : 'bg-slate-100 text-slate-500'}`}>
+            <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${step >= 4 ? 'text-forest font-semibold' : 'text-slate-400'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${step === 4 ? 'bg-forest text-white shadow-xs' : 'bg-slate-100 text-slate-500'}`}>
                 4
               </span>
-              <span className="hidden sm:inline">Chế độ & Dị ứng</span>
+              <span className="hidden sm:inline">Chế độ &amp; Dị ứng</span>
             </div>
           </div>
         </div>
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-            <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600" />
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
@@ -453,9 +453,9 @@ export default function RegisterPage({ onNavigate }) {
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-3 animate-in zoom-in-95">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
-              <p className="font-bold text-sm">Hồ sơ đã hoàn tất thành công!</p>
+              <p className="font-bold text-sm">Hồ sơ dinh dưỡng đã hoàn tất!</p>
               <p className="text-emerald-700 font-normal mt-0.5">
-                AI đang khởi tạo thực đơn tuần chuẩn dinh dưỡng theo chỉ số BMI của bạn...
+                Đang chuyển hướng đến thực đơn tuần phù hợp với thể trạng của bạn...
               </p>
             </div>
           </div>
@@ -466,11 +466,11 @@ export default function RegisterPage({ onNavigate }) {
         ==================================================================== */}
         {step === 1 && (
           <form onSubmit={handleRegisterStep1} className="space-y-4 animate-in fade-in duration-200">
-            <div className="border-b border-hairline pb-2 mb-3">
-              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+            <div className="border-b border-hairline pb-2 mb-3 flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-forest">Thông tin đăng nhập</h2>
+              <span className="text-[11px] font-semibold text-emerald-800 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
                 Bước 1 / 4
               </span>
-              <h2 className="text-base font-bold text-forest">Thông tin đăng nhập ban đầu</h2>
             </div>
 
             {/* Họ và tên */}
@@ -484,7 +484,7 @@ export default function RegisterPage({ onNavigate }) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Ví dụ: Hoàng Nam"
-                className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 bg-slate-50/50 focus:bg-white transition"
               />
             </div>
 
@@ -500,10 +500,10 @@ export default function RegisterPage({ onNavigate }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 bg-slate-50/50 focus:bg-white transition"
               />
               <span className="text-[11px] text-olive block">
-                * Mã OTP 6 chữ số sẽ được gửi về hộp thư này để kích hoạt tài khoản.
+                Mã xác thực 6 chữ số sẽ được gửi về hộp thư này để kích hoạt tài khoản.
               </span>
             </div>
 
@@ -520,12 +520,13 @@ export default function RegisterPage({ onNavigate }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition pr-10"
+                  className="w-full px-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 bg-slate-50/50 focus:bg-white transition pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-olive hover:text-forest transition cursor-pointer"
+                  aria-label="Toggle password visibility"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -545,12 +546,13 @@ export default function RegisterPage({ onNavigate }) {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Nhập lại mật khẩu phía trên"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50 transition pr-10"
+                  className="w-full px-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 bg-slate-50/50 focus:bg-white transition pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-olive hover:text-forest transition cursor-pointer"
+                  aria-label="Toggle confirm password visibility"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -560,11 +562,11 @@ export default function RegisterPage({ onNavigate }) {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-4 ${
+              className={`w-full py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 mt-4 ${
                 loading ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
-              <span>{loading ? 'Đang gửi mã OTP...' : 'Tiếp tục: Nhận mã xác thực qua Email'}</span>
+              <span>{loading ? 'Đang gửi mã OTP...' : 'Tiếp tục: Nhận mã xác thực'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -586,11 +588,11 @@ export default function RegisterPage({ onNavigate }) {
         ==================================================================== */}
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-5 animate-in fade-in duration-200">
-            <div className="border-b border-hairline pb-2 mb-2">
-              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+            <div className="border-b border-hairline pb-2 mb-2 flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-forest">Xác thực tài khoản</h2>
+              <span className="text-[11px] font-semibold text-emerald-800 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
                 Bước 2 / 4
               </span>
-              <h2 className="text-base font-bold text-forest">Xác thực tài khoản qua Email</h2>
             </div>
 
             {/* Email destination reminder */}
@@ -606,7 +608,7 @@ export default function RegisterPage({ onNavigate }) {
                   {email || 'email của bạn'}
                 </p>
                 <p className="text-[11px] text-olive leading-relaxed pt-0.5">
-                  Vui lòng kiểm tra hộp thư đến (hoặc hòm thư Spam/Rác) và nhập 6 chữ số vào bên dưới.
+                  Vui lòng kiểm tra hộp thư đến (hoặc hòm thư Spam) và nhập 6 chữ số vào bên dưới.
                 </p>
               </div>
             </div>
@@ -614,7 +616,7 @@ export default function RegisterPage({ onNavigate }) {
             {/* OTP Input Box */}
             <div className="space-y-2 text-center py-2">
               <label className="text-xs font-semibold text-forest block">
-                Nhập mã OTP 6 số:
+                Mã xác thực OTP (6 chữ số):
               </label>
               <input
                 ref={otpInputRef}
@@ -628,7 +630,7 @@ export default function RegisterPage({ onNavigate }) {
                   setOtpCode(val);
                 }}
                 placeholder="••••••"
-                className="w-full max-w-[280px] mx-auto py-3 px-4 rounded-2xl border-2 border-hairline text-2xl sm:text-3xl font-mono font-black text-center tracking-[0.45em] text-forest placeholder-slate-300 outline-none focus:border-emeraldBotanic focus:ring-2 focus:ring-emerald-200 bg-slate-50 transition"
+                className="w-full max-w-[280px] mx-auto py-3 px-4 rounded-xl border border-stone-300 text-2xl sm:text-3xl font-mono font-bold text-center tracking-[0.45em] text-forest placeholder:text-slate-300 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 bg-slate-50/60 focus:bg-white transition"
               />
               <span className="text-[11px] text-olive block">
                 Mã có hiệu lực trong 5 phút
@@ -672,7 +674,7 @@ export default function RegisterPage({ onNavigate }) {
               <button
                 type="submit"
                 disabled={loading || otpCode.length !== 6}
-                className={`flex-1 py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 ${
+                className={`flex-1 py-3 px-4 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-2 ${
                   loading || otpCode.length !== 6 ? 'opacity-60 cursor-not-allowed' : ''
                 }`}
               >
@@ -688,11 +690,11 @@ export default function RegisterPage({ onNavigate }) {
         ==================================================================== */}
         {step === 3 && (
           <form onSubmit={handleNextToStep4} className="space-y-5 animate-in fade-in duration-200">
-            <div className="border-b border-hairline pb-2 mb-2">
-              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+            <div className="border-b border-hairline pb-2 mb-2 flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-forest">Thể trạng &amp; Nhu cầu năng lượng</h2>
+              <span className="text-[11px] font-semibold text-emerald-800 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
                 Bước 3 / 4
               </span>
-              <h2 className="text-base font-bold text-forest">Thông số thể trạng & Nhu cầu năng lượng</h2>
             </div>
 
             {/* LIVE BMI PREVIEW CARD */}
@@ -848,11 +850,11 @@ export default function RegisterPage({ onNavigate }) {
         ==================================================================== */}
         {step === 4 && (
           <form onSubmit={handleFinalProfileSubmit} className="space-y-5 animate-in fade-in duration-200">
-            <div className="border-b border-hairline pb-2 mb-2">
-              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+            <div className="border-b border-hairline pb-2 mb-2 flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-forest">Chế độ ăn &amp; Khai báo dị ứng</h2>
+              <span className="text-[11px] font-semibold text-emerald-800 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
                 Bước 4 / 4
               </span>
-              <h2 className="text-base font-bold text-forest">Chế độ ăn & Khai báo dị ứng</h2>
             </div>
 
             {/* Loại chế độ ăn chay */}
@@ -892,10 +894,12 @@ export default function RegisterPage({ onNavigate }) {
                 <label className="text-xs font-semibold text-forest">
                   Khai báo chất gây dị ứng (Allergen Guard)
                 </label>
-                <span className="text-[10px] text-rose-600 font-bold">AI sẽ loại trừ 100%</span>
+                <span className="text-[10px] text-rose-700 font-medium px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200">
+                  Tự động loại trừ khỏi thực đơn
+                </span>
               </div>
               <p className="text-[11px] text-olive">
-                Chọn các nguyên liệu khiến bạn bị dị ứng hoặc đầy bụng để hệ thống không bao giờ gợi ý trong thực đơn:
+                Chọn các nguyên liệu khiến bạn bị dị ứng hoặc không dung nạp để loại bỏ hoàn toàn khỏi các gợi ý bữa ăn:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
@@ -939,12 +943,12 @@ export default function RegisterPage({ onNavigate }) {
                       }
                     }}
                     placeholder="Ví dụ: Cần tây, Dâu tây, Mù tạt, Ngô..."
-                    className="flex-1 px-3 py-2 rounded-xl border border-hairline text-xs text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic bg-slate-50"
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 bg-slate-50/50 focus:bg-white"
                   />
                   <button
                     type="button"
                     onClick={handleAddCustomAllergy}
-                    className="px-3.5 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shrink-0"
+                    className="px-4 py-2 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-semibold transition cursor-pointer shrink-0"
                   >
                     + Thêm
                   </button>
@@ -958,9 +962,9 @@ export default function RegisterPage({ onNavigate }) {
                       .map((customName) => (
                         <span
                           key={customName}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200"
                         >
-                          <span>⚠️ {customName}</span>
+                          <span>{customName}</span>
                           <button
                             type="button"
                             onClick={() => toggleAllergy(customName)}

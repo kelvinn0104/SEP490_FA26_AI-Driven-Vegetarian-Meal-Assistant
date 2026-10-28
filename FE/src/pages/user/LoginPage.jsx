@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, Shield, X } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, CheckCircle2, ShieldAlert, AlertCircle, Leaf, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../api';
 
@@ -115,26 +115,27 @@ export default function LoginPage({ onNavigate, onLogin }) {
         
         {/* Brand & Title */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 text-forest font-editorial text-2xl font-bold tracking-tight">
-            <span>🌱</span>
-            <span>VeggieAI</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-forest/5 border border-forest/10 text-forest text-xs font-semibold tracking-wider uppercase mb-0.5">
+            <Leaf className="w-3.5 h-3.5 text-emeraldBotanic" />
+            <span>VeggieAI • Dinh Dưỡng Thực Vật</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-editorial font-bold text-forest">
-            Đăng nhập tài khoản
+          <h1 className="text-2xl sm:text-3xl font-editorial font-bold text-forest tracking-tight">
+            Chào mừng trở lại
           </h1>
-          <p className="text-xs text-olive">
-            Theo dõi thực đơn và chỉ số dinh dưỡng thực vật của bạn
+          <p className="text-xs sm:text-sm text-olive max-w-xs mx-auto">
+            Đăng nhập để theo dõi thực đơn và chỉ số dinh dưỡng của bạn
           </p>
         </div>
 
         {/* Error / Unverified Alert */}
         {unverifiedEmail ? (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-2.5 animate-in fade-in duration-200">
-            <div className="flex items-start gap-2">
-              <span className="text-base leading-none">⚠️</span>
-              <p className="font-semibold leading-relaxed">
-                {errorMessage}
-              </p>
+          <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-900 text-xs space-y-2.5 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-semibold text-amber-950">Email chưa được kích hoạt</p>
+                <p className="text-amber-800 leading-relaxed">{errorMessage}</p>
+              </div>
             </div>
             <button
               type="button"
@@ -143,21 +144,22 @@ export default function LoginPage({ onNavigate, onLogin }) {
                 localStorage.setItem('pending_verify_step', '2');
                 if (onNavigate) onNavigate('register');
               }}
-              className="w-full py-2.5 px-3 rounded-xl bg-forest hover:bg-forestDark text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 px-3 rounded-xl bg-amber-900 hover:bg-amber-950 text-white font-medium text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
             >
-              <span>👉 Nhập mã xác thực OTP ngay</span>
+              <span>Nhập mã xác thực OTP ngay</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : errorMessage ? (
-          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-            <span>⚠️</span>
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         ) : null}
 
         {/* Success Alert */}
         {loginSuccess && (
-          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>Đăng nhập thành công! Đang chuyển hướng...</span>
           </div>
@@ -177,7 +179,7 @@ export default function LoginPage({ onNavigate, onLogin }) {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 transition bg-slate-50/50 focus:bg-white"
               />
             </div>
           </div>
@@ -203,12 +205,13 @@ export default function LoginPage({ onNavigate, onLogin }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder-slate-400 outline-none focus:border-emeraldBotanic focus:ring-1 focus:ring-emeraldBotanic transition bg-alabaster/30"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-hairline text-xs sm:text-sm text-forest placeholder:text-slate-400 outline-none focus:border-forest focus:ring-2 focus:ring-forest/10 transition bg-slate-50/50 focus:bg-white"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 absolute right-2.5 transition"
+                className="p-1.5 text-slate-400 hover:text-slate-700 absolute right-2.5 transition cursor-pointer"
+                aria-label="Toggle password visibility"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -221,7 +224,7 @@ export default function LoginPage({ onNavigate, onLogin }) {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded text-forest focus:ring-emeraldBotanic accent-emeraldBotanic cursor-pointer"
+                className="w-4 h-4 rounded text-forest focus:ring-forest accent-forest cursor-pointer"
               />
               <span>Ghi nhớ đăng nhập</span>
             </label>
@@ -238,12 +241,12 @@ export default function LoginPage({ onNavigate, onLogin }) {
         </form>
 
         {/* Register CTA */}
-        <div className="text-center text-xs text-olive pt-1">
+        <div className="text-center text-xs text-olive pt-2 border-t border-hairline">
           <span>Chưa có tài khoản? </span>
           <button
             type="button"
             onClick={() => onNavigate && onNavigate('register')}
-            className="font-bold text-forest hover:text-emeraldBotanic transition cursor-pointer"
+            className="font-bold text-forest hover:text-emeraldBotanic transition cursor-pointer underline underline-offset-4 ml-1"
           >
             Đăng ký tài khoản mới
           </button>
