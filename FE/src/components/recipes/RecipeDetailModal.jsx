@@ -37,13 +37,13 @@ export default function RecipeDetailModal({
   const prepTime = recipe.prepTime || 20;
   const image = recipe.image || (recipe.imageUrl ? (recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `/uploads/${recipe.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80');
 
-  // Safe extraction of ingredients list
+  // Lấy danh sách nguyên liệu trực tiếp từ dữ liệu Backend
   const ingredientsList = Array.isArray(recipe.ingredients)
     ? recipe.ingredients.map(ing => {
         if (typeof ing === 'string') return { name: ing, amount: '' };
         return {
           name: ing.name || ing.ingredientName || 'Nguyên liệu',
-          amount: ing.amount || `${ing.quantity || ''} ${ing.unit || ''}`.trim()
+          amount: ing.amount || `${ing.quantityG || ing.quantity || ''} ${ing.unit || 'g'}`.trim()
         };
       })
     : [];

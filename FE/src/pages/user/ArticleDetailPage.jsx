@@ -1,196 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { 
-  ArrowLeft, Bookmark, Check, Share2, Heart, MessageSquare, 
+  ArrowLeft, Bookmark, Share2, Heart, MessageSquare, 
   Calendar, Clock, Users, ChefHat, Sparkles, CheckCircle2, 
-  AlertCircle, Send, Plus, ChevronRight, X, ExternalLink
+  Send, Plus, ChevronRight, X, ExternalLink, Flame, Utensils,
+  Copy, Check, ShieldCheck, RefreshCw
 } from 'lucide-react';
-import Button from '../../components/ui/Button';
-import { communityService } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import { recipeService } from '../../api/services/recipeService';
+
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1000&q=80';
 
 export default function ArticleDetailPage({ articleData, onNavigate }) {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
+  const { user } = useAuth();
 
-  // DỮ LIỆU BÀI VIẾT MẶC ĐỊNH (CÀ RI BÍ ĐỎ HẠT SEN NHƯ ẢNH 3 HOẶC TRUYỀN TỪ PROPS)
-  const defaultArticle = {
-    id: 'art-curry-1',
-    category: 'Món Kho / Cà Ri Chay',
-    readTime: '6 phút đọc',
-    date: '4 ngày trước',
-    title: 'Cà Ri Bí Đỏ Hạt Sen & Đậu Hũ Non Cốt Dừa Thơm Béo',
-    author: 'Cà Ri Bí Đỏ',
-    authorAvatar: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=150&q=80',
-    likesCount: 320,
-    commentsCount: 12,
-    prepTime: '15 phút',
-    cookTime: '30 phút',
-    servings: '4 người',
-    difficulty: 'Dễ làm',
-    image: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?auto=format&fit=crop&w=1000&q=80',
-    intro: 'Cà ri bí đỏ hạt sen là món ăn thanh nhẹ, giàu dưỡng chất và cực kỳ phù hợp cho những ngày mưa hay mâm cơm gia đình ấm cúng. Nước cốt dừa thơm lừng hòa quyện cùng vị ngọt bùi tự nhiên của bí đỏ hồ lô, hạt sen tươi ninh mềm bở tơi, kết hợp những miếng đậu hũ non béo ngậy tạo nên nồi cà ri tròn vị.',
-    ingredients: [
-      { name: 'Bí đỏ hồ lô', amount: '500g (cắt miếng vừa ăn)' },
-      { name: 'Hạt sen tươi Huế', amount: '100g (bỏ tâm sen)' },
-      { name: 'Đậu hũ non hữu cơ', amount: '1 hộp (300g)' },
-      { name: 'Nước cốt dừa nguyên chất', amount: '250ml' },
-      { name: 'Nấm đùi gà / nấm rơm', amount: '150g' },
-      { name: 'Bột cà ri chay & Hạt nêm nấm', amount: '1.5 muỗng cà phê' },
-      { name: 'Rau gia vị ăn kèm', amount: 'Rau húng quế, ngò gai tươi' }
-    ],
-    steps: [
-      {
-        num: 1,
-        title: 'Sơ chế nguyên liệu',
-        desc: 'Bí đỏ gọt vỏ, bỏ ruột và cắt khối vuông cạnh khoảng 2.5cm. Nấm đùi gà ngâm nước muối loãng 5 phút, rửa sạch để ráo rồi cắt lát vừa ăn. Đậu hũ non trần sơ qua nước ấm, cắt khối vuông rồi đặt trên giấy thấm ráo. Hạt sen thông tâm để không bị đắng.'
-      },
-      {
-        num: 2,
-        title: 'Xào thơm và hầm hạt sen bí đỏ',
-        desc: 'Đun nóng 1 muỗng dầu dừa trong nồi sâu lòng, phi thơm phần gốc boa-rô băm nhỏ. Cho nấm và bột cà ri chay vào xào nhanh 1-2 phút cho lên màu vàng óng và dậy mùi thơm. Đổ 600ml nước dùng rau củ cùng hạt sen tươi vào đun sôi, hạ lửa vừa ninh 15 phút cho hạt sen bắt đầu bở mềm.'
-      },
-      {
-        num: 3,
-        title: 'Nấu nước cốt dừa và hoàn thiện',
-        desc: 'Tiếp tục cho bí đỏ vào đun thêm 10 phút đến khi bí đỏ chín mềm nhưng không bị nát. Hạ nhỏ lửa tối đa rồi từ từ rót 250ml nước cốt dừa vào khuấy nhẹ tay một chiều. Nêm nếm với 1 muỗng hạt nêm nấm và nửa muỗng cà phê muối hồng Himalaya. Tắt bếp, rắc lá quế và ngò gai cắt nhỏ lên bề mặt. Dùng nóng kèm bánh mì hoặc bún tươi.'
-      }
-    ],
-    nutrition: {
-      calories: '345 kcal / khẩu phần',
-      protein: '18.5g Đạm thực vật',
-      fiber: '4.2g Chất xơ',
-      cholesterol: '0mg Cholesterol',
-      allergyNote: 'Không chứa Đậu phộng, không Ngũ vị tân, Thuần chay 100%'
+  const [article, setArticle] = useState(() => {
+    if (articleData && typeof articleData === 'object' && articleData.title) {
+      return articleData;
     }
-  };
-
-  // CHUẨN HÓA DỮ LIỆU AN TOÀN
-  const article = {
-    ...defaultArticle,
-    ...(articleData || {}),
-    author: articleData?.author || defaultArticle.author,
-    image: articleData?.image || articleData?.img || defaultArticle.image,
-    category: articleData?.category || articleData?.tag || defaultArticle.category,
-    intro: articleData?.intro || articleData?.content || articleData?.excerpt || defaultArticle.intro,
-    ingredients: (Array.isArray(articleData?.ingredients) && articleData.ingredients.length > 0)
-      ? articleData.ingredients
-      : defaultArticle.ingredients,
-    steps: (Array.isArray(articleData?.steps) && articleData.steps.length > 0)
-      ? articleData.steps
-      : defaultArticle.steps,
-    nutrition: {
-      ...defaultArticle.nutrition,
-      ...(articleData?.nutrition || {})
-    }
-  };
-
-  // STATES
+    return {
+      id: 'r31',
+      title: 'Gỏi Ngó Sen Nấm Tuyết Sốt Tắc Chua Ngọt',
+      category: 'Salad & Gỏi chay',
+      author: 'Hoàng Nam',
+      publishedAt: '2026-10-25 04:31',
+      views: 4570,
+      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80',
+      servings: 2,
+      kcalPerServing: 165,
+      proteinG: 4.2,
+      carbG: 28,
+      fatG: 2,
+      instructions: 'Ngó sen giòn sần sật phối cùng nấm tuyết ngâm nở, cà rốt bào sợi và sốt tắc pha đường thốt nốt. Trộn đều các nguyên liệu và dùng ngay.'
+    };
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [checkedIngredients, setCheckedIngredients] = useState({});
   const [isSaved, setIsSaved] = useState(false);
-  const [likes, setLikes] = useState(article.likesCount);
+  const [likes, setLikes] = useState(128);
   const [hasLiked, setHasLiked] = useState(false);
   const [userRating, setUserRating] = useState(5);
-  const [avgRating, setAvgRating] = useState(4.9);
   const [toastMessage, setToastMessage] = useState('');
-
-  // REPORT MODAL STATE (WF09 INTEGRATION)
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState('Nội dung công thức chưa chính xác');
-
-  // Lock body scroll and listen for Escape key when report modal is open
-  useEffect(() => {
-    if (showReportModal) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      const handleKeyDown = (e) => {
-        if (e.key === 'Escape') setShowReportModal(false);
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.body.style.overflow = orig;
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    }
-  }, [showReportModal]);
-
-  const handleConfirmReport = () => {
-    const reportItem = {
-      id: `rep_${Date.now()}`,
-      targetId: article.id,
-      targetContent: article.title,
-      reason: reportReason,
-      reportedBy: 'AuthorizedUser',
-      timestamp: new Date().toLocaleString()
-    };
-    try {
-      const existing = JSON.parse(localStorage.getItem('veggieai_reported_items') || '[]');
-      localStorage.setItem('veggieai_reported_items', JSON.stringify([reportItem, ...existing]));
-    } catch (e) {}
-    setShowReportModal(false);
-    showToast('✓ Đã gửi báo cáo bài viết đến ban quản trị kiểm duyệt!');
-  };
-
-  const handleRating = (stars) => {
-    setUserRating(stars);
-    setAvgRating(((avgRating * 128 + stars) / 129).toFixed(1));
-    showToast(`⭐ Cảm ơn bạn đã đánh giá ${stars} sao cho công thức này!`);
-  };
-
-  const handleAddToPlan = () => {
-    try {
-      const existingStr = localStorage.getItem('veggieai_scanned_pantry');
-      const existing = existingStr ? JSON.parse(existingStr) : [];
-      const newItems = article.ingredients ? article.ingredients.map(i => i.name) : [article.title];
-      localStorage.setItem('veggieai_scanned_pantry', JSON.stringify(Array.from(new Set([...newItems, ...existing]))));
-    } catch (e) {}
-    showToast(`📅 Đã nạp nguyên liệu công thức "${article.title}" vào Thực đơn AI (WF02)!`);
-    setTimeout(() => {
-      if (onNavigate) onNavigate('create-plan');
-    }, 450);
-  };
-
-  // COMMENTS STATE
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([
     {
       id: 'c1',
       author: 'Mai Linh',
-      time: '3 ngày trước',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-      badge: 'Đã nấu thử',
-      content: 'Công thức tuyệt vời! Mình đã trổ tài cho bữa cơm gia đình hôm qua và cả nhà ai cũng khen nước dùng béo thanh tự nhiên, hạt sen bở ngậy.',
-      likes: 8,
-      replies: [
-        {
-          id: 'r1',
-          author: 'Cà Ri Bí Đỏ',
-          isAuthor: true,
-          time: '2 ngày trước',
-          content: 'Cảm ơn bạn Mai Linh đã tin tưởng công thức nhé! Bạn có thể thêm chút lá chúc nếu thích hương vị nồng nàn hơn nữa 🌿',
-          likes: 2
-        }
-      ]
+      time: '2 ngày trước',
+      content: 'Công thức rất ngon và chuẩn vị! Mình nấu thử cho cả nhà ai cũng khen nước dùng thanh ngọt tự nhiên.',
+      likes: 6
     },
     {
       id: 'c2',
       author: 'Hoàng Nam',
-      time: '1 ngày trước',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      badge: '',
-      content: 'Có thể thay hạt sen bằng đậu xơ hoặc đậu gà không ạ? Nhà mình đang sẵn đậu gà ngâm qua đêm.',
-      likes: 3,
-      replies: [
-        {
-          id: 'r2',
-          author: 'Thanh Nhã', // ĐÃ BỎ "(ĐẦU BẾP GIA CHAY)" - CHỈ GIỮ TÊN "Thanh Nhã"
-          isAuthor: false,
-          time: '1 ngày trước',
-          content: 'Hoàn toàn được bạn nhé! Đậu gà luộc mềm trước khi nấu cà ri sẽ giúp nước sốt sánh và tăng thêm rất nhiều đạm thực vật đấy.',
-          likes: 1
-        }
-      ]
+      time: 'Hôm qua',
+      content: 'Lượng đạm thực vật từ món này rất tốt cho người tập gym như mình. Cảm ơn tác giả đã chia sẻ!',
+      likes: 3
     }
   ]);
 
@@ -199,640 +63,374 @@ export default function ArticleDetailPage({ articleData, onNavigate }) {
     setTimeout(() => setToastMessage(''), 2800);
   };
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Fetch or normalize article detail
+  useEffect(() => {
+    const loadDetail = async () => {
+      setIsLoading(true);
+      try {
+        let rawId = null;
+        if (typeof articleData === 'string') {
+          rawId = articleData;
+        } else if (articleData?.id) {
+          rawId = articleData.id;
+        }
+
+        if (rawId && (typeof rawId === 'string' && rawId.startsWith('r'))) {
+          // Live backend recipe ID
+          try {
+            const liveRecipe = await recipeService.getRecipeById(rawId);
+            if (liveRecipe) {
+              setArticle(liveRecipe);
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.warn('Could not load recipe by ID from BE:', e);
+          }
+        }
+
+        // Use passed articleData or fallback to a default recipe
+        if (articleData && typeof articleData === 'object') {
+          setArticle(articleData);
+        } else {
+          // Default recipe fallback
+          setArticle({
+            id: 'r31',
+            title: 'Gỏi Ngó Sen Nấm Tuyết Sốt Tắc Chua Ngọt',
+            category: 'Salad & Gỏi chay',
+            author: 'Đầu bếp VeggieAI',
+            publishedAt: new Date().toISOString(),
+            views: 4570,
+            imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80',
+            servings: 2,
+            kcalPerServing: 165,
+            proteinG: 4.2,
+            carbG: 28,
+            fatG: 2,
+            instructions: 'Ngó sen giòn sần sật phối cùng nấm tuyết ngâm nở, cà rốt bào sợi và sốt tắc pha đường thốt nốt. Trộn đều các nguyên liệu và dùng ngay.'
+          });
+        }
+      } catch (err) {
+        console.error('Error loading article detail:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDetail();
+  }, [articleData]);
+
+  // Check initial saved status
+  useEffect(() => {
+    if (article?.id) {
+      try {
+        const savedIds = JSON.parse(localStorage.getItem('veggieai_saved_article_ids') || '[]');
+        setIsSaved(savedIds.includes(article.id));
+      } catch {}
+    }
+  }, [article?.id]);
+
   const handleToggleSave = () => {
-    const next = !isSaved;
-    setIsSaved(next);
-    showToast(next ? '❤️ Đã lưu vào Bài viết yêu thích!' : 'Đã bỏ lưu khỏi Bài viết yêu thích');
+    if (!article) return;
+    if (!user) {
+      if (onNavigate) onNavigate('login');
+      return;
+    }
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+
+    try {
+      const savedIds = JSON.parse(localStorage.getItem('veggieai_saved_article_ids') || '[]');
+      const updated = nextSaved
+        ? [...savedIds, article.id]
+        : savedIds.filter(id => id !== article.id);
+      localStorage.setItem('veggieai_saved_article_ids', JSON.stringify(updated));
+    } catch {}
+
+    if (nextSaved) {
+      recipeService.addFavorite(article.id).catch(() => {});
+      showToast('❤️ Đã lưu vào danh sách bài viết yêu thích!');
+    } else {
+      recipeService.removeFavorite(article.id).catch(() => {});
+      showToast('Đã bỏ lưu khỏi bài viết yêu thích');
+    }
   };
 
   const handleToggleLike = () => {
     if (!hasLiked) {
-      setLikes(likes + 1);
+      setLikes(prev => prev + 1);
       setHasLiked(true);
-      showToast('👍 Cảm ơn bạn đã thích bài viết này!');
-      if (article?.id) {
-        communityService.votePost(article.id, 1).catch(() => {});
-      }
+      showToast('👍 Cảm ơn bạn đã thích công thức này!');
     } else {
-      setLikes(likes - 1);
+      setLikes(prev => prev - 1);
       setHasLiked(false);
-      if (article?.id) {
-        communityService.votePost(article.id, 0).catch(() => {});
-      }
     }
+  };
+
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      showToast('🔗 Đã sao chép liên kết bài viết vào bộ nhớ tạm!');
+    } else {
+      showToast('🔗 Liên kết bài viết: ' + window.location.href);
+    }
+  };
+
+  const handleToggleIngredientCheck = (idx) => {
+    setCheckedIngredients(prev => ({
+      ...prev,
+      [idx]: !prev[idx]
+    }));
   };
 
   const handleAddComment = (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-
     const newCmt = {
       id: `c_${Date.now()}`,
-      author: 'Thanh Nhã',
+      author: user?.name || 'Bạn đọc',
       time: 'Vừa xong',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-      badge: '',
       content: commentText.trim(),
-      likes: 0,
-      replies: []
+      likes: 0
     };
-
     setComments([newCmt, ...comments]);
-    const textToSubmit = commentText.trim();
     setCommentText('');
     showToast('💬 Đã gửi bình luận của bạn thành công!');
-
-    if (article?.id) {
-      communityService.addComment(article.id, textToSubmit).catch(() => {});
-    }
   };
 
+  // Parse structured steps from instructions string
+  const parsedSteps = React.useMemo(() => {
+    if (!article?.instructions) return [];
+    const text = article.instructions;
+    // Check if instructions are formatted with "Bước 1:", "Bước 2:" or newline separated
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length > 1) {
+      return lines;
+    }
+    // Split by periods if single long paragraph
+    const sentences = text.split(/(?<=[.?!])\s+/).filter(Boolean);
+    if (sentences.length > 1) return sentences;
+    return [text];
+  }, [article?.instructions]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-alabaster/40 py-12 px-4 max-w-4xl mx-auto flex flex-col items-center justify-center space-y-4">
+        <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+        <p className="text-xs text-olive font-metric">Đang tải nội dung bài viết từ hệ thống...</p>
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="min-h-screen bg-alabaster/40 py-12 px-4 max-w-4xl mx-auto text-center space-y-4">
+        <p className="text-sm text-olive">Không tìm thấy thông tin bài viết.</p>
+        <button
+          type="button"
+          onClick={() => onNavigate && onNavigate('blog')}
+          className="px-4 py-2 rounded-xl bg-forest text-white text-xs font-semibold"
+        >
+          Quay lại danh sách Blog
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100vh', paddingBottom: '5rem', color: '#0f172a' }}>
-      
+    <div className="min-h-screen bg-alabaster/40 py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-8 animate-fade-up">
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          zIndex: 9999,
-          background: '#047857',
-          color: '#ffffff',
-          padding: '0.9rem 1.4rem',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.6rem',
-          animation: 'slideUp 0.25s ease'
-        }}>
-          <CheckCircle2 size={18} />
+        <div className="fixed bottom-6 right-6 z-50 bg-forest text-white px-5 py-3 rounded-2xl shadow-floating flex items-center gap-2.5 text-xs sm:text-sm font-semibold animate-fade-up border border-emerald-500/30">
+          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* CONTAINER CHÍNH */}
-      <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '1.5rem 1.25rem 0 1.25rem' }}>
-        
-        {/* TOP BAR BREADCRUMB & REPORT */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+      {/* TOP NAVIGATION & BREADCRUMB */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-hairline">
+        <button
+          type="button"
+          onClick={() => onNavigate && onNavigate('blog')}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-olive hover:text-forest transition cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Quay lại danh sách Blog</span>
+        </button>
+
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => onNavigate ? onNavigate('blog') : null}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              background: 'none',
-              border: 'none',
-              color: '#059669',
-              fontWeight: 700,
-              cursor: 'pointer',
-              padding: 0
-            }}
+            type="button"
+            onClick={handleToggleSave}
+            className="p-2 rounded-xl border border-hairline bg-white hover:bg-slate-50 text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+            title={isSaved ? 'Bỏ lưu' : 'Lưu bài viết'}
           >
-            <ArrowLeft size={16} /> Quay lại Blog
+            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-emeraldBotanic text-emeraldBotanic' : ''}`} />
+            <span className="hidden sm:inline">{isSaved ? 'Đã lưu' : 'Lưu công thức'}</span>
           </button>
 
-          <span 
-            style={{ color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} 
-            onClick={() => setShowReportModal(true)}
-            title="Báo cáo nội dung bài viết vi phạm cho Moderator"
+          <button
+            type="button"
+            onClick={handleShare}
+            className="p-2 rounded-xl border border-hairline bg-white hover:bg-slate-50 text-olive hover:text-forest text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+            title="Chia sẻ bài viết"
           >
-            🚩 Phản hồi / Báo cáo vi phạm (WF09)
-          </span>
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Chia sẻ</span>
+          </button>
+        </div>
+      </div>
+
+      {/* HEADER SECTION */}
+      <div className="space-y-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+          <span>{article.category || 'Món chay tinh hoa'}</span>
         </div>
 
-        {/* HEADER BÀI VIẾT: TAGS & BUTTONS */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.85rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ background: '#ecfdf5', color: '#047857', fontSize: '0.75rem', fontWeight: 800, padding: '3px 10px', borderRadius: '6px' }}>
-              {article.category}
-            </span>
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>⏱ {article.readTime}</span>
-            <span style={{ color: '#cbd5e1' }}>•</span>
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>📅 {article.date}</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.65rem' }}>
-            <button
-              onClick={handleToggleSave}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                background: isSaved ? '#ecfdf5' : '#ffffff',
-                color: isSaved ? '#047857' : '#334155',
-                border: isSaved ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
-                padding: '0.5rem 0.95rem',
-                borderRadius: '10px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {isSaved ? <Check size={14} color="#047857" /> : <Bookmark size={14} />}
-              <span>{isSaved ? 'Đã lưu vào Bài viết yêu thích' : 'Lưu vào Bài viết yêu thích'}</span>
-            </button>
-
-            <button
-              onClick={() => showToast('🔗 Đã sao chép liên kết chia sẻ!')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                background: '#ffffff',
-                color: '#334155',
-                border: '1px solid #cbd5e1',
-                padding: '0.5rem 0.85rem',
-                borderRadius: '10px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              <Share2 size={14} /> Chia sẻ
-            </button>
-          </div>
-        </div>
-
-        {/* TIÊU ĐỀ BÀI VIẾT LỚN */}
-        <h1 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1.25rem 0', lineHeight: 1.35, letterSpacing: '-0.02em' }}>
+        <h1 className="font-editorial text-2xl sm:text-4xl lg:text-5xl font-bold text-forest leading-tight">
           {article.title}
         </h1>
 
-        {/* TÁC GIẢ (ĐÃ BỎ "TÁC GIẢ TIN CẬY", BỎ "CHUYÊN GIA DINH DƯỠNG THỰC VẬT & NGƯỜI SÁNG LẬP BẾP ÂM XANH") */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <img 
-              src={article.authorAvatar} 
-              alt={article.author} 
-              style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} 
-            />
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-y border-hairline py-3 text-xs text-olive font-metric">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 text-sm font-bold flex items-center justify-center border border-emerald-200">
+              {article.author ? article.author.charAt(0).toUpperCase() : 'V'}
+            </div>
             <div>
-              <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
-                {article.author}
-              </strong>
+              <div className="font-bold text-forest text-sm">{article.author || 'Đầu bếp VeggieAI'}</div>
+              <div className="text-[11px] text-olive">
+                {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('vi-VN') : 'Mới cập nhật'} • {article.views || 100} lượt xem
+              </div>
             </div>
           </div>
 
-          <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-            ❤️ {likes} lượt thích • 💬 {article.commentsCount} bình luận
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                hasLiked 
+                  ? 'bg-rose-50 border-rose-200 text-rose-600 font-bold' 
+                  : 'bg-white border-hairline text-olive hover:text-forest'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${hasLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+              <span>{likes} Thích</span>
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* BỐ CỤC CHÍNH: CỘT NỘI DUNG (70%) + CỘT SIDEBAR (30%) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '2rem', alignItems: 'start' }}>
-          
-          {/* ================================================================= */}
-          {/* CỘT TRÁI: NỘI DUNG BÀI VIẾT */}
-          {/* ================================================================= */}
-          <div>
-            {/* ẢNH BÀI VIẾT NỔI BẬT */}
-            <div style={{ position: 'relative', width: '100%', height: '380px', borderRadius: '20px', overflow: 'hidden', marginBottom: '1.25rem' }}>
-              <img 
-                src={article.image} 
-                alt={article.title} 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-              />
-              <span style={{
-                position: 'absolute',
-                bottom: '12px',
-                left: '12px',
-                background: 'rgba(15, 23, 42, 0.75)',
-                color: '#ffffff',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                padding: '4px 10px',
-                borderRadius: '8px',
-                backdropFilter: 'blur(4px)'
-              }}>
-                Ảnh chụp thực tế từ gian bếp VeggieAI
-              </span>
-            </div>
+      {/* HERO COVER IMAGE */}
+      <div className="aspect-video w-full rounded-3xl overflow-hidden shadow-card border border-hairline bg-slate-100">
+        <img
+          src={article.imageUrl || article.img || FALLBACK_IMAGE}
+          alt={article.title}
+          onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
+          className="w-full h-full object-cover"
+        />
+      </div>
 
-            {/* 4 THẺ THÔNG TIN NHANH */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem' }}>⏱ Chuẩn bị</div>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{article.prepTime}</strong>
-              </div>
-              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem' }}>🍳 Nấu chín</div>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{article.cookTime}</strong>
-              </div>
-              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem' }}>👥 Khẩu phần</div>
-                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{article.servings}</strong>
-              </div>
-              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '14px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.2rem' }}>🌿 Độ khó</div>
-                <strong style={{ fontSize: '0.9rem', color: '#059669' }}>{article.difficulty}</strong>
-              </div>
-            </div>
-
-            {/* ĐOẠN MÔ TẢ MỞ ĐẦU */}
-            <p style={{ fontSize: '0.96rem', color: '#334155', lineHeight: 1.7, marginBottom: '2rem' }}>
-              {article.intro}
-            </p>
-
-            {/* KHỐI 1: DANH SÁCH NGUYÊN LIỆU */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                  <span>📋</span>
-                  <span>Danh sách nguyên liệu (Chuẩn 4 khẩu phần)</span>
-                </div>
-                <button
-                  onClick={() => showToast('🛒 Đã thêm 6 nguyên liệu vào Giỏ đi chợ thông minh!')}
-                  style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
-                >
-                  🛒 Thêm vào giỏ đi chợ
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.65rem' }}>
-                {article.ingredients.map((ing, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.85rem', background: '#f8fafc', borderRadius: '10px', fontSize: '0.84rem' }}>
-                    <span style={{ color: '#0f172a', fontWeight: 600 }}>• {ing.name}</span>
-                    <span style={{ color: '#64748b', fontSize: '0.78rem' }}>{ing.amount}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* KHỐI 2: CÁC BƯỚC THỰC HIỆN CHI TIẾT */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '1.25rem' }}>
-                <span>🍳</span>
-                <span>Các bước thực hiện chi tiết</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {article.steps.map((st) => (
-                  <div key={st.num} style={{ display: 'flex', gap: '0.95rem', alignItems: 'flex-start' }}>
-                    <div style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '50%',
-                      background: '#047857',
-                      color: '#ffffff',
-                      fontSize: '0.85rem',
-                      fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      {st.num}
-                    </div>
-                    <div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0' }}>
-                        {st.title}
-                      </h4>
-                      <p style={{ fontSize: '0.88rem', color: '#475569', margin: 0, lineHeight: 1.65 }}>
-                        {st.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* KHỐI 3: AI PHÂN TÍCH DINH DƯỠNG (ĐÃ BỎ "VEGGIEAI VERIFIED") */}
-            <div style={{
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '20px',
-              padding: '1.4rem',
-              marginBottom: '2rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.85rem' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#047857', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Sparkles size={16} />
-                </div>
-                <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
-                  AI Phân tích dinh dưỡng
-                </strong>
-              </div>
-
-              <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.84rem', color: '#334155', fontWeight: 600, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                <span style={{ color: '#047857' }}>🔥 {article.nutrition.calories}</span>
-                <span>•</span>
-                <span style={{ color: '#059669' }}>🌱 {article.nutrition.protein}</span>
-                <span>•</span>
-                <span style={{ color: '#d97706' }}>🌾 {article.nutrition.fiber}</span>
-                <span>•</span>
-                <span style={{ color: '#2563eb' }}>💧 {article.nutrition.cholesterol}</span>
-              </div>
-
-              <div style={{ fontSize: '0.78rem', color: '#166534', background: '#dcfce7', padding: '6px 12px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span>🛡 Cảnh báo dị ứng:</span>
-                <span>{article.nutrition.allergyNote}</span>
-              </div>
-            </div>
-
-            {/* THANH ACTION CUỐI BÀI */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.85rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={handleToggleLike}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: hasLiked ? '#fee2e2' : '#ffffff',
-                    color: hasLiked ? '#ef4444' : '#334155',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '10px',
-                    padding: '0.55rem 0.95rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Heart size={15} fill={hasLiked ? '#ef4444' : 'none'} />
-                  <span>{likes} Lượt thích</span>
-                </button>
-
-                <button
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: '#ffffff',
-                    color: '#334155',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '10px',
-                    padding: '0.55rem 0.95rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 600
-                  }}
-                >
-                  <MessageSquare size={15} />
-                  <span>{comments.length} Bình luận</span>
-                </button>
-              </div>
-
-              <button
-                onClick={handleAddToPlan}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  background: '#046a47',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '0.65rem 1.25rem',
-                  fontSize: '0.84rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(4, 106, 71, 0.25)'
-                }}
-              >
-                <Calendar size={15} />
-                <span>+ Thêm nguyên liệu món này vào Thực đơn AI (WF02)</span>
-              </button>
-            </div>
-
-            {/* =============================================================== */}
-            {/* KHỐI BÌNH LUẬN & THẢO LUẬN */}
-            {/* =============================================================== */}
-            <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', padding: '1.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1.25rem 0' }}>
-                Bình luận ({comments.length})
-              </h3>
-
-              {/* Ô NHẬP BÌNH LUẬN */}
-              <form onSubmit={handleAddComment} style={{ marginBottom: '1.75rem' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.45rem' }}>
-                  Đang đăng nhập với tư cách: <strong style={{ color: '#0f172a' }}>Thanh Nhã</strong>
-                </div>
-                <textarea
-                  placeholder="Viết bình luận hoặc chia sẻ cảm nhận nấu ăn của bạn..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '0.85rem',
-                    borderRadius: '12px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    resize: 'none',
-                    marginBottom: '0.65rem',
-                    background: '#f8fafc'
-                  }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    type="submit"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      background: '#046a47',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '0.6rem 1.15rem',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <Send size={13} /> Gửi bình luận
-                  </button>
-                </div>
-              </form>
-
-              {/* DANH SÁCH BÌNH LUẬN */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {comments.map((cmt) => (
-                  <div key={cmt.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                      <img src={cmt.avatar} alt={cmt.author} style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{cmt.author}</strong>
-                          {cmt.badge && (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: '4px' }}>
-                              {cmt.badge}
-                            </span>
-                          )}
-                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>• {cmt.time}</span>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: '#334155', margin: '0 0 0.45rem 0', lineHeight: 1.5 }}>
-                          {cmt.content}
-                        </p>
-                        <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#64748b' }}>
-                          <span style={{ cursor: 'pointer' }}>❤️ {cmt.likes} Thích</span>
-                          <span style={{ cursor: 'pointer' }}>Trả lời</span>
-                        </div>
-
-                        {/* REPLIES */}
-                        {cmt.replies && cmt.replies.map((rep) => (
-                          <div key={rep.id} style={{ marginTop: '0.75rem', background: '#f8fafc', padding: '0.75rem 0.95rem', borderRadius: '12px', borderLeft: '3px solid #059669' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.2rem' }}>
-                              <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{rep.author}</strong>
-                              {rep.isAuthor && (
-                                <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: '4px' }}>
-                                  Tác giả
-                                </span>
-                              )}
-                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>• {rep.time}</span>
-                            </div>
-                            <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0, lineHeight: 1.5 }}>
-                              {rep.content}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+      {/* MACRO NUTRITION CARD */}
+      <div className="bg-white rounded-3xl border border-hairline p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-editorial text-lg font-bold text-forest">Chỉ Số Dinh Dưỡng Mỗi Khẩu Phần</h3>
           </div>
-
-          {/* ================================================================= */}
-          {/* CỘT PHẢI: SIDEBAR (ĐÃ BỎ "GỢI Ý UỐNG GÌ", ĐÃ BỎ "MÓN CHAY LIÊN QUAN") */}
-          {/* ================================================================= */}
-          <div>
-            {/* KHỐI: KẾ HOẠCH TUẦN NÀY (THỰC ĐƠN MẪU) */}
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '20px',
-              border: '1px solid #e2e8f0',
-              padding: '1.4rem',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-              marginBottom: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
-                  <span>📅</span>
-                  <span>Kế hoạch tuần này</span>
-                </div>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Thứ Năm</span>
-              </div>
-
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 1rem 0', lineHeight: 1.45 }}>
-                Món Cà Ri bí đỏ này sẽ giúp hoàn hảo mục tiêu 55/70g đạm đạt chuẩn cho bữa trưa hôm nay của bạn.
-              </p>
-
-              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>Bữa trưa gia đình</strong>
-                    <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 600 }}>4 khẩu phần • 345 kcal</span>
-                  </div>
-                  <span style={{ fontSize: '1.1rem' }}>🥗</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onNavigate && onNavigate('planner')}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  color: '#334155',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Tuỳ chỉnh lịch ăn trong tuần →
-              </button>
-            </div>
-
-          </div>
-
+          <span className="text-xs text-olive font-metric">Khẩu phần: {article.servings || 2} người</span>
         </div>
 
-    </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+            <span className="text-[11px] font-medium text-emerald-700 block">Năng lượng</span>
+            <span className="text-xl font-bold text-emerald-900 mt-1 block">{article.kcalPerServing || 280} kcal</span>
+          </div>
 
-      {/* ========================================================================= */}
-      {/* REPORT MODAL POPUP */}
-      {/* ========================================================================= */}
-      {showReportModal && typeof document !== 'undefined' && createPortal(
-        <div
-          onClick={() => setShowReportModal(false)}
-          className="fixed inset-0 z-[9999] bg-forest/70 backdrop-blur-sm flex items-center justify-center p-4"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-floating border border-hairline animate-fade-up my-auto"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-editorial text-lg font-bold text-forest">
-                  Báo cáo nội dung bài viết
-                </h3>
-                <p className="text-xs text-olive mt-0.5">
-                  Ý kiến của bạn sẽ được gửi tới ban kiểm duyệt để xem xét và xử lý.
+          <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100">
+            <span className="text-[11px] font-medium text-blue-700 block">Chất đạm (Protein)</span>
+            <span className="text-xl font-bold text-blue-900 mt-1 block">{article.proteinG || 12}g</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100">
+            <span className="text-[11px] font-medium text-amber-700 block">Tinh bột (Carbs)</span>
+            <span className="text-xl font-bold text-amber-900 mt-1 block">{article.carbG || 35}g</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100">
+            <span className="text-[11px] font-medium text-purple-700 block">Chất béo tốt (Fat)</span>
+            <span className="text-xl font-bold text-purple-900 mt-1 block">{article.fatG || 6}g</span>
+          </div>
+        </div>
+      </div>
+
+      {/* INSTRUCTIONS & COOKING GUIDE */}
+      <div className="bg-white rounded-3xl border border-hairline p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-hairline">
+          <ChefHat className="w-5 h-5 text-emerald-600" />
+          <h2 className="font-editorial text-xl font-bold text-forest">Hướng Dẫn Nấu Chi Tiết</h2>
+        </div>
+
+        <div className="space-y-4">
+          {parsedSteps.map((step, idx) => (
+            <div key={idx} className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50/60 border border-hairline">
+              <div className="w-8 h-8 rounded-full bg-forest text-alabaster text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
+                {idx + 1}
+              </div>
+              <div className="space-y-1 flex-1">
+                <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-sans">
+                  {step}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowReportModal(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <div className="bg-alabaster p-3 rounded-2xl border border-hairline text-xs">
-              <span className="text-[10px] uppercase font-bold text-olive block mb-0.5">Bài viết được báo cáo:</span>
-              <p className="font-semibold text-forest line-clamp-2">{article.title}</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-forest block">
-                Lý do báo cáo:
-              </label>
-              <select
-                value={reportReason}
-                onChange={(e) => setReportReason(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-hairline bg-white text-xs text-forest focus:outline-none focus:border-forest cursor-pointer"
-              >
-                <option value="Nội dung công thức chưa chính xác">Nội dung công thức chưa chính xác</option>
-                <option value="Chứa thành phần dị ứng nguy hiểm">Chứa thành phần dị ứng nguy hiểm</option>
-                <option value="Hình ảnh hoặc nội dung vi phạm bản quyền">Hình ảnh hoặc nội dung vi phạm bản quyền</option>
-                <option value="Ngôn từ không phù hợp quy chuẩn cộng đồng">Ngôn từ không phù hợp quy chuẩn cộng đồng</option>
-              </select>
-            </div>
-
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowReportModal(false)}
-                className="px-4 py-2 rounded-xl border border-hairline text-xs font-semibold text-olive hover:text-forest cursor-pointer transition"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReport}
-                className="px-4 py-2 rounded-xl bg-terracotta hover:bg-terracottaDark text-white text-xs font-semibold cursor-pointer transition shadow-xs"
-              >
-                Gửi báo cáo
-              </button>
-            </div>
+      {/* COMMUNITY COMMENTS & FEEDBACK */}
+      <div className="bg-white rounded-3xl border border-hairline p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex items-center justify-between pb-2 border-b border-hairline">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-editorial text-lg font-bold text-forest">Bình Luận Từ Bạn Đọc ({comments.length})</h3>
           </div>
-        </div>,
-        document.body
-      )}
+        </div>
 
+        {/* New Comment Box */}
+        <form onSubmit={handleAddComment} className="flex gap-2">
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Chia sẻ cảm nhận hoặc bí quyết nấu của bạn..."
+            className="flex-1 text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-hairline bg-slate-50/50 focus:bg-white focus:border-forest outline-none transition"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2.5 rounded-xl bg-forest hover:bg-forestDark text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Send className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Gửi</span>
+          </button>
+        </form>
+
+        {/* Comments List */}
+        <div className="space-y-3 pt-2">
+          {comments.map((cmt) => (
+            <div key={cmt.id} className="p-4 rounded-2xl bg-slate-50 border border-hairline space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-forest">{cmt.author}</span>
+                <span className="text-[11px] text-olive font-metric">{cmt.time}</span>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed">{cmt.content}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

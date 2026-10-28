@@ -2,16 +2,20 @@ import React from 'react';
 import { Sparkles, Check, ChevronRight } from 'lucide-react';
 
 export default function DailyNutritionSummary({
-  consumed,
-  metrics,
+  consumed = {},
+  metrics = {},
   selectedDay = 'Hôm nay',
   onNavigateToPlanner
 }) {
-  const caloPct = Math.min(100, Math.round(((consumed.calories || 0) / (metrics.tdee || 2000)) * 100));
-  const proteinPct = Math.min(100, Math.round(((consumed.protein || 0) / (metrics.targetProtein || 70)) * 100));
-  const b12Pct = Math.min(100, Math.round(((consumed.b12 || 0) / 2.4) * 100));
-  const ironPct = Math.min(100, Math.round(((consumed.iron || 0) / 18.0) * 100));
-  const omega3Pct = Math.min(100, Math.round(((consumed.omega3 || 0) / 1.6) * 100));
+  const safeConsumed = consumed || {};
+  const safeMetrics = metrics || {};
+
+  const caloPct = Math.min(100, Math.round(((safeConsumed.calories || 0) / (safeMetrics.tdee || 2000)) * 100));
+  const proteinPct = Math.min(100, Math.round(((safeConsumed.protein || 0) / (safeMetrics.targetProtein || 70)) * 100));
+  const b12Pct = Math.min(100, Math.round(((safeConsumed.b12 || 0) / 2.4) * 100));
+  const ironPct = Math.min(100, Math.round(((safeConsumed.iron || 0) / 18.0) * 100));
+  const zincPct = Math.min(100, Math.round(((safeConsumed.zinc || 0) / 11.0) * 100));
+  const calciumPct = Math.min(100, Math.round(((safeConsumed.calcium || 0) / 1000) * 100));
 
   const isCompletedAll = caloPct >= 95 && proteinPct >= 95;
 
@@ -44,7 +48,7 @@ export default function DailyNutritionSummary({
             ) : (
               <>
                 <span className="w-2 h-2 rounded-full bg-emeraldBotanic animate-pulse"></span>
-                <span>Đang Nạp Năng Lượng ({consumed.mealsCount || 0}/3 Bữa)</span>
+                <span>Đang Nạp Năng Lượng ({safeConsumed.mealsCount || 0}/3 Bữa)</span>
               </>
             )}
           </span>
@@ -69,8 +73,8 @@ export default function DailyNutritionSummary({
           <div className="flex justify-between items-baseline">
             <span className="text-xs font-bold uppercase tracking-wider text-olive">Năng Lượng Đã Nạp</span>
             <div className="flex items-baseline gap-1">
-              <span className="font-metric text-lg font-bold text-forest">{consumed.calories || 0}</span>
-              <span className="text-xs text-olive font-metric">/ {metrics.tdee} kcal</span>
+              <span className="font-metric text-lg font-bold text-forest">{safeConsumed.calories || 0}</span>
+              <span className="text-xs text-olive font-metric">/ {safeMetrics.tdee || 2000} kcal</span>
               <span className="font-metric text-xs font-semibold text-emeraldBotanic ml-1">({caloPct}%)</span>
             </div>
           </div>
@@ -87,8 +91,8 @@ export default function DailyNutritionSummary({
           <div className="flex justify-between items-baseline">
             <span className="text-xs font-bold uppercase tracking-wider text-olive">Đạm Thực Vật</span>
             <div className="flex items-baseline gap-1">
-              <span className="font-metric text-lg font-bold text-forest">{consumed.protein || 0}</span>
-              <span className="text-xs text-olive font-metric">/ {metrics.targetProtein}g</span>
+              <span className="font-metric text-lg font-bold text-forest">{safeConsumed.protein || 0}</span>
+              <span className="text-xs text-olive font-metric">/ {safeMetrics.targetProtein || 70}g</span>
               <span className="font-metric text-xs font-semibold text-emeraldBotanic ml-1">({proteinPct}%)</span>
             </div>
           </div>
@@ -114,59 +118,71 @@ export default function DailyNutritionSummary({
               <span className="font-metric text-[11px] font-bold text-emeraldBotanic">{b12Pct}%</span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="font-metric text-base font-bold text-forest">{consumed.b12 || 0}</span>
+              <span className="font-metric text-base font-bold text-forest">{safeConsumed.b12 || 0}</span>
               <span className="text-[11px] text-olive font-metric">/ 2.4 µg</span>
             </div>
-            <p className="text-[10px] text-olive truncate">Men dinh dưỡng, sữa hạt</p>
+            <div className="w-full bg-hairline rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-emeraldBotanic h-full rounded-full"
+                style={{ width: `${b12Pct}%` }}
+              ></div>
+            </div>
           </div>
 
-          {/* Sắt Non-Heme */}
+          {/* Iron */}
           <div className="p-3.5 rounded-2xl bg-alabaster border border-hairline space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-forest">Sắt Non-Heme</span>
+              <span className="text-xs font-bold text-forest">Sắt (Iron)</span>
               <span className="font-metric text-[11px] font-bold text-emeraldBotanic">{ironPct}%</span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="font-metric text-base font-bold text-forest">{consumed.iron || 0}</span>
-              <span className="text-[11px] text-olive font-metric">/ 18.0 mg</span>
+              <span className="font-metric text-base font-bold text-forest">{safeConsumed.iron || 0}</span>
+              <span className="text-[11px] text-olive font-metric">/ 18 mg</span>
             </div>
-            <p className="text-[10px] text-olive truncate">Đậu gà, cải bó xôi</p>
+            <div className="w-full bg-hairline rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-emeraldBotanic h-full rounded-full"
+                style={{ width: `${ironPct}%` }}
+              ></div>
+            </div>
           </div>
 
-          {/* Omega-3 ALA */}
+          {/* Zinc */}
           <div className="p-3.5 rounded-2xl bg-alabaster border border-hairline space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-forest">Omega-3 ALA</span>
-              <span className="font-metric text-[11px] font-bold text-emeraldBotanic">{omega3Pct}%</span>
+              <span className="text-xs font-bold text-forest">Kẽm (Zinc)</span>
+              <span className="font-metric text-[11px] font-bold text-emeraldBotanic">{zincPct}%</span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="font-metric text-base font-bold text-forest">{consumed.omega3 || 0}</span>
-              <span className="text-[11px] text-olive font-metric">/ 1.6 g</span>
+              <span className="font-metric text-base font-bold text-forest">{safeConsumed.zinc || 0}</span>
+              <span className="text-[11px] text-olive font-metric">/ 11 mg</span>
             </div>
-            <p className="text-[10px] text-olive truncate">Hạt chia, óc chó</p>
+            <div className="w-full bg-hairline rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-emeraldBotanic h-full rounded-full"
+                style={{ width: `${zincPct}%` }}
+              ></div>
+            </div>
           </div>
 
-          {/* Canxi Thực Vật */}
+          {/* Calcium */}
           <div className="p-3.5 rounded-2xl bg-alabaster border border-hairline space-y-1">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-forest">Canxi Thực Vật</span>
-              <span className="font-metric text-[11px] font-bold text-emeraldBotanic">Đạt chuẩn</span>
+              <span className="text-xs font-bold text-forest">Canxi</span>
+              <span className="font-metric text-[11px] font-bold text-emeraldBotanic">{calciumPct}%</span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="font-metric text-base font-bold text-forest">1,000</span>
-              <span className="text-[11px] text-olive font-metric">mg / ngày</span>
+              <span className="font-metric text-base font-bold text-forest">{safeConsumed.calcium || 0}</span>
+              <span className="text-[11px] text-olive font-metric">/ 1000 mg</span>
             </div>
-            <p className="text-[10px] text-olive truncate">Mè đen, bông cải</p>
+            <div className="w-full bg-hairline rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-emeraldBotanic h-full rounded-full"
+                style={{ width: `${calciumPct}%` }}
+              ></div>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* AI Biological Synergy Insight */}
-      <div className="p-3.5 rounded-2xl bg-emeraldBotanic/10 border border-emeraldBotanic/20 flex items-start gap-2.5">
-        <Sparkles className="w-4 h-4 text-emeraldBotanic shrink-0 mt-0.5" />
-        <p className="text-xs text-forest leading-relaxed">
-          <strong className="font-semibold text-emeraldBotanic">Gợi ý sinh học AI:</strong> Sắt thực vật (Non-heme) hấp thụ tối ưu khi kết hợp cùng Vitamin C tự nhiên (chanh tươi, cam, ớt chuông). Hạn chế uống trà hoặc cà phê ngay sau bữa ăn để tránh giảm 50% khả năng hấp thu.
-        </p>
       </div>
     </div>
   );

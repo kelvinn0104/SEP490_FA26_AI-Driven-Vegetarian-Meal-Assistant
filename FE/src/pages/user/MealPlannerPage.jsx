@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Calendar, Check, RefreshCw, ShoppingBag, Sparkles,
   ChevronRight, Clock, Plus, X, Utensils, CheckSquare, Square,
-  ShieldCheck, Scale, ArrowRight, Lock, Eye, AlertTriangle
+  ShieldCheck, Scale, ArrowRight, Lock, Eye, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
@@ -35,14 +35,29 @@ export default function MealPlannerPage({ onNavigate }) {
   const [selectedRecipeDetail, setSelectedRecipeDetail] = useState(null);
   const [checkedGroceryItems, setCheckedGroceryItems] = useState([]);
 
-  // Map Recipe by ID
+  // Map Recipe by ID (hỗ trợ linh hoạt 'r1', 1, '1')
   const recipeMap = useMemo(() => {
-    return new Map(recipesDb.map(r => [r.id, r]));
+    const map = new Map();
+    recipesDb.forEach(r => {
+      if (!r) return;
+      const rawId = String(r.id || '').trim();
+      const numId = parseInt(rawId.replace(/\D/g, ''), 10);
+      map.set(rawId, r);
+      if (rawId.startsWith('r')) {
+        map.set(rawId.slice(1), r);
+      } else {
+        map.set(`r${rawId}`, r);
+      }
+      if (!isNaN(numId)) {
+        map.set(numId, r);
+      }
+    });
+    return map;
   }, [recipesDb]);
 
-  const breakfastRecipe = recipeMap.get(currentDayPlan.breakfast) || recipesDb[3];
-  const lunchRecipe = recipeMap.get(currentDayPlan.lunch) || recipesDb[0];
-  const dinnerRecipe = recipeMap.get(currentDayPlan.dinner) || recipesDb[5];
+  const breakfastRecipe = recipeMap.get(currentDayPlan?.breakfast) || recipesDb[3];
+  const lunchRecipe = recipeMap.get(currentDayPlan?.lunch) || recipesDb[0];
+  const dinnerRecipe = recipeMap.get(currentDayPlan?.dinner) || recipesDb[5];
 
   const getNutrients = (rec, defaultCal = 400, defaultPro = 20) => {
     return {
@@ -104,7 +119,7 @@ export default function MealPlannerPage({ onNavigate }) {
 
   // Aggregate Smart Grocery List from today's meals
   const groceryCategories = useMemo(() => {
-    const todayRecipes = [breakfastRecipe, lunchRecipe, dinnerRecipe];
+    const todayRecipes = [breakfastRecipe, lunchRecipe, dinnerRecipe].filter(Boolean);
     const catMap = {
       'Rau củ tươi': [],
       'Đậu hạt & Đạm thực vật': [],
@@ -112,14 +127,22 @@ export default function MealPlannerPage({ onNavigate }) {
       'Gia vị & Vi chất B12': []
     };
 
+    const seenNames = new Set();
+
     todayRecipes.forEach(r => {
-      (r.ingredients || []).forEach(ing => {
+      const ings = Array.isArray(r?.ingredients) ? r.ingredients : [];
+      ings.forEach(ing => {
+        if (!ing || !ing.name) return;
+        const key = ing.name.toLowerCase().trim();
+        if (seenNames.has(key)) return;
+        seenNames.add(key);
+
         const cat = ing.category || '';
-        if (cat.includes('Rau')) {
+        if (cat.includes('Rau') || cat.includes('Nấm') || cat.includes('Củ')) {
           catMap['Rau củ tươi'].push(ing);
-        } else if (cat.includes('Đậu') || cat.includes('Đạm')) {
+        } else if (cat.includes('Đậu') || cat.includes('Đạm') || cat.includes('Hạt') || cat.includes('Tempeh')) {
           catMap['Đậu hạt & Đạm thực vật'].push(ing);
-        } else if (cat.includes('Ngũ cốc')) {
+        } else if (cat.includes('Ngũ cốc') || cat.includes('Mì') || cat.includes('Bún') || cat.includes('Phở') || cat.includes('Gạo') || cat.includes('Cơm') || cat.includes('Bánh')) {
           catMap['Ngũ cốc & Mì'].push(ing);
         } else {
           catMap['Gia vị & Vi chất B12'].push(ing);
@@ -129,6 +152,10 @@ export default function MealPlannerPage({ onNavigate }) {
 
     return catMap;
   }, [breakfastRecipe, lunchRecipe, dinnerRecipe]);
+
+  const totalGroceryItems = useMemo(() => {
+    return Object.values(groceryCategories).reduce((sum, list) => sum + list.length, 0);
+  }, [groceryCategories]);
 
   const toggleGroceryCheck = (itemName) => {
     setCheckedGroceryItems(prev =>
@@ -316,47 +343,78 @@ export default function MealPlannerPage({ onNavigate }) {
         </div>
 
         {/* 7 Days Button Strip */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-3 bg-white p-2 rounded-2xl border border-hairline shadow-xs">
-          {weeklyPlan.map((d, idx) => {
-            const isSelected = selectedDayIdx === idx;
-            const completedCount =
-              (d.completedBreakfast ? 1 : 0) +
-              (d.completedLunch ? 1 : 0) +
-              (d.completedDinner ? 1 : 0);
+        {weeklyPlan && weeklyPlan.length > 0 && (
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-3 bg-white p-2 rounded-2xl border border-hairline shadow-xs">
+            {weeklyPlan.map((d, idx) => {
+              const isSelected = selectedDayIdx === idx;
+              const completedCount =
+                (d.completedBreakfast ? 1 : 0) +
+                (d.completedLunch ? 1 : 0) +
+                (d.completedDinner ? 1 : 0);
 
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setSelectedDayIdx(idx)}
-                className={`py-3 px-1 sm:px-2 rounded-xl text-center transition cursor-pointer flex flex-col items-center justify-between gap-1 ${
-                  isSelected
-                    ? 'bg-forest text-white shadow-xs'
-                    : 'hover:bg-alabaster text-forest'
-                }`}
-              >
-                <span className="text-[11px] font-bold block">{d.day}</span>
-                <span className={`text-[10px] font-metric block ${isSelected ? 'text-emerald-300' : 'text-olive'}`}>
-                  {d.date}
-                </span>
-
-                {/* Status Dot */}
-                <span
-                  className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                    completedCount === 3
-                      ? 'bg-emerald-400'
-                      : completedCount > 0
-                      ? 'bg-amber-400'
-                      : isSelected
-                      ? 'bg-white/40'
-                      : 'bg-hairline'
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedDayIdx(idx)}
+                  className={`py-3 px-1 sm:px-2 rounded-xl text-center transition cursor-pointer flex flex-col items-center justify-between gap-1 ${
+                    isSelected
+                      ? 'bg-forest text-white shadow-xs'
+                      : 'hover:bg-alabaster text-forest'
                   }`}
-                ></span>
-              </button>
-            );
-          })}
-        </div>
+                >
+                  <span className="text-[11px] font-bold block">{d.day}</span>
+                  <span className={`text-[10px] font-metric block ${isSelected ? 'text-emerald-300' : 'text-olive'}`}>
+                    {d.date}
+                  </span>
+
+                  {/* Status Dot */}
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                      completedCount === 3
+                        ? 'bg-emerald-400'
+                        : completedCount > 0
+                        ? 'bg-amber-400'
+                        : isSelected
+                        ? 'bg-white/40'
+                        : 'bg-hairline'
+                    }`}
+                  ></span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {(!weeklyPlan || weeklyPlan.length === 0) ? (
+        <div className="bg-white rounded-3xl border border-hairline p-8 sm:p-14 text-center max-w-2xl mx-auto space-y-6 shadow-xs animate-fade-up my-6">
+          <div className="w-16 h-16 rounded-2xl bg-emeraldBotanic/10 text-emeraldBotanic flex items-center justify-center mx-auto">
+            <Sparkles className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
+              CHƯA CÓ THỰC ĐƠN TUẦN CÁ NHÂN HÓA
+            </span>
+            <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-forest">
+              Khởi Tạo Kế Hoạch Dinh Dưỡng 7 Ngày
+            </h2>
+            <p className="text-xs sm:text-sm text-olive max-w-md mx-auto leading-relaxed">
+              Trí tuệ nhân tạo Gemini trên máy chủ sẽ tự động tính toán nhu cầu dinh dưỡng ({metrics?.tdee || 2000} kcal/ngày), phân bổ vi chất và loại trừ các nguyên liệu dị ứng của bạn.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={loadingApi}
+            onClick={() => generateAiMealPlan({ days: 7, note: 'Tối ưu dinh dưỡng và cân bằng vi chất' })}
+            className="px-6 py-3.5 rounded-2xl bg-forest hover:bg-forestDark text-white text-xs sm:text-sm font-bold transition cursor-pointer shadow-xs inline-flex items-center gap-2 active:scale-95"
+          >
+            <RefreshCw className={`w-4 h-4 ${loadingApi ? 'animate-spin' : ''}`} />
+            <span>{loadingApi ? 'AI Đang Lập Thực Đơn (Gemini)...' : 'Khởi Tạo Thực Đơn AI 7 Ngày Ngay'}</span>
+          </button>
+        </div>
+      ) : (
+        <>
 
       {/* ====================================================================
           2. NUTRITION COMPARISON: PLANNED VS CONSUMED
@@ -365,7 +423,7 @@ export default function MealPlannerPage({ onNavigate }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-hairline pb-4">
           <div>
             <span className="font-metric text-xs font-bold uppercase text-emeraldBotanic">
-              ĐỐI SOÁT THỰC ĐƠN ({currentDayPlan.day} • {currentDayPlan.date})
+              ĐỐI SOÁT THỰC ĐƠN ({currentDayPlan?.day || 'Ngày 1'} • {currentDayPlan?.date || ''})
             </span>
             <h3 className="font-editorial text-lg sm:text-xl font-bold text-forest">
               Năng Lượng Dự Kiến vs. Thực Tế Đã Dùng
@@ -529,7 +587,7 @@ export default function MealPlannerPage({ onNavigate }) {
               DANH SÁCH ĐI CHỢ THÔNG MINH
             </span>
             <h3 className="font-editorial text-xl font-bold text-forest mt-0.5">
-              Nguyên Liệu Cần Mua Hôm Nay ({currentDayPlan.day})
+              Nguyên Liệu Cần Mua Hôm Nay ({currentDayPlan?.day || 'Ngày 1'})
             </h3>
           </div>
           <span className="text-xs text-olive">
@@ -537,41 +595,53 @@ export default function MealPlannerPage({ onNavigate }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(groceryCategories).map(([catName, items]) => (
-            <div key={catName} className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-forest block border-b border-hairline/80 pb-2">
-                {catName} ({items.length})
-              </span>
+        {totalGroceryItems === 0 ? (
+          <div className="p-8 rounded-2xl bg-alabaster border border-hairline text-center space-y-2">
+            <Utensils className="w-8 h-8 text-olive/50 mx-auto" />
+            <p className="text-sm font-semibold text-forest">Chưa có dữ liệu nguyên liệu từ máy chủ Backend</p>
+            <p className="text-xs text-olive max-w-md mx-auto">
+              Máy chủ Backend hiện chưa cung cấp danh sách nguyên liệu (field `ingredients`) trong API công thức ({[breakfastRecipe?.title, lunchRecipe?.title, dinnerRecipe?.title].filter(Boolean).join(', ')}). Danh sách đi chợ sẽ tự động xuất hiện khi Backend bổ sung trường này.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(groceryCategories).map(([catName, items]) => (
+              <div key={catName} className="p-4 rounded-2xl bg-alabaster border border-hairline space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-forest block border-b border-hairline/80 pb-2">
+                  {catName} ({items.length})
+                </span>
 
-              <div className="space-y-1.5">
-                {items.map((ing, idx) => {
-                  const isChecked = checkedGroceryItems.includes(ing.name);
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => toggleGroceryCheck(ing.name)}
-                      className="flex items-center gap-2 text-xs cursor-pointer group py-0.5"
-                    >
-                      <button type="button" className="text-emeraldBotanic shrink-0">
-                        {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Square className="w-4 h-4 text-olive/60 group-hover:text-forest" />
-                        )}
-                      </button>
-                      <span className={`flex-1 ${isChecked ? 'line-through text-olive/50' : 'text-forest font-medium'}`}>
-                        {ing.name}
-                      </span>
-                      <span className="font-metric text-[11px] text-olive font-semibold">{ing.amount}</span>
-                    </div>
-                  );
-                })}
+                <div className="space-y-1.5">
+                  {items.map((ing, idx) => {
+                    const isChecked = checkedGroceryItems.includes(ing.name);
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => toggleGroceryCheck(ing.name)}
+                        className="flex items-center gap-2 text-xs cursor-pointer group py-0.5"
+                      >
+                        <button type="button" className="text-emeraldBotanic shrink-0">
+                          {isChecked ? (
+                            <CheckSquare className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Square className="w-4 h-4 text-olive/60 group-hover:text-forest" />
+                          )}
+                        </button>
+                        <span className={`flex-1 ${isChecked ? 'line-through text-olive/50' : 'text-forest font-medium'}`}>
+                          {ing.name}
+                        </span>
+                        <span className="font-metric text-[11px] text-olive font-semibold">{ing.amount}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+      </>
+      )}
 
       {/* ====================================================================
           MODAL: SWAP MEAL QUICK SELECTOR
@@ -673,6 +743,57 @@ export default function MealPlannerPage({ onNavigate }) {
           isSaved={(profile?.savedRecipeIds || []).includes(selectedRecipeDetail.id)}
           onToggleSave={toggleSaveRecipe}
         />
+      )}
+
+      {/* AI Meal Plan Generation Loading Modal */}
+      {loadingApi && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-forest/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
+        >
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-floating border border-hairline text-center animate-fade-up">
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="absolute inset-0 rounded-3xl bg-emeraldBotanic/20 animate-ping opacity-75"></div>
+              <div className="relative w-20 h-20 rounded-3xl bg-forest flex items-center justify-center text-white shadow-card">
+                <Sparkles className="w-10 h-10 text-emerald-400 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="font-metric text-[11px] font-bold uppercase tracking-wider text-emeraldBotanic">
+                TRỢ LÝ DINH DƯỠNG GOOGLE GEMINI
+              </span>
+              <h3 className="font-editorial text-2xl font-bold text-forest">
+                Đang Khởi Tạo Thực Đơn 7 Ngày
+              </h3>
+              <p className="text-xs text-olive leading-relaxed">
+                Hệ thống AI đang phân tích hồ sơ thể trạng, tối ưu 21 bữa ăn thuần chay và cân bằng mục tiêu năng lượng ({metrics?.tdee || 2000} kcal/ngày), Đạm, Sắt và B12.
+              </p>
+            </div>
+
+            {/* Stepper info */}
+            <div className="bg-alabaster p-4 rounded-2xl border border-hairline text-left space-y-2.5 text-xs text-forest">
+              <div className="flex items-center gap-2.5 text-forest font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emeraldBotanic shrink-0" />
+                <span>1. Đọc hồ sơ thể trạng & mục tiêu dinh dưỡng</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-forest font-bold">
+                <RefreshCw className="w-4 h-4 text-emeraldBotanic animate-spin shrink-0" />
+                <span>2. AI Gemini chọn món & cân bằng vi chất 7 ngày...</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-olive">
+                <div className="w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px] shrink-0 font-metric">3</div>
+                <span>3. Thẩm định calo (±12%) & lưu trữ vào hệ thống</span>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-olive bg-emerald-50/80 p-3 rounded-xl border border-emerald-100 flex items-center gap-2 text-left">
+              <Clock className="w-4 h-4 text-emeraldBotanic shrink-0" />
+              <span>Thời gian xử lý: <strong>khoảng 60 - 90 giây</strong> do Gemini giải bài toán 21 bữa ăn. Vui lòng không tắt hoặc tải lại trang!</span>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

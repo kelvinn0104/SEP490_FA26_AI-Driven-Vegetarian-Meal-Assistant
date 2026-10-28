@@ -22,10 +22,11 @@ export const mealPlanService = {
   generatePlan: async (params = {}) => {
     try {
       // Endpoint chuẩn từ controller BE: [Route("api/meal-plans/ai")] -> [HttpPost("generate")]
+      // AI Gemini tính toán 21 bữa ăn 7 ngày + thẩm định vi chất có thể mất 60-90s, set timeout 180s để chống rớt kết nối
       const raw = await apiRequest('/meal-plans/ai/generate', {
         method: 'POST',
         body: JSON.stringify(params),
-        timeout: 60000,
+        timeout: 180000,
       });
       return unwrap(raw);
     } catch (err) {
@@ -33,7 +34,7 @@ export const mealPlanService = {
         const fallbackRaw = await apiRequest('/meal-plans/generate', {
           method: 'POST',
           body: JSON.stringify(params),
-          timeout: 60000,
+          timeout: 180000,
         });
         return unwrap(fallbackRaw);
       }
@@ -52,7 +53,7 @@ export const mealPlanService = {
       const raw = await apiRequest(`/meal-plans/ai/${planId}/items/${itemId}/swap`, {
         method: 'POST',
         body: JSON.stringify({ reason }),
-        timeout: 45000,
+        timeout: 90000,
       });
       return unwrap(raw);
     } catch (err) {
@@ -60,7 +61,7 @@ export const mealPlanService = {
         const fallbackRaw = await apiRequest(`/meal-plans/${planId}/items/${itemId}/swap`, {
           method: 'POST',
           body: JSON.stringify({ reason }),
-          timeout: 45000,
+          timeout: 90000,
         });
         return unwrap(fallbackRaw);
       }

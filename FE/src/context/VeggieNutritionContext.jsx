@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import {
-  RECIPES_DB,
   DEFAULT_PROFILE,
-  DEMO_PROFILES,
-  INITIAL_WEEKLY_PLAN
+  DEMO_PROFILES
 } from '../data/nutritionData';
 import {
   calculateBiometrics,
@@ -49,14 +47,14 @@ export function VeggieNutritionProvider({ children }) {
     } catch (e) {
       console.warn('Failed to load plan from storage', e);
     }
-    return INITIAL_WEEKLY_PLAN;
+    return [];
   });
 
   // Active Plan Metadata from Backend (e.g. planId, status, dailyTargets)
   const [activePlanMeta, setActivePlanMeta] = useState(null);
 
-  // 4. Recipes State (synced from Backend if available)
-  const [recipesDb, setRecipesDb] = useState(RECIPES_DB);
+  // 4. Recipes State (chỉ lấy trực tiếp từ Backend API, không dùng mock)
+  const [recipesDb, setRecipesDb] = useState([]);
 
   // 5. Navigation & Day selection
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
@@ -91,7 +89,7 @@ export function VeggieNutritionProvider({ children }) {
       setIsBackendConnected(isOnline);
 
       if (!isOnline) {
-        console.info('[VeggieAI] Backend đang offline hoặc không kết nối được -> Dùng chế độ mô phỏng.');
+        console.info('[VeggieAI] Đang chờ kết nối tới Live Backend Render...');
         return;
       }
 
@@ -100,33 +98,40 @@ export function VeggieNutritionProvider({ children }) {
         const recipeRes = await recipeService.getRecipes({ pageSize: 50 });
         const items = recipeRes?.items || (Array.isArray(recipeRes) ? recipeRes : null);
         if (items && items.length > 0) {
-          const mapped = items.map(r => ({
-            id: `r${r.id}`,
-            dbId: r.id,
-            title: r.title,
-            subtitle: r.description || r.instructions || '',
-            prepTime: r.prepTime || 20,
-            servings: r.servings || 2,
-            region: 'vietnam',
-            nutrients: {
-              calories: r.kcalPerServing || 400,
-              protein: r.proteinG || 18,
-              carbs: r.carbG || 45,
-              fat: r.fatG || 10,
-              b12: r.b12Mcg || 1.2,
-              iron: r.ironMg || 3.5,
-              zinc: r.zincMg || 2.5,
-              calcium: r.calciumMg || 150
-            },
-            ingredients: r.ingredients?.map(ing => ({
-              name: ing.name || ing.ingredientName || 'Nguyên liệu',
-              amount: `${ing.amount || ''} ${ing.unit || ''}`.trim()
-            })) || [],
-            instructions: r.instructions || '',
-            matchScore: 95,
-            matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
-            image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80'
-          }));
+          const mapped = items.map(r => {
+            const rawId = String(r.id || '').trim();
+            const normalizedId = rawId.startsWith('r') ? rawId : `r${rawId}`;
+            return {
+              id: normalizedId,
+              dbId: r.id,
+              title: r.title,
+              subtitle: r.description || r.instructions || '',
+              prepTime: r.prepTime || 20,
+              servings: r.servings || 2,
+              region: 'vietnam',
+              nutrients: {
+                calories: r.kcalPerServing || 400,
+                protein: r.proteinG || 18,
+                carbs: r.carbG || 45,
+                fat: r.fatG || 10,
+                b12: r.b12Mcg || 1.2,
+                iron: r.ironMg || 3.5,
+                zinc: r.zincMg || 2.5,
+                calcium: r.calciumMg || 150
+              },
+              ingredients: Array.isArray(r.ingredients)
+                ? r.ingredients.map(ing => ({
+                    name: ing.name || ing.ingredientName || 'Nguyên liệu',
+                    amount: ing.amount || `${ing.quantityG || ing.quantity || ''} ${ing.unit || 'g'}`.trim(),
+                    category: ing.category || 'Nguyên liệu thực vật'
+                  }))
+                : [],
+              instructions: r.instructions || '',
+              matchScore: 95,
+              matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
+              image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80'
+            };
+          });
           setRecipesDb(mapped);
         }
       } catch (err) {
@@ -528,8 +533,11 @@ export function VeggieNutritionProvider({ children }) {
         }
       }
 
-      // Offline simulation fallback
-      showToast('Đã tạo mới thực đơn tuần theo chỉ số dinh dưỡng thể trạng!');
+      if (!getAuthToken()) {
+        showToast('Vui lòng đăng nhập để hệ thống AI tạo thực đơn cá nhân hóa.');
+        return null;
+      }
+      showToast('Máy chủ AI không trả về dữ liệu thực đơn hợp lệ. Vui lòng thử lại.');
       return null;
     } catch (err) {
       console.warn('Generate meal plan failed:', err.message);
@@ -559,8 +567,11 @@ export function VeggieNutritionProvider({ children }) {
   }, [profile]);
 
   // 14. Memoized Actual Consumed Nutrition for Selected Day
-  const currentDayPlan = weeklyPlan[selectedDayIdx] || weeklyPlan[0];
+  const currentDayPlan = (weeklyPlan && weeklyPlan.length > 0) ? (weeklyPlan[selectedDayIdx] || weeklyPlan[0]) : null;
   const consumedToday = useMemo(() => {
+    if (!currentDayPlan) {
+      return { calories: 0, protein: 0, carbs: 0, fat: 0, b12: 0, iron: 0, zinc: 0, calcium: 0 };
+    }
     return calculateConsumedNutrition(currentDayPlan, recipesDb);
   }, [currentDayPlan, recipesDb]);
 

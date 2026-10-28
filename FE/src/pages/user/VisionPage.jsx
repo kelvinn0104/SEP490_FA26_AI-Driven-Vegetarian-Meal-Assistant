@@ -3,13 +3,12 @@ import {
   Camera, Sparkles, ArrowRight, CheckCircle2, Leaf, 
   Plus, X, Trash2, Check, RefreshCw, Upload, Utensils, AlertTriangle, Eye, Clock, Flame
 } from 'lucide-react';
-import { detectIngredients } from '../../utils/api';
-import { scanService } from '../../api';
+import { scanService, getAuthToken } from '../../api';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import RecipeDetailModal from '../../components/recipes/RecipeDetailModal';
 
 export default function VisionPage({ onNavigate }) {
-  const { generateAiMealPlan, isBackendConnected, showToast } = useVeggieNutrition();
+  const { generateAiMealPlan, showToast } = useVeggieNutrition();
 
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -85,14 +84,19 @@ export default function VisionPage({ onNavigate }) {
     }, 450);
   };
 
-  // 4. NHẬN DIỆN MÔ HÌNH YOLOV8 QUA BACKEND (CÓ DỰ PHÒNG CỤC BỘ)
+  // 4. NHẬN DIỆN MÔ HÌNH YOLOV8 QUA LIVE BACKEND
   const handleScan = async (fileOrSrc = null) => {
     setLoading(true);
-    if (!imagePreview && !fileOrSrc) {
-      setImagePreview(samplePresets[0].img);
-    }
 
     if (fileOrSrc && typeof fileOrSrc === 'object' && fileOrSrc instanceof File) {
+      const token = getAuthToken();
+      if (!token) {
+        showToast('Vui lòng đăng nhập tài khoản để nhận diện nguyên liệu tủ lạnh bằng AI.', 'error');
+        setLoading(false);
+        if (onNavigate) onNavigate('login');
+        return;
+      }
+
       try {
         const res = await scanService.uploadScan(fileOrSrc);
         if (res) {
@@ -121,32 +125,28 @@ export default function VisionPage({ onNavigate }) {
               confirmed: true
             }));
             setDetectedItems(mapped);
+            showToast(res.message || '✨ AI Vision đã bóc tách nguyên liệu thành công!');
           } else {
-            setDetectedItems(samplePresets[0].items);
+            setDetectedItems([]);
+            showToast('AI chưa nhận diện được nguyên liệu trong ảnh. Bạn có thể thêm thủ công bên dưới!', 'info');
           }
-          showToast(res.message || '✨ AI Vision đã bóc tách nguyên liệu thành công!');
           return;
         }
       } catch (err) {
-        console.warn('Backend scan failed, fallback to local preset:', err.message);
+        console.warn('Backend scan failed:', err.message);
+        setDetectedItems([]);
+        showToast(`Không thể nhận diện ảnh: ${err.message || 'Lỗi kết nối máy chủ'}`, 'error');
       } finally {
         setLoading(false);
       }
+      return;
     }
 
-    try {
-      const data = await detectIngredients();
-      if (data && data.detectedItems) {
-        setDetectedItems(data.detectedItems.map(i => ({ ...i, confirmed: true })));
-      } else {
-        setDetectedItems(samplePresets[0].items);
-      }
-      showToast('✨ Đã phân tích xong nguyên liệu!');
-    } catch (err) {
-      setDetectedItems(samplePresets[0].items);
-    } finally {
-      setLoading(false);
+    // Nếu bấm quét mà chưa chọn ảnh
+    if (!imagePreview && !fileOrSrc) {
+      showToast('Vui lòng chọn ảnh chụp tủ lạnh hoặc chọn một ảnh mẫu bên dưới.', 'info');
     }
+    setLoading(false);
   };
 
   // 5. CHỈNH SỬA DANH SÁCH NGUYÊN LIỆU
