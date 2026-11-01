@@ -113,3 +113,20 @@ public class UpdateUserRoleRequest
     [Required]
     public string Role { get; set; } = string.Empty;
 }
+
+public class ChangePasswordRequest
+{
+    [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8, ErrorMessage = "Mật khẩu mới phải có ít nhất 8 ký tự.")]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class UpdateMeRequest
+{
+    [Required]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Tên hiển thị phải từ 2 đến 100 ký tự.")]
+    public string DisplayName { get; set; } = string.Empty;
+}

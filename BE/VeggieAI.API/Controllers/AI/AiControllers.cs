@@ -66,6 +66,20 @@ public class ScansController : AiApiControllerBase
         var result = await _svc.GetHistoryAsync(UserId, page, ct);
         return Ok(ApiResponse<PagedResult<ScanSummaryDto>>.Ok(result));
     }
+
+    /// <summary>
+    /// GET /api/recipes/suggest?ingredientIds=1&amp;ingredientIds=2&amp;take=10 — gợi ý món theo nguyên liệu có sẵn.
+    /// Đăng nhập → loại món chứa dị ứng của user. Route literal "suggest" được ưu tiên hơn GET /api/recipes/{id}.
+    /// </summary>
+    [HttpGet("~/api/recipes/suggest")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RecipeSuggestionDto>>>> SuggestRecipes(
+        [FromQuery] List<int> ingredientIds, [FromQuery] int take = 10, CancellationToken ct = default)
+    {
+        int? userId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+        var result = await _svc.SuggestRecipesAsync(userId, ingredientIds ?? new List<int>(), take, ct);
+        return Ok(ApiResponse<IReadOnlyList<RecipeSuggestionDto>>.Ok(result));
+    }
 }
 
 /// <summary>🤖 Chatbot dinh dưỡng thông minh.</summary>
