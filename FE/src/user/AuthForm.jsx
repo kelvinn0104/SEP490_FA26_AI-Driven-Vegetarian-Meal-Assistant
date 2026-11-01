@@ -24,7 +24,9 @@ export function AuthForm({ register, go, onLogin }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otpSlots, setOtpSlots] = useState(["", "", "", "", "", ""]);
+  const otp = otpSlots.join("");
+  const resetOtp = () => setOtpSlots(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,10 +34,13 @@ export function AuthForm({ register, go, onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const otpInput = useRef(null);
+  const otpInputs = useRef([]);
+
   useEffect(() => {
     if (step !== "otp") return;
-    otpInput.current?.focus();
+    setTimeout(() => {
+      otpInputs.current[0]?.focus();
+    }, 100);
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [step]);
@@ -53,7 +58,7 @@ export function AuthForm({ register, go, onLogin }) {
     }
     setPassword("");
     setConfirmPassword("");
-    setOtp("");
+    resetOtp();
     setStep("otp");
     setInfo(
       response?.codeSent === false
@@ -183,10 +188,98 @@ export function AuthForm({ register, go, onLogin }) {
     }
     setPending(null);
     setStep("form");
-    setOtp("");
+    resetOtp();
     setError("");
     setInfo("");
   };
+
+  const handleOtpChange = (index, value) => {
+    const clean = value.replace(/\D/g, "");
+    if (!clean) {
+      setOtpSlots((prev) => {
+        const next = [...prev];
+        next[index] = "";
+        return next;
+      });
+      return;
+    }
+
+    if (clean.length > 1) {
+      setOtpSlots((prev) => {
+        const next = [...prev];
+        for (let j = 0; j < clean.length && index + j < 6; j++) {
+          next[index + j] = clean[j];
+        }
+        return next;
+      });
+      const nextFocus = Math.min(index + clean.length, 5);
+      otpInputs.current[nextFocus]?.focus();
+      return;
+    }
+
+    const char = clean.slice(-1);
+    setOtpSlots((prev) => {
+      const next = [...prev];
+      next[index] = char;
+      return next;
+    });
+    if (index < 5) {
+      otpInputs.current[index + 1]?.focus();
+      otpInputs.current[index + 1]?.select();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (!otpSlots[index] && index > 0) {
+        e.preventDefault();
+        setOtpSlots((prev) => {
+          const next = [...prev];
+          next[index - 1] = "";
+          return next;
+        });
+        otpInputs.current[index - 1]?.focus();
+      } else if (otpSlots[index]) {
+        e.preventDefault();
+        setOtpSlots((prev) => {
+          const next = [...prev];
+          next[index] = "";
+          return next;
+        });
+      }
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (index > 0) {
+        otpInputs.current[index - 1]?.focus();
+        otpInputs.current[index - 1]?.select();
+      }
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (index < 5) {
+        otpInputs.current[index + 1]?.focus();
+        otpInputs.current[index + 1]?.select();
+      }
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData?.getData("text") || "";
+    const clean = text.replace(/\D/g, "").slice(0, 6);
+    if (clean) {
+      const arr = clean.split("");
+      setOtpSlots((prev) => {
+        const next = [...prev];
+        for (let i = 0; i < 6; i++) {
+          next[i] = arr[i] || "";
+        }
+        return next;
+      });
+      const focusIndex = Math.min(clean.length, 5);
+      otpInputs.current[focusIndex]?.focus();
+    }
+  };
+
   return (
     <div className="vp-auth">
       <div className="vp-auth-photo" aria-hidden="true" />
@@ -252,28 +345,26 @@ export function AuthForm({ register, go, onLogin }) {
             <>
               <label>
                 Mã xác thực
-                <span className="vp-otp-field">
-                  <input
-                    ref={otpInput}
-                    className="vp-otp-input"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    required
-                    disabled={busy}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                    aria-describedby="vp-otp-expiry"
-                  />
-                  <span className="vp-otp-slots" aria-hidden="true">
-                    {Array.from({ length: 6 }, (_, index) => (
-                      <span key={index} data-current={index === otp.length}>
-                        {otp[index] || "·"}
-                      </span>
-                    ))}
-                  </span>
-                </span>
+                <div className="vp-otp-boxes" onPaste={handleOtpPaste}>
+                  {otpSlots.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (otpInputs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={2}
+                      disabled={busy}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onFocus={(e) => e.target.select()}
+                      className="vp-otp-box"
+                      aria-label={`Số thứ ${index + 1}`}
+                      autoComplete={index === 0 ? "one-time-code" : "off"}
+                    />
+                  ))}
+                </div>
               </label>
               <p className="vp-otp-expiry" id="vp-otp-expiry">
                 {remaining === 0

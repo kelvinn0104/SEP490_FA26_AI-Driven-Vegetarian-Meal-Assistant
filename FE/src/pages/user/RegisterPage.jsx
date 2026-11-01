@@ -633,6 +633,12 @@ export default function RegisterPage({ onNavigate }) {
                 pattern="\d*"
                 maxLength={6}
                 value={otpCode}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData?.getData('text') || '';
+                  const digits = text.replace(/\D/g, '').slice(0, 6);
+                  if (digits) setOtpCode(digits);
+                }}
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                   setOtpCode(val);
