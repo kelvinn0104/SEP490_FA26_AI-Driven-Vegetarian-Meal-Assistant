@@ -19,6 +19,8 @@ public interface IAuthService
     Task<AuthResponse> VerifyCodeAsync(VerifyCodeRequest request);
     Task<RegisterPendingResponse> ResendCodeAsync(ResendCodeRequest request);
     Task<UserDto?> GetCurrentUserAsync(int userId);
+    Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request);
+    Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
 }
 
 public class AuthService : IAuthService
@@ -318,6 +320,45 @@ public class AuthService : IAuthService
     {
         var user = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
         return user == null ? null : MapUserToDto(user);
+    }
+
+    public async Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
+        var name = (request.DisplayName ?? string.Empty).Trim();
+        if (name.Length < 2) throw new AppException("Tên hiển thị phải có ít nhất 2 ký tự.");
+
+        user.DisplayName = name;
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.CommitAsync();
+
+        var detailed = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
+        return MapUserToDto(detailed ?? user);
+    }
+
+    public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            throw new AppException("Mật khẩu mới phải có ít nhất 8 ký tự.");
+        if (request.NewPassword == request.CurrentPassword)
+            throw new AppException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+
+        bool valid;
+        try
+        {
+            valid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash);
+        }
+        catch
+        {
+            // Tài khoản seed cũ có thể lưu mật khẩu dạng thô (giống logic LoginAsync)
+            valid = request.CurrentPassword == user.PasswordHash;
+        }
+        if (!valid) throw new AppException("Mật khẩu hiện tại không chính xác.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.CommitAsync();
     }
 
     private string GenerateJwtToken(User user)

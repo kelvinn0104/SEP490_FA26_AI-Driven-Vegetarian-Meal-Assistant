@@ -77,7 +77,8 @@ public class ModerationController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Staff)]
+// Không đặt [Authorize(Roles = Staff)] ở cấp class: attribute cấp class cộng dồn (AND) với cấp action,
+// khiến /health và /recipe/parse-macros bị chặn với khách và user thường → FE coi như BE mất kết nối.
 public class AiController : ControllerBase
 {
     private readonly IAiService _aiService;
@@ -87,12 +88,19 @@ public class AiController : ControllerBase
         _aiService = aiService;
     }
 
+    /// <summary>Health check công khai — FE gọi khi khởi động để biết BE còn sống (không cần đăng nhập).</summary>
     [HttpGet("health")]
-    public ActionResult<ApiResponse<object>> GetHealth()
+    [HttpGet("~/api/health")]
+    [AllowAnonymous]
+    public ActionResult<ApiResponse<object>> GetHealth([FromServices] VeggieAI.Repository.Data.VeggieAIDbContext db)
     {
+        // Cho biết BE đang chạy Postgres thật hay InMemory dự phòng (InMemory = dữ liệu mất sau mỗi lần restart)
+        var provider = db.Database.ProviderName ?? "unknown";
+        var database = provider.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ? "inmemory" : "postgresql";
         return Ok(ApiResponse<object>.Ok(new
         {
             status = "healthy",
+            database,
             uptime = "99.98%",
             cluster = "Cụm HCM-01",
             memoryUsage = "68%",
@@ -101,6 +109,7 @@ public class AiController : ControllerBase
     }
 
     [HttpGet("models")]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<List<AiModelDto>>>> GetModels()
     {
         var result = await _aiService.GetModelsAsync();
@@ -117,13 +126,16 @@ public class AiController : ControllerBase
     }
 
     [HttpGet("telemetry")]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<List<AiTelemetryLogDto>>>> GetTelemetry()
     {
         var result = await _aiService.GetTelemetryLogsAsync();
         return Ok(ApiResponse<List<AiTelemetryLogDto>>.Ok(result));
     }
 
+    /// <summary>Mọi người dùng đã đăng nhập đều dùng được (trang Tạo bài viết của user gọi endpoint này).</summary>
     [HttpPost("recipe/parse-macros")]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<NutritionAnalysisResponse>>> ParseMacros([FromBody] NutritionAnalysisRequest request)
     {
         var result = await _aiService.ParseNutritionAsync(request.RecipeText);

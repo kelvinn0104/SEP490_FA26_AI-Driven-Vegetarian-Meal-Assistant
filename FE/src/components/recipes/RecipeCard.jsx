@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, Bookmark, Sparkles, ChevronRight } from 'lucide-react';
+import { recipeImageUrl } from '../../api/client';
 
 export default function RecipeCard({
   recipe,
@@ -22,7 +23,7 @@ export default function RecipeCard({
   const protein = nutrients.protein ?? nutrients.proteinG ?? 20;
   const prepTime = recipe.prepTime || 20;
   const matchScore = recipe.matchScore || 95;
-  const image = recipe.image || (recipe.imageUrl ? (recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `/uploads/${recipe.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80');
+  const image = recipe.image || recipeImageUrl(recipe.imageUrl, 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80');
 
   return (
     <div

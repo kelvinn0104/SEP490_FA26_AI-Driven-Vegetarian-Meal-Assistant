@@ -20,6 +20,18 @@ export const imgUrl = (path) => {
   return `${host}${cleanPath}`;
 };
 
+/**
+ * URL ảnh công thức: BE trả `/uploads/...` (file upload) hoặc URL tuyệt đối (seed).
+ * Đường dẫn tương đối phải ghép với domain BE, không phải domain FE.
+ */
+export const recipeImageUrl = (path, fallback) => {
+  if (!path) return fallback;
+  const p = String(path);
+  if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:')) return p;
+  if (p.startsWith('/') || p.startsWith('uploads/')) return imgUrl(p);
+  return imgUrl(`/uploads/${p}`);
+};
+
 // Token storage (compliant with both 'token' and 'veggie_token')
 export const getAuthToken = () => {
   return localStorage.getItem('token') || localStorage.getItem('veggie_token') || '';
@@ -160,6 +172,7 @@ export async function apiRequest(endpoint, options = {}) {
 export default {
   API_BASE_URL,
   imgUrl,
+  recipeImageUrl,
   getAuthToken,
   setAuthToken,
   getStoredUser,
