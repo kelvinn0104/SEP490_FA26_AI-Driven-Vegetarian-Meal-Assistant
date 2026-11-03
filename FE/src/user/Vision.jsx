@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { Button, Notice, PageHeading, Card } from "./ui";
-import { userError, validatePhoto } from "./data";
+import { userError, validatePhoto, isTestContent } from "./data";
 import { request } from "./api";
 export function Vision({ open, flash }) {
   const [file, setFile] = useState(null);
@@ -150,13 +150,15 @@ export function Vision({ open, flash }) {
                 <h3 className="vp-result-heading">Món có thể nấu</h3>
               )}
               <div className="vp-grid compact">
-                {result.suggestedRecipes?.map((r) => (
-                  <Card
-                    key={r.recipeId}
-                    recipe={{ ...r, id: r.recipeId }}
-                    open={open}
-                  />
-                ))}
+                {result.suggestedRecipes
+                  ?.filter((r) => !isTestContent(r))
+                  .map((r) => (
+                    <Card
+                      key={r.recipeId}
+                      recipe={{ ...r, id: r.recipeId }}
+                      open={open}
+                    />
+                  ))}
               </div>
             </>
           )}

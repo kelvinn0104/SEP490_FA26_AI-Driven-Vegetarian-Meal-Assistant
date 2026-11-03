@@ -1,5 +1,15 @@
+import { BottomNav, PersonalSpace, Welcome } from "./Navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Leaf, ArrowRight, Menu, X, LogOut, User, Bell } from "lucide-react";
+import {
+  Leaf,
+  ArrowRight,
+  X,
+  User,
+  Bell,
+  Camera,
+  MessageCircle,
+  ArrowLeft,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui";
 import { Discover, RecipeDetail } from "./Recipes";
@@ -13,6 +23,8 @@ import { Collection, Nutrition, Notifications } from "./Activity";
 import "./portal.css";
 const titles = {
   home: "Khám phá món chay",
+  me: "Cá nhân",
+  welcome: "Chào mừng",
   login: "Đăng nhập",
   register: "Tạo tài khoản",
   "article-detail": "Công thức chay",
@@ -32,6 +44,7 @@ const titles = {
   "create-post": "Chia sẻ bài viết",
 };
 const protectedScreens = [
+  "welcome",
   "planner",
   "create-plan",
   "create-mealplan",
@@ -49,8 +62,6 @@ const protectedScreens = [
 const links = [
   ["home", "Khám phá"],
   ["planner", "Thực đơn"],
-  ["vision", "Nguyên liệu"],
-  ["chatbot", "Hỏi trợ lý"],
   ["community", "Cộng đồng"],
 ];
 const guestCopy = {
@@ -77,7 +88,6 @@ const guestCopy = {
 };
 export default function UserPortal({ screen, onNavigate, onLogin }) {
   const { user, logout } = useAuth();
-  const [menu, setMenu] = useState(false);
   const [toast, setToast] = useState("");
   const toastTimer = useRef();
   const returnTo = useRef(null);
@@ -88,7 +98,6 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   }, []);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
   const go = (target, id) => {
-    setMenu(false);
     if (
       ["login", "register"].includes(target) &&
       !["login", "register"].includes(screen)
@@ -107,19 +116,6 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
       `${target === "home" ? "/" : "/" + target}${params.size ? "?" + params : ""}`,
     );
   };
-  useEffect(() => {
-    const close = (event) => {
-      if (event.type === "keydown" && event.key === "Escape") setMenu(false);
-      if (event.type === "pointerdown" && !event.target.closest(".vp-header"))
-        setMenu(false);
-    };
-    document.addEventListener("keydown", close);
-    document.addEventListener("pointerdown", close);
-    return () => {
-      document.removeEventListener("keydown", close);
-      document.removeEventListener("pointerdown", close);
-    };
-  }, []);
   const open = (id) => go("article-detail", id);
   useEffect(() => {
     document.getElementById("vp-main")?.focus({ preventScroll: true });
@@ -130,16 +126,13 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
     go("home");
     flash("Đã đăng xuất.");
   };
-  const login = (u) => {
+  const login = (u, token, outcome = {}) => {
     onLogin(u.role, u);
     if (!["admin", "moderator", "mod"].includes((u.role || "").toLowerCase())) {
       const destination = returnTo.current;
       returnTo.current = null;
       go(
-        u.hasHealthProfile === false &&
-          (!destination || destination.screen === "home")
-          ? "user-profile"
-          : destination?.screen || "home",
+        outcome.verified ? "welcome" : destination?.screen || "home",
         destination?.id,
       );
     }
@@ -149,7 +142,9 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
     "Đăng nhập để lưu món, quản lý bài viết và theo dõi những bữa ăn của bạn.",
   ];
   let content;
-  if (!user && protectedScreens.includes(screen))
+  if (screen === "me")
+    content = <PersonalSpace user={user} go={go} signOut={signOut} />;
+  else if (!user && protectedScreens.includes(screen))
     content = (
       <div className="vp-gate">
         <Leaf size={36} />
@@ -178,6 +173,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
         onLogin={login}
       />
     );
+  else if (screen === "welcome") content = <Welcome user={user} go={go} />;
   else if (screen === "article-detail")
     content = (
       <RecipeDetail
@@ -202,6 +198,8 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
         flash={flash}
         open={open}
         history={screen === "meal-history"}
+        hasProfile={user?.hasHealthProfile}
+        create={["create-plan", "create-mealplan"].includes(screen)}
       />
     );
   else if (screen === "chatbot") content = <Chat />;
@@ -265,6 +263,24 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
             ))}
           </nav>
           <div className="vp-header-actions">
+            <button
+              className="vp-header-tool vp-desktop-tool"
+              title="Quét nguyên liệu"
+              aria-label="Quét nguyên liệu"
+              onClick={() => go("vision")}
+            >
+              <Camera size={20} />
+              <span>Quét ảnh</span>
+            </button>
+            <button
+              className="vp-header-tool vp-desktop-tool"
+              title="Hỏi trợ lý"
+              aria-label="Hỏi trợ lý"
+              onClick={() => go("chatbot")}
+            >
+              <MessageCircle size={20} />
+              <span>Hỏi trợ lý</span>
+            </button>
             {user ? (
               <>
                 <button
@@ -275,65 +291,47 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
                   <Bell size={20} />
                 </button>
                 <button
-                  className="vp-account"
-                  onClick={() => setMenu(!menu)}
-                  aria-expanded={menu}
-                  aria-controls="vp-account-menu"
+                  className="vp-account vp-desktop-account"
+                  onClick={() => go("me")}
                 >
                   <User size={18} />
-                  <span>{user.displayName || user.name || "Tài khoản"}</span>
+                  <span>Cá nhân</span>
                 </button>
               </>
-            ) : (
+            ) : !["login", "register", "me"].includes(screen) ? (
               <button className="vp-login" onClick={() => go("login")}>
-                Đăng nhập <ArrowRight size={16} />
+                Đăng nhập
+                <ArrowRight size={16} />
               </button>
-            )}
-            <button
-              className="vp-icon vp-mobile-toggle"
-              onClick={() => setMenu(!menu)}
-              aria-label={menu ? "Đóng menu" : "Mở menu"}
-              aria-expanded={menu}
-            >
-              {menu ? <X /> : <Menu />}
-            </button>
+            ) : null}
           </div>
         </div>
-        {menu && (
-          <nav
-            id="vp-account-menu"
-            className="vp-dropdown"
-            aria-label="Menu tài khoản"
-          >
-            {links.map(([id, title]) => (
-              <button key={id} onClick={() => go(id)}>
-                {title}
-              </button>
-            ))}
-            {user && (
-              <>
-                {[
-                  ["user-profile", "Hồ sơ sức khỏe"],
-                  ["user-collection", "Món đã lưu"],
-                  ["meal-history", "Lịch sử thực đơn"],
-                  ["user-nutrition", "Nhật ký dinh dưỡng"],
-                  ["user-posts", "Bài viết của tôi"],
-                  ["user-settings", "Tài khoản"],
-                ].map(([id, label]) => (
-                  <button key={id} onClick={() => go(id)}>
-                    {label}
-                  </button>
-                ))}
-                <button onClick={signOut}>
-                  <LogOut size={16} />
-                  Đăng xuất
-                </button>
-              </>
-            )}
-          </nav>
-        )}
       </header>
       <main id="vp-main" className="vp-main" tabIndex={-1}>
+        {![
+          "home",
+          "blog",
+          "planner",
+          "user-collection",
+          "me",
+          "login",
+          "register",
+          "welcome",
+        ].includes(screen) && (
+          <button
+            className="vp-mobile-back"
+            onClick={() =>
+              go(
+                ["community", "article-detail"].includes(screen)
+                  ? "home"
+                  : "me",
+              )
+            }
+          >
+            <ArrowLeft size={18} />
+            Quay lại
+          </button>
+        )}
         {content}
       </main>
       <footer className="vp-footer">
@@ -349,6 +347,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
         <p>Ăn chay mỗi ngày, theo cách của bạn.</p>
         <span>Thông tin dinh dưỡng mang tính tham khảo.</span>
       </footer>
+      <BottomNav screen={screen} go={go} />
       {toast && (
         <div className="vp-toast" role="status">
           {toast}

@@ -9,6 +9,9 @@ async (page) => {
   if(req.method()!=='GET')writes.push({p,method:req.method(),data});
   const ok=data=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,data})});
   if(p.endsWith('/auth/me'))return ok(user);
+  if(p.endsWith('/chat/sessions'))return ok(req.method()==='POST'?{id:5}:[]);
+  if(p.endsWith('/messages'))return ok({userMessage:{id:1,sender:'user',content:'Đậu hũ'},aiMessage:{id:2,sender:'ai',content:'Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.'}});
+  if(p.endsWith('/community/posts')){const number=Number(u.searchParams.get('page.Page')||1);return ok({items:[{id:number,title:'Bài trang '+number,authorName:'Test',score:0}],page:number,pageSize:1,totalCount:2,totalPages:2})}
   if(p.endsWith('/recipes/favorites')){const number=Number(u.searchParams.get('page')||1);return ok({items:[{id:'r'+number,title:'Món đã lưu '+number,kcalPerServing:400,proteinG:20}],page:number,pageSize:1,totalCount:2,totalPages:2})}
   if(p.endsWith('/meal-plans/current'))return ok(plan);
   if(p.endsWith('/shopping-list'))return ok({id:1,planId:1,items:[{id:2,ingredientName:'Đậu hũ',quantityG:200,isBought:false}]});
@@ -21,8 +24,10 @@ async (page) => {
  });
  await page.evaluate(u=>{localStorage.setItem('token','fixture');localStorage.setItem('veggie_user',JSON.stringify(u))},user);
  await page.goto(base+'/user-collection');await page.getByRole('button',{name:'Món đã lưu 1',exact:true}).waitFor();await page.getByRole('button',{name:'Trang sau'}).click();await page.getByRole('button',{name:'Món đã lưu 2',exact:true}).waitFor();
+ await page.goto(base+'/community');await page.getByRole('heading',{name:'Bài trang 1',exact:true}).waitFor();await page.getByRole('button',{name:'Trang sau'}).click();await page.getByRole('heading',{name:'Bài trang 2',exact:true}).waitFor();
  await page.goto(base+'/planner');await page.getByRole('button',{name:'Danh sách đi chợ'}).click();await page.getByLabel('Đậu hũ · 200 g').click();await page.locator('input[type=checkbox]:checked').waitFor();check(!writes.some(w=>w.p.endsWith('/shopping-list')&&w.method==='POST'),'Existing shopping list overwritten');
  await page.goto(base+'/user-nutrition');await page.getByRole('heading',{name:'Bữa đã ghi nhận'}).waitFor();check((await page.locator('.vp-daily-totals').innerText()).includes('400'),'Consumed not rendered');await page.getByLabel('Số bước').fill('3000');await page.getByRole('button',{name:'Lưu vận động'}).click();check(writes.some(w=>w.data?.steps===3000),'Activity not submitted');
  await page.goto(base+'/notifications');await page.getByRole('button',{name:'Đánh dấu đã đọc',exact:true}).click();check(writes.some(w=>w.p.endsWith('/notifications/2/read')),'Read notification missing');check(errors.length===0,errors.join(';'));
+ await page.goto(base+'/chatbot');await page.getByRole('textbox',{name:'Tin nhắn'}).fill('Đậu hũ');await page.getByRole('button',{name:'Gửi tin nhắn',exact:true}).click();await page.getByRole('alert').waitFor();check(await page.locator('.vp-message:not(.own)').count()===0,'Busy fallback shown as AI answer');
  await page.unroute('https://veggieai-api.onrender.com/api/**');await page.evaluate(()=>localStorage.clear());await page.goto(base);
 }

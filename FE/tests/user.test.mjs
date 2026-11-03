@@ -31,6 +31,8 @@ test('HTTP failures remain failures and session expires only on 401', async () =
     globalThis.fetch = async () => new Response('{}', { status: 404, headers: { 'content-type': 'application/json' } });
     await assert.rejects(request('/missing'), e => e.status === 404);
     assert.equal(expired, 0);
+    globalThis.fetch = async () => new Response(JSON.stringify({message:'Vui lòng chờ 60 giây.',errors:['TOO_MANY_REQUESTS','retryAfterSeconds=60']}), { status:429,headers:{'content-type':'application/json','Retry-After':'60'} });
+    await assert.rejects(request('/Auth/resend-code'), e => e.status===429 && e.retryAfterSeconds===60 && e.message==='Vui lòng chờ 60 giây.');
     globalThis.fetch = async () => new Response('', { status: 401 });
     await assert.rejects(request('/private'), e => e.status === 401);
     assert.equal(expired, 1); assert.equal(token, null);
@@ -46,4 +48,15 @@ test('OTP deadlines use backend values, preserve zero cooldown, and survive refr
   assert.deepEqual(readPending({getItem:key => key === PENDING_KEY ? JSON.stringify(pending) : null}),pending);
   assert.equal(readPending({getItem:()=>'broken'}),null);
   assert.equal(pendingVerification({}, 'test@example.com',1000).expiresAt,null);
+});
+import { isTestContent } from '../src/user/data.js';
+test('explicit test markers are excluded without hiding ordinary recipes',()=>{
+ assert.equal(isTestContent({title:'Bún trộn tempeh (dummy)'}),true);
+ assert.equal(isTestContent({mediaUrl:'/uploads/videos/dummy-pho.mp4'}),true);
+ assert.equal(isTestContent({title:'Món chay cho bữa tối'}),false);
+});
+import { isUnavailableChat } from '../src/user/data.js';
+test('backend busy fallback is not treated as a successful AI answer',()=>{
+ assert.equal(isUnavailableChat('Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.'),true);
+ assert.equal(isUnavailableChat('Bạn có thể nấu canh đậu hũ.'),false);
 });

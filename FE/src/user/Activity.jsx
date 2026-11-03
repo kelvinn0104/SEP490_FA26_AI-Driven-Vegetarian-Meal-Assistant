@@ -8,7 +8,7 @@ import {
   Card,
   PageControls,
 } from "./ui";
-import { amount, listOf, userError } from "./data";
+import { amount, listOf, userError, isTestContent } from "./data";
 import { request } from "./api";
 export function Collection({ open, flash }) {
   const [page, setPage] = useState(1);
@@ -38,18 +38,20 @@ export function Collection({ open, flash }) {
       <PageHeading title="Món đã lưu" />
       <State resource={resource} empty="Bạn chưa lưu món nào">
         <div className="vp-grid">
-          {listOf(resource.data).map((r) => (
-            <div key={r.id}>
-              <Card recipe={r} open={open} />
-              <button
-                className="vp-text-button"
-                disabled={busy != null}
-                onClick={() => remove(r.id)}
-              >
-                {busy === r.id ? "Đang cập nhật…" : "Bỏ lưu món"}
-              </button>
-            </div>
-          ))}
+          {listOf(resource.data)
+            .filter((r) => !isTestContent(r))
+            .map((r) => (
+              <div key={r.id}>
+                <Card recipe={r} open={open} />
+                <button
+                  className="vp-text-button"
+                  disabled={busy != null}
+                  onClick={() => remove(r.id)}
+                >
+                  {busy === r.id ? "Đang cập nhật…" : "Bỏ lưu món"}
+                </button>
+              </div>
+            ))}
         </div>
       </State>
       <PageControls
@@ -225,7 +227,7 @@ export function Nutrition() {
 export function Notifications() {
   const [page, setPage] = useState(1);
   const resource = useResource(
-    () => request(`/notifications?page=${page}&pageSize=20`),
+    () => request(`/notifications?page.Page=${page}&page.PageSize=20`),
     [page],
   );
   const [error, setError] = useState("");

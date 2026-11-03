@@ -15,13 +15,21 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useResource, Button, State, Card, RecipeImage } from "./ui";
-import { amount, listOf, userError, categoryLabel } from "./data";
+import {
+  amount,
+  listOf,
+  userError,
+  categoryLabel,
+  isTestContent,
+} from "./data";
 import { request } from "./api";
 export function Discover({ open, go, user }) {
   const resource = useResource(
     async (signal) =>
       listOf(await request("/Recipes", undefined, undefined, signal)).filter(
-        (r) => !r.status || r.status.toLowerCase() === "published",
+        (r) =>
+          (!r.status || r.status.toLowerCase() === "published") &&
+          !isTestContent(r),
       ),
     [],
   );
@@ -241,7 +249,11 @@ export function RecipeDetail({ id, go, user, flash }) {
             undefined,
             undefined,
             signal,
-          )
+          ).then((recipe) => {
+            if (isTestContent(recipe) || recipe?.status !== "published")
+              throw new Error("Công thức này chưa sẵn sàng.");
+            return recipe;
+          })
         : Promise.reject(new Error("Liên kết thiếu mã công thức.")),
     [id],
   );

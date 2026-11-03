@@ -59,6 +59,19 @@ export function AuthForm({ register, go, onLogin }) {
   };
   const showError = (err) => {
     const details = err.data;
+    if (err.status === 429 && pending && err.retryAfterSeconds) {
+      const next = {
+        ...pending,
+        resendAt: Date.now() + err.retryAfterSeconds * 1000,
+      };
+      setPending(next);
+      setNow(Date.now());
+      try {
+        sessionStorage.setItem(PENDING_KEY, JSON.stringify(next));
+      } catch {
+        /* Optional resume state. */
+      }
+    }
     if (
       err.status === 403 &&
       (JSON.stringify(details || {}).includes("EMAIL_NOT_VERIFIED") ||
@@ -124,7 +137,7 @@ export function AuthForm({ register, go, onLogin }) {
           /* Optional resume state. */
         }
         login(data.user, token);
-        onLogin(data.user, token);
+        onLogin(data.user, token, { verified: step === "otp" });
       }
     } catch (err) {
       showError(err);

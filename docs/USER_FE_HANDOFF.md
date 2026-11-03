@@ -64,7 +64,7 @@ Tất cả mutation trong browser smoke được intercept bằng fixture, khôn
 - design.smoke.js kiểm tra public live tại 320/390/768/1440px, đổi gợi ý thật, Vào bếp, Escape/khôi phục scroll và checklist nguyên liệu live r1.
 - Các smoke portal/workflows/otp/contracts đã chạy lại sau thay đổi. Không thêm dependency vào package.json.
 - Dữ liệu nguồn còn vấn đề: ví dụ ảnh /Recipes/r30 (Bánh Xèo Chay Nấm Mối Miền Tây) trông như bowl đậu hũ; công thức này thiếu định lượng nguyên liệu. FE không tự thay ảnh hay tạo nguyên liệu. Cần chủ dữ liệu BE rà provenance, ảnh khớp món và định lượng trước nghiệm thu production.
-- Chưa có tài khoản User thật để nghiệm thu mutation/AI/email end-to-end trên Render. Mức kiểm tra live public và fixture authenticated vẫn được tách rõ.
+- Tại thời điểm visual pass này chưa có tài khoản User thật; kết quả nghiệm thu bổ sung nằm cuối tài liệu. Mức kiểm tra live public và fixture authenticated vẫn được tách rõ.
 
 ## Visual pass: ít chữ, màu sắc rõ hơn — 2026-11-03
 
@@ -73,4 +73,20 @@ Tất cả mutation trong browser smoke được intercept bằng fixture, khôn
 - Thẻ thiếu ảnh dùng biểu tượng giao diện trung tính có nhãn Chưa có ảnh; không lặp tên món và không tạo ảnh thay thế. Tên dài giới hạn hai dòng, vẫn giữ đầy đủ accessible name/title và nội dung trang chi tiết.
 - Danh mục hiển thị số lượng từ catalogue thật. Không thay dữ liệu dinh dưỡng hoặc API contract.
 - Header mobile dùng nền đặc để nội dung bên dưới không xuyên qua. Kiểm tra lại 320/390/768/1440px bằng design.smoke; build, 5 unit tests và lint src/user pass.
-- Các thay đổi visual pass này chưa commit/push. Commit d63b864 trên hai remote là bản trước visual pass.
+- Visual pass này đã phát hành ở commit ba008a9 trên hai remote; bản luồng/điều hướng mới được mô tả bên dưới.
+
+## Luồng và điều hướng user mới — 03/11/2026
+
+- Xác thực email xong tới /welcome, không tự tới form tạo thực đơn. Thiết lập hồ sơ là lựa chọn có thể làm sau; lưu xong có màn xác nhận riêng.
+- Hồ sơ chia 2 bước: chỉ số cơ thể, rồi nhu cầu/dị ứng. Kiểm tra tuổi 10–120 theo BE trước bước 2.
+- Trang /planner mặc định là xem thực đơn; form chỉ mở khi user bấm Tạo thực đơn mới. Preflight GET hồ sơ trước generate, không gửi mutation nếu chưa có hồ sơ.
+- Mobile bottom nav 4 mục: Khám phá, Thực đơn, Đã lưu, Cá nhân. /me tập hợp công cụ và quản lý theo nhóm. Bỏ hamburger dài; màn phụ có đường quay lại; toast nằm trên bottom nav và có safe-area.
+- Desktop còn 3 điều hướng chính; Quét ảnh/Hỏi trợ lý là công cụ có nhãn, Cá nhân là một trang rõ ràng.
+- GET API live xác nhận lỗi prefix pagination; FE đã dùng query đúng với PageQuery hiện tại. Xử lý Retry-After và chặn marker test rõ ràng trên luồng user.
+- onboarding.smoke.js kiểm tra signup → welcome → bỏ qua hồ sơ → chủ động mở planner → thiếu profile chặn generate → profile 2 bước → lưu không gọi generate, cùng bottom nav/active state/responsive.
+- Báo cáo BE đầy đủ nằm trong BE_USER_AUDIT_2026-11-03.md: phân biệt live/source/chưa nghiệm thu. Kết quả tài khoản thật được bổ sung ở mục cuối; chat AI đang busy, OTP được user xác nhận hoạt động.
+
+
+## Nghiệm thu bổ sung có tài khoản thật
+
+User xác nhận nhận email OTP/đăng ký thành công. Đã kiểm login qua UI, hydrate profile, bottom nav và planner không tự mở form. API thật: favorite round-trip, generate/activate/swap rule-based, shopping list/toggle, meal log/daily đều chạy, dữ liệu kiểm thử riêng đã dọn. Chat trả busy fallback dưới HTTP 200; FE đã xử lý là unavailable, không giả câu trả lời. Báo cáo BE cập nhật 19 mục cùng bằng chứng live/source, không chứa credential hoặc chỉ số sức khỏe cá nhân.

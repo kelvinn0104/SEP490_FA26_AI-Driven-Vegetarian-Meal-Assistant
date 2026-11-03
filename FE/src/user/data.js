@@ -68,3 +68,15 @@ export function categoryLabel(value) {
     }[value] || value
   );
 }
+export function isTestContent(item) {
+  return /\((?:dummy|demo|test)\)|\[(?:dummy|demo|test)\]|(?:^|[\/_-])dummy(?:[-_.\/]|$)/i.test(
+    [item?.title, item?.mediaUrl].filter(Boolean).join(" "),
+  );
+}
+export function isUnavailableChat(text) {
+  return [
+    "Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.",
+    "Trợ lý AI chưa được cấu hình (thiếu API key). Vui lòng liên hệ quản trị viên.",
+    "...",
+  ].includes(text?.trim());
+}

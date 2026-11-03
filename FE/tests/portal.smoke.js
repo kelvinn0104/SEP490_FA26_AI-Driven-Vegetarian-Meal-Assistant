@@ -24,8 +24,8 @@ async (page) => {
   await page.getByText('Lên thực đơn, bớt nghĩ mỗi bữa.').waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   check(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'Mobile overflow');
-  await page.getByRole('button', { name: 'Mở menu' }).click();
-  await page.getByRole('navigation', { name: 'Menu tài khoản' }).getByRole('button', { name: 'Cộng đồng', exact: true }).click();
+  await page.getByRole('navigation',{name:'Điều hướng nhanh'}).getByRole('link',{name:'Cá nhân',exact:true}).click();
+  await page.getByRole('link',{name:'Cộng đồng',exact:true}).click();
   await page.locator('.vp-community-list').waitFor({ timeout:100000 });
   // Test authenticated UI with isolated fixtures. No mutations reach the real backend.
   const user = { id: 999, email: 'fixture@example.test', displayName: 'Người kiểm thử', role: 'AuthorizedUser' };
@@ -55,7 +55,7 @@ async (page) => {
   check(await page.evaluate(() => localStorage.getItem('veggieai_user_created_recipes')) === null, 'Fake local post created');
   await page.goto(base + '/user-profile');
   await page.getByRole('alert').first().waitFor();
-  check(await page.getByRole('button', { name: 'Lưu hồ sơ' }).isDisabled(), 'Profile can wipe unknown allergies');
+  check(await page.getByRole('button', { name: 'Tiếp tục' }).isDisabled(), 'Profile can wipe unknown allergies');
   check(errors.length === 0, 'Browser errors: ' + errors.join('; '));
   await page.unroute('https://veggieai-api.onrender.com/api/**');
   await page.evaluate(() => localStorage.clear());

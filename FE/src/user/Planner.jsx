@@ -8,15 +8,17 @@ import {
   PageHeading,
   PageControls,
 } from "./ui";
-import { amount, listOf, userError, statusLabel } from "./data";
+import { amount, listOf, userError, statusLabel, isTestContent } from "./data";
 import { request } from "./api";
-export function Planner({ go, flash, open, history }) {
+export function Planner({ go, flash, open, history, create, hasProfile }) {
   const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState(!!create);
+  const [profileRequired, setProfileRequired] = useState(false);
   const resource = useResource(
     () =>
       request(
         history
-          ? `/meal-plans?page=${page}&pageSize=10`
+          ? `/meal-plans?page.Page=${page}&page.PageSize=10`
           : "/meal-plans/current",
       ),
     [history, page],
@@ -31,6 +33,9 @@ export function Planner({ go, flash, open, history }) {
   const [shopping, setShopping] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const plan = generated || resource.data;
+  const testPlan = plan?.days?.some((day) =>
+    day.meals?.some((meal) => isTestContent({ title: meal.recipeTitle })),
+  );
   const action = async (fn, success) => {
     if (busy) return;
     setBusy(true);
@@ -48,6 +53,16 @@ export function Planner({ go, flash, open, history }) {
   const generate = (e) => {
     e.preventDefault();
     action(async () => {
+      setProfileRequired(false);
+      try {
+        await request("/health-profile");
+      } catch (error) {
+        if (error.status === 404) {
+          setProfileRequired(true);
+          throw new Error("Thiết lập hồ sơ sức khỏe trước khi tạo thực đơn.");
+        }
+        throw error;
+      }
       const result = await request("/meal-plans/ai/generate", {
         startDate: date,
         days: Number(days),
@@ -58,7 +73,16 @@ export function Planner({ go, flash, open, history }) {
       const next = result?.plan;
       if (!next?.days?.length)
         throw new Error("Chưa nhận được thực đơn hợp lệ. Vui lòng thử lại.");
+      if (
+        next.days.some((day) =>
+          day.meals?.some((meal) => isTestContent({ title: meal.recipeTitle })),
+        )
+      )
+        throw new Error(
+          "Máy chủ trả về món thử nghiệm. Chưa thể sử dụng thực đơn này.",
+        );
       setGenerated(next);
+      setEditing(false);
       setWarnings(result.validationWarnings || []);
       setShopping(null);
     }, "Đã tạo thực đơn. Kiểm tra các bữa trước khi sử dụng.");
@@ -76,11 +100,30 @@ export function Planner({ go, flash, open, history }) {
         setGenerated(refreshed);
       }
     }, "Đã đổi món.");
+  if (hasProfile === false)
+    return (
+      <>
+        <PageHeading title="Thực đơn của bạn" />
+        <section className="vp-profile-complete">
+          <h2>Thêm hồ sơ trước khi lên thực đơn</h2>
+          <p>
+            Chỉ số cơ thể và dị ứng giúp chọn món phù hợp. Bạn chỉ cần thiết lập
+            một lần.
+          </p>
+          <div className="vp-actions">
+            <Button onClick={() => go("user-profile")}>Thiết lập hồ sơ</Button>
+            <Button secondary onClick={() => go("home")}>
+              Khám phá món
+            </Button>
+          </div>
+        </section>
+      </>
+    );
   if (history && !generated)
     return (
       <>
         <PageHeading title="Lịch sử thực đơn">
-          <Button onClick={() => go("planner")}>
+          <Button onClick={() => go("create-plan")}>
             <Plus size={17} />
             Tạo thực đơn
           </Button>
@@ -119,77 +162,111 @@ export function Planner({ go, flash, open, history }) {
     );
   return (
     <>
-      <PageHeading title="Thực đơn của bạn">
+      <PageHeading title={editing ? "Tạo thực đơn" : "Thực đơn của bạn"}>
         <button className="vp-text-button" onClick={() => go("meal-history")}>
           Lịch sử <ArrowRight size={16} />
         </button>
       </PageHeading>
-      <div className="vp-planner-layout">
-        <form className="vp-panel" onSubmit={generate}>
-          <h2>Sắp xếp bữa ăn</h2>
-          <p>Từ công thức trong thư viện, theo hồ sơ sức khỏe đã lưu.</p>
-          <label>
-            Ngày bắt đầu
-            <input
-              type="date"
-              required
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </label>
-          <label>
-            Số ngày
-            <input
-              type="number"
-              min="1"
-              max="14"
-              required
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
-            />
-          </label>
-          <label>
-            Mục tiêu
-            <select value={goal} onChange={(e) => setGoal(e.target.value)}>
-              <option value="maintain">Duy trì cân nặng</option>
-              <option value="loss">Giảm cân</option>
-              <option value="gain">Tăng cân</option>
-            </select>
-          </label>
-          <label>
-            Sở thích, lưu ý
-            <textarea
-              maxLength={500}
-              rows={3}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Ví dụ: món Việt, ít cay…"
-            />
-          </label>
-          <small>
-            Dị ứng phải được lưu trong hồ sơ sức khỏe trước khi tạo thực đơn.
-          </small>
-          <Button disabled={busy}>
-            {busy ? "Đang xử lý…" : "Tạo thực đơn"}
-            <ArrowRight size={17} />
+      {!editing && (
+        <div className="vp-planner-start">
+          <Button onClick={() => setEditing(true)}>
+            <Plus size={17} />
+            Tạo thực đơn mới
           </Button>
-          <button
-            type="button"
-            className="vp-text-button"
-            onClick={() => go("user-profile")}
-          >
-            Kiểm tra hồ sơ sức khỏe
-          </button>
-        </form>
+          <p>Chọn ngày và nhu cầu khi bạn muốn bắt đầu.</p>
+        </div>
+      )}
+      {editing && (
+        <button
+          className="vp-text-button"
+          disabled={busy}
+          onClick={() => setEditing(false)}
+        >
+          Hủy tạo mới
+        </button>
+      )}
+      <div className={`vp-planner-layout ${editing ? "" : "vp-plan-view"}`}>
+        {editing && (
+          <form className="vp-panel" onSubmit={generate}>
+            <fieldset className="vp-plan-fields" disabled={busy}>
+              <h2>Sắp xếp bữa ăn</h2>
+              <p>Từ công thức trong thư viện, theo hồ sơ sức khỏe đã lưu.</p>
+              <label>
+                Ngày bắt đầu
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </label>
+              <label>
+                Số ngày
+                <input
+                  type="number"
+                  min="1"
+                  max="14"
+                  required
+                  value={days}
+                  onChange={(e) => setDays(e.target.value)}
+                />
+              </label>
+              <label>
+                Mục tiêu
+                <select value={goal} onChange={(e) => setGoal(e.target.value)}>
+                  <option value="maintain">Duy trì cân nặng</option>
+                  <option value="loss">Giảm cân</option>
+                  <option value="gain">Tăng cân</option>
+                </select>
+              </label>
+              <label>
+                Sở thích, lưu ý
+                <textarea
+                  maxLength={500}
+                  rows={3}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Ví dụ: món Việt, ít cay…"
+                />
+              </label>
+              <small>
+                Dị ứng phải được lưu trong hồ sơ sức khỏe trước khi tạo thực
+                đơn.
+              </small>
+              <Button disabled={busy}>
+                {busy ? "Đang xử lý…" : "Tạo thực đơn"}
+                <ArrowRight size={17} />
+              </Button>
+              <button
+                type="button"
+                className="vp-text-button"
+                onClick={() => go("user-profile")}
+              >
+                Kiểm tra hồ sơ sức khỏe
+              </button>
+            </fieldset>
+          </form>
+        )}
         <section>
           {error && <Notice error>{error}</Notice>}
+          {profileRequired && (
+            <Button secondary onClick={() => go("user-profile")}>
+              Thiết lập hồ sơ
+            </Button>
+          )}
           {warnings.map((w, i) => (
             <Notice key={i}>{w}</Notice>
           ))}
-          {!generated && (
+          {!editing && !generated && (
             <State resource={resource} empty="Chưa có thực đơn đang dùng" />
           )}
-          {plan?.days && (
+          {testPlan && (
+            <Notice error>
+              Thực đơn này có món thử nghiệm và chưa thể sử dụng. Bạn có thể tạo
+              thực đơn khác.
+            </Notice>
+          )}
+          {!editing && !testPlan && plan?.days && (
             <>
               <div className="vp-section-heading">
                 <h2>

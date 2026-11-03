@@ -9,14 +9,14 @@ import {
   PageHeading,
   PageControls,
 } from "./ui";
-import { listOf, userError, statusLabel } from "./data";
+import { listOf, userError, statusLabel, isTestContent } from "./data";
 import { request } from "./api";
 export function Community({ mine, go, user, flash }) {
   const [page, setPage] = useState(1);
   const resource = useResource(
     () =>
       request(
-        `${mine ? "/community/posts/mine" : "/community/posts"}?page=${page}&pageSize=12`,
+        `${mine ? "/community/posts/mine" : "/community/posts"}?page.Page=${page}&page.PageSize=12`,
       ),
     [mine, page],
   );
@@ -62,78 +62,82 @@ export function Community({ mine, go, user, flash }) {
       </PageHeading>
       <State resource={resource} empty="Chưa có bài chia sẻ">
         <div className="vp-community-list">
-          {listOf(resource.data).map((post) => (
-            <article key={post.id} className="vp-list-card">
-              <span className="vp-eyebrow">
-                {post.authorName || post.author || "Thành viên"}
-                {mine ? ` · ${statusLabel(post.status)}` : ""}
-              </span>
-              <h2>{post.title}</h2>
-              <p>{post.content?.slice(0, 240)}</p>
-              <div className="vp-actions">
-                <Button
-                  secondary
-                  disabled={!!busy}
-                  onClick={() =>
-                    action(
-                      async () => {
-                        setSelected(post);
-                        setDetail(await request(`/community/posts/${post.id}`));
-                      },
-                      undefined,
-                      false,
-                    )
-                  }
-                >
-                  Đọc bài
-                </Button>
-                {user && (
-                  <button
-                    className="vp-text-button"
+          {listOf(resource.data)
+            .filter((post) => !isTestContent(post))
+            .map((post) => (
+              <article key={post.id} className="vp-list-card">
+                <span className="vp-eyebrow">
+                  {post.authorName || post.author || "Thành viên"}
+                  {mine ? ` · ${statusLabel(post.status)}` : ""}
+                </span>
+                <h2>{post.title}</h2>
+                <p>{post.content?.slice(0, 240)}</p>
+                <div className="vp-actions">
+                  <Button
+                    secondary
                     disabled={!!busy}
                     onClick={() =>
                       action(
-                        () =>
-                          request(
-                            `/community/posts/${post.id}/vote`,
-                            { value: post.myVote === 1 ? 0 : 1 },
-                            "PUT",
-                          ),
-                        "Đã gửi lượt thích.",
+                        async () => {
+                          setSelected(post);
+                          setDetail(
+                            await request(`/community/posts/${post.id}`),
+                          );
+                        },
+                        undefined,
+                        false,
                       )
                     }
                   >
-                    {post.myVote === 1 ? "Bỏ thích" : "Thích"} ·{" "}
-                    {post.score ?? "—"}
-                  </button>
-                )}
-                {mine && (
-                  <button
-                    className="vp-text-button"
-                    disabled={!!busy}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          "Xóa bài viết này? Thao tác không thể hoàn tác.",
-                        )
-                      )
+                    Đọc bài
+                  </Button>
+                  {user && (
+                    <button
+                      className="vp-text-button"
+                      disabled={!!busy}
+                      onClick={() =>
                         action(
                           () =>
                             request(
-                              `/community/posts/${post.id}`,
-                              undefined,
-                              "DELETE",
+                              `/community/posts/${post.id}/vote`,
+                              { value: post.myVote === 1 ? 0 : 1 },
+                              "PUT",
                             ),
-                          "Đã xóa bài viết.",
-                        );
-                    }}
-                  >
-                    Xóa
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
+                          "Đã gửi lượt thích.",
+                        )
+                      }
+                    >
+                      {post.myVote === 1 ? "Bỏ thích" : "Thích"} ·{" "}
+                      {post.score ?? "—"}
+                    </button>
+                  )}
+                  {mine && (
+                    <button
+                      className="vp-text-button"
+                      disabled={!!busy}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Xóa bài viết này? Thao tác không thể hoàn tác.",
+                          )
+                        )
+                          action(
+                            () =>
+                              request(
+                                `/community/posts/${post.id}`,
+                                undefined,
+                                "DELETE",
+                              ),
+                            "Đã xóa bài viết.",
+                          );
+                      }}
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
         </div>
       </State>
       <PageControls

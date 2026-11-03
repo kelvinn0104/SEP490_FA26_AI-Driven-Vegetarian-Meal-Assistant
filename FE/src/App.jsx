@@ -34,6 +34,8 @@ const adminScreens = [
 ];
 
 const userScreens = [
+  'me',
+  'welcome',
   'home',
   'notifications',
   'login',

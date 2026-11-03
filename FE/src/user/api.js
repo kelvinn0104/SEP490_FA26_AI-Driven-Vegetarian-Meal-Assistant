@@ -40,16 +40,25 @@ export async function request(path, body, method, signal) {
     const data = json ? await response.json() : null;
     if (!response.ok || data?.success === false) {
       const error = new Error(
-        (data?.errors && typeof data.errors === "object"
-          ? Object.values(data.errors).flat().join("\n")
-          : null) ||
-          data?.detail ||
+        data?.detail ||
           data?.message ||
+          (data?.errors && typeof data.errors === "object"
+            ? Object.values(data.errors).flat().join("\n")
+            : null) ||
           data?.title ||
           "Dịch vụ tạm thời không khả dụng.",
       );
       error.status = response.status;
       error.data = data;
+      const retryField = Array.isArray(data?.errors)
+        ? data.errors.find(
+            (v) => typeof v === "string" && v.startsWith("retryAfterSeconds="),
+          )
+        : null;
+      const retry = Number(
+        response.headers.get("Retry-After") || retryField?.split("=")[1],
+      );
+      if (Number.isFinite(retry) && retry > 0) error.retryAfterSeconds = retry;
       if (response.status === 401 && token) {
         setAuthToken(null);
         setStoredUser(null);

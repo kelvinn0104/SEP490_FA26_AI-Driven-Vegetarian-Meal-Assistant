@@ -18,6 +18,8 @@ export function Profile({ flash, go }) {
     allergyIds: [],
   });
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState(1);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
     if (resource.data) {
@@ -38,6 +40,24 @@ export function Profile({ flash, go }) {
     setForm((p) => ({ ...p, [key]: e.target.value }));
   const save = async (e) => {
     e.preventDefault();
+    if (stage === 1) {
+      const birth = new Date(form.dateOfBirth + "T12:00:00");
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      if (
+        today.getMonth() < birth.getMonth() ||
+        (today.getMonth() === birth.getMonth() &&
+          today.getDate() < birth.getDate())
+      )
+        age--;
+      if (!Number.isFinite(age) || age < 10 || age > 120) {
+        setError("Độ tuổi hiện hỗ trợ từ 10 đến 120.");
+        return;
+      }
+      setError("");
+      setStage(2);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -62,6 +82,7 @@ export function Profile({ flash, go }) {
       setUser(updatedUser);
       setStoredUser(updatedUser);
       flash("Đã lưu hồ sơ sức khỏe.");
+      setSaved(true);
       resource.reload();
     } catch (e) {
       setError(userError(e));
@@ -69,6 +90,28 @@ export function Profile({ flash, go }) {
       setBusy(false);
     }
   };
+  if (saved)
+    return (
+      <section className="vp-profile-complete">
+        <h1>Hồ sơ đã lưu.</h1>
+        <p>Bạn có thể cập nhật bất cứ lúc nào. Chọn việc muốn làm tiếp.</p>
+        <div className="vp-actions">
+          <Button onClick={() => go("home")}>Khám phá món</Button>
+          <Button secondary onClick={() => go("planner")}>
+            Xem thực đơn
+          </Button>
+        </div>
+        <button
+          className="vp-text-button"
+          onClick={() => {
+            setSaved(false);
+            setStage(1);
+          }}
+        >
+          Xem lại hồ sơ
+        </button>
+      </section>
+    );
   return (
     <>
       <PageHeading title="Hồ sơ sức khỏe" />
@@ -101,7 +144,7 @@ export function Profile({ flash, go }) {
             hơn.
           </Notice>
         )}
-        {resource.error && (
+        {resource.error && resource.error.status !== 404 && (
           <Notice error>
             {resource.error.status === 404
               ? "Chưa có hồ sơ đã lưu. Cần tải được danh mục dị ứng trước khi tạo hồ sơ."
@@ -109,100 +152,123 @@ export function Profile({ flash, go }) {
             <button onClick={resource.reload}>Thử tải lại</button>
           </Notice>
         )}
+        {allergens.error && (
+          <Notice error>
+            Chưa tải được danh mục dị ứng.{" "}
+            <button onClick={allergens.reload}>Thử lại</button>
+          </Notice>
+        )}
         {resource.loading && <p role="status">Đang tải hồ sơ…</p>}
-        <form className="vp-panel" onSubmit={save}>
-          <div className="vp-form-grid">
-            <label>
-              Giới tính
-              <select value={form.gender} onChange={field("gender")}>
-                <option value="female">Nữ</option>
-                <option value="male">Nam</option>
-              </select>
-            </label>
-            <label>
-              Ngày sinh
-              <input
-                type="date"
-                required
-                max={new Date().toLocaleDateString("en-CA")}
-                value={form.dateOfBirth}
-                onChange={field("dateOfBirth")}
-              />
-            </label>
-            <label>
-              Chiều cao (cm)
-              <input
-                type="number"
-                required
-                min="50"
-                max="250"
-                step="0.1"
-                value={form.heightCm}
-                onChange={field("heightCm")}
-              />
-            </label>
-            <label>
-              Cân nặng (kg)
-              <input
-                type="number"
-                required
-                min="20"
-                max="300"
-                step="0.1"
-                value={form.weightKg}
-                onChange={field("weightKg")}
-              />
-            </label>
-            <label>
-              Vận động
-              <select
-                value={form.activityLevel}
-                onChange={field("activityLevel")}
-              >
-                <option value="sedentary">Ít vận động</option>
-                <option value="light">Nhẹ</option>
-                <option value="moderate">Vừa</option>
-                <option value="active">Nhiều</option>
-                <option value="very_active">Rất nhiều</option>
-              </select>
-            </label>
-            <label>
-              Mục tiêu
-              <select value={form.healthGoal} onChange={field("healthGoal")}>
-                <option value="maintain">Duy trì</option>
-                <option value="loss">Giảm cân</option>
-                <option value="gain">Tăng cân</option>
-              </select>
-            </label>
+        <form className="vp-panel vp-profile-form" onSubmit={save}>
+          <div className="vp-flow-step" aria-live="polite">
+            <span>Bước {stage}/2</span>
+            <h2>{stage === 1 ? "Chỉ số cơ thể" : "Nhu cầu và dị ứng"}</h2>
           </div>
-          <fieldset>
-            <legend>Dị ứng thực phẩm</legend>
-            {allergens.error ? (
-              <Notice error>
-                Chưa tải được danh mục dị ứng. Không thể lưu hồ sơ lúc này.
-              </Notice>
-            ) : allergens.loading ? (
-              <p>Đang tải…</p>
-            ) : (
-              listOf(allergens.data).map((a) => (
-                <label className="vp-check" key={a.id}>
-                  <input
-                    type="checkbox"
-                    checked={form.allergyIds.includes(a.id)}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        allergyIds: e.target.checked
-                          ? [...p.allergyIds, a.id]
-                          : p.allergyIds.filter((id) => id !== a.id),
-                      }))
-                    }
-                  />
-                  {a.name}
+          <div className="vp-form-grid">
+            {stage === 1 && (
+              <>
+                <label>
+                  Giới tính
+                  <select value={form.gender} onChange={field("gender")}>
+                    <option value="female">Nữ</option>
+                    <option value="male">Nam</option>
+                  </select>
                 </label>
-              ))
+                <label>
+                  Ngày sinh
+                  <input
+                    type="date"
+                    required
+                    max={new Date().toLocaleDateString("en-CA")}
+                    value={form.dateOfBirth}
+                    onChange={field("dateOfBirth")}
+                  />
+                </label>
+                <label>
+                  Chiều cao (cm)
+                  <input
+                    type="number"
+                    required
+                    min="50"
+                    max="250"
+                    step="0.1"
+                    value={form.heightCm}
+                    onChange={field("heightCm")}
+                  />
+                </label>
+                <label>
+                  Cân nặng (kg)
+                  <input
+                    type="number"
+                    required
+                    min="20"
+                    max="300"
+                    step="0.1"
+                    value={form.weightKg}
+                    onChange={field("weightKg")}
+                  />
+                </label>
+              </>
             )}
-          </fieldset>
+            {stage === 2 && (
+              <>
+                <label>
+                  Vận động
+                  <select
+                    value={form.activityLevel}
+                    onChange={field("activityLevel")}
+                  >
+                    <option value="sedentary">Ít vận động</option>
+                    <option value="light">Nhẹ</option>
+                    <option value="moderate">Vừa</option>
+                    <option value="active">Nhiều</option>
+                    <option value="very_active">Rất nhiều</option>
+                  </select>
+                </label>
+                <label>
+                  Mục tiêu
+                  <select
+                    value={form.healthGoal}
+                    onChange={field("healthGoal")}
+                  >
+                    <option value="maintain">Duy trì</option>
+                    <option value="loss">Giảm cân</option>
+                    <option value="gain">Tăng cân</option>
+                  </select>
+                </label>
+              </>
+            )}
+          </div>
+          {stage === 2 && (
+            <fieldset>
+              <legend>Dị ứng thực phẩm</legend>
+              {allergens.error ? (
+                <Notice error>
+                  Chưa tải được danh mục dị ứng. Không thể lưu hồ sơ lúc này.
+                </Notice>
+              ) : allergens.loading ? (
+                <p>Đang tải…</p>
+              ) : (
+                listOf(allergens.data).map((a) => (
+                  <label className="vp-check" key={a.id}>
+                    <input
+                      type="checkbox"
+                      checked={form.allergyIds.includes(a.id)}
+                      onChange={(e) =>
+                        setForm((p) => ({
+                          ...p,
+                          allergyIds: e.target.checked
+                            ? [...p.allergyIds, a.id]
+                            : p.allergyIds.filter((id) => id !== a.id),
+                        }))
+                      }
+                    />
+                    {a.name}
+                  </label>
+                ))
+              )}
+            </fieldset>
+          )}
           {error && <Notice error>{error}</Notice>}
           <Button
             disabled={
@@ -213,15 +279,16 @@ export function Profile({ flash, go }) {
               !!allergens.error
             }
           >
-            {busy ? "Đang lưu…" : "Lưu hồ sơ"}
+            {busy ? "Đang lưu…" : stage === 1 ? "Tiếp tục" : "Lưu hồ sơ"}
           </Button>
-          {resource.data && (
+          {stage === 2 && (
             <button
               type="button"
               className="vp-text-button"
-              onClick={() => go("planner")}
+              disabled={busy}
+              onClick={() => setStage(1)}
             >
-              Tiếp tục lên thực đơn
+              Quay lại chỉ số
             </button>
           )}
         </form>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Leaf, ArrowRight, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useResource, Button, Notice, PageHeading } from "./ui";
-import { listOf, userError } from "./data";
+import { listOf, userError, isUnavailableChat } from "./data";
 import { request } from "./api";
 export function Chat() {
   const sessions = useResource(
@@ -26,7 +26,16 @@ export function Chat() {
     setError("");
     try {
       const data = await request(`/chat/sessions/${id}/messages`);
-      setMessages(listOf(data));
+      const history = listOf(data);
+      setMessages(
+        history.filter(
+          (m) => m.sender === "user" || !isUnavailableChat(m.content),
+        ),
+      );
+      if (
+        history.some((m) => m.sender !== "user" && isUnavailableChat(m.content))
+      )
+        setError("Có câu hỏi chưa nhận được phản hồi từ trợ lý.");
       setSession(id);
     } catch (e) {
       setError(userError(e));
@@ -53,6 +62,16 @@ export function Chat() {
       const reply = await request(`/chat/sessions/${id}/messages`, { content });
       if (!reply?.aiMessage)
         throw new Error("Chưa nhận được câu trả lời. Bạn có thể thử lại.");
+      if (isUnavailableChat(reply.aiMessage.content)) {
+        setMessages((previous) => [
+          ...previous,
+          reply.userMessage || { sender: "user", content },
+        ]);
+        setText("");
+        setError("Trợ lý đang bận. Bạn có thể quay lại sau.");
+        sessions.reload();
+        return;
+      }
       setMessages((previous) => [
         ...previous,
         reply.userMessage || { sender: "user", content },

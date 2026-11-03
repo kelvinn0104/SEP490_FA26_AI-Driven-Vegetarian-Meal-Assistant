@@ -7,6 +7,7 @@ async (page) => {
   const ok=data=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,data})});
   if(req.method()!=='GET')writes.push({path,body});
   if(path.endsWith('/auth/me'))return ok(user);
+  if(path.endsWith('/health-profile'))return ok({id:1});
   if(path.endsWith('/auth/register'))return ok({resendAfterSeconds:60});
   if(path.endsWith('/auth/verify-code'))return ok({token:'fixture',user});
   if(path.endsWith('/recipes'))return ok([]);
@@ -18,8 +19,8 @@ async (page) => {
  await page.goto(base+'/register');
  await page.getByLabel('Tên hiển thị').fill('Test'); await page.getByLabel('Email',{exact:true}).fill(user.email); await page.getByLabel('Mật khẩu',{exact:true}).fill('TestPassword!123'); await page.getByRole('button',{name:'Tạo tài khoản',exact:true}).click();
  await page.getByLabel('Mã xác thực').fill('123456'); await page.getByRole('button',{name:'Xác thực & tiếp tục'}).click();
- await page.getByRole('heading',{name:'Công thức chay',exact:true}).waitFor();
- await page.goto(base+'/planner'); await page.getByLabel('Số ngày').fill('2'); await page.getByRole('button',{name:'Tạo thực đơn',exact:true}).click(); await page.getByRole('button',{name:'Cơm đậu hũ',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Chào bạn đến với VeggieAI.',exact:true}).waitFor();
+ await page.goto(base+'/planner'); await page.getByRole('button',{name:'Tạo thực đơn mới',exact:true}).click(); await page.getByLabel('Số ngày').fill('2'); await page.getByRole('button',{name:'Tạo thực đơn',exact:true}).click(); await page.getByRole('button',{name:'Cơm đậu hũ',exact:true}).waitFor();
  check(writes.find(w=>w.path.endsWith('/generate')).body.days===2,'Planner lost days');
  await page.getByRole('button',{name:'Dùng thực đơn này',exact:true}).click(); await page.getByRole('alert').waitFor();
  await page.goto(base+'/vision');
