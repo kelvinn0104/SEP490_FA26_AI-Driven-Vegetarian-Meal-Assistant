@@ -49,7 +49,7 @@ export function State({ resource, children, empty = "Chưa có dữ liệu." }) 
     return (
       <div className="vp-loading" role="status">
         <span className="vp-spinner" />
-        Đang tải… <small>Máy chủ có thể cần ít phút để khởi động.</small>
+        Đang tải… <small>Có thể mất thêm một chút thời gian.</small>
       </div>
     );
   if (resource.error)
@@ -72,7 +72,6 @@ export function State({ resource, children, empty = "Chưa có dữ liệu." }) 
       <div className="vp-empty">
         <Leaf size={32} />
         <h2>{empty}</h2>
-        <p>Nội dung sẽ xuất hiện tại đây khi có dữ liệu.</p>
       </div>
     );
   return children;
@@ -95,9 +94,8 @@ export function RecipeImage({ recipe, priority = false, ...props }) {
       role="img"
       aria-label={`Chưa có ảnh: ${recipe.title || "món ăn"}`}
     >
-      <Leaf size={23} strokeWidth={1.3} />
-      <span className="vp-placeholder-title">
-        {recipe.title || "Công thức chay"}
+      <span className="vp-placeholder-plate" aria-hidden="true">
+        <Leaf size={30} strokeWidth={1.1} />
       </span>
       <small>Chưa có ảnh</small>
     </div>
@@ -105,7 +103,10 @@ export function RecipeImage({ recipe, priority = false, ...props }) {
 }
 export function Card({ recipe, open }) {
   return (
-    <article className="vp-recipe">
+    <article
+      className="vp-recipe"
+      data-tone={Number(recipe.categoryId || 0) % 3}
+    >
       <button
         className="vp-card-image"
         onClick={() => open(recipe.id)}
@@ -118,7 +119,9 @@ export function Card({ recipe, open }) {
           {categoryLabel(recipe.category) || "Công thức chay"}
         </span>
         <h3>
-          <button onClick={() => open(recipe.id)}>{recipe.title}</button>
+          <button title={recipe.title} onClick={() => open(recipe.id)}>
+            {recipe.title}
+          </button>
         </h3>
         <p>
           {amount(recipe.kcalPerServing)} kcal <span>·</span>{" "}
@@ -129,15 +132,11 @@ export function Card({ recipe, open }) {
   );
 }
 
-export function PageHeading({
-  eyebrow = "Không gian của bạn",
-  title,
-  children,
-}) {
+export function PageHeading({ eyebrow, title, children }) {
   return (
     <div className="vp-page-heading">
       <div>
-        <span className="vp-eyebrow">{eyebrow}</span>
+        {eyebrow && <span className="vp-eyebrow">{eyebrow}</span>}
         <h1>{title}</h1>
       </div>
       {children}

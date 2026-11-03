@@ -73,10 +73,7 @@ export function Profile({ flash, go }) {
     <>
       <PageHeading title="Hồ sơ sức khỏe" />
       <div className="vp-narrow">
-        <p>
-          Thông tin dùng để điều chỉnh thực đơn. Chỉ nhập dữ liệu của bạn; không
-          tự điền chỉ số mẫu.
-        </p>
+        <p>Cập nhật chỉ số và dị ứng để điều chỉnh thực đơn.</p>
         {resource.data && (
           <section className="vp-profile-summary">
             <div>

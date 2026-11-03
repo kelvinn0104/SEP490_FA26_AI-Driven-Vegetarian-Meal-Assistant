@@ -174,10 +174,6 @@ export function AuthForm({ register, go, onLogin }) {
           <br />
           Một ngày nhẹ hơn.
         </h1>
-        <p>
-          Lưu món yêu thích, lên thực đơn theo hồ sơ của bạn và tìm cảm hứng cho
-          mỗi bữa ăn.
-        </p>
         <div className="vp-auth-benefits">
           <span>
             <Check size={16} /> Công thức từ thư viện

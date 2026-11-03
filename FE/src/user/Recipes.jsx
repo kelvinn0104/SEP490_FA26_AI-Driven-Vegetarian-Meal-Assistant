@@ -70,16 +70,13 @@ export function Discover({ open, go, user }) {
             <br />
             nấu <em>gì chay?</em>
           </h1>
-          <p>
-            Món quen, nguyên liệu dễ tìm. Khám phá công thức và sắp xếp những
-            bữa ăn hợp với bạn.
-          </p>
+          <p>Tìm món ngon. Lên thực đơn dễ hơn.</p>
           <Button onClick={() => go("planner")}>
-            {user ? "Lên thực đơn của bạn" : "Bắt đầu lên thực đơn"}
+            {user ? "Thực đơn của tôi" : "Lên thực đơn"}
             <ArrowRight size={18} />
           </Button>
           <a className="vp-hero-link" href="#recipes">
-            Hoặc tìm một món ngon bên dưới
+            Khám phá công thức
           </a>
         </div>
         <div className="vp-hero-photo">
@@ -130,7 +127,7 @@ export function Discover({ open, go, user }) {
             <Search size={20} />
             <input
               aria-label="Tìm công thức"
-              placeholder="Tìm món bạn muốn nấu…"
+              placeholder="Tìm tên món…"
               value={query}
               onChange={change(setQuery)}
             />
@@ -151,9 +148,9 @@ export function Discover({ open, go, user }) {
             value={sort}
             onChange={change(setSort)}
           >
-            <option value="default">Đề xuất trong thư viện</option>
-            <option value="protein">Đạm cao đến thấp</option>
-            <option value="calories">Năng lượng thấp đến cao</option>
+            <option value="default">Thứ tự thư viện</option>
+            <option value="protein">Nhiều đạm trước</option>
+            <option value="calories">Ít kcal trước</option>
           </select>
         </div>
         <div className="vp-chips" aria-label="Danh mục">
@@ -166,7 +163,12 @@ export function Discover({ open, go, user }) {
                 setPage(1);
               }}
             >
-              {c}
+              {categoryLabel(c)}
+              <span className="vp-category-count">
+                {c === "Tất cả"
+                  ? recipes.length
+                  : recipes.filter((r) => r.category === c).length}
+              </span>
             </button>
           ))}
         </div>
@@ -208,7 +210,6 @@ export function Discover({ open, go, user }) {
         <div>
           <Camera size={24} />
           <h3>Có gì trong tủ lạnh?</h3>
-          <p>Chọn ảnh nguyên liệu, kiểm tra kết quả rồi tìm món để nấu.</p>
           <button onClick={() => go("vision")}>
             Nhận diện nguyên liệu <ArrowRight size={16} />
           </button>
@@ -216,7 +217,6 @@ export function Discover({ open, go, user }) {
         <div>
           <CalendarDays size={24} />
           <h3>Bớt nghĩ mỗi bữa</h3>
-          <p>Sắp xếp thực đơn từ 1 đến 14 ngày theo hồ sơ của bạn.</p>
           <button onClick={() => go("planner")}>
             Tạo thực đơn <ArrowRight size={16} />
           </button>
@@ -224,7 +224,6 @@ export function Discover({ open, go, user }) {
         <div>
           <MessageCircle size={24} />
           <h3>Một chút gợi ý</h3>
-          <p>Hỏi trợ lý về món chay, cách nấu và lựa chọn nguyên liệu.</p>
           <button onClick={() => go("chatbot")}>
             Bắt đầu trò chuyện <ArrowRight size={16} />
           </button>
@@ -338,7 +337,7 @@ export function RecipeDetail({ id, go, user, flash }) {
               </section>
               <aside className="vp-panel">
                 <h2>Dinh dưỡng</h2>
-                <p>Theo dữ liệu công thức. Tổng cho số khẩu phần bạn chọn.</p>
+                <p>Tổng theo số khẩu phần đã chọn.</p>
                 <label>
                   Số khẩu phần
                   <input

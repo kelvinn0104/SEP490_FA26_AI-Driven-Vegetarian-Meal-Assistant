@@ -65,3 +65,12 @@ Tất cả mutation trong browser smoke được intercept bằng fixture, khôn
 - Các smoke portal/workflows/otp/contracts đã chạy lại sau thay đổi. Không thêm dependency vào package.json.
 - Dữ liệu nguồn còn vấn đề: ví dụ ảnh /Recipes/r30 (Bánh Xèo Chay Nấm Mối Miền Tây) trông như bowl đậu hũ; công thức này thiếu định lượng nguyên liệu. FE không tự thay ảnh hay tạo nguyên liệu. Cần chủ dữ liệu BE rà provenance, ảnh khớp món và định lượng trước nghiệm thu production.
 - Chưa có tài khoản User thật để nghiệm thu mutation/AI/email end-to-end trên Render. Mức kiểm tra live public và fixture authenticated vẫn được tách rõ.
+
+## Visual pass: ít chữ, màu sắc rõ hơn — 2026-11-03
+
+- Hero xanh rừng, CTA xanh non; công cụ dùng ba sắc nền nhạt (sage/clay/slate). Không thêm gradient, số liệu hoặc badge trang trí.
+- Rút gọn lời dẫn trang chủ, bỏ mô tả lặp ở các công cụ và trang tài khoản. PageHeading không tự thêm tiêu đề phụ chung.
+- Thẻ thiếu ảnh dùng biểu tượng giao diện trung tính có nhãn Chưa có ảnh; không lặp tên món và không tạo ảnh thay thế. Tên dài giới hạn hai dòng, vẫn giữ đầy đủ accessible name/title và nội dung trang chi tiết.
+- Danh mục hiển thị số lượng từ catalogue thật. Không thay dữ liệu dinh dưỡng hoặc API contract.
+- Header mobile dùng nền đặc để nội dung bên dưới không xuyên qua. Kiểm tra lại 320/390/768/1440px bằng design.smoke; build, 5 unit tests và lint src/user pass.
+- Các thay đổi visual pass này chưa commit/push. Commit d63b864 trên hai remote là bản trước visual pass.
