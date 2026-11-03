@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { PortalBoundary } from './user/PortalBoundary';
 import { getAuthToken, getStoredUser, authApi } from './api';
 import { useAuth } from './context/AuthContext.jsx';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
-import { Navbar, Footer } from './components/layout';
 import { SearchModal } from './components/ui/SearchModal';
 import { AgentModal } from './components/ui/AgentModal';
 import { DocModal } from './components/ui/DocModal';
-import { Card, Button } from './components/ui';
-import { Sparkles, Camera } from 'lucide-react';
 
 // Admin & Mod screens
 import { DashboardScreen } from './pages/DashboardScreen';
@@ -23,29 +21,7 @@ import {
   RecipeManagementScreen,
 } from './pages/mod';
 
-// User pages
-import {
-  HomePage,
-  LoginPage,
-  RegisterPage,
-  MealPlannerPage,
-  CreateMealPlanPage,
-  MealHistoryPage,
-  VisionPage,
-  ChatbotPage,
-  CommunityPage,
-  BlogPage,
-  VideosPage,
-  ArticleDetailPage,
-  VideoDetailPage,
-  HealthProfilePage,
-  NutritionDashboardPage,
-  MyCollectionPage,
-  ManagePostsPage,
-  UserAccountPage,
-  CreatePostPage,
-  CreateVideoPage,
-} from './pages/user';
+const UserPortal = React.lazy(() => import('./user/UserPortal.jsx'));
 
 const adminScreens = [
   'dashboard',
@@ -59,6 +35,7 @@ const adminScreens = [
 
 const userScreens = [
   'home',
+  'notifications',
   'login',
   'register',
   'planner',
@@ -342,64 +319,7 @@ export default function App() {
     );
   }
 
-  // GIAO DIỆN NGƯỜI DÙNG (CÓ NAVBAR TRÊN & FOOTER DƯỚI)
-  return (
-    <div className="user-app-layout flex flex-col min-h-screen bg-slate-50 text-slate-900">
-      <Navbar
-        activeTab={currentScreen}
-        setActiveTab={handleNavigate}
-        onNavigate={handleNavigate}
-      />
-
-      <main className="flex-1 w-full">
-        {currentScreen === 'home' && <HomePage onNavigate={handleNavigate} />}
-        {currentScreen === 'login' && <LoginPage onNavigate={handleNavigate} onLogin={handleLogin} />}
-        {currentScreen === 'register' && <RegisterPage onNavigate={handleNavigate} />}
-
-        {/* THỰC ĐƠN TUẦN AI */}
-        {currentScreen === 'planner' && (
-          <MealPlannerPage onNavigate={handleNavigate} />
-        )}
-
-        {(currentScreen === 'create-plan' || currentScreen === 'create-mealplan') && (
-          <CreateMealPlanPage onNavigate={handleNavigate} />
-        )}
-
-        {currentScreen === 'meal-history' && (
-          <MealHistoryPage onNavigate={handleNavigate} />
-        )}
-
-        {/* QUÉT TỦ LẠNH VISION */}
-        {currentScreen === 'vision' && (
-          <VisionPage onNavigate={handleNavigate} />
-        )}
-
-        {currentScreen === 'chatbot' && <ChatbotPage onNavigate={handleNavigate} />}
-        {currentScreen === 'community' && <CommunityPage onNavigate={handleNavigate} />}
-        {currentScreen === 'blog' && <BlogPage onNavigate={handleNavigate} />}
-        {currentScreen === 'videos' && <VideosPage onNavigate={handleNavigate} />}
-
-        {currentScreen === 'article-detail' && (
-          <ArticleDetailPage articleData={selectedArticleData} onNavigate={handleNavigate} />
-        )}
-        {currentScreen === 'video-detail' && (
-          <VideoDetailPage videoData={selectedVideoData} onNavigate={handleNavigate} />
-        )}
-
-        {currentScreen === 'user-profile' && <HealthProfilePage onNavigate={handleNavigate} />}
-        {currentScreen === 'user-nutrition' && <NutritionDashboardPage onNavigate={handleNavigate} />}
-        {(currentScreen === 'user-collection' || currentScreen === 'collection') && (
-          <MyCollectionPage onNavigate={handleNavigate} />
-        )}
-        {(currentScreen === 'user-posts' || currentScreen === 'manage-posts') && (
-          <ManagePostsPage onNavigate={handleNavigate} />
-        )}
-        {currentScreen === 'user-settings' && <UserAccountPage onNavigate={handleNavigate} />}
-        {currentScreen === 'create-post' && <CreatePostPage onNavigate={handleNavigate} />}
-        {currentScreen === 'create-video' && <CreateVideoPage onNavigate={handleNavigate} />}
-      </main>
-
-      <Footer onNavigate={handleNavigate} />
-    </div>
-  );
+  return <PortalBoundary><React.Suspense fallback={<div role="status" style={{ padding: 40 }}>Đang tải VeggieAI…</div>}>
+    <UserPortal screen={currentScreen} onNavigate={handleNavigate} onLogin={handleLogin} />
+  </React.Suspense></PortalBoundary>;
 }
