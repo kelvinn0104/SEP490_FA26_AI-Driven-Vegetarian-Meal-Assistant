@@ -47,6 +47,7 @@ const userScreens = [
   'vision',
   'chatbot',
   'community',
+  'post-detail',
   'blog',
   'videos',
   'article-detail',

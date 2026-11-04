@@ -3,7 +3,10 @@ async (page) => {
   const base = 'http://127.0.0.1:5173';
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.unrouteAll({ behavior: 'wait' });
   await page.goto(base);
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.reload();
   await page.locator('.vp-recipe').first().waitFor({ timeout: 100000 });
   check(await page.locator('.vp-recipe').count() > 0, 'Live recipes missing');
   await page.getByRole('textbox', { name: 'Tìm công thức' }).fill('dau');
@@ -50,7 +53,7 @@ async (page) => {
   await page.getByLabel('Tiêu đề', { exact: true }).fill('Bữa chay của tôi');
   await page.getByLabel('Nội dung', { exact: true }).fill('Bữa chay với đậu hũ và nấm tươi.');
   await page.getByRole('button', { name: 'Gửi bài viết' }).click();
-  await page.getByRole('alert').waitFor();
+  await page.getByRole('alert').filter({ hasText: 'Tính năng này hiện chưa sẵn sàng.' }).waitFor();
   check(await page.getByRole('heading', { name: 'Đã gửi bài viết' }).count() === 0, 'False publish success');
   check(await page.evaluate(() => localStorage.getItem('veggieai_user_created_recipes')) === null, 'Fake local post created');
   await page.goto(base + '/user-profile');

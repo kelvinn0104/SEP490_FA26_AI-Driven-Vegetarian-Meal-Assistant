@@ -1,224 +1,99 @@
-import { useState, useEffect, useRef } from "react";
-import { Plus } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { useState, useEffect } from "react";
+import {
+  ArrowRight,
+  MessageCircle,
+  Search,
+  PenLine,
+  Video,
+  BookOpen,
+  Trash2,
+  ArrowUp,
+} from "lucide-react";
 import {
   useResource,
   Button,
   State,
-  Notice,
   PageHeading,
   PageControls,
+  Notice,
 } from "./ui";
-import { listOf, userError, statusLabel, isTestContent } from "./data";
+import { listOf, isTestContent, statusLabel, userError } from "./data";
 import { request } from "./api";
-export function Community({ mine, go, user, flash }) {
-  const [page, setPage] = useState(1);
-  const resource = useResource(
-    () =>
-      request(
-        `${mine ? "/community/posts/mine" : "/community/posts"}?page.Page=${page}&page.PageSize=12`,
-      ),
-    [mine, page],
+import { PostMeta, CommunityDialog } from "./PostParts";
+
+export function Community({ mine, go, user, flash, videos = false }) {
+  const initial = new URLSearchParams(window.location.search);
+  const [page, setPage] = useState(() =>
+    Math.max(1, Math.min(100000, Number(initial.get("page")) || 1)),
   );
-  const [busy, setBusy] = useState(null);
-  const [selected, setSelected] = useState(null);
-  const [comment, setComment] = useState("");
-  const [detail, setDetail] = useState(null);
-  const detailRef = useRef(null);
+  const [search, setSearch] = useState(initial.get("q")?.slice(0, 200) || "");
+  const [keyword, setKeyword] = useState(initial.get("q")?.slice(0, 200) || "");
+  const [type, setType] = useState(
+    videos
+      ? "video"
+      : ["blog", "video"].includes(initial.get("type"))
+        ? initial.get("type")
+        : "",
+  );
+  const [sort, setSort] = useState(
+    initial.get("sort") === "top" ? "top" : "newest",
+  );
   useEffect(() => {
-    if (detail) {
-      detailRef.current?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-        block: "start",
-      });
-      detailRef.current?.focus({ preventScroll: true });
+    const query = new URLSearchParams();
+    if (page > 1) query.set("page", page);
+    if (!mine) {
+      if (keyword) query.set("q", keyword);
+      if (type) query.set("type", type);
+      if (sort === "top") query.set("sort", sort);
     }
-  }, [detail]);
-  const action = async (fn, message, refresh = true) => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await fn();
-      if (message) flash(message);
-      if (refresh) resource.reload();
-    } catch (e) {
-      flash(userError(e));
-    } finally {
-      setBusy(null);
-    }
-  };
-  return (
-    <>
-      <PageHeading
-        eyebrow="Chia sẻ từ những căn bếp"
-        title={mine ? "Bài viết của tôi" : "Cộng đồng"}
-      >
-        <Button onClick={() => go(user ? "create-post" : "login")}>
-          <Plus size={17} />
-          Viết bài
-        </Button>
-      </PageHeading>
-      <State resource={resource} empty="Chưa có bài chia sẻ">
-        <div className="vp-community-list">
-          {listOf(resource.data)
-            .filter((post) => !isTestContent(post))
-            .map((post) => (
-              <article key={post.id} className="vp-list-card">
-                <span className="vp-eyebrow">
-                  {post.authorName || post.author || "Thành viên"}
-                  {mine ? ` · ${statusLabel(post.status)}` : ""}
-                </span>
-                <h2>{post.title}</h2>
-                <p>{post.content?.slice(0, 240)}</p>
-                <div className="vp-actions">
-                  <Button
-                    secondary
-                    disabled={!!busy}
-                    onClick={() =>
-                      action(
-                        async () => {
-                          setSelected(post);
-                          setDetail(
-                            await request(`/community/posts/${post.id}`),
-                          );
-                        },
-                        undefined,
-                        false,
-                      )
-                    }
-                  >
-                    Đọc bài
-                  </Button>
-                  {user && (
-                    <button
-                      className="vp-text-button"
-                      disabled={!!busy}
-                      onClick={() =>
-                        action(
-                          () =>
-                            request(
-                              `/community/posts/${post.id}/vote`,
-                              { value: post.myVote === 1 ? 0 : 1 },
-                              "PUT",
-                            ),
-                          "Đã gửi lượt thích.",
-                        )
-                      }
-                    >
-                      {post.myVote === 1 ? "Bỏ thích" : "Thích"} ·{" "}
-                      {post.score ?? "—"}
-                    </button>
-                  )}
-                  {mine && (
-                    <button
-                      className="vp-text-button"
-                      disabled={!!busy}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Xóa bài viết này? Thao tác không thể hoàn tác.",
-                          )
-                        )
-                          action(
-                            () =>
-                              request(
-                                `/community/posts/${post.id}`,
-                                undefined,
-                                "DELETE",
-                              ),
-                            "Đã xóa bài viết.",
-                          );
-                      }}
-                    >
-                      Xóa
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-        </div>
-      </State>
-      <PageControls
-        data={resource.data}
-        page={page}
-        setPage={setPage}
-        disabled={resource.loading}
-      />
-      {selected && detail && (
-        <section
-          ref={detailRef}
-          tabIndex={-1}
-          className="vp-panel vp-post-detail"
-        >
-          <button
-            className="vp-text-button"
-            onClick={() => {
-              setSelected(null);
-              setDetail(null);
-            }}
-          >
-            Đóng bài viết
-          </button>
-          <h2>{detail.title}</h2>
-          <div className="vp-prose">
-            <ReactMarkdown>{detail.content || ""}</ReactMarkdown>
-          </div>
-          <h3>Bình luận</h3>
-          {detail.comments?.map((c) => (
-            <p key={c.id}>
-              <strong>{c.authorName || "Thành viên"}</strong> {c.content}
-            </p>
-          ))}
-          {user && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                action(async () => {
-                  await request(`/community/posts/${selected.id}/comments`, {
-                    content: comment,
-                  });
-                  setComment("");
-                  setDetail(await request(`/community/posts/${selected.id}`));
-                });
-              }}
-            >
-              <label>
-                Bình luận
-                <textarea
-                  required
-                  maxLength={2000}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
-              </label>
-              <Button disabled={!!busy}>Gửi bình luận</Button>
-            </form>
-          )}
-        </section>
-      )}
-    </>
-  );
-}
-export function CreatePost({ go }) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${query.size ? "?" + query : ""}`,
+    );
+  }, [page, keyword, type, sort, mine]);
+  const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
+  const resource = useResource(
+    (signal) => {
+      const query = new URLSearchParams({
+        "page.Page": page,
+        "page.PageSize": 12,
+      });
+      if (!mine) {
+        if (keyword) query.set("keyword", keyword);
+        if (type) query.set("postType", type);
+        query.set("sort", sort);
+      }
+      return request(
+        `/community/posts${mine ? "/mine" : ""}?${query}`,
+        undefined,
+        undefined,
+        signal,
+      );
+    },
+    [mine, page, keyword, type, sort, user?.id],
+  );
+  const items = listOf(resource.data).filter((post) => !isTestContent(post));
+  const remove = async () => {
     if (busy) return;
     setBusy(true);
     setError("");
     try {
-      await request("/community/posts", {
-        postType: "blog",
-        title: title.trim(),
-        content: content.trim(),
-      });
-      setSuccess(true);
+      const removed = await request(
+        `/community/posts/${deleting.id}`,
+        undefined,
+        "DELETE",
+      );
+      if (removed !== true)
+        throw new Error(
+          "Chưa xác nhận được bài đã xóa. Tải lại danh sách để kiểm tra.",
+        );
+      setDeleting(null);
+      flash("Đã xóa bài viết.");
+      if (items.length === 1 && page > 1) setPage(page - 1);
+      else resource.reload();
     } catch (e) {
       setError(userError(e));
     } finally {
@@ -226,49 +101,270 @@ export function CreatePost({ go }) {
     }
   };
   return (
-    <>
-      <PageHeading title="Chia sẻ từ căn bếp của bạn" />
-      <div className="vp-narrow">
-        {success ? (
-          <div className="vp-panel">
-            <h2>Đã gửi bài viết</h2>
-            <p>Trạng thái xuất bản do hệ thống kiểm duyệt quyết định.</p>
-            <Button onClick={() => go("user-posts")}>
-              Xem bài viết của tôi
+    <div className="vp-community">
+      <PageHeading
+        eyebrow="Chuyện từ căn bếp"
+        title={mine ? "Bài viết của tôi" : "Cộng đồng"}
+      >
+        <Button onClick={() => go("create-post")}>
+          <PenLine size={18} />
+          Viết bài
+        </Button>
+      </PageHeading>
+      <div className="vp-community-layout">
+        <div className="vp-community-feed">
+          <nav className="vp-community-tabs" aria-label="Không gian cộng đồng">
+            <a
+              href="/community"
+              aria-current={!mine ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                go("community");
+              }}
+            >
+              Khám phá
+            </a>
+            <a
+              href="/user-posts"
+              aria-current={mine ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                go("user-posts");
+              }}
+            >
+              Bài của tôi
+            </a>
+          </nav>
+          {!mine && (
+            <div className="vp-community-filters">
+              <form
+                role="search"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setPage(1);
+                  setKeyword(search.trim());
+                }}
+              >
+                <label className="vp-community-search">
+                  <Search size={19} />
+                  <input
+                    type="search"
+                    aria-label="Tìm bài viết"
+                    maxLength={200}
+                    placeholder="Tìm chuyện bếp, mẹo nấu…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </label>
+                <Button secondary>Tìm</Button>
+              </form>
+              <div className="vp-community-filter-row">
+                <div
+                  className="vp-type-filter"
+                  role="group"
+                  aria-label="Loại bài viết"
+                >
+                  {[
+                    ["", "Tất cả"],
+                    ["blog", "Bài viết"],
+                    ["video", "Video"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      aria-pressed={type === value}
+                      onClick={() => {
+                        setType(value);
+                        setPage(1);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  aria-label="Sắp xếp bài viết"
+                  value={sort}
+                  onChange={(e) => {
+                    setSort(e.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="top">Nổi bật</option>
+                </select>
+              </div>
+              {keyword && (
+                <p className="vp-search-summary">
+                  Kết quả cho “{keyword}”{" "}
+                  <button
+                    className="vp-text-button"
+                    onClick={() => {
+                      setSearch("");
+                      setKeyword("");
+                      setPage(1);
+                    }}
+                  >
+                    Xóa tìm kiếm
+                  </button>
+                </p>
+              )}
+            </div>
+          )}
+          {mine && (
+            <p className="vp-mine-hint">
+              Theo dõi bài đã gửi và trạng thái duyệt tại đây.
+            </p>
+          )}
+          <State
+            resource={resource}
+            empty={mine ? "Bạn chưa có bài chia sẻ" : "Chưa có bài phù hợp"}
+          >
+            {items.length ? (
+              <div className="vp-community-list">
+                {items.map((post) => (
+                  <article key={post.id} className="vp-post-card">
+                    <PostMeta post={post} />
+                    <div className="vp-post-labels">
+                      <span>
+                        {post.postType === "video" ? (
+                          <Video size={15} />
+                        ) : (
+                          <BookOpen size={15} />
+                        )}
+                        {post.postType === "video" ? "Video" : "Chia sẻ"}
+                      </span>
+                      {mine && (
+                        <span
+                          className="vp-post-status"
+                          data-status={post.status}
+                        >
+                          {statusLabel(post.status)}
+                        </span>
+                      )}
+                    </div>
+                    <h2>
+                      <a
+                        href={`/post-detail?id=${post.id}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          go("post-detail", post.id);
+                        }}
+                      >
+                        {post.title}
+                      </a>
+                    </h2>
+                    <div className="vp-post-card-footer">
+                      <div className="vp-post-stats">
+                        <span title="Điểm cộng đồng">
+                          <ArrowUp size={16} />
+                          {post.score ?? 0}
+                        </span>
+                        <a
+                          href={`/post-detail?id=${post.id}#post-comments`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            go("post-detail", post.id);
+                            window.history.replaceState(
+                              {},
+                              "",
+                              `${window.location.pathname}${window.location.search}#post-comments`,
+                            );
+                          }}
+                        >
+                          <MessageCircle size={16} />
+                          {post.commentCount ?? 0} bình luận
+                        </a>
+                      </div>
+                      <div className="vp-post-card-actions">
+                        {mine && (
+                          <button
+                            className="vp-icon"
+                            aria-label={`Xóa bài ${post.title}`}
+                            onClick={() => {
+                              setError("");
+                              setDeleting(post);
+                            }}
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        )}
+                        <a
+                          className="vp-read-post"
+                          href={`/post-detail?id=${post.id}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            go("post-detail", post.id);
+                          }}
+                        >
+                          Đọc bài
+                          <ArrowRight size={16} />
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="vp-empty">
+                <BookOpen size={28} />
+                <h2>Chưa có bài phù hợp</h2>
+                <p>Thử loại bài khác hoặc sang trang tiếp theo.</p>
+              </div>
+            )}
+          </State>
+          <PageControls
+            data={resource.data}
+            page={page}
+            setPage={setPage}
+            disabled={resource.loading}
+          />
+        </div>
+        <aside className="vp-community-aside">
+          <span className="vp-aside-mark">
+            <PenLine size={25} strokeWidth={1.5} />
+          </span>
+          <h2>Mỗi căn bếp, một cách nấu.</h2>
+          <p>
+            Một món vừa thử, một mẹo nhỏ. Chia sẻ điều hữu ích với người cùng
+            thích bếp chay.
+          </p>
+          <button className="vp-text-button" onClick={() => go("create-post")}>
+            Viết chia sẻ
+            <ArrowRight size={16} />
+          </button>
+          <div className="vp-community-note">
+            <h3>Để cuộc trò chuyện dễ chịu</h3>
+            <p>
+              Tôn trọng trải nghiệm khác nhau. Với thông tin dinh dưỡng, thêm
+              nguồn khi có và tránh khẳng định thay tư vấn sức khỏe.
+            </p>
+          </div>
+          {!user && (
+            <button className="vp-text-button" onClick={() => go("login")}>
+              Đăng nhập để tham gia
+              <ArrowRight size={16} />
+            </button>
+          )}
+        </aside>
+      </div>
+      {deleting && (
+        <CommunityDialog
+          title="Xóa bài viết?"
+          busy={busy}
+          close={() => setDeleting(null)}
+        >
+          <p>“{deleting.title}” sẽ được gỡ. Thao tác không thể hoàn tác.</p>
+          {error && <Notice error>{error}</Notice>}
+          <div className="vp-actions">
+            <Button secondary disabled={busy} onClick={() => setDeleting(null)}>
+              Giữ bài viết
+            </Button>
+            <Button disabled={busy} onClick={remove}>
+              {busy ? "Đang xóa…" : "Xóa bài viết"}
             </Button>
           </div>
-        ) : (
-          <form className="vp-panel" onSubmit={submit}>
-            <p>
-              Chia sẻ cách nấu, trải nghiệm ăn chay hoặc mẹo chọn nguyên liệu.
-            </p>
-            <label>
-              Tiêu đề
-              <input
-                required
-                maxLength={200}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </label>
-            <label>
-              Nội dung
-              <textarea
-                required
-                minLength={10}
-                maxLength={10000}
-                rows={12}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
-            </label>
-            {error && <Notice error>{error}</Notice>}
-            <Button disabled={busy || !title.trim() || !content.trim()}>
-              {busy ? "Đang gửi…" : "Gửi bài viết"}
-            </Button>
-          </form>
-        )}
-      </div>
-    </>
+        </CommunityDialog>
+      )}
+    </div>
   );
 }

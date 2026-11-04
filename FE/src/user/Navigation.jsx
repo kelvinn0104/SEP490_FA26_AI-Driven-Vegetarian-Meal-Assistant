@@ -25,7 +25,18 @@ const tabs = [
   ["me", "Cá nhân", UserRound],
 ];
 export function activeTab(screen) {
-  if (["home", "blog", "article-detail"].includes(screen)) return "home";
+  if (
+    [
+      "home",
+      "blog",
+      "article-detail",
+      "community",
+      "post-detail",
+      "videos",
+      "video-detail",
+    ].includes(screen)
+  )
+    return "home";
   if (
     ["planner", "create-plan", "create-mealplan", "meal-history"].includes(
       screen,

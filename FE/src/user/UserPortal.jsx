@@ -18,7 +18,9 @@ import { Planner } from "./Planner";
 import { Chat } from "./Chat";
 import { Vision } from "./Vision";
 import { Profile, Account } from "./Account";
-import { Community, CreatePost } from "./Community";
+import { Community } from "./Community";
+import { CreatePost } from "./PostComposer";
+import { PostDetail } from "./PostDetail";
 import { Collection, Nutrition, Notifications } from "./Activity";
 import "./portal.css";
 const titles = {
@@ -35,6 +37,7 @@ const titles = {
   chatbot: "Trò chuyện",
   vision: "Nhận diện nguyên liệu",
   community: "Cộng đồng",
+  "post-detail": "Bài viết cộng đồng",
   "user-collection": "Món đã lưu",
   "user-profile": "Hồ sơ sức khỏe",
   "user-settings": "Tài khoản",
@@ -57,6 +60,7 @@ const protectedScreens = [
   "user-posts",
   "user-nutrition",
   "create-post",
+  "create-video",
   "notifications",
 ];
 const links = [
@@ -207,11 +211,31 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   else if (screen === "user-profile")
     content = <Profile flash={flash} go={go} />;
   else if (screen === "user-settings") content = <Account user={user} />;
-  else if (screen === "create-post") content = <CreatePost go={go} />;
-  else if (["community", "user-posts"].includes(screen))
+  else if (["create-post", "create-video"].includes(screen))
+    content = (
+      <CreatePost
+        key={user?.id || user?.email}
+        go={go}
+        user={user}
+        video={screen === "create-video"}
+      />
+    );
+  else if (["post-detail", "video-detail"].includes(screen))
+    content = (
+      <PostDetail
+        key={`${screen}:${window.location.search}:${user?.id || "guest"}`}
+        id={new URLSearchParams(window.location.search).get("id")}
+        go={go}
+        user={user}
+        flash={flash}
+      />
+    );
+  else if (["community", "user-posts", "videos"].includes(screen))
     content = (
       <Community
+        key={screen}
         mine={screen === "user-posts"}
+        videos={screen === "videos"}
         go={go}
         user={user}
         flash={flash}
@@ -252,7 +276,20 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
               <a
                 key={id}
                 href={id === "home" ? "/" : "/" + id}
-                aria-current={screen === id ? "page" : undefined}
+                aria-current={
+                  screen === id ||
+                  (id === "community" &&
+                    [
+                      "post-detail",
+                      "user-posts",
+                      "create-post",
+                      "create-video",
+                      "videos",
+                      "video-detail",
+                    ].includes(screen))
+                    ? "page"
+                    : undefined
+                }
                 onClick={(e) => {
                   e.preventDefault();
                   go(id);
@@ -317,6 +354,12 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
           "login",
           "register",
           "welcome",
+          "community",
+          "videos",
+          "post-detail",
+          "video-detail",
+          "create-post",
+          "create-video",
         ].includes(screen) && (
           <button
             className="vp-mobile-back"
