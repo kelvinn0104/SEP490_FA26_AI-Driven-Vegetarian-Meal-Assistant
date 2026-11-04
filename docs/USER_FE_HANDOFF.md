@@ -93,6 +93,8 @@ User xác nhận nhận email OTP/đăng ký thành công. Đã kiểm login qua
 
 ## Cộng đồng và bài đăng — 04/11/2026
 
+Đợt thiết kế toàn user/guest tiếp theo: [USER_UI_REDESIGN_2026-11-05.md](USER_UI_REDESIGN_2026-11-05.md). Bếp hôm nay, /discover, bottom nav 5 mục, lịch ngày, shopping drawer và hệ thống typography/motion mới; giữ nghiệp vụ/API của đợt cộng đồng này.
+
 Trang đọc riêng post-detail, tìm/lọc/sort server, soạn blog/video với xem trước/định dạng cơ bản/draft theo tài khoản trong tab, đính kèm recipe thật, vote hai chiều, bình luận/xóa bình luận của mình, report post/comment, pending restrictions và xóa bài tại mine. Không có API sửa bài/upload media nên không dựng thao tác giả. Chi tiết phạm vi, hợp đồng và 9 điểm BE cần bổ sung: [COMMUNITY_USER_AUDIT_2026-11-04.md](COMMUNITY_USER_AUDIT_2026-11-04.md).
 
 Kiểm tra đạt: community live public read; community fixture mutations/errors/ownership/double-submit/report409/draft/responsive; hồi quy portal/contracts/onboarding; 9 unit tests; lint src/user và production build. Màn soạn/đọc/feed được kiểm 320/390/768/1440px. Các write community bị intercept trong smoke, chưa dùng làm bằng chứng mutation BE live thành công; không đăng bài/bình luận/report thử lên cộng đồng thật.

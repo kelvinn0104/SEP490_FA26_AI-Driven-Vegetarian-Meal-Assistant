@@ -1,9 +1,39 @@
 import { useState, useEffect, useRef } from "react";
-import { Leaf, ArrowRight, Send } from "lucide-react";
+import { Leaf, ArrowRight, Send, History } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useResource, Button, Notice, PageHeading } from "./ui";
+import { useResource, Button, Notice, PageHeading, Dialog } from "./ui";
 import { listOf, userError, isUnavailableChat } from "./data";
 import { request } from "./api";
+function ChatHistory({ sessions, session, busy, select }) {
+  return (
+    <>
+      {sessions.loading ? (
+        <p role="status">Đang tải…</p>
+      ) : sessions.error ? (
+        <>
+          <p>{userError(sessions.error)}</p>
+          <button className="vp-text-button" onClick={sessions.reload}>
+            Thử lại
+          </button>
+        </>
+      ) : listOf(sessions.data).length ? (
+        listOf(sessions.data).map((s) => (
+          <button
+            key={s.id}
+            disabled={busy}
+            aria-pressed={session === s.id}
+            onClick={() => select(s.id)}
+          >
+            {s.lastMessage?.slice(0, 65) || "Cuộc trò chuyện"}
+            <small>{new Date(s.createdAt).toLocaleDateString("vi-VN")}</small>
+          </button>
+        ))
+      ) : (
+        <p>Chưa có cuộc trò chuyện.</p>
+      )}
+    </>
+  );
+}
 export function Chat() {
   const sessions = useResource(
     (signal) => request("/chat/sessions", undefined, undefined, signal),
@@ -14,10 +44,17 @@ export function Chat() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const end = useRef();
   const lock = useRef(false);
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const container = end.current?.parentElement;
+    container?.scrollTo({
+      top: container.scrollHeight,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
   }, [messages, busy]);
   const select = async (id) => {
     if (lock.current) return;
@@ -37,6 +74,7 @@ export function Chat() {
       )
         setError("Có câu hỏi chưa nhận được phản hồi từ trợ lý.");
       setSession(id);
+      setHistoryOpen(false);
     } catch (e) {
       setError(userError(e));
     } finally {
@@ -89,42 +127,36 @@ export function Chat() {
   return (
     <>
       <PageHeading eyebrow="Hỏi một chút, nấu dễ hơn" title="Trợ lý bếp chay">
-        <Button
-          secondary
-          disabled={busy}
-          onClick={() => {
-            setSession(null);
-            setMessages([]);
-            setError("");
-          }}
-        >
-          Cuộc trò chuyện mới
-        </Button>
+        <div className="vp-chat-heading-actions">
+          <button
+            className="vp-icon vp-chat-history-toggle"
+            aria-label="Trò chuyện gần đây"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History size={20} />
+          </button>
+          <Button
+            secondary
+            disabled={busy}
+            onClick={() => {
+              setSession(null);
+              setMessages([]);
+              setError("");
+            }}
+          >
+            Cuộc trò chuyện mới
+          </Button>
+        </div>
       </PageHeading>
       <div className="vp-chat-layout">
         <aside className="vp-chat-history">
           <h2>Gần đây</h2>
-          {sessions.loading ? (
-            <p>Đang tải…</p>
-          ) : sessions.error ? (
-            <p>{userError(sessions.error)}</p>
-          ) : listOf(sessions.data).length ? (
-            listOf(sessions.data).map((s) => (
-              <button
-                key={s.id}
-                disabled={busy}
-                aria-pressed={session === s.id}
-                onClick={() => select(s.id)}
-              >
-                {s.lastMessage?.slice(0, 65) || "Cuộc trò chuyện"}
-                <small>
-                  {new Date(s.createdAt).toLocaleDateString("vi-VN")}
-                </small>
-              </button>
-            ))
-          ) : (
-            <p>Chưa có cuộc trò chuyện.</p>
-          )}
+          <ChatHistory
+            sessions={sessions}
+            session={session}
+            busy={busy}
+            select={select}
+          />
         </aside>
         <section className="vp-chat">
           <div className="vp-messages" role="log" aria-label="Tin nhắn">
@@ -195,6 +227,21 @@ export function Chat() {
           </small>
         </section>
       </div>
+      {historyOpen && (
+        <Dialog
+          title="Trò chuyện gần đây"
+          className="vp-sheet vp-chat-history-sheet"
+          busy={busy}
+          close={() => setHistoryOpen(false)}
+        >
+          <ChatHistory
+            sessions={sessions}
+            session={session}
+            busy={busy}
+            select={select}
+          />
+        </Dialog>
+      )}
     </>
   );
 }

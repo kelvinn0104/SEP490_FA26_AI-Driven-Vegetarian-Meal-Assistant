@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Leaf, ArrowRight, Mail, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { request } from "./api";
+import { BrandArt } from "./BrandArt";
 import { Button, Notice } from "./ui";
 import { userError } from "./data";
 import {
@@ -180,6 +181,7 @@ export function AuthForm({ register, go, onLogin }) {
   return (
     <div className="vp-auth">
       <aside>
+        <BrandArt />
         <Leaf size={40} strokeWidth={1.2} />
         <span className="vp-eyebrow">Bếp chay mỗi ngày</span>
         <h1>

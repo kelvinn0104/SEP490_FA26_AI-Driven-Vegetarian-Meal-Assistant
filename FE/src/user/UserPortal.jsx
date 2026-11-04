@@ -1,5 +1,12 @@
 import { BottomNav, PersonalSpace, Welcome } from "./Navigation";
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
 import {
   Leaf,
   ArrowRight,
@@ -12,19 +19,54 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui";
-import { Discover, RecipeDetail } from "./Recipes";
-import { AuthForm } from "./AuthForm";
-import { Planner } from "./Planner";
-import { Chat } from "./Chat";
-import { Vision } from "./Vision";
-import { Profile, Account } from "./Account";
-import { Community } from "./Community";
-import { CreatePost } from "./PostComposer";
-import { PostDetail } from "./PostDetail";
-import { Collection, Nutrition, Notifications } from "./Activity";
+import { Discover } from "./Recipes";
+import { LazyMotion, domAnimation, MotionConfig } from "motion/react";
 import "./portal.css";
+const RecipeDetail = lazy(() =>
+  import("./RecipeDetail").then((module) => ({ default: module.RecipeDetail })),
+);
+const AuthForm = lazy(() =>
+  import("./AuthForm").then((module) => ({ default: module.AuthForm })),
+);
+const Planner = lazy(() =>
+  import("./Planner").then((module) => ({ default: module.Planner })),
+);
+const Chat = lazy(() =>
+  import("./Chat").then((module) => ({ default: module.Chat })),
+);
+const Vision = lazy(() =>
+  import("./Vision").then((module) => ({ default: module.Vision })),
+);
+const Profile = lazy(() =>
+  import("./Account").then((module) => ({ default: module.Profile })),
+);
+const Account = lazy(() =>
+  import("./Account").then((module) => ({ default: module.Account })),
+);
+const Community = lazy(() =>
+  import("./Community").then((module) => ({ default: module.Community })),
+);
+const CreatePost = lazy(() =>
+  import("./PostComposer").then((module) => ({ default: module.CreatePost })),
+);
+const PostDetail = lazy(() =>
+  import("./PostDetail").then((module) => ({ default: module.PostDetail })),
+);
+const Today = lazy(() =>
+  import("./Today").then((module) => ({ default: module.Today })),
+);
+const Collection = lazy(() =>
+  import("./Activity").then((module) => ({ default: module.Collection })),
+);
+const Nutrition = lazy(() =>
+  import("./Activity").then((module) => ({ default: module.Nutrition })),
+);
+const Notifications = lazy(() =>
+  import("./Activity").then((module) => ({ default: module.Notifications })),
+);
 const titles = {
   home: "Khám phá món chay",
+  discover: "Khám phá món chay",
   me: "Cá nhân",
   welcome: "Chào mừng",
   login: "Đăng nhập",
@@ -63,11 +105,6 @@ const protectedScreens = [
   "create-video",
   "notifications",
 ];
-const links = [
-  ["home", "Khám phá"],
-  ["planner", "Thực đơn"],
-  ["community", "Cộng đồng"],
-];
 const guestCopy = {
   planner: [
     "Lên thực đơn, bớt nghĩ mỗi bữa.",
@@ -92,6 +129,12 @@ const guestCopy = {
 };
 export default function UserPortal({ screen, onNavigate, onLogin }) {
   const { user, logout } = useAuth();
+  const links = [
+    ...(user ? [["home", "Hôm nay"]] : []),
+    [user ? "discover" : "home", "Khám phá"],
+    ["planner", "Thực đơn"],
+    ["community", "Cộng đồng"],
+  ];
   const [toast, setToast] = useState("");
   const toastTimer = useRef();
   const returnTo = useRef(null);
@@ -123,8 +166,8 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   const open = (id) => go("article-detail", id);
   useEffect(() => {
     document.getElementById("vp-main")?.focus({ preventScroll: true });
-    document.title = `${titles[screen] || "VeggieAI"} · VeggieAI`;
-  }, [screen]);
+    document.title = `${screen === "home" && user ? "Bếp hôm nay" : titles[screen] || "VeggieAI"} · VeggieAI`;
+  }, [screen, !!user]);
   const signOut = async () => {
     await logout();
     go("home");
@@ -163,7 +206,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
             Tạo tài khoản
           </Button>
         </div>
-        <button className="vp-text-button" onClick={() => go("home")}>
+        <button className="vp-text-button" onClick={() => go("discover")}>
           Tiếp tục khám phá món chay
         </button>
       </div>
@@ -188,8 +231,18 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
         flash={flash}
       />
     );
-  else if (["home", "blog"].includes(screen))
-    content = <Discover open={open} go={go} user={user} />;
+  else if (screen === "home" && user)
+    content = (
+      <Today
+        key={user.id || user.email}
+        user={user}
+        go={go}
+        open={open}
+        flash={flash}
+      />
+    );
+  else if (["home", "blog", "discover"].includes(screen))
+    content = <Discover open={open} go={go} library={screen !== "home"} />;
   else if (
     ["planner", "create-plan", "create-mealplan", "meal-history"].includes(
       screen,
@@ -242,7 +295,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
       />
     );
   else if (screen === "user-collection")
-    content = <Collection open={open} flash={flash} />;
+    content = <Collection open={open} flash={flash} go={go} />;
   else if (screen === "user-nutrition") content = <Nutrition />;
   else if (screen === "notifications") content = <Notifications />;
   else
@@ -254,151 +307,167 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
       </div>
     );
   return (
-    <div className="vp">
-      <a className="vp-skip" href="#vp-main">
-        Đến nội dung chính
-      </a>
-      <header className="vp-header">
-        <div className="vp-header-inner">
-          <a
-            className="vp-brand"
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              go("home");
-            }}
-          >
-            <Leaf size={25} strokeWidth={1.7} />
-            Veggie<span>AI</span>
+    <MotionConfig reducedMotion="user">
+      <LazyMotion features={domAnimation}>
+        <div className={`vp vp-screen-${screen}`}>
+          <a className="vp-skip" href="#vp-main">
+            Đến nội dung chính
           </a>
-          <nav aria-label="Điều hướng chính" className="vp-nav">
-            {links.map(([id, title]) => (
+          <header className="vp-header">
+            <div className="vp-header-inner">
               <a
-                key={id}
-                href={id === "home" ? "/" : "/" + id}
-                aria-current={
-                  screen === id ||
-                  (id === "community" &&
-                    [
-                      "post-detail",
-                      "user-posts",
-                      "create-post",
-                      "create-video",
-                      "videos",
-                      "video-detail",
-                    ].includes(screen))
-                    ? "page"
-                    : undefined
-                }
+                className="vp-brand"
+                href="/"
                 onClick={(e) => {
                   e.preventDefault();
-                  go(id);
+                  go("home");
                 }}
               >
-                {title}
+                <Leaf size={25} strokeWidth={1.7} />
+                Veggie<span>AI</span>
               </a>
-            ))}
-          </nav>
-          <div className="vp-header-actions">
-            <button
-              className="vp-header-tool vp-desktop-tool"
-              title="Quét nguyên liệu"
-              aria-label="Quét nguyên liệu"
-              onClick={() => go("vision")}
-            >
-              <Camera size={20} />
-              <span>Quét ảnh</span>
-            </button>
-            <button
-              className="vp-header-tool vp-desktop-tool"
-              title="Hỏi trợ lý"
-              aria-label="Hỏi trợ lý"
-              onClick={() => go("chatbot")}
-            >
-              <MessageCircle size={20} />
-              <span>Hỏi trợ lý</span>
-            </button>
-            {user ? (
-              <>
+              <nav aria-label="Điều hướng chính" className="vp-nav">
+                {links.map(([id, title]) => (
+                  <a
+                    key={id}
+                    href={id === "home" ? "/" : "/" + id}
+                    aria-current={
+                      screen === id ||
+                      (id === "community" &&
+                        [
+                          "post-detail",
+                          "user-posts",
+                          "create-post",
+                          "create-video",
+                          "videos",
+                          "video-detail",
+                        ].includes(screen))
+                        ? "page"
+                        : undefined
+                    }
+                    onClick={(e) => {
+                      e.preventDefault();
+                      go(id);
+                    }}
+                  >
+                    {title}
+                  </a>
+                ))}
+              </nav>
+              <div className="vp-header-actions">
                 <button
-                  className="vp-icon"
-                  aria-label="Thông báo"
-                  onClick={() => go("notifications")}
+                  className="vp-header-tool vp-desktop-tool"
+                  title="Quét nguyên liệu"
+                  aria-label="Quét nguyên liệu"
+                  onClick={() => go("vision")}
                 >
-                  <Bell size={20} />
+                  <Camera size={20} />
+                  <span>Quét ảnh</span>
                 </button>
                 <button
-                  className="vp-account vp-desktop-account"
-                  onClick={() => go("me")}
+                  className="vp-header-tool vp-desktop-tool"
+                  title="Hỏi trợ lý"
+                  aria-label="Hỏi trợ lý"
+                  onClick={() => go("chatbot")}
                 >
-                  <User size={18} />
-                  <span>Cá nhân</span>
+                  <MessageCircle size={20} />
+                  <span>Hỏi trợ lý</span>
                 </button>
-              </>
-            ) : !["login", "register", "me"].includes(screen) ? (
-              <button className="vp-login" onClick={() => go("login")}>
-                Đăng nhập
-                <ArrowRight size={16} />
+                {user ? (
+                  <>
+                    <button
+                      className="vp-icon"
+                      aria-label="Thông báo"
+                      onClick={() => go("notifications")}
+                    >
+                      <Bell size={20} />
+                    </button>
+                    <button
+                      className="vp-account vp-desktop-account"
+                      onClick={() => go("me")}
+                    >
+                      <User size={18} />
+                      <span>Cá nhân</span>
+                    </button>
+                  </>
+                ) : !["login", "register", "me"].includes(screen) ? (
+                  <button className="vp-login" onClick={() => go("login")}>
+                    Đăng nhập
+                    <ArrowRight size={16} />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </header>
+          <main id="vp-main" className="vp-main" tabIndex={-1}>
+            {![
+              "home",
+              "discover",
+              "blog",
+              "planner",
+              "user-collection",
+              "me",
+              "login",
+              "register",
+              "welcome",
+              "community",
+              "videos",
+              "post-detail",
+              "video-detail",
+              "create-post",
+              "create-video",
+            ].includes(screen) && (
+              <button
+                className="vp-mobile-back"
+                onClick={() =>
+                  go(
+                    ["community", "article-detail"].includes(screen)
+                      ? "discover"
+                      : "me",
+                  )
+                }
+              >
+                <ArrowLeft size={18} />
+                Quay lại
               </button>
-            ) : null}
-          </div>
+            )}
+            <div className="vp-screen" key={screen}>
+              <Suspense
+                fallback={
+                  <div className="vp-loading" role="status">
+                    <span className="vp-spinner" />
+                    Đang tải…
+                  </div>
+                }
+              >
+                {content}
+              </Suspense>
+            </div>
+          </main>
+          <footer className="vp-footer">
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                go("home");
+              }}
+            >
+              <Leaf size={18} /> VeggieAI
+            </a>
+            <p>Ăn chay mỗi ngày, theo cách của bạn.</p>
+            <span>Thông tin dinh dưỡng mang tính tham khảo.</span>
+          </footer>
+          <BottomNav screen={screen} go={go} user={user} />
+          {toast && (
+            <div className="vp-toast" role="status">
+              {toast}
+              <button aria-label="Đóng thông báo" onClick={() => setToast("")}>
+                <X size={16} />
+              </button>
+            </div>
+          )}
         </div>
-      </header>
-      <main id="vp-main" className="vp-main" tabIndex={-1}>
-        {![
-          "home",
-          "blog",
-          "planner",
-          "user-collection",
-          "me",
-          "login",
-          "register",
-          "welcome",
-          "community",
-          "videos",
-          "post-detail",
-          "video-detail",
-          "create-post",
-          "create-video",
-        ].includes(screen) && (
-          <button
-            className="vp-mobile-back"
-            onClick={() =>
-              go(
-                ["community", "article-detail"].includes(screen)
-                  ? "home"
-                  : "me",
-              )
-            }
-          >
-            <ArrowLeft size={18} />
-            Quay lại
-          </button>
-        )}
-        {content}
-      </main>
-      <footer className="vp-footer">
-        <a
-          href="/"
-          onClick={(e) => {
-            e.preventDefault();
-            go("home");
-          }}
-        >
-          <Leaf size={18} /> VeggieAI
-        </a>
-        <p>Ăn chay mỗi ngày, theo cách của bạn.</p>
-        <span>Thông tin dinh dưỡng mang tính tham khảo.</span>
-      </footer>
-      <BottomNav screen={screen} go={go} />
-      {toast && (
-        <div className="vp-toast" role="status">
-          {toast}
-          <button aria-label="Đóng thông báo" onClick={() => setToast("")}>
-            <X size={16} />
-          </button>
-        </div>
-      )}
-    </div>
+      </LazyMotion>
+    </MotionConfig>
   );
 }

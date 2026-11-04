@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Plus, ArrowRight, RefreshCw, Check } from "lucide-react";
+import {
+  Plus,
+  ArrowRight,
+  RefreshCw,
+  Check,
+  ShoppingBasket,
+  CalendarDays,
+  CookingPot,
+} from "lucide-react";
 import {
   useResource,
   Button,
@@ -7,19 +15,31 @@ import {
   Notice,
   PageHeading,
   PageControls,
+  Dialog,
 } from "./ui";
-import { amount, listOf, userError, statusLabel, isTestContent } from "./data";
+import {
+  amount,
+  listOf,
+  userError,
+  statusLabel,
+  isTestContent,
+  vietnamDate,
+  mealLabels,
+} from "./data";
 import { request } from "./api";
 export function Planner({ go, flash, open, history, create, hasProfile }) {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(!!create);
   const [profileRequired, setProfileRequired] = useState(false);
   const resource = useResource(
-    () =>
+    (signal) =>
       request(
         history
           ? `/meal-plans?page.Page=${page}&page.PageSize=10`
           : "/meal-plans/current",
+        undefined,
+        undefined,
+        signal,
       ),
     [history, page],
   );
@@ -28,11 +48,15 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
   const [error, setError] = useState("");
   const [days, setDays] = useState(7);
   const [note, setNote] = useState("");
-  const [date, setDate] = useState(new Date().toLocaleDateString("en-CA"));
+  const [date, setDate] = useState(vietnamDate());
   const [goal, setGoal] = useState("maintain");
   const [shopping, setShopping] = useState(null);
+  const [shoppingOpen, setShoppingOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(vietnamDate());
   const [warnings, setWarnings] = useState([]);
   const plan = generated || resource.data;
+  const selectedDay =
+    plan?.days?.find((day) => day.date === selectedDate) || plan?.days?.[0];
   const testPlan = plan?.days?.some((day) =>
     day.meals?.some((meal) => isTestContent({ title: meal.recipeTitle })),
   );
@@ -85,6 +109,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
       setEditing(false);
       setWarnings(result.validationWarnings || []);
       setShopping(null);
+      setSelectedDate(next.days[0].date);
     }, "Đã tạo thực đơn. Kiểm tra các bữa trước khi sử dụng.");
   };
   const swap = (meal) =>
@@ -163,11 +188,19 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
   return (
     <>
       <PageHeading title={editing ? "Tạo thực đơn" : "Thực đơn của bạn"}>
-        <button className="vp-text-button" onClick={() => go("meal-history")}>
-          Lịch sử <ArrowRight size={16} />
-        </button>
+        <div className="vp-plan-heading-actions">
+          <button className="vp-text-button" onClick={() => go("meal-history")}>
+            Lịch sử <ArrowRight size={16} />
+          </button>
+          {!editing && plan?.days && (
+            <Button secondary onClick={() => setEditing(true)}>
+              <Plus size={17} />
+              Tạo mới
+            </Button>
+          )}
+        </div>
       </PageHeading>
-      {!editing && (
+      {!editing && !plan?.days && (
         <div className="vp-planner-start">
           <Button onClick={() => setEditing(true)}>
             <Plus size={17} />
@@ -189,6 +222,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
         {editing && (
           <form className="vp-panel" onSubmit={generate}>
             <fieldset className="vp-plan-fields" disabled={busy}>
+              <span className="vp-eyebrow">Bắt đầu một kế hoạch mới</span>
               <h2>Sắp xếp bữa ăn</h2>
               <p>Từ công thức trong thư viện, theo hồ sơ sức khỏe đã lưu.</p>
               <label>
@@ -211,6 +245,22 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   onChange={(e) => setDays(e.target.value)}
                 />
               </label>
+              <div
+                className="vp-type-filter vp-days-shortcuts"
+                role="group"
+                aria-label="Chọn nhanh số ngày"
+              >
+                {[3, 7, 14].map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    aria-pressed={Number(days) === value}
+                    onClick={() => setDays(value)}
+                  >
+                    {value} ngày
+                  </button>
+                ))}
+              </div>
               <label>
                 Mục tiêu
                 <select value={goal} onChange={(e) => setGoal(e.target.value)}>
@@ -258,7 +308,44 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
             <Notice key={i}>{w}</Notice>
           ))}
           {!editing && !generated && (
-            <State resource={resource} empty="Chưa có thực đơn đang dùng" />
+            <State
+              resource={resource}
+              empty="Chưa có thực đơn đang dùng"
+              emptyAction={
+                <p>
+                  Mỗi kế hoạch bắt đầu từ một bữa ăn. Chọn tạo mới khi bạn sẵn
+                  sàng.
+                </p>
+              }
+            />
+          )}
+          {editing && (
+            <aside className="vp-plan-intro">
+              <CalendarDays size={38} strokeWidth={1.2} />
+              <span className="vp-eyebrow">
+                Một kế hoạch, nhẹ việc mỗi ngày
+              </span>
+              <h2>
+                Bớt nghĩ mỗi bữa.
+                <br />
+                <em>Thêm thời gian vào bếp.</em>
+              </h2>
+              <p>
+                Chọn số ngày và sở thích. Dị ứng được lấy từ hồ sơ sức khỏe đã
+                lưu.
+              </p>
+              <ol>
+                <li>
+                  <span>01</span>Chọn nhu cầu
+                </li>
+                <li>
+                  <span>02</span>Kiểm tra các bữa
+                </li>
+                <li>
+                  <span>03</span>Mang danh sách đi chợ
+                </li>
+              </ol>
+            </aside>
           )}
           {testPlan && (
             <Notice error>
@@ -270,27 +357,39 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
             <>
               <div className="vp-section-heading">
                 <h2>
-                  {plan.startDate} – {plan.endDate}
+                  {new Date(plan.startDate + "T12:00:00").toLocaleDateString(
+                    "vi-VN",
+                    { day: "numeric", month: "numeric" },
+                  )}{" "}
+                  –{" "}
+                  {new Date(plan.endDate + "T12:00:00").toLocaleDateString(
+                    "vi-VN",
+                    { day: "numeric", month: "numeric" },
+                  )}
                 </h2>
-                <span>{statusLabel(plan.status)}</span>
+                <span className="vp-plan-status">
+                  {statusLabel(plan.status)}
+                </span>
               </div>
               <div className="vp-actions">
-                <Button
-                  secondary
-                  disabled={busy}
-                  onClick={() =>
-                    action(async () => {
-                      const activated = await request(
-                        `/meal-plans/${plan.id}/status`,
-                        { status: "active" },
-                        "PATCH",
-                      );
-                      setGenerated(activated);
-                    }, "Đã kích hoạt thực đơn.")
-                  }
-                >
-                  Dùng thực đơn này
-                </Button>
+                {plan.status !== "active" && (
+                  <Button
+                    secondary
+                    disabled={busy}
+                    onClick={() =>
+                      action(async () => {
+                        const activated = await request(
+                          `/meal-plans/${plan.id}/status`,
+                          { status: "active" },
+                          "PATCH",
+                        );
+                        setGenerated(activated);
+                      }, "Đã kích hoạt thực đơn.")
+                    }
+                  >
+                    Dùng thực đơn này
+                  </Button>
+                )}
                 <Button
                   secondary
                   disabled={busy}
@@ -309,13 +408,37 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                           ),
                         );
                       }
+                      setShoppingOpen(true);
                     })
                   }
                 >
+                  <ShoppingBasket size={18} />
                   Danh sách đi chợ
                 </Button>
               </div>
-              {plan.days.map((day) => (
+              <nav className="vp-day-picker" aria-label="Ngày trong thực đơn">
+                {plan.days.map((day) => (
+                  <button
+                    key={day.date}
+                    aria-pressed={day.date === selectedDay?.date}
+                    onClick={() => setSelectedDate(day.date)}
+                  >
+                    <span>
+                      {new Date(day.date + "T12:00:00").toLocaleDateString(
+                        "vi-VN",
+                        { weekday: "short" },
+                      )}
+                    </span>
+                    <strong>
+                      {new Date(day.date + "T12:00:00").getDate()}
+                    </strong>
+                    <small>
+                      Tháng {new Date(day.date + "T12:00:00").getMonth() + 1}
+                    </small>
+                  </button>
+                ))}
+              </nav>
+              {[selectedDay].filter(Boolean).map((day) => (
                 <article className="vp-day" key={day.date}>
                   <h3>
                     {new Date(day.date + "T12:00:00").toLocaleDateString(
@@ -326,14 +449,12 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   </h3>
                   {day.meals?.map((meal) => (
                     <div className="vp-meal" key={meal.id}>
+                      <span className="vp-meal-symbol">
+                        <CookingPot size={23} strokeWidth={1.3} />
+                      </span>
                       <div>
                         <span className="vp-eyebrow">
-                          {{
-                            breakfast: "Bữa sáng",
-                            lunch: "Bữa trưa",
-                            dinner: "Bữa tối",
-                            snack: "Bữa phụ",
-                          }[meal.mealType] || meal.mealType}
+                          {mealLabels[meal.mealType] || meal.mealType}
                         </span>
                         <button onClick={() => open(meal.recipeId)}>
                           {meal.recipeTitle}
@@ -373,9 +494,22 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   ))}
                 </article>
               ))}
-              {shopping && (
-                <section className="vp-panel">
-                  <h2>Danh sách đi chợ</h2>
+              {shopping && shoppingOpen && (
+                <Dialog
+                  title="Danh sách đi chợ"
+                  className="vp-sheet"
+                  busy={busy}
+                  close={() => setShoppingOpen(false)}
+                >
+                  <p className="vp-shopping-summary">
+                    {
+                      listOf(shopping.items || shopping).filter(
+                        (item) => item.isBought,
+                      ).length
+                    }
+                    /{listOf(shopping.items || shopping).length} nguyên liệu đã
+                    mua
+                  </p>
                   {listOf(shopping.items || shopping).map((item) => (
                     <label className="vp-check" key={item.id}>
                       <input
@@ -405,7 +539,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                       {amount(item.quantityG ?? item.quantity)} g
                     </label>
                   ))}
-                </section>
+                </Dialog>
               )}
             </>
           )}

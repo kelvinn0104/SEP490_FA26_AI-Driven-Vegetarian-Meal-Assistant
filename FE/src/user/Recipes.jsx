@@ -1,29 +1,27 @@
-import { KitchenView } from "./KitchenView";
 import { useState } from "react";
 import {
   Search,
-  CookingPot,
   RefreshCw,
   X,
   ArrowRight,
   Camera,
   CalendarDays,
   MessageCircle,
-  ArrowLeft,
-  Bookmark,
   Leaf,
+  Users,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { useResource, Button, State, Card, RecipeImage } from "./ui";
 import {
-  amount,
-  listOf,
-  userError,
-  categoryLabel,
-  isTestContent,
-} from "./data";
+  useResource,
+  Button,
+  State,
+  Card,
+  RecipeImage,
+  PageHeading,
+} from "./ui";
+import { BrandArt } from "./BrandArt";
+import { listOf, categoryLabel, isTestContent } from "./data";
 import { request } from "./api";
-export function Discover({ open, go, user }) {
+export function Discover({ open, go, library = false }) {
   const resource = useResource(
     async (signal) =>
       listOf(await request("/Recipes", undefined, undefined, signal)).filter(
@@ -70,66 +68,104 @@ export function Discover({ open, go, user }) {
   };
   return (
     <>
-      <section className="vp-hero">
-        <div>
-          <span className="vp-eyebrow">Bếp chay mỗi ngày</span>
-          <h1>
-            Hôm nay,
-            <br />
-            nấu <em>gì chay?</em>
-          </h1>
-          <p>Tìm món ngon. Lên thực đơn dễ hơn.</p>
-          <Button onClick={() => go("planner")}>
-            {user ? "Thực đơn của tôi" : "Lên thực đơn"}
-            <ArrowRight size={18} />
-          </Button>
-          <a className="vp-hero-link" href="#recipes">
-            Khám phá công thức
-          </a>
-        </div>
-        <div className="vp-hero-photo">
-          {photographed.length > 1 && (
-            <button
-              type="button"
-              className="vp-feature-next"
-              onClick={() => setFeaturedIndex((i) => i + 1)}
-              aria-label="Đổi gợi ý món ăn"
-            >
-              <RefreshCw size={15} />
-              Đổi gợi ý
+      {library ? (
+        <PageHeading
+          eyebrow="Một chút cảm hứng, mỗi ngày"
+          title="Khám phá món chay"
+        >
+          <div className="vp-discover-actions">
+            <small>
+              {!resource.loading && !resource.error
+                ? `${filtered.length} công thức`
+                : "Thư viện món chay"}
+            </small>
+            <button className="vp-text-button" onClick={() => go("planner")}>
+              Lên thực đơn
+              <ArrowRight size={17} />
             </button>
-          )}
-          {featured ? (
-            <>
-              <RecipeImage key={featured.id} recipe={featured} priority />
-              <button onClick={() => open(featured.id)}>
-                <span>
-                  <small>Gợi ý từ thư viện</small>
-                  {featured.title}
-                </span>
-                <ArrowRight size={22} />
-              </button>
-            </>
-          ) : (
-            <div className="vp-hero-placeholder">
-              <Leaf size={64} strokeWidth={1} />
-              <span>Một chút xanh cho mỗi bữa ăn.</span>
-            </div>
-          )}
-        </div>
-      </section>
-      <section id="recipes" className="vp-library">
-        <div className="vp-section-heading">
-          <div>
-            <span className="vp-eyebrow">Cảm hứng vào bếp</span>
-            <h2>Công thức chay</h2>
           </div>
-          <p>
-            {resource.loading
-              ? "Đang tìm món ngon…"
-              : `${filtered.length} công thức`}
-          </p>
-        </div>
+        </PageHeading>
+      ) : (
+        <section className="vp-hero">
+          <div>
+            <span className="vp-eyebrow">Bếp chay mỗi ngày</span>
+            <h1>
+              Bữa chay,
+              <br />
+              theo cách <em>của bạn.</em>
+            </h1>
+            <p>
+              Từ một món vừa ý đến bữa ăn mỗi ngày.
+              <br />
+              Khám phá, lên kế hoạch và vào bếp cùng VeggieAI.
+            </p>
+            <Button onClick={() => go("discover")}>
+              Khám phá món
+              <ArrowRight size={18} />
+            </Button>
+            <button className="vp-hero-link" onClick={() => go("planner")}>
+              Lên thực đơn
+              <ArrowRight size={17} />
+            </button>
+            <div className="vp-hero-signature">
+              <span>Chọn món</span>
+              <i />
+              <span>Lên thực đơn</span>
+              <i />
+              <span>Vào bếp</span>
+            </div>
+          </div>
+          <div className="vp-hero-photo">
+            <BrandArt />
+            {photographed.length > 1 && (
+              <button
+                type="button"
+                className="vp-feature-next"
+                onClick={() => setFeaturedIndex((i) => i + 1)}
+                aria-label="Đổi gợi ý món ăn"
+              >
+                <RefreshCw size={15} />
+                Đổi gợi ý
+              </button>
+            )}
+            {featured ? (
+              <>
+                <div className="vp-hero-plate">
+                  <RecipeImage key={featured.id} recipe={featured} priority />
+                </div>
+                <button onClick={() => open(featured.id)}>
+                  <span>
+                    <small>Gợi ý từ thư viện</small>
+                    {featured.title}
+                  </span>
+                  <ArrowRight size={22} />
+                </button>
+              </>
+            ) : (
+              <div className="vp-hero-placeholder">
+                <Leaf size={64} strokeWidth={1} />
+                <span>Một chút xanh cho mỗi bữa ăn.</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+      <section id="recipes" className="vp-library">
+        {!library && (
+          <div className="vp-section-heading">
+            <div>
+              <span className="vp-eyebrow">Cảm hứng vào bếp</span>
+              <h2>Công thức chay</h2>
+            </div>
+            <p>
+              {resource.loading
+                ? "Đang tải thư viện…"
+                : resource.error
+                  ? "Chưa tải được thư viện"
+                  : `${filtered.length} công thức`}
+            </p>
+          </div>
+        )}
         <div className="vp-toolbar">
           <label className="vp-search">
             <Search size={20} />
@@ -236,160 +272,15 @@ export function Discover({ open, go, user }) {
             Bắt đầu trò chuyện <ArrowRight size={16} />
           </button>
         </div>
+        <div>
+          <Users size={24} />
+          <h3>Chuyện từ căn bếp</h3>
+          <button onClick={() => go("community")}>
+            Ghé cộng đồng
+            <ArrowRight size={16} />
+          </button>
+        </div>
       </section>
     </>
-  );
-}
-export function RecipeDetail({ id, go, user, flash }) {
-  const resource = useResource(
-    (signal) =>
-      id
-        ? request(
-            `/Recipes/${encodeURIComponent(id)}`,
-            undefined,
-            undefined,
-            signal,
-          ).then((recipe) => {
-            if (isTestContent(recipe) || recipe?.status !== "published")
-              throw new Error("Công thức này chưa sẵn sàng.");
-            return recipe;
-          })
-        : Promise.reject(new Error("Liên kết thiếu mã công thức.")),
-    [id],
-  );
-  const [servings, setServings] = useState(null);
-  const [cooking, setCooking] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const recipe = resource.data;
-  const base = Number(recipe?.servings) || 1;
-  const factor = (servings || base) / base;
-  const save = async () => {
-    if (!user) return go("login");
-    setSaving(true);
-    try {
-      await request(`/recipes/${encodeURIComponent(id)}/favorite`, {}, "POST");
-      flash("Đã lưu món vào bộ sưu tập.");
-    } catch (e) {
-      flash(userError(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-  const nutrients = [
-    ["Năng lượng", recipe?.kcalPerServing, "kcal"],
-    ["Đạm", recipe?.proteinG, "g"],
-    ["Tinh bột", recipe?.carbG, "g"],
-    ["Chất béo", recipe?.fatG, "g"],
-    ["Sắt", recipe?.ironMg, "mg"],
-    ["Vitamin B12", recipe?.b12Mcg, "µg"],
-    ["Canxi", recipe?.calciumMg, "mg"],
-    ["Kẽm", recipe?.zincMg, "mg"],
-  ];
-  return (
-    <div className="vp-detail">
-      <button className="vp-back" onClick={() => go("home")}>
-        <ArrowLeft size={17} />
-        Công thức chay
-      </button>
-      <State resource={resource}>
-        {recipe && (
-          <>
-            <div className="vp-detail-top">
-              <div>
-                <span className="vp-eyebrow">
-                  {categoryLabel(recipe.category) || "Công thức chay"}
-                </span>
-                <h1>{recipe.title}</h1>
-                <p>Công thức từ thư viện VeggieAI</p>
-                <div className="vp-actions">
-                  <Button
-                    onClick={() => setCooking(true)}
-                    disabled={!recipe.instructions}
-                  >
-                    <CookingPot size={18} />
-                    Vào bếp
-                  </Button>
-                  <Button secondary disabled={saving} onClick={save}>
-                    <Bookmark size={17} />
-                    {saving ? "Đang lưu…" : "Lưu món"}
-                  </Button>
-                </div>
-              </div>
-              <RecipeImage recipe={recipe} />
-            </div>
-            <div className="vp-detail-columns">
-              <section>
-                <h2>Cách làm</h2>
-                {recipe.instructions ? (
-                  <div className="vp-prose">
-                    <ReactMarkdown>{recipe.instructions}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p>Chưa có hướng dẫn cho công thức này.</p>
-                )}
-                <h2>Nguyên liệu</h2>
-                {recipe.ingredients?.length ? (
-                  <ul className="vp-ingredient-list">
-                    {recipe.ingredients.map((item, i) => (
-                      <li key={i}>
-                        {item.name || item.ingredientName}
-                        <span>
-                          {amount(item.quantityG ?? item.quantity, factor)}{" "}
-                          {item.unit || "g"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>
-                    Định lượng nguyên liệu chưa được cung cấp. Không tự điều
-                    chỉnh nguyên liệu theo số khẩu phần.
-                  </p>
-                )}
-              </section>
-              <aside className="vp-panel">
-                <h2>Dinh dưỡng</h2>
-                <p>Tổng theo số khẩu phần đã chọn.</p>
-                <label>
-                  Số khẩu phần
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={servings || base}
-                    onChange={(e) =>
-                      setServings(
-                        Math.max(1, Math.min(20, Number(e.target.value) || 1)),
-                      )
-                    }
-                  />
-                </label>
-                <dl className="vp-nutrients">
-                  {nutrients.map(([label, value, unit]) => (
-                    <div key={label}>
-                      <dt>{label}</dt>
-                      <dd>
-                        {amount(value, servings || base)} <small>{unit}</small>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                <small>
-                  Dấu — nghĩa là chưa có dữ liệu. Kiểm tra nguyên liệu và dị ứng
-                  của bạn trước khi nấu.
-                </small>
-              </aside>
-            </div>
-          </>
-        )}
-      </State>
-      {cooking && recipe && (
-        <KitchenView
-          recipe={recipe}
-          servings={servings || base}
-          onClose={() => setCooking(false)}
-        />
-      )}
-    </div>
   );
 }

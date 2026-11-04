@@ -18,25 +18,29 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "./ui";
+import { m } from "motion/react";
 const tabs = [
   ["home", "Khám phá", Home],
   ["planner", "Thực đơn", CalendarDays],
+  ["community", "Cộng đồng", Users],
   ["user-collection", "Đã lưu", Bookmark],
   ["me", "Cá nhân", UserRound],
 ];
 export function activeTab(screen) {
+  if (["home", "blog", "article-detail", "discover"].includes(screen))
+    return "home";
   if (
     [
-      "home",
-      "blog",
-      "article-detail",
       "community",
       "post-detail",
       "videos",
       "video-detail",
+      "create-post",
+      "create-video",
+      "user-posts",
     ].includes(screen)
   )
-    return "home";
+    return "community";
   if (
     ["planner", "create-plan", "create-mealplan", "meal-history"].includes(
       screen,
@@ -46,7 +50,7 @@ export function activeTab(screen) {
   if (screen === "user-collection") return "user-collection";
   return "me";
 }
-export function BottomNav({ screen, go }) {
+export function BottomNav({ screen, go, user }) {
   return (
     <nav className="vp-bottom-nav" aria-label="Điều hướng nhanh">
       {tabs.map(([id, label, Icon]) => (
@@ -59,8 +63,15 @@ export function BottomNav({ screen, go }) {
             go(id);
           }}
         >
+          {activeTab(screen) === id && (
+            <m.span
+              className="vp-nav-indicator"
+              layoutId="user-bottom-active"
+              transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+            />
+          )}
           <Icon size={21} strokeWidth={1.7} />
-          <span>{label}</span>
+          <span>{id === "home" && user ? "Hôm nay" : label}</span>
         </a>
       ))}
     </nav>
@@ -192,11 +203,11 @@ export function Welcome({ user, go }) {
         </li>
       </ol>
       <div className="vp-actions">
-        <Button onClick={() => go(ready ? "home" : "user-profile")}>
+        <Button onClick={() => go(ready ? "discover" : "user-profile")}>
           {ready ? "Khám phá món" : "Thiết lập hồ sơ"}
           <ArrowRight size={17} />
         </Button>
-        <Button secondary onClick={() => go(ready ? "planner" : "home")}>
+        <Button secondary onClick={() => go(ready ? "planner" : "discover")}>
           {ready ? "Xem thực đơn" : "Để sau, khám phá món"}
         </Button>
       </div>

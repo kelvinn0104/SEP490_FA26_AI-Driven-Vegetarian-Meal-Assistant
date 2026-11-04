@@ -80,3 +80,47 @@ export function isUnavailableChat(text) {
     "...",
   ].includes(text?.trim());
 }
+
+export function vietnamDate(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+export function mealsForDate(plan, date, logs) {
+  const recorded = new Set(
+    (logs || [])
+      .filter((log) => log.planItemId != null)
+      .map((log) => String(log.planItemId)),
+  );
+  const order = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+  return (plan?.days?.find((day) => day.date === date)?.meals || [])
+    .filter((meal) => !isTestContent({ title: meal.recipeTitle }))
+    .map((meal) => ({ ...meal, recorded: recorded.has(String(meal.id)) }))
+    .sort((a, b) => (order[a.mealType] ?? 4) - (order[b.mealType] ?? 4));
+}
+
+export function nutrientProgress(value, target) {
+  if (
+    value == null ||
+    value === "" ||
+    target == null ||
+    target === "" ||
+    !Number.isFinite(Number(value)) ||
+    !Number.isFinite(Number(target)) ||
+    Number(target) <= 0 ||
+    Number(value) < 0
+  )
+    return null;
+  return Math.max(0, Math.min(100, (Number(value) / Number(target)) * 100));
+}
+
+export const mealLabels = {
+  breakfast: "Bữa sáng",
+  lunch: "Bữa trưa",
+  dinner: "Bữa tối",
+  snack: "Bữa phụ",
+};

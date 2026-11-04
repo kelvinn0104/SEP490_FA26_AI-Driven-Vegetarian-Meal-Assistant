@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { Play, ExternalLink, X } from "lucide-react";
+import { useState } from "react";
+import { Play, ExternalLink } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { postDate, postMedia, mediaLink } from "./postData";
+import { Dialog } from "./ui";
 
 export function PostMeta({ post }) {
   const author = post.authorName || "Thành viên";
@@ -122,55 +123,6 @@ export function PostMedia({ post }) {
   );
 }
 
-export function CommunityDialog({ title, children, close, busy = false }) {
-  const ref = useRef(null);
-  const closeRef = useRef(close);
-  closeRef.current = close;
-  useEffect(() => {
-    const dialog = ref.current;
-    const previous = document.body.style.overflow;
-    dialog.showModal();
-    document.body.style.overflow = "hidden";
-    return () => {
-      dialog.close();
-      document.body.style.overflow = previous;
-    };
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className="vp-community-dialog"
-      aria-labelledby="community-dialog-title"
-      onCancel={(e) => {
-        e.preventDefault();
-        if (!busy) closeRef.current();
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !busy) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          if (
-            e.clientX < rect.left ||
-            e.clientX > rect.right ||
-            e.clientY < rect.top ||
-            e.clientY > rect.bottom
-          )
-            closeRef.current();
-        }
-      }}
-    >
-      <div className="vp-dialog-heading">
-        <h2 id="community-dialog-title">{title}</h2>
-        <button
-          type="button"
-          className="vp-icon"
-          aria-label="Đóng hộp thoại"
-          disabled={busy}
-          onClick={close}
-        >
-          <X size={20} />
-        </button>
-      </div>
-      {children}
-    </dialog>
-  );
+export function CommunityDialog(props) {
+  return <Dialog {...props} className="vp-community-dialog" />;
 }

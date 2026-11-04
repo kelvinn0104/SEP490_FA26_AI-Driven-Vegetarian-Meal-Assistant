@@ -7,10 +7,11 @@ import {
   PageHeading,
   Card,
   PageControls,
+  NutrientMeter,
 } from "./ui";
-import { amount, listOf, userError, isTestContent } from "./data";
+import { amount, listOf, userError, isTestContent, vietnamDate } from "./data";
 import { request } from "./api";
-export function Collection({ open, flash }) {
+export function Collection({ open, flash, go }) {
   const [page, setPage] = useState(1);
   const resource = useResource(
     () => request(`/recipes/favorites?page=${page}&pageSize=12`),
@@ -35,13 +36,23 @@ export function Collection({ open, flash }) {
   };
   return (
     <>
-      <PageHeading title="Món đã lưu" />
-      <State resource={resource} empty="Bạn chưa lưu món nào">
+      <PageHeading eyebrow="Một góc dành cho món bạn thích" title="Món đã lưu">
+        <Button secondary onClick={() => go("discover")}>
+          Khám phá thêm
+        </Button>
+      </PageHeading>
+      <State
+        resource={resource}
+        empty="Bạn chưa lưu món nào"
+        emptyAction={
+          <Button onClick={() => go("discover")}>Tìm một món muốn nấu</Button>
+        }
+      >
         <div className="vp-grid">
           {listOf(resource.data)
             .filter((r) => !isTestContent(r))
             .map((r) => (
-              <div key={r.id}>
+              <div className="vp-saved-recipe" key={r.id}>
                 <Card recipe={r} open={open} />
                 <button
                   className="vp-text-button"
@@ -64,7 +75,7 @@ export function Collection({ open, flash }) {
   );
 }
 export function Nutrition() {
-  const [date, setDate] = useState(new Date().toLocaleDateString("en-CA"));
+  const [date, setDate] = useState(vietnamDate());
   const resource = useResource(
     () => request(`/nutrition/daily?date=${date}`),
     [date],
@@ -111,7 +122,7 @@ export function Nutrition() {
       <State resource={resource}>
         {data && (
           <>
-            <section className="vp-panel">
+            <section className="vp-panel vp-nutrition-overview">
               <h2>Dinh dưỡng trong ngày</h2>
               <div className="vp-daily-totals">
                 {[
@@ -120,15 +131,13 @@ export function Nutrition() {
                   ["Sắt", "ironMg", "mg"],
                   ["Vitamin B12", "b12Mcg", "µg"],
                 ].map(([label, key, unit]) => (
-                  <div key={key}>
-                    <span>{label}</span>
-                    <strong>
-                      {amount(data.consumed?.[key])} <small>{unit}</small>
-                    </strong>
-                    <small>
-                      Mục tiêu {amount(data.target?.[key])} {unit}
-                    </small>
-                  </div>
+                  <NutrientMeter
+                    key={key}
+                    label={label}
+                    value={data.consumed?.[key]}
+                    target={data.target?.[key]}
+                    unit={unit}
+                  />
                 ))}
               </div>
               {data.alerts?.map((a, i) => (
@@ -136,11 +145,11 @@ export function Nutrition() {
               ))}
             </section>
             <div className="vp-two-columns" style={{ marginTop: 24 }}>
-              <section className="vp-panel">
+              <section className="vp-panel vp-meal-log">
                 <h2>Bữa đã ghi nhận</h2>
                 {data.logs?.length ? (
                   data.logs.map((log) => (
-                    <article className="vp-list-card" key={log.id}>
+                    <article className="vp-log-entry" key={log.id}>
                       <h3>{log.recipeTitle}</h3>
                       <p>
                         {amount(log.servings)} khẩu phần ·{" "}

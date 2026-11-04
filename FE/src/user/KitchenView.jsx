@@ -1,34 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { X, Leaf, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { amount } from "./data";
+import { Dialog } from "./ui";
 
 export function KitchenView({ recipe, servings, onClose }) {
-  const dialog = useRef(null);
   const [checked, setChecked] = useState([]);
   const ingredients = Array.isArray(recipe.ingredients)
     ? recipe.ingredients
     : [];
   const factor = servings / (Number(recipe.servings) || 1);
-  useEffect(() => {
-    const element = dialog.current;
-    const overflow = document.body.style.overflow;
-    element.showModal();
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = overflow;
-      if (element.open) element.close();
-    };
-  }, []);
   return (
-    <dialog
-      ref={dialog}
+    <Dialog
+      title={recipe.title}
+      close={onClose}
       className="vp-kitchen"
-      aria-labelledby="kitchen-title"
-      onCancel={onClose}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      heading={false}
     >
       <div className="vp-kitchen-inner">
         <header>
@@ -109,6 +96,6 @@ export function KitchenView({ recipe, servings, onClose }) {
           </section>
         </div>
       </div>
-    </dialog>
+    </Dialog>
   );
 }

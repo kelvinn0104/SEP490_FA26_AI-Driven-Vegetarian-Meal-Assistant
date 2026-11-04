@@ -28,7 +28,7 @@ async (page) => {
   await page.setViewportSize({ width: 390, height: 844 });
   check(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'Mobile overflow');
   await page.getByRole('navigation',{name:'Điều hướng nhanh'}).getByRole('link',{name:'Cá nhân',exact:true}).click();
-  await page.getByRole('link',{name:'Cộng đồng',exact:true}).click();
+  await page.locator('.vp-personal').getByRole('link',{name:'Cộng đồng',exact:true}).click();
   await page.locator('.vp-community-list').waitFor({ timeout:100000 });
   // Test authenticated UI with isolated fixtures. No mutations reach the real backend.
   const user = { id: 999, email: 'fixture@example.test', displayName: 'Người kiểm thử', role: 'AuthorizedUser' };

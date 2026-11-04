@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera } from "lucide-react";
+import { Camera, Check, Leaf } from "lucide-react";
 import { Button, Notice, PageHeading, Card } from "./ui";
 import { userError, validatePhoto, isTestContent } from "./data";
 import { request } from "./api";
@@ -53,6 +53,7 @@ export function Vision({ open, flash }) {
     }
   };
   const confirm = async () => {
+    if (busy || !result?.scanId || !selected.length) return;
     setBusy(true);
     setError("");
     try {
@@ -76,7 +77,19 @@ export function Vision({ open, flash }) {
         title="Có gì trong tủ lạnh?"
         eyebrow="Từ nguyên liệu đến bữa ăn"
       />
-      <div className="vp-two-columns">
+      <ol className="vp-scan-flow" aria-label="Các bước quét nguyên liệu">
+        <li className={file ? "done" : "current"}>
+          <span>{file ? <Check size={16} /> : "01"}</span>Chọn ảnh
+        </li>
+        <li className={confirmed ? "done" : result ? "current" : ""}>
+          <span>{confirmed ? <Check size={16} /> : "02"}</span>Kiểm tra nguyên
+          liệu
+        </li>
+        <li className={confirmed ? "current" : ""}>
+          <span>03</span>Tìm món
+        </li>
+      </ol>
+      <div className="vp-two-columns vp-scan-layout">
         <section className="vp-panel">
           <h2>Chọn ảnh nguyên liệu</h2>
           <p>
@@ -95,11 +108,14 @@ export function Vision({ open, flash }) {
             />
           </label>
           {preview && (
-            <img
-              className="vp-scan-preview"
-              src={preview}
-              alt="Ảnh nguyên liệu đã chọn"
-            />
+            <div className={`vp-scan-image ${busy ? "is-scanning" : ""}`}>
+              <img
+                className="vp-scan-preview"
+                src={preview}
+                alt="Ảnh nguyên liệu đã chọn"
+              />
+              {busy && <span className="vp-scan-line" aria-hidden="true" />}
+            </div>
           )}
           {error && <Notice error>{error}</Notice>}
           <Button disabled={!file || busy} onClick={scan}>
@@ -109,31 +125,42 @@ export function Vision({ open, flash }) {
         <section className="vp-panel">
           <h2>Kiểm tra kết quả</h2>
           {!result ? (
-            <p>Kết quả và gợi ý món ăn sẽ xuất hiện tại đây.</p>
+            <div className="vp-scan-waiting">
+              <Leaf size={42} strokeWidth={1} />
+              <h3>Từ nguyên liệu đến ý tưởng</h3>
+              <p>Kết quả và gợi ý món ăn sẽ xuất hiện tại đây.</p>
+            </div>
           ) : (
             <>
               {result.message && <p>{result.message}</p>}
-              {result.detectedItems?.map((item, i) => (
-                <label key={i} className="vp-check">
-                  <input
-                    type="checkbox"
-                    disabled={item.ingredientId == null || busy}
-                    checked={selected.includes(item.ingredientId)}
-                    onChange={(e) => {
-                      setConfirmed(false);
-                      setSelected((prev) =>
-                        e.target.checked
-                          ? [...prev, item.ingredientId]
-                          : prev.filter((id) => id !== item.ingredientId),
-                      );
-                    }}
-                  />
-                  {item.nameVi || item.name}
-                  {item.ingredientId == null && (
-                    <small>Chưa có trong danh mục</small>
-                  )}
-                </label>
-              ))}
+              {!result.detectedItems?.length && (
+                <Notice>
+                  Chưa nhận diện được nguyên liệu. Thử ảnh rõ và đủ sáng hơn.
+                </Notice>
+              )}
+              <div className="vp-detected-items">
+                {result.detectedItems?.map((item, i) => (
+                  <label key={i} className="vp-check">
+                    <input
+                      type="checkbox"
+                      disabled={item.ingredientId == null || busy}
+                      checked={selected.includes(item.ingredientId)}
+                      onChange={(e) => {
+                        setConfirmed(false);
+                        setSelected((prev) =>
+                          e.target.checked
+                            ? [...prev, item.ingredientId]
+                            : prev.filter((id) => id !== item.ingredientId),
+                        );
+                      }}
+                    />
+                    {item.nameVi || item.name}
+                    {item.ingredientId == null && (
+                      <small>Chưa có trong danh mục</small>
+                    )}
+                  </label>
+                ))}
+              </div>
               <Button
                 disabled={
                   busy || confirmed || !selected.length || !result.scanId
@@ -146,20 +173,22 @@ export function Vision({ open, flash }) {
                 Nhận diện chỉ mang tính gợi ý, không xác nhận thực phẩm an toàn
                 để ăn.
               </p>
-              {!!result.suggestedRecipes?.length && (
+              {confirmed && !!result.suggestedRecipes?.length && (
                 <h3 className="vp-result-heading">Món có thể nấu</h3>
               )}
-              <div className="vp-grid compact">
-                {result.suggestedRecipes
-                  ?.filter((r) => !isTestContent(r))
-                  .map((r) => (
-                    <Card
-                      key={r.recipeId}
-                      recipe={{ ...r, id: r.recipeId }}
-                      open={open}
-                    />
-                  ))}
-              </div>
+              {confirmed && (
+                <div className="vp-grid compact">
+                  {result.suggestedRecipes
+                    ?.filter((r) => !isTestContent(r))
+                    .map((r) => (
+                      <Card
+                        key={r.recipeId}
+                        recipe={{ ...r, id: r.recipeId }}
+                        open={open}
+                      />
+                    ))}
+                </div>
+              )}
             </>
           )}
         </section>

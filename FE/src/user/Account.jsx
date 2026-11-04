@@ -96,7 +96,7 @@ export function Profile({ flash, go }) {
         <h1>Hồ sơ đã lưu.</h1>
         <p>Bạn có thể cập nhật bất cứ lúc nào. Chọn việc muốn làm tiếp.</p>
         <div className="vp-actions">
-          <Button onClick={() => go("home")}>Khám phá món</Button>
+          <Button onClick={() => go("discover")}>Khám phá món</Button>
           <Button secondary onClick={() => go("planner")}>
             Xem thực đơn
           </Button>
@@ -339,7 +339,7 @@ export function Account({ user }) {
   return (
     <>
       <PageHeading title="Tài khoản" />
-      <div className="vp-narrow">
+      <div className="vp-settings-layout">
         {error && <Notice error>{error}</Notice>}
         {message && <Notice>{message}</Notice>}
         <form className="vp-panel" onSubmit={(e) => save(e, false)}>
@@ -362,7 +362,6 @@ export function Account({ user }) {
         </form>
         <form
           className="vp-panel"
-          style={{ marginTop: 24 }}
           onSubmit={(e) => save(e, true)}
         >
           <h2>Đổi mật khẩu</h2>
