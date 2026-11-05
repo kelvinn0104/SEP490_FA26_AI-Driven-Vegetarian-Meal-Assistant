@@ -8,6 +8,7 @@ import {
   Card,
   PageControls,
   NutrientMeter,
+  EnergyGauge,
 } from "./ui";
 import { amount, listOf, userError, isTestContent, vietnamDate } from "./data";
 import { request } from "./api";
@@ -124,21 +125,26 @@ export function Nutrition() {
           <>
             <section className="vp-panel vp-nutrition-overview">
               <h2>Dinh dưỡng trong ngày</h2>
-              <div className="vp-daily-totals">
-                {[
-                  ["Năng lượng", "kcal", "kcal"],
-                  ["Đạm", "proteinG", "g"],
-                  ["Sắt", "ironMg", "mg"],
-                  ["Vitamin B12", "b12Mcg", "µg"],
-                ].map(([label, key, unit]) => (
-                  <NutrientMeter
-                    key={key}
-                    label={label}
-                    value={data.consumed?.[key]}
-                    target={data.target?.[key]}
-                    unit={unit}
-                  />
-                ))}
+              <div className="vp-nutrition-summary">
+                <EnergyGauge
+                  value={data.consumed?.kcal}
+                  target={data.target?.kcal}
+                />
+                <div className="vp-daily-totals">
+                  {[
+                    ["Đạm", "proteinG", "g"],
+                    ["Sắt", "ironMg", "mg"],
+                    ["Vitamin B12", "b12Mcg", "µg"],
+                  ].map(([label, key, unit]) => (
+                    <NutrientMeter
+                      key={key}
+                      label={label}
+                      value={data.consumed?.[key]}
+                      target={data.target?.[key]}
+                      unit={unit}
+                    />
+                  ))}
+                </div>
               </div>
               {data.alerts?.map((a, i) => (
                 <Notice key={i}>{a.message}</Notice>

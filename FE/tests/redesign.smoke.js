@@ -45,6 +45,17 @@ async (page) => {
   await page.waitForFunction(() => !document.querySelector('.vp-spinner'));
   check(await page.locator('.vp-bottom-nav a').count() === 5, 'Five tabs missing');
   check(await page.locator('.vp-bottom-nav').getByRole('link', { name: 'Hôm nay', exact: true }).getAttribute('aria-current') === 'page', 'Today tab inactive');
+  await page.evaluate(() => document.fonts.ready);
+  const layout = await page.evaluate(() => ({
+    nutrition: document.querySelector('.vp-today-nutrition').getBoundingClientRect().top,
+    meals: document.querySelector('.vp-today-plan').getBoundingClientRect().top,
+    lastMeal: [...document.querySelectorAll('.vp-today-meal')].at(-1).getBoundingClientRect().bottom,
+    dock: document.querySelector('.vp-bottom-nav').getBoundingClientRect().top,
+    font: getComputedStyle(document.querySelector('h1')).fontFamily,
+  }));
+  check(layout.nutrition < layout.meals, 'Mobile nutrition is below meals');
+  check(layout.lastMeal <= layout.dock, 'Two mobile meals do not fit above bottom nav at 390x844');
+  check(layout.font.includes('Be Vietnam Pro'), 'Heading typography differs from V2');
   const record = page.getByRole('button', { name: 'Ghi nhận đã ăn ' + recipe.title, exact: true });
   check(await record.first().isDisabled(), 'Recorded breakfast can be logged twice');
   await record.nth(1).click();

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useId } from "react";
-import { Leaf, RefreshCw, X, ArrowUpRight } from "lucide-react";
+import { Leaf, RefreshCw, X, ArrowUpRight, CookingPot } from "lucide-react";
 import {
   safeImage,
   userError,
@@ -160,6 +160,21 @@ export function Card({ recipe, open }) {
   );
 }
 
+export function MealImage({ meal }) {
+  return (
+    <div className="vp-meal-symbol">
+      {safeImage(meal.imageUrl) ? (
+        <RecipeImage
+          key={meal.imageUrl}
+          recipe={{ imageUrl: meal.imageUrl, title: meal.recipeTitle }}
+        />
+      ) : (
+        <CookingPot size={22} strokeWidth={1.4} aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
 export function NutrientMeter({ label, value, target, unit }) {
   const progress = nutrientProgress(value, target);
   return (
@@ -194,25 +209,39 @@ export function NutrientMeter({ label, value, target, unit }) {
 
 export function EnergyGauge({ value, target }) {
   const progress = nutrientProgress(value, target);
+  const maskId = useId();
   return (
     <div className="vp-energy-gauge">
       <svg viewBox="0 0 240 140" aria-hidden="true">
+        <defs>
+          <mask id={maskId}>
+            <path
+              d="M25 119a95 95 0 0 1 190 0"
+              fill="none"
+              stroke="white"
+              strokeWidth="28"
+              pathLength="100"
+              strokeDasharray={`${progress ?? 0} 100`}
+            />
+          </mask>
+        </defs>
         <path
           d="M25 119a95 95 0 0 1 190 0"
           fill="none"
-          stroke="var(--line)"
-          strokeWidth="18"
-          strokeLinecap="round"
+          stroke="var(--gauge-track)"
+          strokeWidth="24"
+          pathLength="100"
+          strokeDasharray="6.5 1.83"
         />
         {progress != null && progress > 0 && (
           <path
             d="M25 119a95 95 0 0 1 190 0"
             fill="none"
-            stroke="var(--accent)"
-            strokeWidth="18"
-            strokeLinecap="round"
+            stroke="var(--gauge-fill)"
+            strokeWidth="24"
             pathLength="100"
-            strokeDasharray={`${progress} 100`}
+            strokeDasharray="6.5 1.83"
+            mask={`url(#${maskId})`}
           />
         )}
       </svg>

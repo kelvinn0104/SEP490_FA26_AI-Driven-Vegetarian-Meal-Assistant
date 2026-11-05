@@ -19,7 +19,7 @@ import {
 } from "./ui";
 import { listOf, isTestContent, statusLabel, userError } from "./data";
 import { request } from "./api";
-import { PostMeta, CommunityDialog } from "./PostParts";
+import { PostMeta, PostMedia, CommunityDialog } from "./PostParts";
 
 export function Community({ mine, go, user, flash, videos = false }) {
   const initial = new URLSearchParams(window.location.search);
@@ -242,6 +242,19 @@ export function Community({ mine, go, user, flash, videos = false }) {
                         </span>
                       )}
                     </div>
+                    {post.postType === "blog" && post.mediaUrl && (
+                      <a
+                        className="vp-post-preview"
+                        href={`/post-detail?id=${post.id}`}
+                        aria-label={`Đọc ${post.title}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          go("post-detail", post.id);
+                        }}
+                      >
+                        <PostMedia post={post} />
+                      </a>
+                    )}
                     <h2>
                       <a
                         href={`/post-detail?id=${post.id}`}
@@ -323,20 +336,17 @@ export function Community({ mine, go, user, flash, videos = false }) {
           <span className="vp-aside-mark">
             <PenLine size={25} strokeWidth={1.5} />
           </span>
-          <h2>Mỗi căn bếp, một cách nấu.</h2>
-          <p>
-            Một món vừa thử, một mẹo nhỏ. Chia sẻ điều hữu ích với người cùng
-            thích bếp chay.
-          </p>
+          <h2>Bạn vừa nấu món gì?</h2>
+          <p>Chia sẻ món vừa thử hoặc mẹo nấu hữu ích với mọi người.</p>
           <button className="vp-text-button" onClick={() => go("create-post")}>
             Viết chia sẻ
             <ArrowRight size={16} />
           </button>
           <div className="vp-community-note">
-            <h3>Để cuộc trò chuyện dễ chịu</h3>
+            <h3>Một lưu ý nhỏ</h3>
             <p>
-              Tôn trọng trải nghiệm khác nhau. Với thông tin dinh dưỡng, thêm
-              nguồn khi có và tránh khẳng định thay tư vấn sức khỏe.
+              Tôn trọng trải nghiệm khác nhau. Thêm nguồn khi chia sẻ kiến thức
+              dinh dưỡng.
             </p>
           </div>
           {!user && (

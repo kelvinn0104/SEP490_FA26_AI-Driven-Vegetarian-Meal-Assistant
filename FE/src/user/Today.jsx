@@ -6,7 +6,6 @@ import {
   MessageCircle,
   CalendarDays,
   Check,
-  CookingPot,
   HeartPulse,
   BookOpen,
 } from "lucide-react";
@@ -17,6 +16,7 @@ import {
   Notice,
   NutrientMeter,
   EnergyGauge,
+  MealImage,
 } from "./ui";
 import { request } from "./api";
 import {
@@ -90,10 +90,7 @@ export function Today({ user, go, open, flash }) {
           <h1>
             Bếp hôm nay<span>.</span>
           </h1>
-          <p>
-            Chào {user.displayName || user.name || "bạn"}. Bữa ăn theo nhịp của
-            bạn.
-          </p>
+          <p>Chào {user.displayName || user.name || "bạn"}. Hôm nay ăn gì?</p>
         </div>
         <Button secondary onClick={() => go("discover")}>
           Khám phá món
@@ -101,6 +98,44 @@ export function Today({ user, go, open, flash }) {
         </Button>
       </header>
       <div className="vp-today-layout">
+        <aside className="vp-today-nutrition">
+          <div className="vp-section-heading">
+            <h2>Đã ghi nhận</h2>
+            <button
+              className="vp-text-button"
+              aria-label="Mở nhật ký dinh dưỡng"
+              onClick={() => go("user-nutrition")}
+            >
+              Nhật ký
+              <ArrowUpRight size={16} />
+            </button>
+          </div>
+          <State resource={daily} empty="Chưa có nhật ký hôm nay">
+            {daily.data && (
+              <>
+                <EnergyGauge
+                  value={daily.data.consumed?.kcal}
+                  target={daily.data.target?.kcal}
+                />
+                <div className="vp-today-macros">
+                  {[
+                    ["Đạm", "proteinG"],
+                    ["Béo", "fatG"],
+                    ["Tinh bột", "carbG"],
+                  ].map(([label, key]) => (
+                    <NutrientMeter
+                      key={key}
+                      label={label}
+                      value={daily.data.consumed?.[key]}
+                      target={daily.data.target?.[key]}
+                      unit="g"
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </State>
+        </aside>
         <section className="vp-today-plan">
           <div className="vp-section-heading">
             <h2>Trên thực đơn</h2>
@@ -149,9 +184,7 @@ export function Today({ user, go, open, flash }) {
                       className={`vp-today-meal ${meal.recorded ? "is-recorded" : ""}`}
                       key={meal.id}
                     >
-                      <div className="vp-meal-symbol">
-                        <CookingPot size={23} strokeWidth={1.4} />
-                      </div>
+                      <MealImage meal={meal} />
                       <div>
                         <span className="vp-eyebrow">
                           {mealLabels[meal.mealType] || meal.mealType}
@@ -203,35 +236,6 @@ export function Today({ user, go, open, flash }) {
             </State>
           )}
         </section>
-        <aside className="vp-today-nutrition">
-          <div className="vp-section-heading">
-            <h2>Đã ghi nhận</h2>
-            <HeartPulse size={20} />
-          </div>
-          <State resource={daily} empty="Chưa có nhật ký hôm nay">
-            {daily.data && (
-              <>
-                <EnergyGauge
-                  value={daily.data.consumed?.kcal}
-                  target={daily.data.target?.kcal}
-                />
-                <NutrientMeter
-                  label="Đạm"
-                  value={daily.data.consumed?.proteinG}
-                  target={daily.data.target?.proteinG}
-                  unit="g"
-                />
-                <button
-                  className="vp-text-button"
-                  onClick={() => go("user-nutrition")}
-                >
-                  Mở nhật ký dinh dưỡng
-                  <ArrowRight size={16} />
-                </button>
-              </>
-            )}
-          </State>
-        </aside>
       </div>
       {user.hasHealthProfile === false && (
         <button

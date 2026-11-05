@@ -6,7 +6,6 @@ import {
   Check,
   ShoppingBasket,
   CalendarDays,
-  CookingPot,
 } from "lucide-react";
 import {
   useResource,
@@ -16,6 +15,7 @@ import {
   PageHeading,
   PageControls,
   Dialog,
+  MealImage,
 } from "./ui";
 import {
   amount,
@@ -187,7 +187,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
     );
   return (
     <>
-      <PageHeading title={editing ? "Tạo thực đơn" : "Thực đơn của bạn"}>
+      <PageHeading title={editing ? "Tạo thực đơn" : "Thực đơn"}>
         <div className="vp-plan-heading-actions">
           <button className="vp-text-button" onClick={() => go("meal-history")}>
             Lịch sử <ArrowRight size={16} />
@@ -449,9 +449,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   </h3>
                   {day.meals?.map((meal) => (
                     <div className="vp-meal" key={meal.id}>
-                      <span className="vp-meal-symbol">
-                        <CookingPot size={23} strokeWidth={1.3} />
-                      </span>
+                      <MealImage meal={meal} />
                       <div>
                         <span className="vp-eyebrow">
                           {mealLabels[meal.mealType] || meal.mealType}

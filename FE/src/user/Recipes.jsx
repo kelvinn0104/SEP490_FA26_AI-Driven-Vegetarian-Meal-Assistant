@@ -1,24 +1,14 @@
 import { useState } from "react";
 import {
   Search,
-  RefreshCw,
   X,
   ArrowRight,
   Camera,
   CalendarDays,
   MessageCircle,
-  Leaf,
   Users,
 } from "lucide-react";
-import {
-  useResource,
-  Button,
-  State,
-  Card,
-  RecipeImage,
-  PageHeading,
-} from "./ui";
-import { BrandArt } from "./BrandArt";
+import { useResource, Button, State, Card, PageHeading } from "./ui";
 import { listOf, categoryLabel, isTestContent } from "./data";
 import { request } from "./api";
 export function Discover({ open, go, library = false }) {
@@ -36,11 +26,6 @@ export function Discover({ open, go, library = false }) {
   const [sort, setSort] = useState("default");
   const [page, setPage] = useState(1);
   const recipes = resource.data || [];
-  const [featuredIndex, setFeaturedIndex] = useState(0);
-  const photographed = recipes.filter((r) => r.imageUrl);
-  const featured = photographed.length
-    ? photographed[featuredIndex % photographed.length]
-    : recipes[0];
   const categories = [
     "Tất cả",
     ...new Set(recipes.map((r) => r.category).filter(Boolean)),
@@ -90,63 +75,81 @@ export function Discover({ open, go, library = false }) {
           <div>
             <span className="vp-eyebrow">Bếp chay mỗi ngày</span>
             <h1>
-              Bữa chay,
+              Ăn chay ngon.
               <br />
-              theo cách <em>của bạn.</em>
+              Đổi vị mỗi ngày.
             </h1>
             <p>
-              Từ một món vừa ý đến bữa ăn mỗi ngày.
-              <br />
-              Khám phá, lên kế hoạch và vào bếp cùng VeggieAI.
+              Tìm món hợp khẩu vị, lên thực đơn vừa nhu cầu. Bắt đầu từ những gì
+              bạn thích.
             </p>
+            <form
+              className="vp-hero-search"
+              onSubmit={(event) => {
+                event.preventDefault();
+                document
+                  .getElementById("recipes")
+                  ?.scrollIntoView({ block: "start" });
+                document
+                  .querySelector("#recipes input")
+                  ?.focus({ preventScroll: true });
+              }}
+            >
+              <Search size={20} aria-hidden="true" />
+              <input
+                aria-label="Hôm nay bạn muốn nấu gì?"
+                placeholder="Hôm nay bạn muốn nấu gì?"
+                value={query}
+                onChange={change(setQuery)}
+              />
+              <button aria-label="Tìm món trong thư viện" type="submit">
+                <ArrowRight size={20} />
+              </button>
+            </form>
             <Button onClick={() => go("discover")}>
               Khám phá món
               <ArrowRight size={18} />
             </Button>
-            <button className="vp-hero-link" onClick={() => go("planner")}>
-              Lên thực đơn
-              <ArrowRight size={17} />
-            </button>
             <div className="vp-hero-signature">
-              <span>Chọn món</span>
-              <i />
-              <span>Lên thực đơn</span>
-              <i />
-              <span>Vào bếp</span>
+              <button onClick={() => go("planner")}>
+                <CalendarDays size={17} />
+                Lên thực đơn
+              </button>
+              <button onClick={() => go("vision")}>
+                <Camera size={17} />
+                Quét ảnh
+              </button>
+              <button onClick={() => go("chatbot")}>
+                <MessageCircle size={17} />
+                Hỏi trợ lý
+              </button>
             </div>
           </div>
           <div className="vp-hero-photo">
-            <BrandArt />
-            {photographed.length > 1 && (
-              <button
-                type="button"
-                className="vp-feature-next"
-                onClick={() => setFeaturedIndex((i) => i + 1)}
-                aria-label="Đổi gợi ý món ăn"
-              >
-                <RefreshCw size={15} />
-                Đổi gợi ý
-              </button>
-            )}
-            {featured ? (
-              <>
-                <div className="vp-hero-plate">
-                  <RecipeImage key={featured.id} recipe={featured} priority />
-                </div>
-                <button onClick={() => open(featured.id)}>
-                  <span>
-                    <small>Gợi ý từ thư viện</small>
-                    {featured.title}
-                  </span>
-                  <ArrowRight size={22} />
-                </button>
-              </>
-            ) : (
-              <div className="vp-hero-placeholder">
-                <Leaf size={64} strokeWidth={1} />
-                <span>Một chút xanh cho mỗi bữa ăn.</span>
-              </div>
-            )}
+            <figure className="vp-hero-still-life">
+              <img
+                src="/images/brand/veggie-kitchen.webp"
+                alt="Bữa chay với đậu hũ, cơm và rau củ — hình minh họa"
+                width="960"
+                height="960"
+                fetchPriority="high"
+              />
+              <figcaption>Hình minh họa bếp chay</figcaption>
+            </figure>
+            <button className="vp-hero-scan" onClick={() => go("vision")}>
+              <Camera size={23} />
+              <span>
+                <small>Từ nguyên liệu đang có</small>Quét ảnh, tìm món
+              </span>
+              <ArrowRight size={20} />
+            </button>
+            <button className="vp-hero-plan" onClick={() => go("planner")}>
+              <CalendarDays size={24} />
+              <span>
+                Lên thực đơn<small>Chọn theo nhu cầu của bạn</small>
+              </span>
+              <ArrowRight size={20} />
+            </button>
           </div>
         </section>
       )}

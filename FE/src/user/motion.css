@@ -38,13 +38,13 @@
     animation: vp-enter 180ms var(--ease-out) both;
   }
   .vp-hero > div:first-child {
-    animation: vp-hero-copy 600ms var(--ease-out) both;
+    animation: vp-hero-copy 240ms var(--ease-out) both;
   }
   .vp-hero-photo {
-    animation: vp-hero-art 650ms var(--ease-out) both;
+    animation: vp-hero-art 260ms var(--ease-out) both;
   }
-  .vp-hero-photo > button:not(.vp-feature-next) {
-    animation: vp-note 650ms var(--ease-out) both;
+  .vp-hero-scan {
+    animation: vp-enter 240ms var(--ease-out) both;
   }
   .vp-day {
     animation: vp-enter 200ms var(--ease-out) both;
