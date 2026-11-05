@@ -562,24 +562,6 @@
   font-family: var(--font-editorial);
   font-size: 26px;
 }
-.vp-log-entry {
-  position: relative;
-  border-bottom: 1px solid var(--line);
-  padding: 0 0 20px 20px;
-  margin: 24px 0 0;
-  border-left: 1px solid #cbd9bd;
-}
-.vp-log-entry::before {
-  content: "";
-  position: absolute;
-  top: 6px;
-  left: -5px;
-  width: 9px;
-  height: 9px;
-  background: var(--green);
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-}
 .vp-log-entry h3 {
   font-size: 16px;
 }
@@ -589,14 +571,6 @@
 }
 .vp-log-entry .vp-text-button {
   font-size: 11px;
-}
-.vp-saved-recipe {
-  position: relative;
-}
-.vp-saved-recipe > .vp-text-button {
-  width: 100%;
-  justify-content: center;
-  font-size: 12px;
 }
 .vp-scan-flow {
   display: flex;
@@ -1204,5 +1178,182 @@
   }
   .vp-chat-welcome {
     min-height: 200px;
+  }
+}
+
+.vp-saved-list {
+  display: grid;
+  gap: 12px;
+  max-width: 850px;
+}
+.vp-saved-recipe {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.vp-saved-recipe h2 {
+  font-size: 16px;
+}
+.vp-saved-recipe h2 button {
+  font-size: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.vp-saved-thumb {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  aspect-ratio: 1;
+  background: #f6e8d7;
+  color: var(--green);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.vp-saved-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vp-saved-thumb .vp-image-placeholder {
+  min-height: 0;
+  padding: 0;
+}
+.vp-saved-thumb .vp-image-placeholder small {
+  display: none;
+}
+.vp-nutrition-micros {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+}
+.vp-nutrition-micros summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+}
+.vp-log-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.vp-log-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--mint);
+  color: var(--green);
+}
+.vp .vp-upload.has-preview {
+  flex-direction: row;
+  min-height: 44px;
+  padding: 8px 12px;
+  margin: 12px 0;
+  width: fit-content;
+}
+.vp-upload.has-preview svg {
+  width: 19px;
+  height: 19px;
+}
+.vp-scan-frame {
+  position: absolute;
+  inset: 12% 14%;
+  width: 72%;
+  height: 76%;
+  stroke-width: 0.5;
+  color: white;
+  filter: drop-shadow(0 1px 3px #0009);
+  pointer-events: none;
+}
+.vp-scan-layout .vp-button {
+  background: var(--lime);
+  color: var(--ink);
+}
+.vp-chat .vp-message {
+  width: fit-content;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px 16px 16px 16px;
+  background: var(--surface);
+}
+.vp-chat .vp-message.own {
+  background: #f8e7d9;
+  border-color: #edddcf;
+  border-radius: 16px 4px 16px 16px;
+}
+.vp-chat .vp-message .vp-prose > :last-child {
+  margin-bottom: 0;
+}
+.vp-chat .vp-chat-form .vp-button {
+  background: var(--lime);
+  color: var(--ink);
+  border-radius: 50%;
+}
+@media (max-width: 800px) {
+  .vp-scan-review:not(.has-result) {
+    display: none;
+  }
+  .vp-scan-layout .vp-button {
+    width: 100%;
+  }
+  .vp-scan-flow {
+    margin-bottom: 12px;
+  }
+  .vp-screen-chatbot .vp-page-heading {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .vp-screen-chatbot .vp-page-heading .vp-eyebrow {
+    display: none;
+  }
+  .vp-screen-chatbot .vp-chat {
+    height: min(620px, calc(100dvh - 270px - env(safe-area-inset-bottom, 0px)));
+    min-height: 330px;
+    padding: 12px;
+  }
+  .vp-screen-chatbot .vp-chat-welcome {
+    min-height: 0;
+    padding: 16px 0;
+    gap: 10px;
+  }
+  .vp-chat .vp-compose-hint {
+    display: none;
+  }
+  .vp-chat-form textarea {
+    min-height: 54px;
+  }
+}
+@media (max-width: 420px) {
+  .vp-log-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .vp-log-entry > .vp-text-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .vp-saved-thumb {
+    width: 54px;
+  }
+}
+
+@media (max-width: 800px) {
+  .vp-nutrition-summary .vp-energy-gauge {
+    width: min(215px, 100%);
+    margin-bottom: 4px;
+  }
+  .vp-nutrition-summary .vp-daily-totals {
+    margin: 8px 0;
+  }
+  .vp .vp-scan-layout .vp-upload:not(.has-preview) {
+    min-height: 156px;
   }
 }

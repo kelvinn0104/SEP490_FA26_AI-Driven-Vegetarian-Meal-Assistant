@@ -23,11 +23,8 @@ export function KitchenView({ recipe, servings, onClose }) {
             <span className="vp-eyebrow">
               <Leaf size={14} /> Trong bếp
             </span>
-            <h1 id="kitchen-title">{recipe.title}</h1>
-            <p>
-              {servings} khẩu phần · Đánh dấu nguyên liệu đã chuẩn bị để nấu dễ
-              hơn.
-            </p>
+            <h1>{recipe.title}</h1>
+            <p>{servings} khẩu phần</p>
           </div>
           <button
             className="vp-icon"
@@ -47,6 +44,13 @@ export function KitchenView({ recipe, servings, onClose }) {
                 </span>
               )}
             </div>
+            {ingredients.length > 0 && (
+              <progress
+                value={checked.length}
+                max={ingredients.length}
+                aria-label="Nguyên liệu đã chuẩn bị"
+              />
+            )}
             {ingredients.length ? (
               ingredients.map((item, i) => (
                 <label
@@ -83,8 +87,7 @@ export function KitchenView({ recipe, servings, onClose }) {
               </button>
             )}
           </section>
-          <section>
-            <span className="vp-eyebrow">Từng bước một</span>
+          <section className="vp-kitchen-method">
             <h2>Cách nấu</h2>
             <div className="vp-prose">
               {recipe.instructions ? (

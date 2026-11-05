@@ -180,6 +180,7 @@ export function AuthForm({ register, go, onLogin }) {
   };
   return (
     <div className="vp-auth">
+      <div className="vp-auth-photo" aria-hidden="true" />
       <aside>
         <BrandArt />
         <Leaf size={40} strokeWidth={1.2} />
@@ -242,21 +243,30 @@ export function AuthForm({ register, go, onLogin }) {
             <>
               <label>
                 Mã xác thực
-                <input
-                  ref={otpInput}
-                  className="vp-otp-input"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  required
-                  disabled={busy}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  placeholder="000000"
-                />
+                <span className="vp-otp-field">
+                  <input
+                    ref={otpInput}
+                    className="vp-otp-input"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    required
+                    disabled={busy}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    aria-describedby="vp-otp-expiry"
+                  />
+                  <span className="vp-otp-slots" aria-hidden="true">
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <span key={index} data-current={index === otp.length}>
+                        {otp[index] || "·"}
+                      </span>
+                    ))}
+                  </span>
+                </span>
               </label>
-              <p className="vp-otp-expiry">
+              <p className="vp-otp-expiry" id="vp-otp-expiry">
                 {remaining === 0
                   ? "Mã đã hết hạn. Yêu cầu mã mới để tiếp tục."
                   : remaining != null

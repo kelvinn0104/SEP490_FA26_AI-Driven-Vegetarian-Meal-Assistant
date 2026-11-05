@@ -1,3 +1,4 @@
+import { BookmarkMinus, CookingPot, Utensils, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   useResource,
@@ -5,12 +6,19 @@ import {
   State,
   Notice,
   PageHeading,
-  Card,
+  RecipeImage,
   PageControls,
   NutrientMeter,
   EnergyGauge,
 } from "./ui";
-import { amount, listOf, userError, isTestContent, vietnamDate } from "./data";
+import {
+  amount,
+  listOf,
+  userError,
+  isTestContent,
+  vietnamDate,
+  safeImage,
+} from "./data";
 import { request } from "./api";
 export function Collection({ open, flash, go }) {
   const [page, setPage] = useState(1);
@@ -19,6 +27,9 @@ export function Collection({ open, flash, go }) {
     [page],
   );
   const [busy, setBusy] = useState(null);
+  const recipes = listOf(resource.data).filter(
+    (recipe) => !isTestContent(recipe),
+  );
   const remove = async (id) => {
     setBusy(id);
     try {
@@ -43,27 +54,47 @@ export function Collection({ open, flash, go }) {
         </Button>
       </PageHeading>
       <State
-        resource={resource}
+        resource={
+          resource.loading || resource.error
+            ? resource
+            : { ...resource, data: recipes }
+        }
         empty="Bạn chưa lưu món nào"
         emptyAction={
           <Button onClick={() => go("discover")}>Tìm một món muốn nấu</Button>
         }
       >
-        <div className="vp-grid">
-          {listOf(resource.data)
-            .filter((r) => !isTestContent(r))
-            .map((r) => (
-              <div className="vp-saved-recipe" key={r.id}>
-                <Card recipe={r} open={open} />
-                <button
-                  className="vp-text-button"
-                  disabled={busy != null}
-                  onClick={() => remove(r.id)}
-                >
-                  {busy === r.id ? "Đang cập nhật…" : "Bỏ lưu món"}
-                </button>
+        <div className="vp-saved-list">
+          {recipes.map((recipe) => (
+            <article className="vp-saved-recipe" key={recipe.id}>
+              <div className="vp-saved-thumb">
+                {safeImage(recipe.imageUrl || recipe.image) ? (
+                  <RecipeImage recipe={recipe} />
+                ) : (
+                  <CookingPot size={24} aria-hidden="true" />
+                )}
               </div>
-            ))}
+              <div>
+                <h2>
+                  <button
+                    className="vp-text-button"
+                    onClick={() => open(recipe.id)}
+                  >
+                    {recipe.title}
+                  </button>
+                </h2>
+                <small>{amount(recipe.kcalPerServing)} kcal / khẩu phần</small>
+              </div>
+              <button
+                className="vp-icon"
+                disabled={busy != null}
+                onClick={() => remove(recipe.id)}
+                aria-label={`Bỏ lưu món ${recipe.title}`}
+              >
+                <BookmarkMinus size={19} />
+              </button>
+            </article>
+          ))}
         </div>
       </State>
       <PageControls
@@ -133,8 +164,8 @@ export function Nutrition() {
                 <div className="vp-daily-totals">
                   {[
                     ["Đạm", "proteinG", "g"],
-                    ["Sắt", "ironMg", "mg"],
-                    ["Vitamin B12", "b12Mcg", "µg"],
+                    ["Chất béo", "fatG", "g"],
+                    ["Tinh bột", "carbG", "g"],
                   ].map(([label, key, unit]) => (
                     <NutrientMeter
                       key={key}
@@ -146,6 +177,23 @@ export function Nutrition() {
                   ))}
                 </div>
               </div>
+              <details className="vp-nutrition-micros">
+                <summary>Vi chất trong ngày</summary>
+                <div className="vp-daily-totals">
+                  <NutrientMeter
+                    label="Sắt"
+                    value={data.consumed?.ironMg}
+                    target={data.target?.ironMg}
+                    unit="mg"
+                  />
+                  <NutrientMeter
+                    label="Vitamin B12"
+                    value={data.consumed?.b12Mcg}
+                    target={data.target?.b12Mcg}
+                    unit="µg"
+                  />
+                </div>
+              </details>
               {data.alerts?.map((a, i) => (
                 <Notice key={i}>{a.message}</Notice>
               ))}
@@ -156,11 +204,16 @@ export function Nutrition() {
                 {data.logs?.length ? (
                   data.logs.map((log) => (
                     <article className="vp-log-entry" key={log.id}>
-                      <h3>{log.recipeTitle}</h3>
-                      <p>
-                        {amount(log.servings)} khẩu phần ·{" "}
-                        {amount(log.kcalConsumed)} kcal
-                      </p>
+                      <span className="vp-log-icon">
+                        <Utensils size={18} aria-hidden="true" />
+                      </span>
+                      <div>
+                        <h3>{log.recipeTitle}</h3>
+                        <p>
+                          {amount(log.servings)} khẩu phần ·{" "}
+                          {amount(log.kcalConsumed)} kcal
+                        </p>
+                      </div>
                       <button
                         className="vp-text-button"
                         disabled={busy}
@@ -276,7 +329,10 @@ export function Notifications() {
               className={`vp-list-card ${n.isRead ? "is-read" : "is-unread"}`}
               key={n.id}
             >
-              <h3>{n.title || "Thông báo VeggieAI"}</h3>
+              <h3>
+                <Bell size={17} aria-hidden="true" />{" "}
+                {n.title || "Thông báo VeggieAI"}
+              </h3>
               <p>{n.content}</p>
               <small>{new Date(n.createdAt).toLocaleString("vi-VN")}</small>
               {!n.isRead && (

@@ -167,6 +167,7 @@ export function PostDetail({ id, go, user, flash }) {
         {post && (
           <>
             <article className="vp-post-article">
+              <PostMedia key={post.mediaUrl} post={post} />
               <div className="vp-post-reader-top">
                 <span className="vp-eyebrow">
                   {post.postType === "video"
@@ -187,7 +188,6 @@ export function PostDetail({ id, go, user, flash }) {
                   được duyệt.
                 </Notice>
               )}
-              <PostMedia key={post.mediaUrl} post={post} />
               <PostBody content={post.content} />
               {post.videoSummary && (
                 <details className="vp-video-summary">
@@ -242,6 +242,9 @@ export function PostDetail({ id, go, user, flash }) {
                     </button>
                   </div>
                 )}
+                <a className="vp-text-button" href="#post-comments">
+                  Bình luận ({post.comments?.length ?? post.commentCount ?? 0})
+                </a>
                 <button
                   className="vp-text-button"
                   onClick={async () => {

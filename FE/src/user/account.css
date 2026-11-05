@@ -187,14 +187,14 @@
   align-items: center;
   gap: 24px;
   padding: 36px;
-  background: #e8efdd;
+  background: #f4e7d9;
   border-radius: 28px;
   margin-bottom: 32px;
 }
 .vp-personal-header > div {
   min-width: 0;
 }
-.vp-personal-header h1 {
+.vp-personal-header h2 {
   font: 500 clamp(29px, 3vw, 40px) / 1.3 var(--font-editorial);
   overflow-wrap: anywhere;
 }
@@ -476,7 +476,7 @@
     border-radius: 23px;
     margin-bottom: 26px;
   }
-  .vp-personal-header h1 {
+  .vp-personal-header h2 {
     font-size: 28px;
   }
   .vp-personal-avatar {
@@ -550,5 +550,94 @@
   }
   .vp-flow-step h2 {
     font-size: 22px;
+  }
+}
+
+.vp-auth-photo {
+  display: none;
+}
+.vp-auth form > .vp-button {
+  background: var(--lime);
+  color: var(--ink);
+}
+.vp-otp-field {
+  display: block;
+  position: relative;
+}
+.vp .vp-otp-field .vp-otp-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  padding: 0;
+  cursor: text;
+}
+.vp-otp-slots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+  pointer-events: none;
+}
+.vp-otp-slots > span {
+  display: grid;
+  place-items: center;
+  min-height: 50px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 23px;
+  font-variant-numeric: tabular-nums;
+}
+.vp-otp-field:focus-within .vp-otp-slots {
+  outline: 2px solid var(--green);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+.vp-otp-field:focus-within [data-current="true"] {
+  background: var(--lime);
+}
+.vp-personal > h1 {
+  margin-bottom: 18px;
+}
+.vp-personal-header h2 {
+  font-size: clamp(19px, 3vw, 30px);
+}
+.vp-personal-avatar {
+  background: var(--lime);
+  font-size: 24px;
+  font-weight: 650;
+  border: 0;
+}
+.vp-profile-progress {
+  margin: 0 0 20px;
+}
+@media (max-width: 800px) {
+  .vp-auth-photo {
+    display: block;
+    height: clamp(80px, 20vw, 136px);
+    border-radius: 16px;
+    background: #e7eddb url("/images/brand/veggie-kitchen.webp") center 42% /
+      cover no-repeat;
+  }
+  .vp-auth > section {
+    padding-top: 16px;
+  }
+  .vp-auth label {
+    margin-bottom: 14px;
+  }
+  .vp-personal-header {
+    padding: 16px;
+  }
+  .vp-personal-header h2 {
+    font-size: 20px;
+  }
+  .vp-personal-groups {
+    margin-top: 20px;
+    gap: 18px;
+  }
+  .vp-link-list a {
+    min-height: 52px;
+    padding: 10px 0;
   }
 }

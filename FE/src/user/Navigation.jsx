@@ -105,14 +105,23 @@ const groups = [
   ],
 ];
 export function PersonalSpace({ user, go, signOut }) {
+  const name = user?.displayName || user?.name;
+  const initials = name
+    ?.trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => Array.from(part)[0])
+    .join("")
+    .toLocaleUpperCase("vi-VN");
   return (
     <div className="vp-personal">
+      <h1>Cá nhân</h1>
       <header className="vp-personal-header">
-        <span className="vp-personal-avatar">
-          <UserRound size={28} />
+        <span className="vp-personal-avatar" aria-hidden="true">
+          {initials || <UserRound size={28} />}
         </span>
         <div>
-          <h1>{user?.name || user?.displayName || "Cá nhân"}</h1>
+          <h2>{name || "Tài khoản VeggieAI"}</h2>
           <p>{user?.email || "Đăng nhập để lưu món và quản lý bữa ăn."}</p>
         </div>
       </header>

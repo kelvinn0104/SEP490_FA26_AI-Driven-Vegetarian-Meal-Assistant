@@ -1,5 +1,12 @@
 import { useEffect, useState, useRef, useId } from "react";
-import { Leaf, RefreshCw, X, ArrowUpRight, CookingPot } from "lucide-react";
+import {
+  Leaf,
+  RefreshCw,
+  X,
+  ArrowUpRight,
+  CookingPot,
+  CircleAlert,
+} from "lucide-react";
 import {
   safeImage,
   userError,
@@ -60,12 +67,20 @@ export function State({
     return (
       <div className="vp-loading" role="status">
         <span className="vp-spinner" />
-        Đang tải… <small>Có thể mất thêm một chút thời gian.</small>
+        <span className="vp-loading-lines" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span>Đang tải…</span>
       </div>
     );
   if (resource.error)
     return (
-      <div className="vp-empty">
+      <div className="vp-empty vp-state-error">
+        <span className="vp-state-icon">
+          <CircleAlert size={25} aria-hidden="true" />
+        </span>
         <h2>Chưa thể tải nội dung</h2>
         <p role="alert">{userError(resource.error)}</p>
         <Button secondary onClick={resource.reload}>
@@ -81,7 +96,9 @@ export function State({
   )
     return (
       <div className="vp-empty">
-        <Leaf size={32} />
+        <span className="vp-state-icon">
+          <Leaf size={25} aria-hidden="true" />
+        </span>
         <h2>{empty}</h2>
         {emptyAction}
       </div>

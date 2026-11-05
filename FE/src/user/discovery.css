@@ -605,14 +605,16 @@
   display: flex;
   justify-content: space-between;
   gap: 32px;
-  padding-bottom: 30px;
-  margin-bottom: 30px;
+  padding: 10px 0 24px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
 }
 .vp-kitchen-inner > header .vp-icon {
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
 }
 .vp-kitchen-inner > header h1 {
   font-size: clamp(27px, 3vw, 40px);
@@ -860,7 +862,7 @@
   }
   .vp-detail-top {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: stretch;
   }
   .vp-detail-top > img,
@@ -912,5 +914,66 @@
   }
   .vp-tools {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.vp-recipe-facts {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin: 20px 0;
+  padding: 14px 16px;
+  background: #f1ebde;
+  border-radius: 14px;
+}
+.vp-recipe-facts > div {
+  display: grid;
+  gap: 4px;
+}
+.vp-recipe-facts strong {
+  font-size: 20px;
+}
+.vp-recipe-portions input {
+  width: 90px;
+  min-height: 44px;
+}
+.vp-detail-top .vp-actions > .vp-button:first-child {
+  background: var(--lime);
+  color: var(--ink);
+}
+.vp-kitchen-ingredients > progress,
+.vp-profile-progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--green);
+}
+.vp-kitchen-method {
+  min-width: 0;
+}
+.vp-kitchen-method .vp-prose {
+  line-height: 1.75;
+}
+.vp-kitchen-method .vp-prose > ol > li {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 600px) {
+  .vp-detail-top {
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  .vp-detail-top:has(> .vp-image-placeholder) {
+    padding: 20px;
+  }
+  .vp-detail-top > img {
+    aspect-ratio: 1.45;
+  }
+  .vp-kitchen-inner > header {
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+  .vp-kitchen-columns {
+    gap: 20px;
   }
 }

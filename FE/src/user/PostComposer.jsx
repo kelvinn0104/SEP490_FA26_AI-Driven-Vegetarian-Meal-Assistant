@@ -87,8 +87,10 @@ export function CreatePost({ go, user, video = false }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty, result, draftStored]);
-  const update = (field, value) =>
+  const update = (field, value) => {
+    setError("");
     setDraft((previous) => ({ ...previous, [field]: value }));
+  };
   const format = (kind) => {
     const field = contentField.current;
     if (!field) return;
@@ -185,11 +187,8 @@ export function CreatePost({ go, user, video = false }) {
         <ArrowLeft size={18} />
         Cộng đồng
       </button>
-      <PageHeading
-        eyebrow="Gửi một điều hữu ích"
-        title="Chia sẻ từ căn bếp của bạn"
-      />
-      <form onSubmit={submit}>
+      <PageHeading title="Viết bài" />
+      <form onSubmit={submit} noValidate>
         <div className="vp-composer-toolbar">
           <div
             role="group"
@@ -261,34 +260,6 @@ export function CreatePost({ go, user, video = false }) {
               />
               <small>{draft.title.length}/200</small>
             </label>
-            <label>
-              {draft.postType === "video"
-                ? "Liên kết video"
-                : "Ảnh bìa (URL, không bắt buộc)"}
-              <input
-                type="url"
-                aria-label={
-                  draft.postType === "video"
-                    ? "Liên kết video"
-                    : "Ảnh bìa (URL, không bắt buộc)"
-                }
-                required={draft.postType === "video"}
-                maxLength={500}
-                placeholder={
-                  draft.postType === "video"
-                    ? "https://youtu.be/… hoặc liên kết video"
-                    : "https://…"
-                }
-                value={draft.mediaUrl}
-                disabled={busy}
-                onChange={(e) => update("mediaUrl", e.target.value)}
-              />
-              <small>
-                {draft.postType === "video"
-                  ? "YouTube hoặc video MP4/WebM. Liên kết khác sẽ mở ở trang nguồn."
-                  : "Dùng liên kết ảnh công khai mà bạn có quyền chia sẻ."}
-              </small>
-            </label>
             <div className="vp-content-field">
               <label htmlFor="compose-content">
                 {draft.postType === "video"
@@ -327,7 +298,7 @@ export function CreatePost({ go, user, video = false }) {
                 }
                 required={draft.postType === "blog"}
                 maxLength={20000}
-                rows={12}
+                rows={7}
                 placeholder="Kể cách bạn nấu, điều đã thử hoặc một mẹo muốn chia sẻ…"
                 value={draft.content}
                 disabled={busy}
@@ -338,6 +309,49 @@ export function CreatePost({ go, user, video = false }) {
                 viết như bình thường hoặc dùng công cụ định dạng.
               </small>
             </div>
+            {draft.postType === "video" ? (
+              <label>
+                Liên kết video
+                <input
+                  type="url"
+                  aria-label="Liên kết video"
+                  required
+                  maxLength={500}
+                  placeholder="https://youtu.be/… hoặc liên kết video"
+                  value={draft.mediaUrl}
+                  disabled={busy}
+                  onChange={(e) => update("mediaUrl", e.target.value)}
+                />
+                <small>
+                  YouTube hoặc video MP4/WebM. Liên kết khác sẽ mở ở trang
+                  nguồn.
+                </small>
+              </label>
+            ) : (
+              <details
+                className="vp-compose-cover"
+                open={draft.mediaUrl ? true : undefined}
+              >
+                <summary>
+                  <Link size={17} /> Ảnh bìa <small>Không bắt buộc</small>
+                </summary>
+                <label>
+                  Liên kết ảnh
+                  <input
+                    type="url"
+                    aria-label="Ảnh bìa (URL, không bắt buộc)"
+                    maxLength={500}
+                    placeholder="https://…"
+                    value={draft.mediaUrl}
+                    disabled={busy}
+                    onChange={(event) => update("mediaUrl", event.target.value)}
+                  />
+                  <small>
+                    Dùng liên kết ảnh công khai mà bạn có quyền chia sẻ.
+                  </small>
+                </label>
+              </details>
+            )}
             <label>
               Công thức đính kèm (không bắt buộc)
               <select

@@ -164,6 +164,12 @@ export function Profile({ flash, go }) {
             <span>Bước {stage}/2</span>
             <h2>{stage === 1 ? "Chỉ số cơ thể" : "Nhu cầu và dị ứng"}</h2>
           </div>
+          <progress
+            className="vp-profile-progress"
+            value={stage}
+            max={2}
+            aria-label="Tiến trình hồ sơ"
+          />
           <div className="vp-form-grid">
             {stage === 1 && (
               <>
@@ -360,10 +366,7 @@ export function Account({ user }) {
           </label>
           <Button disabled={busy || !name.trim()}>Lưu thay đổi</Button>
         </form>
-        <form
-          className="vp-panel"
-          onSubmit={(e) => save(e, true)}
-        >
+        <form className="vp-panel" onSubmit={(e) => save(e, true)}>
           <h2>Đổi mật khẩu</h2>
           <label>
             Mật khẩu hiện tại

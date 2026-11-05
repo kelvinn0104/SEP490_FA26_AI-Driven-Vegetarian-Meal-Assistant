@@ -60,12 +60,39 @@ export function RecipeDetail({ id, go, user, flash }) {
         {recipe && (
           <>
             <div className="vp-detail-top">
+              <RecipeImage key={id} recipe={recipe} priority />
               <div>
                 <span className="vp-eyebrow">
                   {categoryLabel(recipe.category) || "Công thức chay"}
                 </span>
                 <h1>{recipe.title}</h1>
-                <p>Công thức từ thư viện VeggieAI</p>
+                {recipe.description && <p>{recipe.description}</p>}
+                <div className="vp-recipe-facts">
+                  <label className="vp-recipe-portions">
+                    Số khẩu phần
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={servings || base}
+                      onChange={(e) =>
+                        setServings(
+                          Math.max(
+                            1,
+                            Math.min(20, Number(e.target.value) || 1),
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+
+                  <div>
+                    <small>Mỗi khẩu phần</small>
+                    <strong>
+                      {amount(recipe.kcalPerServing)} <small>kcal</small>
+                    </strong>
+                  </div>
+                </div>
                 <div className="vp-actions">
                   <Button
                     onClick={() => setCooking(true)}
@@ -80,7 +107,6 @@ export function RecipeDetail({ id, go, user, flash }) {
                   </Button>
                 </div>
               </div>
-              <RecipeImage recipe={recipe} />
             </div>
             <div className="vp-detail-columns">
               <section>
@@ -115,20 +141,6 @@ export function RecipeDetail({ id, go, user, flash }) {
               <aside className="vp-panel">
                 <h2>Dinh dưỡng</h2>
                 <p>Tổng theo số khẩu phần đã chọn.</p>
-                <label>
-                  Số khẩu phần
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={servings || base}
-                    onChange={(e) =>
-                      setServings(
-                        Math.max(1, Math.min(20, Number(e.target.value) || 1)),
-                      )
-                    }
-                  />
-                </label>
                 <dl className="vp-nutrients">
                   {nutrients.slice(0, 4).map(([label, value, unit]) => (
                     <div key={label}>

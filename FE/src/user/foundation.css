@@ -797,3 +797,35 @@
     padding: 10px 13px;
   }
 }
+
+.vp-state-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  background: var(--lime);
+  color: var(--ink);
+}
+.vp-state-error {
+  background: #f7eee5;
+}
+.vp-state-error .vp-state-icon {
+  background: #f3d2b9;
+}
+.vp-loading-lines {
+  display: grid;
+  gap: 7px;
+  width: min(190px, 80%);
+}
+.vp-loading-lines i {
+  height: 8px;
+  border-radius: 6px;
+  background: #e3e8dc;
+}
+.vp-loading-lines i:nth-child(2) {
+  width: 82%;
+}
+.vp-loading-lines i:nth-child(3) {
+  width: 61%;
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Camera, Check, Leaf } from "lucide-react";
+import { Camera, Check, Leaf, ScanLine } from "lucide-react";
 import { Button, Notice, PageHeading, Card } from "./ui";
 import { userError, validatePhoto, isTestContent } from "./data";
 import { request } from "./api";
@@ -9,7 +9,7 @@ export function Vision({ open, flash }) {
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState([]);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
     if (!file) {
@@ -30,7 +30,7 @@ export function Vision({ open, flash }) {
   };
   const scan = async () => {
     if (!file || busy) return;
-    setBusy(true);
+    setBusy("scan");
     setError("");
     try {
       const form = new FormData();
@@ -49,12 +49,12 @@ export function Vision({ open, flash }) {
     } catch (e) {
       setError(userError(e));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
   const confirm = async () => {
     if (busy || !result?.scanId || !selected.length) return;
-    setBusy(true);
+    setBusy("confirm");
     setError("");
     try {
       const next = await request(`/scans/${result.scanId}/confirm`, {
@@ -68,24 +68,36 @@ export function Vision({ open, flash }) {
     } catch (e) {
       setError(userError(e));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
+  const suggestions = (result?.suggestedRecipes || []).filter(
+    (recipe) => !isTestContent(recipe),
+  );
   return (
     <>
       <PageHeading
-        title="Có gì trong tủ lạnh?"
+        title="Quét nguyên liệu"
         eyebrow="Từ nguyên liệu đến bữa ăn"
       />
       <ol className="vp-scan-flow" aria-label="Các bước quét nguyên liệu">
-        <li className={file ? "done" : "current"}>
+        <li
+          className={result ? "done" : "current"}
+          aria-current={!result ? "step" : undefined}
+        >
           <span>{file ? <Check size={16} /> : "01"}</span>Chọn ảnh
         </li>
-        <li className={confirmed ? "done" : result ? "current" : ""}>
+        <li
+          className={confirmed ? "done" : result ? "current" : ""}
+          aria-current={result && !confirmed ? "step" : undefined}
+        >
           <span>{confirmed ? <Check size={16} /> : "02"}</span>Kiểm tra nguyên
           liệu
         </li>
-        <li className={confirmed ? "current" : ""}>
+        <li
+          className={confirmed ? "current" : ""}
+          aria-current={confirmed ? "step" : undefined}
+        >
           <span>03</span>Tìm món
         </li>
       </ol>
@@ -96,10 +108,25 @@ export function Vision({ open, flash }) {
             Chụp rõ từng nguyên liệu, đủ sáng. Bạn sẽ kiểm tra lại kết quả trước
             khi dùng.
           </p>
-          <label className="vp-upload">
+          {preview && (
+            <div
+              className={`vp-scan-image ${busy === "scan" ? "is-scanning" : ""}`}
+            >
+              <img
+                className="vp-scan-preview"
+                src={preview}
+                alt="Ảnh nguyên liệu đã chọn"
+              />
+              <ScanLine className="vp-scan-frame" aria-hidden="true" />
+              {busy === "scan" && (
+                <span className="vp-scan-line" aria-hidden="true" />
+              )}
+            </div>
+          )}
+          <label className={`vp-upload ${preview ? "has-preview" : ""}`}>
             <Camera size={30} />
-            <span>Chọn ảnh từ thiết bị</span>
-            <small>JPG, PNG, WebP · tối đa 8 MB</small>
+            <span>{preview ? "Đổi ảnh" : "Chọn ảnh từ thiết bị"}</span>
+            {!preview && <small>JPG, PNG, WebP · tối đa 8 MB</small>}
             <input
               disabled={busy}
               type="file"
@@ -107,23 +134,15 @@ export function Vision({ open, flash }) {
               onChange={choose}
             />
           </label>
-          {preview && (
-            <div className={`vp-scan-image ${busy ? "is-scanning" : ""}`}>
-              <img
-                className="vp-scan-preview"
-                src={preview}
-                alt="Ảnh nguyên liệu đã chọn"
-              />
-              {busy && <span className="vp-scan-line" aria-hidden="true" />}
-            </div>
-          )}
           {error && <Notice error>{error}</Notice>}
           <Button disabled={!file || busy} onClick={scan}>
-            {busy ? "Đang xử lý…" : "Nhận diện nguyên liệu"}
+            {busy === "scan" ? "Đang nhận diện…" : "Nhận diện nguyên liệu"}
           </Button>
         </section>
-        <section className="vp-panel">
-          <h2>Kiểm tra kết quả</h2>
+        <section
+          className={`vp-panel vp-scan-review ${result ? "has-result" : ""}`}
+        >
+          <h2>Kiểm tra nguyên liệu</h2>
           {!result ? (
             <div className="vp-scan-waiting">
               <Leaf size={42} strokeWidth={1} />
@@ -167,28 +186,33 @@ export function Vision({ open, flash }) {
                 }
                 onClick={confirm}
               >
-                {confirmed ? "Đã xác nhận nguyên liệu" : "Xác nhận nguyên liệu"}
+                {confirmed
+                  ? "Đã xác nhận nguyên liệu"
+                  : busy === "confirm"
+                    ? "Đang xác nhận…"
+                    : "Xác nhận nguyên liệu"}
               </Button>
               <p>
                 Nhận diện chỉ mang tính gợi ý, không xác nhận thực phẩm an toàn
                 để ăn.
               </p>
-              {confirmed && !!result.suggestedRecipes?.length && (
+              {confirmed && suggestions.length > 0 && (
                 <h3 className="vp-result-heading">Món có thể nấu</h3>
               )}
-              {confirmed && (
-                <div className="vp-grid compact">
-                  {result.suggestedRecipes
-                    ?.filter((r) => !isTestContent(r))
-                    .map((r) => (
+              {confirmed &&
+                (suggestions.length ? (
+                  <div className="vp-grid compact">
+                    {suggestions.map((r) => (
                       <Card
                         key={r.recipeId}
                         recipe={{ ...r, id: r.recipeId }}
                         open={open}
                       />
                     ))}
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <p>Chưa có món gợi ý cho các nguyên liệu đã chọn.</p>
+                ))}
             </>
           )}
         </section>

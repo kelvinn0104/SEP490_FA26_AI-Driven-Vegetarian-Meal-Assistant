@@ -124,6 +124,16 @@ async (page) => {
   await page.goto(base + '/create-post');
   await page.getByLabel('Tiêu đề', { exact: true }).fill('Cách nấu của mình');
   await page.getByLabel('Nội dung', { exact: true }).fill('## Bữa tối\n\nĐậu hũ hấp với gừng tươi.');
+  const cover = page.locator('.vp-compose-cover');
+  const coverUrl = cover.getByLabel('Ảnh bìa (URL, không bắt buộc)', { exact: true });
+  await cover.locator('summary').click();
+  await coverUrl.fill('invalid-url');
+  await cover.locator('summary').click();
+  await page.getByRole('button', { name: 'Gửi bài viết', exact: true }).click();
+  await page.getByText('Liên kết media phải dùng HTTPS, tối đa 500 ký tự.', { exact: true }).waitFor();
+  check(!writes.some(w => w.path.endsWith('/community/posts') && w.method === 'POST'), 'Collapsed invalid cover was submitted');
+  if (!(await coverUrl.isVisible())) await cover.locator('summary').click();
+  await coverUrl.fill('');
   await page.getByLabel('Nội dung', { exact: true }).evaluate(field => field.setSelectionRange(0, 2));
   await page.getByRole('button', { name: 'In đậm', exact: true }).click();
   check((await page.getByLabel('Nội dung', { exact: true }).inputValue()).startsWith('**##**'), 'Formatting toolbar lost selection');
