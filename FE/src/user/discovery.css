@@ -34,7 +34,7 @@
   font-weight: 600;
 }
 .vp-hero .vp-button:hover {
-  background: #cbe080;
+  background: var(--theme-selected, #cbe080);
 }
 .vp-hero-search {
   display: flex;
@@ -105,7 +105,7 @@
   position: absolute;
   bottom: 10px;
   left: 14px;
-  background: #fffefae8;
+  background: var(--theme-header, #fffefae8);
   border-radius: 6px;
   padding: 3px 8px;
   font-size: 10px;
@@ -117,7 +117,7 @@
   align-items: center;
   gap: 12px;
   text-align: left;
-  border: 1px solid #ffffffc0;
+  border: 1px solid var(--theme-border, #ffffffc0);
   padding: 15px 17px;
   border-radius: 18px;
   box-shadow: 0 8px 24px #253d2817;
@@ -150,7 +150,7 @@
 }
 .vp-hero-plan small {
   display: block;
-  color: #594b40;
+  color: var(--theme-warm-text, #594b40);
   font-size: 10px;
   margin-top: 3px;
 }
@@ -232,7 +232,7 @@
   white-space: nowrap;
   min-height: 44px;
   padding: 10px 16px;
-  background: #edf0e4;
+  background: var(--theme-tint, #edf0e4);
   border: 1px solid transparent;
   border-radius: 999px;
   color: var(--muted);
@@ -241,7 +241,7 @@
 .vp-chips button[aria-pressed="true"] {
   background: var(--lime);
   color: var(--ink);
-  border-color: #cfdf94;
+  border-color: var(--theme-border, #cfdf94);
 }
 .vp-category-count {
   font-size: 10px;
@@ -263,7 +263,7 @@
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border: 1px solid #e1e7d9;
+  border: 1px solid var(--theme-border, #e1e7d9);
   border-radius: 21px;
   box-shadow: var(--shadow);
 }
@@ -341,13 +341,13 @@
   font-size: 11px;
 }
 .vp-recipe.text-first {
-  background: #edf1e4;
+  background: var(--theme-tint, #edf1e4);
 }
 .vp-recipe.text-first:nth-child(3n + 2) {
-  background: #f3ecdf;
+  background: var(--theme-warm, #f3ecdf);
 }
 .vp-recipe.text-first:nth-child(3n) {
-  background: #e9eeeb;
+  background: var(--theme-cool, #e9eeeb);
 }
 .vp-recipe-letter {
   display: flex;
@@ -378,7 +378,7 @@
   gap: 18px;
   min-height: 180px;
   padding: 30px;
-  background: #eaf0e1;
+  background: var(--theme-tint, #eaf0e1);
   color: var(--green);
 }
 .vp-placeholder-plate {
@@ -386,7 +386,7 @@
   place-items: center;
   width: 76px;
   height: 76px;
-  border: 1px solid #c3d0b5;
+  border: 1px solid var(--theme-border, #c3d0b5);
   border-radius: 50%;
 }
 .vp-image-placeholder small {
@@ -407,17 +407,17 @@
 .vp-tools > div {
   min-width: 0;
   padding: 26px 22px;
-  background: #e8efdf;
+  background: var(--theme-tint, #e8efdf);
   border-radius: 20px;
 }
 .vp-tools > div:nth-child(2) {
-  background: #f0e7d9;
+  background: var(--theme-warm, #f0e7d9);
 }
 .vp-tools > div:nth-child(3) {
-  background: #e7eeeb;
+  background: var(--theme-cool, #e7eeeb);
 }
 .vp-tools > div:nth-child(4) {
-  background: #ebe8db;
+  background: var(--theme-warm, #ebe8db);
 }
 .vp-tools > div > svg {
   width: 30px;
@@ -501,7 +501,7 @@
 .vp-detail-columns > aside {
   position: sticky;
   top: 112px;
-  background: #edf1e5;
+  background: var(--theme-tint, #edf1e5);
 }
 .vp-detail-columns > aside > h2 {
   font-family: var(--font-editorial);
@@ -516,7 +516,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 13px 0;
-  border-bottom: 1px solid #d8dfce;
+  border-bottom: 1px solid var(--theme-border, #d8dfce);
   font-size: 14px;
 }
 .vp-nutrients dd {
@@ -565,7 +565,7 @@
 }
 .vp-prose p {
   margin-bottom: 18px;
-  color: #3e4c40;
+  color: var(--theme-muted, #3e4c40);
 }
 .vp-prose ul,
 .vp-prose ol {
@@ -579,7 +579,7 @@
 }
 .vp-prose pre {
   padding: 16px;
-  background: #edf1e6;
+  background: var(--theme-tint, #edf1e6);
   white-space: pre-wrap;
   overflow: auto;
   border-radius: 8px;
@@ -634,7 +634,7 @@
 }
 .vp-kitchen-ingredients {
   padding: 24px;
-  background: #edf1e4;
+  background: var(--theme-tint, #edf1e4);
   border-radius: 18px;
   align-self: start;
 }
@@ -645,7 +645,7 @@
   margin: 0;
 }
 .vp-kitchen-ingredients .vp-check {
-  border-bottom: 1px solid #d6dfc9;
+  border-bottom: 1px solid var(--theme-border, #d6dfc9);
   margin: 0;
   padding: 14px 0;
   align-items: start;
@@ -924,7 +924,7 @@
   gap: 16px 24px;
   margin: 20px 0;
   padding: 14px 16px;
-  background: #f1ebde;
+  background: var(--theme-warm, #f1ebde);
   border-radius: 14px;
 }
 .vp-recipe-facts > div {

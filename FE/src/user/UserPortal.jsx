@@ -16,6 +16,8 @@ import {
   Camera,
   MessageCircle,
   ArrowLeft,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui";
@@ -129,6 +131,24 @@ const guestCopy = {
 };
 export default function UserPortal({ screen, onNavigate, onLogin }) {
   const { user, logout } = useAuth();
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("veggie:theme") === "dark" ? "dark" : "light";
+    } catch {
+      return "light";
+    }
+  });
+  const dark = theme === "dark";
+  const themeLabel = dark ? "Bật giao diện sáng" : "Bật giao diện tối";
+  const toggleTheme = () => {
+    const next = dark ? "light" : "dark";
+    setTheme(next);
+    try {
+      localStorage.setItem("veggie:theme", next);
+    } catch {
+      // Theme still works for the current visit when storage is unavailable.
+    }
+  };
   const links = [
     ...(user ? [["home", "Hôm nay"]] : []),
     [user ? "discover" : "home", "Khám phá"],
@@ -309,7 +329,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   return (
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation}>
-        <div className={`vp vp-screen-${screen}`}>
+        <div className={`vp vp-screen-${screen}`} data-theme={theme}>
           <a className="vp-skip" href="#vp-main">
             Đến nội dung chính
           </a>
@@ -355,6 +375,20 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
                 ))}
               </nav>
               <div className="vp-header-actions">
+                <button
+                  type="button"
+                  className="vp-icon vp-theme-toggle"
+                  aria-label={themeLabel}
+                  title={themeLabel}
+                  onClick={toggleTheme}
+                >
+                  {dark ? (
+                    <Sun size={19} aria-hidden="true" />
+                  ) : (
+                    <Moon size={19} aria-hidden="true" />
+                  )}
+                  <span aria-hidden="true">{dark ? "Sáng" : "Tối"}</span>
+                </button>
                 <button
                   className="vp-header-tool vp-desktop-tool"
                   title="Quét nguyên liệu"

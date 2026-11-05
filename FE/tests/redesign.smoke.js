@@ -38,7 +38,53 @@ async (page) => {
     if (p.endsWith('/community/posts/12')) return ok({ id: 12, title: 'Một bữa chay ở nhà', postType: 'blog', content: '## Một góc bếp\n\nChia sẻ từ căn bếp nhỏ.', authorName: 'Bạn đọc', status: 'published', score: 2, comments: [], createdAt: date + 'T09:00:00Z' });
     return ok([]);
   });
-  await page.evaluate(u => { localStorage.setItem('token', 'fixture'); localStorage.setItem('veggie_user', JSON.stringify(u)); }, user);
+  const themeButton = (mode) => page.getByRole('button', { name: `Bật giao diện ${mode}`, exact: true });
+  const theme = () => page.locator('.vp').getAttribute('data-theme');
+  const contrast = (selector) => page.locator(selector).first().evaluate(element => {
+    const luminance = color => {
+      const channels = color.match(/[\d.]+/g).slice(0, 3).map(value => Number(value) / 255);
+      return channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+        .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+    };
+    const style = getComputedStyle(element);
+    let surface = element;
+    while (getComputedStyle(surface).backgroundColor === 'rgba(0, 0, 0, 0)') surface = surface.parentElement;
+    const levels = [luminance(style.color), luminance(getComputedStyle(surface).backgroundColor)].sort((a, b) => a - b);
+    return (levels[1] + 0.05) / (levels[0] + 0.05);
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto(base);
+  await themeButton('tối').waitFor();
+  check(await theme() === 'light', 'Initial theme must be light');
+  await themeButton('tối').click();
+  await themeButton('sáng').waitFor();
+  check(await contrast('.vp-hero .vp-button') >= 4.5, 'Dark home CTA text contrast');
+  await page.reload();
+  await themeButton('sáng').waitFor();
+  await page.setViewportSize({ width: 320, height: 844 });
+  check(await themeButton('sáng').isVisible(), 'Theme switch missing on mobile');
+  check(!await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'Guest header overflows at 320px');
+  await page.goto(base + '/register');
+  await page.getByLabel('Tên hiển thị').waitFor();
+  check(await theme() === 'dark' && await contrast('.vp-auth input') >= 4.5, 'Dark registration form contrast');
+  await page.evaluate(() => sessionStorage.setItem('veggie:pending-verification', JSON.stringify({
+    email: 'theme@example.test', resendAt: Date.now(), expiresAt: Date.now() + 300000,
+  })));
+  await page.reload();
+  await page.getByLabel('Mã xác thực').fill('123456');
+  check(await theme() === 'dark' && await contrast('.vp-otp-slots > span') >= 4.5, 'Dark OTP contrast or persistence');
+  await themeButton('sáng').click();
+  await page.reload();
+  await themeButton('tối').waitFor();
+  check(await theme() === 'light', 'Light preference lost on reload');
+  await themeButton('tối').click();
+  await page.emulateMedia({ colorScheme: null });
+  await page.evaluate(u => {
+    sessionStorage.removeItem('veggie:pending-verification');
+    localStorage.setItem('token', 'fixture');
+    localStorage.setItem('veggie_user', JSON.stringify(u));
+  }, user);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(base);
   await page.getByRole('heading', { name: 'Bếp hôm nay.', exact: true }).waitFor();
@@ -67,6 +113,7 @@ async (page) => {
   check(await page.getByRole('button', { name: recipe.title, exact: true }).count() === 0, 'Inactive day meals remained visible');
   await page.getByRole('button', { name: 'Danh sách đi chợ', exact: true }).click();
   const dialog = page.getByRole('dialog'); await dialog.waitFor();
+  check(await contrast('dialog') >= 4.5, 'Dark shopping dialog text contrast');
   await page.getByLabel('Đậu hũ · 200 g', { exact: true }).click();
   await page.getByLabel('Đậu hũ · 200 g', { exact: true }).filter({ visible: true }).waitFor();
   await page.waitForFunction(() => document.querySelector('dialog input[type="checkbox"]')?.checked);
@@ -83,6 +130,7 @@ async (page) => {
   dailyFail = true;
   await page.goto(base);
   await page.getByRole('alert').waitFor();
+  check(await contrast('.vp-state-error [role="alert"]') >= 4.5, 'Dark error text contrast');
   check(await page.locator('.vp-today-meal').count() === 2, 'Nutrition failure hid available meals');
   check(await record.nth(1).isDisabled(), 'Unknown diary permits duplicate logging');
   dailyFail = false; current = null;
@@ -98,6 +146,7 @@ async (page) => {
       await page.goto(base + route);
       await page.locator('.vp-screen h1').first().waitFor();
       await page.waitForFunction(() => !document.querySelector('.vp-spinner'));
+      check(await theme() === 'dark', 'Theme reset on ' + route);
       check(!await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'Overflow ' + route + ' at ' + width);
       if ((width === 390 || width === 1440) && photos[route]) {
         await page.evaluate(() => document.fonts.ready);
