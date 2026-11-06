@@ -35,8 +35,6 @@ async (page) => {
    await hold('chat');
    return route.fulfill({status:504,contentType:'application/json',body:'{}'});
   }
-  if(path.endsWith('/scans') && req.method()==='POST'){await hold('scan');return ok({scanId:1,detectedItems:[{ingredientId:2,nameVi:'Đậu hũ'}],suggestedRecipes:[]})}
-  if(path.endsWith('/scans/1/confirm'))return ok({scanId:1,detectedItems:[{ingredientId:2,nameVi:'Đậu hũ'}],suggestedRecipes:[]});
   return route.fulfill({status:404,contentType:'application/json',body:'{}'});
  });
  await page.goto(base+'/register');
@@ -52,9 +50,9 @@ async (page) => {
  await page.getByRole('button',{name:'Canh nấm',exact:true}).waitFor();
  await page.getByRole('button',{name:'Dùng thực đơn này',exact:true}).click(); await page.getByRole('alert').waitFor();
  await page.goto(base+'/vision');
- await page.locator('input[type=file]').setInputFiles({name:'pantry.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=','base64')});
- await page.getByRole('button',{name:'Nhận diện nguyên liệu',exact:true}).click(); await finish('scan'); await page.getByLabel('Đậu hũ',{exact:true}).waitFor(); await page.getByRole('button',{name:'Xác nhận nguyên liệu'}).click();
- check(writes.some(w=>w.path.endsWith('/confirm') && w.body.ingredientIds[0]===2),'Confirmation failed');
+ await page.waitForURL(base+'/discover');
+ await page.locator('.vp-main').waitFor();
+ check(await page.getByRole('button',{name:/quét ảnh|quét nguyên liệu/i}).count()===0,'Scan shortcut is still visible');
  await page.goto(base+'/chatbot');
  const input = page.getByRole('textbox',{name:'Tin nhắn'});
  await input.fill('Món chay với đậu hũ?');

@@ -3,7 +3,6 @@ import {
   CalendarDays,
   Bookmark,
   UserRound,
-  Camera,
   MessageCircle,
   HeartPulse,
   History,
@@ -90,7 +89,6 @@ const groups = [
   [
     "Khám phá thêm",
     [
-      ["vision", "Quét nguyên liệu", Camera],
       ["chatbot", "Hỏi trợ lý", MessageCircle],
       ["community", "Cộng đồng", Users],
     ],

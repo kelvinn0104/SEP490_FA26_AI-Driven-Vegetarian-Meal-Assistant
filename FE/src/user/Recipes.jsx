@@ -3,7 +3,6 @@ import {
   Search,
   X,
   ArrowRight,
-  Camera,
   CalendarDays,
   MessageCircle,
   Users,
@@ -115,10 +114,6 @@ export function Discover({ open, go, library = false }) {
                 <CalendarDays size={17} />
                 Lên thực đơn
               </button>
-              <button onClick={() => go("vision")}>
-                <Camera size={17} />
-                Quét ảnh
-              </button>
               <button onClick={() => go("chatbot")}>
                 <MessageCircle size={17} />
                 Hỏi trợ lý
@@ -136,13 +131,6 @@ export function Discover({ open, go, library = false }) {
               />
               <figcaption>Hình minh họa bếp chay</figcaption>
             </figure>
-            <button className="vp-hero-scan" onClick={() => go("vision")}>
-              <Camera size={23} />
-              <span>
-                <small>Từ nguyên liệu đang có</small>Quét ảnh, tìm món
-              </span>
-              <ArrowRight size={20} />
-            </button>
             <button className="vp-hero-plan" onClick={() => go("planner")}>
               <CalendarDays size={24} />
               <span>
@@ -254,13 +242,6 @@ export function Discover({ open, go, library = false }) {
         </State>
       </section>
       <section className="vp-tools">
-        <div>
-          <Camera size={24} />
-          <h3>Có gì trong tủ lạnh?</h3>
-          <button onClick={() => go("vision")}>
-            Nhận diện nguyên liệu <ArrowRight size={16} />
-          </button>
-        </div>
         <div>
           <CalendarDays size={24} />
           <h3>Bớt nghĩ mỗi bữa</h3>

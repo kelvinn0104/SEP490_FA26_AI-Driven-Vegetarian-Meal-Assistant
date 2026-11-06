@@ -9,14 +9,7 @@ import {
   Trash2,
   ArrowUp,
 } from "lucide-react";
-import {
-  useResource,
-  Button,
-  State,
-  PageHeading,
-  PageControls,
-  Notice,
-} from "./ui";
+import { useResource, Button, State, PageControls, Notice } from "./ui";
 import { listOf, isTestContent, statusLabel, userError } from "./data";
 import { request } from "./api";
 import { PostMeta, PostMedia, CommunityDialog } from "./PostParts";
@@ -102,15 +95,31 @@ export function Community({ mine, go, user, flash, videos = false }) {
   };
   return (
     <div className="vp-community">
-      <PageHeading
-        eyebrow="Chuyện từ căn bếp"
-        title={mine ? "Bài viết của tôi" : "Cộng đồng"}
+      <header
+        className={`vp-editorial-banner vp-community-banner ${mine ? "is-mine" : ""}`}
       >
-        <Button onClick={() => go("create-post")}>
-          <PenLine size={18} />
-          Viết bài
-        </Button>
-      </PageHeading>
+        <div>
+          <span className="vp-eyebrow">Chuyện từ căn bếp</span>
+          <h1>{mine ? "Bài viết của tôi" : "Cộng đồng"}</h1>
+          <p>
+            {mine
+              ? "Xem bài đã gửi và trạng thái kiểm duyệt."
+              : "Xem mọi người nấu gì và chia sẻ món bạn vừa thử."}
+          </p>
+          <Button onClick={() => go("create-post")}>
+            <PenLine size={18} />
+            Viết bài
+          </Button>
+        </div>
+        {!mine && (
+          <img
+            src="/images/brand/shared-table.webp"
+            width="960"
+            height="640"
+            alt=""
+          />
+        )}
+      </header>
       <div className="vp-community-layout">
         <div className="vp-community-feed">
           <nav className="vp-community-tabs" aria-label="Không gian cộng đồng">
@@ -336,19 +345,11 @@ export function Community({ mine, go, user, flash, videos = false }) {
           <span className="vp-aside-mark">
             <PenLine size={25} strokeWidth={1.5} />
           </span>
-          <h2>Bạn vừa nấu món gì?</h2>
-          <p>Chia sẻ món vừa thử hoặc mẹo nấu hữu ích với mọi người.</p>
-          <button className="vp-text-button" onClick={() => go("create-post")}>
-            Viết chia sẻ
-            <ArrowRight size={16} />
-          </button>
-          <div className="vp-community-note">
-            <h3>Một lưu ý nhỏ</h3>
-            <p>
-              Tôn trọng trải nghiệm khác nhau. Thêm nguồn khi chia sẻ kiến thức
-              dinh dưỡng.
-            </p>
-          </div>
+          <h2>Khi chia sẻ</h2>
+          <p>
+            Kể từ trải nghiệm của bạn. Nếu nhắc đến kiến thức dinh dưỡng, thêm
+            nguồn để người đọc tra cứu.
+          </p>
           {!user && (
             <button className="vp-text-button" onClick={() => go("login")}>
               Đăng nhập để tham gia

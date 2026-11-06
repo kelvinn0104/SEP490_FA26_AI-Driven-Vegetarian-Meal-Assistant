@@ -187,7 +187,7 @@ export function CreatePost({ go, user, video = false }) {
         <ArrowLeft size={18} />
         Cộng đồng
       </button>
-      <PageHeading title="Viết bài" />
+      <PageHeading eyebrow="Cộng đồng" title="Viết bài" />
       <form onSubmit={submit} noValidate>
         <div className="vp-composer-toolbar">
           <div
@@ -414,6 +414,25 @@ export function CreatePost({ go, user, video = false }) {
           </button>
         )}
       </form>
+      <aside className="vp-composer-guide">
+        <img
+          src="/images/brand/shared-table.webp"
+          width="960"
+          height="640"
+          alt=""
+          loading="lazy"
+        />
+        <div>
+          <h2>Chia sẻ từ bếp nhà</h2>
+          <p>
+            Món bạn vừa thử, một cách thay nguyên liệu, hay mẹo nấu giúp tiết
+            kiệm thời gian.
+          </p>
+          <p>
+            Dùng nút <strong>Xem trước</strong> để kiểm tra bài trước khi gửi.
+          </p>
+        </div>
+      </aside>
       {discard && (
         <CommunityDialog title="Xóa bản nháp?" close={() => setDiscard(false)}>
           <p>Nội dung đang soạn sẽ bị xóa khỏi tab này.</p>

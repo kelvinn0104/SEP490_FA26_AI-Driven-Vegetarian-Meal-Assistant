@@ -27,7 +27,6 @@ const userScreens = [
   "create-plan",
   "create-mealplan",
   "meal-history",
-  "vision",
   "chatbot",
   "community",
   "post-detail",
@@ -76,6 +75,10 @@ export default function App() {
   // Mặc định khi truy cập trang web luôn là Trang chủ (HomePage) hoặc Dashboard nếu là Admin/Mod
   const [currentScreen, setCurrentScreen] = useState(() => {
     let path = window.location.pathname.replace("/", "");
+    if (path === "vision") {
+      window.history.replaceState({}, "", "/discover");
+      path = "discover";
+    }
     if (path === "admin" || path === "mod") path = "dashboard";
     if (path === "moderation") path = "content-moderation";
 
@@ -109,6 +112,10 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       let path = window.location.pathname.replace("/", "");
+      if (path === "vision") {
+        window.history.replaceState({}, "", "/discover");
+        path = "discover";
+      }
       if (path === "admin" || path === "mod") path = "dashboard";
       if (path === "moderation") path = "content-moderation";
 
