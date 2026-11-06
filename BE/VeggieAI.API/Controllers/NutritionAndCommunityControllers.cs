@@ -27,6 +27,15 @@ public class NutritionController : AiApiControllerBase
         return Ok(ApiResponse<MealLogDto>.Ok(result, "Đã ghi nhận bữa ăn"));
     }
 
+    /// <summary>Sửa bản ghi đã lưu: { servings?, mealType?, logDate? }. kcal được tính lại theo khẩu phần.</summary>
+    [HttpPatch("logs/{id:int}")]
+    [HttpPut("logs/{id:int}")]
+    public async Task<ActionResult<ApiResponse<MealLogDto>>> UpdateLog(int id, [FromBody] UpdateMealLogRequest req, CancellationToken ct)
+    {
+        var result = await _svc.UpdateLogAsync(UserId, id, req, ct);
+        return Ok(ApiResponse<MealLogDto>.Ok(result, "Đã cập nhật nhật ký bữa ăn"));
+    }
+
     [HttpDelete("logs/{id:int}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteLog(int id, CancellationToken ct)
     {
@@ -75,21 +84,24 @@ public class CommunityController : AiApiControllerBase
 
     private bool IsStaff => AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role));
 
-    /// <summary>Bài đã duyệt. sort = newest (mặc định) | top.</summary>
+    /// <summary>Bài đã duyệt. sort = newest (mặc định) | top. Phân trang: ?page=1&amp;pageSize=20.</summary>
     [HttpGet("posts")]
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<PostSummaryDto>>>> List(
-        [FromQuery] string? keyword, [FromQuery] string? postType, [FromQuery] string? sort, [FromQuery] PageQuery page, CancellationToken ct)
+        [FromQuery] string? keyword, [FromQuery] string? postType, [FromQuery] string? sort,
+        [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListAsync(OptionalUserId, keyword, postType, sort, page, ct);
+        var result = await _svc.ListAsync(OptionalUserId, keyword, postType, sort, PageQuery.Of(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<PostSummaryDto>>.Ok(result));
     }
 
-    /// <summary>Bài của tôi (mọi trạng thái trừ đã gỡ).</summary>
+    /// <summary>
+    /// Bài của tôi: mọi trạng thái (kể cả bị từ chối) kèm moderation { decision, note, reviewedAt }, updatedAt, canEdit, canDelete.
+    /// </summary>
     [HttpGet("posts/mine")]
-    public async Task<ActionResult<ApiResponse<PagedResult<PostSummaryDto>>>> Mine([FromQuery] PageQuery page, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<PagedResult<PostSummaryDto>>>> Mine([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListMineAsync(UserId, page, ct);
+        var result = await _svc.ListMineAsync(UserId, PageQuery.Of(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<PostSummaryDto>>.Ok(result));
     }
 
@@ -109,6 +121,14 @@ public class CommunityController : AiApiControllerBase
         return Ok(ApiResponse<PostDetailDto>.Ok(result, "Đã gửi bài viết, đang chờ kiểm duyệt"));
     }
 
+    /// <summary>Tác giả sửa bài: { title, content?, mediaUrl?, recipeId? }. Bài quay về pending để kiểm duyệt lại.</summary>
+    [HttpPut("posts/{id:int}")]
+    public async Task<ActionResult<ApiResponse<PostDetailDto>>> Update(int id, [FromBody] UpdatePostRequest req, CancellationToken ct)
+    {
+        var result = await _svc.UpdateAsync(UserId, id, req, ct);
+        return Ok(ApiResponse<PostDetailDto>.Ok(result, "Đã cập nhật bài viết, đang chờ kiểm duyệt lại"));
+    }
+
     [HttpDelete("posts/{id:int}")]
     public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken ct)
     {
@@ -116,11 +136,28 @@ public class CommunityController : AiApiControllerBase
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa bài viết"));
     }
 
+    /// <summary>Bình luận có phân trang (cũ → mới): ?page=1&amp;pageSize=20.</summary>
+    [HttpGet("posts/{id:int}/comments")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<PagedResult<PostCommentDto>>>> Comments(int id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    {
+        var result = await _svc.ListCommentsAsync(OptionalUserId, IsStaff, id, PageQuery.Of(page, pageSize), ct);
+        return Ok(ApiResponse<PagedResult<PostCommentDto>>.Ok(result));
+    }
+
     [HttpPost("posts/{id:int}/comments")]
     public async Task<ActionResult<ApiResponse<PostCommentDto>>> Comment(int id, [FromBody] AddCommentRequest req, CancellationToken ct)
     {
         var result = await _svc.AddCommentAsync(UserId, id, req.Content, ct);
         return Ok(ApiResponse<PostCommentDto>.Ok(result, "Đã bình luận"));
+    }
+
+    /// <summary>Người viết sửa bình luận: { content }.</summary>
+    [HttpPut("comments/{id:int}")]
+    public async Task<ActionResult<ApiResponse<PostCommentDto>>> UpdateComment(int id, [FromBody] UpdateCommentRequest req, CancellationToken ct)
+    {
+        var result = await _svc.UpdateCommentAsync(UserId, id, req.Content, ct);
+        return Ok(ApiResponse<PostCommentDto>.Ok(result, "Đã sửa bình luận"));
     }
 
     [HttpDelete("comments/{id:int}")]
@@ -144,5 +181,13 @@ public class CommunityController : AiApiControllerBase
     {
         var result = await _svc.ReportAsync(UserId, req, ct);
         return Ok(ApiResponse<ReportDto>.Ok(result, "Đã gửi báo cáo, cảm ơn bạn"));
+    }
+
+    /// <summary>Báo cáo tôi đã gửi và trạng thái xử lý (open | resolved | dismissed).</summary>
+    [HttpGet("reports/mine")]
+    public async Task<ActionResult<ApiResponse<PagedResult<ReportDto>>>> MyReports([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    {
+        var result = await _svc.ListMyReportsAsync(UserId, PageQuery.Of(page, pageSize), ct);
+        return Ok(ApiResponse<PagedResult<ReportDto>>.Ok(result));
     }
 }

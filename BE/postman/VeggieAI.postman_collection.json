@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "9f7d3a41-7117-4ce7-bd65-ffd87f9563e4",
+    "_postman_id": "c1ed718f-f7e4-4780-953b-5c83a393902b",
     "name": "VeggieAI API (User flow + AI)",
-    "description": "Collection test VeggieAI backend. Chạy lần lượt từ trên xuống (hoặc Collection Runner). Register/Login tự lưu {{token}}; các id (recipeId, planId, scanId...) tự lưu từ response.\nbaseUrl mặc định http://localhost:59610 (https://localhost:59609 nếu chạy HTTPS).",
+    "description": "Collection test VeggieAI backend. Chạy lần lượt từ trên xuống (hoặc Collection Runner). Register → Verify OTP / Login tự lưu {{token}} + {{refreshToken}}; các id (recipeId, planId, scanId...) tự lưu từ response. Folder 13 cần token admin/moderator. Lỗi trả errors[0] là mã máy đọc được (vd. TOKEN_EXPIRED → gọi Refresh).\nbaseUrl mặc định http://localhost:59610 (https://localhost:59609 nếu chạy HTTPS).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -38,18 +38,26 @@
     },
     {
       "key": "password",
-      "value": "Test@123"
+      "value": "Test@1234"
     },
     {
       "key": "token",
       "value": ""
     },
     {
-      "key": "today",
+      "key": "refreshToken",
       "value": ""
     },
     {
-      "key": "userId",
+      "key": "otp",
+      "value": ""
+    },
+    {
+      "key": "resetOtp",
+      "value": ""
+    },
+    {
+      "key": "today",
       "value": ""
     },
     {
@@ -85,7 +93,7 @@
       "value": ""
     },
     {
-      "key": "manualPlanId",
+      "key": "planStartDate",
       "value": ""
     },
     {
@@ -94,6 +102,10 @@
     },
     {
       "key": "shoppingItemId",
+      "value": ""
+    },
+    {
+      "key": "uploadUrl",
       "value": ""
     },
     {
@@ -119,6 +131,10 @@
     {
       "key": "commentId",
       "value": ""
+    },
+    {
+      "key": "reportId",
+      "value": ""
     }
   ],
   "item": [
@@ -126,7 +142,7 @@
       "name": "0. Health",
       "item": [
         {
-          "name": "Health check (DB + AI)",
+          "name": "Health check (DB + AI + storage)",
           "request": {
             "method": "GET",
             "header": [],
@@ -162,7 +178,7 @@
       "name": "1. Auth",
       "item": [
         {
-          "name": "Register",
+          "name": "Register (OTP)",
           "request": {
             "method": "POST",
             "header": [
@@ -182,7 +198,7 @@
                 "register"
               ]
             },
-            "description": "Đăng ký và tự lưu token vào {{token}}. Email tự sinh ngẫu nhiên (biến email); 409 nếu email đã tồn tại.",
+            "description": "Tạo tài khoản pending + gửi OTP. devOtp chỉ có khi Otp__ExposeOtpInResponse=true. Email chưa cấu hình → 503 EMAIL_NOT_CONFIGURED.",
             "auth": {
               "type": "noauth"
             },
@@ -203,8 +219,55 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.accessToken; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
-                  "try { const j = pm.response.json(); const v = j.user.id; if (v !== undefined && v !== null) pm.collectionVariables.set('userId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.devOtp; if (v !== undefined && v !== null) pm.collectionVariables.set('otp', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-code"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otpCode\": \"{{otp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.token; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.refreshToken; if (v !== undefined && v !== null) pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
                 ]
               }
             }
@@ -251,7 +314,57 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.accessToken; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.token; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.refreshToken; if (v !== undefined && v !== null) pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Rotation: refresh token cũ hết hiệu lực ngay. 401 + errors[0] = INVALID_REFRESH_TOKEN | REFRESH_TOKEN_EXPIRED | REFRESH_TOKEN_REUSED.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.token; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.refreshToken; if (v !== undefined && v !== null) pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
                 ]
               }
             }
@@ -307,6 +420,7 @@
                 "me"
               ]
             },
+            "description": "{ displayName?, avatarUrl? } — avatarUrl lấy từ POST /api/uploads (purpose=avatar), \"\" để bỏ ảnh.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"displayName\": \"Henry Veggie\"\n}",
@@ -350,10 +464,152 @@
                 "change-password"
               ]
             },
-            "description": "Ví dụ đổi sang chính mật khẩu cũ để không làm hỏng các request phía sau.",
+            "description": "Thu hồi mọi phiên cũ và trả cặp token mới (FE thay token đang lưu).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{password}}\"\n}",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"{{password}}-new\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.token; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.refreshToken; if (v !== undefined && v !== null) pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change password back",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}-new\",\n  \"newPassword\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.token; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.refreshToken; if (v !== undefined && v !== null) pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Luôn 200 (không lộ email có tồn tại). Mã OTP gửi qua email.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.devOtp; if (v !== undefined && v !== null) pm.collectionVariables.set('resetOtp', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Thành công → mọi phiên cũ bị thu hồi, cần Login lại.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otpCode\": \"{{resetOtp}}\",\n  \"newPassword\": \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -368,6 +624,54 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login again",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.token; if (v !== undefined && v !== null) pm.collectionVariables.set('token', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.refreshToken; if (v !== undefined && v !== null) pm.collectionVariables.set('refreshToken', v); } catch (e) {}"
                 ]
               }
             }
@@ -404,7 +708,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('allergyId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('allergyId', v); } catch (e) {}"
                 ]
               }
             }
@@ -442,7 +746,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('categoryId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('categoryId', v); } catch (e) {}"
                 ]
               }
             }
@@ -454,7 +758,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/ingredients?keyword=tofu&page=1&pageSize=20",
+              "raw": "{{baseUrl}}/api/ingredients?search=tofu&limit=20",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -464,19 +768,16 @@
               ],
               "query": [
                 {
-                  "key": "keyword",
+                  "key": "search",
                   "value": "tofu"
                 },
                 {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
+                  "key": "limit",
                   "value": "20"
                 }
               ]
             },
+            "description": "Tìm không phân biệt dấu/hoa thường.",
             "auth": {
               "type": "noauth"
             }
@@ -488,39 +789,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('ingredientId', v); } catch (e) {}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Ingredient detail",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/ingredients/{{ingredientId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "ingredients",
-                "{{ingredientId}}"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                  "try { const j = pm.response.json().data; const v = j[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('ingredientId', v); } catch (e) {}"
                 ]
               }
             }
@@ -600,7 +869,7 @@
             "description": "activityLevel: sedentary|light|moderate|active|very_active · healthGoal: loss|gain|maintain",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"gender\": \"male\",\n  \"dateOfBirth\": \"2003-05-10\",\n  \"heightCm\": 170,\n  \"weightKg\": 65,\n  \"activityLevel\": \"moderate\",\n  \"healthGoal\": \"maintain\",\n  \"allergyIds\": [\n    {{allergyId}}\n  ]\n}",
+              "raw": "{\n  \"gender\": \"male\",\n  \"dateOfBirth\": \"2003-05-10\",\n  \"heightCm\": 170,\n  \"weightKg\": 65,\n  \"activityLevel\": \"moderate\",\n  \"healthGoal\": \"maintain\",\n  \"allergyIds\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -700,7 +969,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"allergyIds\": [\n    {{allergyId}}\n  ]\n}",
+              "raw": "{\n  \"allergyIds\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -726,12 +995,12 @@
       "name": "4. Recipes",
       "item": [
         {
-          "name": "Search recipes",
+          "name": "All recipes (sorted)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/recipes?keyword=đậu&sort=protein_desc&page=1&pageSize=10",
+              "raw": "{{baseUrl}}/api/recipes?sort=protein",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -741,12 +1010,51 @@
               ],
               "query": [
                 {
-                  "key": "keyword",
+                  "key": "sort",
+                  "value": "protein"
+                }
+              ]
+            },
+            "description": "Không phân trang. sort: newest|oldest|popular|protein|kcal_asc|kcal_desc|title",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recipes paged",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recipes/paged?search=đậu&sort=protein&page=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recipes",
+                "paged"
+              ],
+              "query": [
+                {
+                  "key": "search",
                   "value": "đậu"
                 },
                 {
                   "key": "sort",
-                  "value": "protein_desc"
+                  "value": "protein"
                 },
                 {
                   "key": "page",
@@ -758,7 +1066,9 @@
                 }
               ]
             },
-            "description": "sort: newest|kcal_asc|kcal_desc|protein_desc|popular · lọc thêm: categoryId, maxKcal, minProtein, excludeMyAllergens"
+            "auth": {
+              "type": "noauth"
+            }
           },
           "event": [
             {
@@ -767,15 +1077,15 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('recipeId', v); } catch (e) {}",
-                  "try { const j = pm.response.json(); const v = j.items[1] && j.items[1].id; if (v !== undefined && v !== null) pm.collectionVariables.set('recipeId2', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = parseInt(String(j.items[0].id).replace(/^r/, '')); if (v !== undefined && v !== null) pm.collectionVariables.set('recipeId', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.items[1] && parseInt(String(j.items[1].id).replace(/^r/, '')); if (v !== undefined && v !== null) pm.collectionVariables.set('recipeId2', v); } catch (e) {}"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Recipe detail",
+          "name": "Recipe detail (isFavorite)",
           "request": {
             "method": "GET",
             "header": [],
@@ -789,7 +1099,8 @@
                 "recipes",
                 "{{recipeId}}"
               ]
-            }
+            },
+            "description": "Có token → isFavorite. Công thức chưa published: chỉ tác giả/staff xem được (người khác 404)."
           },
           "event": [
             {
@@ -809,7 +1120,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/recipes/suggest?ingredientIds=1&ingredientIds=3&take=10",
+              "raw": "{{baseUrl}}/api/recipes/suggest?ingredientIds={{ingredientId}}&take=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -821,11 +1132,7 @@
               "query": [
                 {
                   "key": "ingredientIds",
-                  "value": "1"
-                },
-                {
-                  "key": "ingredientIds",
-                  "value": "3"
+                  "value": "{{ingredientId}}"
                 },
                 {
                   "key": "take",
@@ -901,7 +1208,8 @@
                   "value": "20"
                 }
               ]
-            }
+            },
+            "description": "Chỉ món còn published."
           },
           "event": [
             {
@@ -961,20 +1269,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/generate",
+              "raw": "{{baseUrl}}/api/meal-plans/ai/generate",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "meal-plans",
+                "ai",
                 "generate"
               ]
             },
-            "description": "startDate mặc định = ngày mai; có thể thêm startDate, healthGoal, scanId. generatedBy = ai:<provider>/<model> hoặc rule-based (chưa có API key).",
+            "description": "Chỉ chọn món published, có nguyên liệu và không chứa chất dị ứng. generatedBy = ai:<provider>/<model> hoặc rule-based.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"days\": 7,\n  \"mealTypes\": [\n    \"breakfast\",\n    \"lunch\",\n    \"dinner\"\n  ],\n  \"note\": \"thích món Việt, ít dầu mỡ\",\n  \"preferredIngredientIds\": []\n}",
+              "raw": "{\n  \"days\": 3,\n  \"mealTypes\": [\n    \"breakfast\",\n    \"lunch\",\n    \"dinner\"\n  ],\n  \"note\": \"thích món Việt, ít dầu mỡ\",\n  \"preferredIngredientIds\": []\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -989,10 +1298,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.plan.id; if (v !== undefined && v !== null) pm.collectionVariables.set('planId', v); } catch (e) {}",
-                  "try { const j = pm.response.json(); const v = j.plan.days[0].meals[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('planItemId', v); } catch (e) {}",
-                  "try { const j = pm.response.json(); const v = j.plan.days[0].meals[1] && j.plan.days[0].meals[1].id; if (v !== undefined && v !== null) pm.collectionVariables.set('planItemId2', v); } catch (e) {}",
-                  "pm.test('Có generatedBy', () => pm.expect(pm.response.json().generatedBy).to.be.a('string'));"
+                  "try { const j = pm.response.json().data; const v = j.plan.id; if (v !== undefined && v !== null) pm.collectionVariables.set('planId', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.plan.days[0].meals[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('planItemId', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.plan.days[0].meals[1] && j.plan.days[0].meals[1].id; if (v !== undefined && v !== null) pm.collectionVariables.set('planItemId2', v); } catch (e) {}",
+                  "try { const j = pm.response.json().data; const v = j.plan.startDate; if (v !== undefined && v !== null) pm.collectionVariables.set('planStartDate', v); } catch (e) {}"
                 ]
               }
             }
@@ -1009,13 +1318,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/{{planId}}/items/{{planItemId2}}/swap",
+              "raw": "{{baseUrl}}/api/meal-plans/ai/{{planId}}/items/{{planItemId2}}/swap",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "meal-plans",
+                "ai",
                 "{{planId}}",
                 "items",
                 "{{planItemId2}}",
@@ -1045,12 +1355,181 @@
           ]
         },
         {
+          "name": "Swap to a chosen recipe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meal-plans/ai/{{planId}}/items/{{planItemId2}}/swap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "meal-plans",
+                "ai",
+                "{{planId}}",
+                "items",
+                "{{planItemId2}}",
+                "swap"
+              ]
+            },
+            "description": "recipeId/servings tùy chọn. Danh sách đi chợ (nếu có) tự cập nhật.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipeId\": {{recipeId2}},\n  \"servings\": 1.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meal-plans/{{planId}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "meal-plans",
+                "{{planId}}",
+                "items"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planDate\": \"{{planStartDate}}\",\n  \"mealType\": \"snack\",\n  \"recipeId\": {{recipeId}},\n  \"servings\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const d = pm.response.json().data; const m = d.days.flatMap(x => x.meals).filter(x => x.mealType === 'snack'); if (m.length) pm.collectionVariables.set('manualItemId', m[m.length - 1].id); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meal-plans/{{planId}}/items/{{manualItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "meal-plans",
+                "{{planId}}",
+                "items",
+                "{{manualItemId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servings\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/meal-plans/{{planId}}/items/{{manualItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "meal-plans",
+                "{{planId}}",
+                "items",
+                "{{manualItemId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "List my plans",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/meal-plans?page=1&pageSize=10",
+              "raw": "{{baseUrl}}/api/meal-plans?status=all&page=1&pageSize=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1059,6 +1538,10 @@
                 "meal-plans"
               ],
               "query": [
+                {
+                  "key": "status",
+                  "value": "all"
+                },
                 {
                   "key": "page",
                   "value": "1"
@@ -1172,200 +1655,7 @@
                 "current"
               ]
             },
-            "description": "204 No Content nếu hôm nay không có thực đơn."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Create manual plan",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/meal-plans",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "meal-plans"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"startDate\": \"2026-12-01\",\n  \"endDate\": \"2026-12-02\",\n  \"healthGoal\": \"maintain\",\n  \"items\": [\n    {\n      \"recipeId\": {{recipeId}},\n      \"planDate\": \"2026-12-01\",\n      \"mealType\": \"lunch\",\n      \"servings\": 1\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('manualPlanId', v); } catch (e) {}",
-                  "try { const j = pm.response.json(); const v = j.days[0].meals[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('manualItemId', v); } catch (e) {}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Add item",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/{{manualPlanId}}/items",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "meal-plans",
-                "{{manualPlanId}}",
-                "items"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"recipeId\": {{recipeId2}},\n  \"planDate\": \"2026-12-02\",\n  \"mealType\": \"dinner\",\n  \"servings\": 1.5\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Update item",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/{{manualPlanId}}/items/{{manualItemId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "meal-plans",
-                "{{manualPlanId}}",
-                "items",
-                "{{manualItemId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"servings\": 2\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Remove item",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/{{manualPlanId}}/items/{{manualItemId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "meal-plans",
-                "{{manualPlanId}}",
-                "items",
-                "{{manualItemId}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Delete manual plan",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/{{manualPlanId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "meal-plans",
-                "{{manualPlanId}}"
-              ]
-            }
+            "description": "204 No Content nếu không có thực đơn active."
           },
           "event": [
             {
@@ -1409,7 +1699,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('shoppingItemId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('shoppingItemId', v); } catch (e) {}"
                 ]
               }
             }
@@ -1494,8 +1784,98 @@
       ]
     },
     {
-      "name": "7. Scan image (AI vision)",
+      "name": "7. Uploads & scan",
       "item": [
+        {
+          "name": "Upload file",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "uploads"
+              ]
+            },
+            "description": "Trả { url, contentType, size, kind, durable }.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Ảnh ≤ 8MB hoặc video MP4/WEBM/MOV ≤ 50MB (purpose=post)"
+                },
+                {
+                  "key": "purpose",
+                  "value": "avatar",
+                  "type": "text",
+                  "description": "post | avatar | recipe"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.url; if (v !== undefined && v !== null) pm.collectionVariables.set('uploadUrl', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set avatar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"avatarUrl\": \"{{uploadUrl}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "AI - Scan image",
           "request": {
@@ -1511,7 +1891,6 @@
                 "scans"
               ]
             },
-            "description": "Tab Body → form-data → key image → Select Files chọn ảnh rau củ/món ăn rồi Send. Trả về detectedItems, suggestedRecipes, suggestedMenu.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1531,7 +1910,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.scanId; if (v !== undefined && v !== null) pm.collectionVariables.set('scanId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.scanId; if (v !== undefined && v !== null) pm.collectionVariables.set('scanId', v); } catch (e) {}"
                 ]
               }
             }
@@ -1559,10 +1938,9 @@
                 "confirm"
               ]
             },
-            "description": "Sửa tay danh sách nguyên liệu khi AI nhận sai hoặc chưa có API key.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ingredientIds\": [\n    1,\n    3,\n    8\n  ]\n}",
+              "raw": "{\n  \"ingredientIds\": [\n    {{ingredientId}}\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1660,13 +2038,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/meal-plans/generate",
+              "raw": "{{baseUrl}}/api/meal-plans/ai/generate",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "meal-plans",
+                "ai",
                 "generate"
               ]
             },
@@ -1678,6 +2057,35 @@
                   "language": "json"
                 }
               }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete scan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/scans/{{scanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "scans",
+                "{{scanId}}"
+              ]
             }
           },
           "event": [
@@ -1718,7 +2126,6 @@
                 "sessions"
               ]
             },
-            "description": "Truyền planId (số) để hỏi AI về thực đơn đó.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"planId\": null\n}",
@@ -1736,7 +2143,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('chatSessionId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('chatSessionId', v); } catch (e) {}"
                 ]
               }
             }
@@ -1765,6 +2172,7 @@
                 "messages"
               ]
             },
+            "description": "AI lỗi/chưa cấu hình → 503 + errors[0] = AI_UNAVAILABLE | AI_NOT_CONFIGURED (không lưu câu báo lỗi).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"content\": \"Người ăn chay như tôi có cần bổ sung B12 không? Gợi ý món giàu sắt.\"\n}",
@@ -1903,6 +2311,7 @@
                 "logs"
               ]
             },
+            "description": "Thực đơn mặc định bắt đầu từ ngày mai → 400 (không ghi bữa cho ngày tương lai) cho tới ngày đó.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"planItemId\": {{planItemId}}\n}",
@@ -1919,8 +2328,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('mealLogId', v); } catch (e) {}"
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
                 ]
               }
             }
@@ -1950,6 +2358,51 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"recipeId\": {{recipeId}},\n  \"mealType\": \"lunch\",\n  \"servings\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('mealLogId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update log",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/nutrition/logs/{{mealLogId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "nutrition",
+                "logs",
+                "{{mealLogId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servings\": 1.5,\n  \"mealType\": \"dinner\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2140,7 +2593,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.items[0] && j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('notificationId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.items[0] && j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('notificationId', v); } catch (e) {}"
                 ]
               }
             }
@@ -2364,7 +2817,52 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('postId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('postId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit my post",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/community/posts/{{postId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "community",
+                "posts",
+                "{{postId}}"
+              ]
+            },
+            "description": "Chỉ tác giả. Bài quay về pending để duyệt lại; bài bị từ chối cũng sửa rồi gửi lại được.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Món chay giàu đạm (bản sửa)\",\n  \"content\": \"Nội dung đã cập nhật\",\n  \"recipeId\": {{recipeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
                 ]
               }
             }
@@ -2400,6 +2898,7 @@
                 }
               ]
             },
+            "description": "Mỗi bài có excerpt, authorId, canEdit, canDelete.",
             "auth": {
               "type": "noauth"
             }
@@ -2422,7 +2921,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/community/posts/mine",
+              "raw": "{{baseUrl}}/api/community/posts/mine?page=1&pageSize=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2431,8 +2930,19 @@
                 "community",
                 "posts",
                 "mine"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
               ]
-            }
+            },
+            "description": "Kèm moderation { decision, note, reviewedAt } và updatedAt."
           },
           "event": [
             {
@@ -2477,6 +2987,50 @@
           ]
         },
         {
+          "name": "Comments (paged)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/community/posts/{{postId}}/comments?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "community",
+                "posts",
+                "{{postId}}",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Comment (post must be published)",
           "request": {
             "method": "POST",
@@ -2499,7 +3053,7 @@
                 "comments"
               ]
             },
-            "description": "Bài mới tạo ở trạng thái pending nên sẽ 404 cho tới khi được duyệt.",
+            "description": "Bài pending trả 400 cho tới khi được duyệt.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"content\": \"Hay quá!\"\n}",
@@ -2517,7 +3071,51 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "try { const j = pm.response.json(); const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('commentId', v); } catch (e) {}"
+                  "try { const j = pm.response.json().data; const v = j.id; if (v !== undefined && v !== null) pm.collectionVariables.set('commentId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit comment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/community/comments/{{commentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "community",
+                "comments",
+                "{{commentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Hay quá, cảm ơn bạn!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
                 ]
               }
             }
@@ -2643,6 +3241,46 @@
           ]
         },
         {
+          "name": "My reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/community/reports/mine?page=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "community",
+                "reports",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Delete my post",
           "request": {
             "method": "DELETE",
@@ -2667,6 +3305,254 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13. Staff (admin/moderator token)",
+      "item": [
+        {
+          "name": "Pending moderation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/moderation/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "moderation",
+                "pending"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/moderation/{{postId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "moderation",
+                "{{postId}}",
+                "approve"
+              ]
+            },
+            "description": "Tác giả nhận thông báo post_review.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Đạt chuẩn\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reports (open)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/moderation/reports?status=open&page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "moderation",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "try { const j = pm.response.json().data; const v = j.items[0] && j.items[0].id; if (v !== undefined && v !== null) pm.collectionVariables.set('reportId', v); } catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Handle report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/moderation/reports/{{reportId}}/handle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "moderation",
+                "reports",
+                "{{reportId}}",
+                "handle"
+              ]
+            },
+            "description": "status: resolved|dismissed. Người báo cáo nhận thông báo report_result.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"removeContent\": false,\n  \"note\": \"Đã xem xét\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "14. Logout",
+      "item": [
+        {
+          "name": "Logout (all devices)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Thu hồi mọi access/refresh token. Sau đó Me trả 401 SESSION_REVOKED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me after logout (expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.expect(pm.response.code).to.eql(401));",
+                  "pm.test('401 SESSION_REVOKED', () => pm.expect(pm.response.json().errors[0]).to.eql('SESSION_REVOKED'));"
                 ]
               }
             }

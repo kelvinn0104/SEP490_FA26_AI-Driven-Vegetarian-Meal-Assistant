@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -68,13 +70,13 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IModerationRepository, ModerationRepository>();
 builder.Services.AddScoped<IAiModelRepository, AiModelRepository>();
 
-// Email OTP verification (IMemoryCache + SMTP)
+// Email OTP verification (bảng EmailOtp + SMTP/Brevo/Resend)
 builder.Services.AddMemoryCache();
 builder.Services.Configure<VeggieAI.Model.DTOs.EmailOptions>(
     builder.Configuration.GetSection(VeggieAI.Model.DTOs.EmailOptions.Section));
 builder.Services.Configure<VeggieAI.Model.DTOs.OtpOptions>(
     builder.Configuration.GetSection(VeggieAI.Model.DTOs.OtpOptions.Section));
-builder.Services.AddSingleton<IOtpService, OtpService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 
 // Business Services
@@ -100,6 +102,8 @@ builder.Services.AddScoped<INutritionService, NutritionService>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IVeganShopService, VeganShopService>();
+builder.Services.AddScoped<IUploadService, UploadService>();
+builder.Services.AddScoped<IIngredientCatalogService, IngredientCatalogService>();
 
 // AI services (Gemini/OpenAI)
 builder.Services.Configure<VeggieAI.Model.DTOs.AiOptions>(
@@ -107,7 +111,18 @@ builder.Services.Configure<VeggieAI.Model.DTOs.AiOptions>(
 builder.Services.AddHttpClient<VeggieAI.Service.Services.AI.GeminiProvider>();
 builder.Services.AddHttpClient<VeggieAI.Service.Services.AI.OpenAiProvider>();
 builder.Services.AddScoped<VeggieAI.Service.Services.AI.ILlmClient, VeggieAI.Service.Services.AI.LlmClient>();
-builder.Services.AddSingleton<VeggieAI.Service.Services.AI.IFileStorage, VeggieAI.Service.Services.AI.LocalFileStorage>();
+// Lưu file: Storage:Provider = cloudinary (bền qua redeploy, nên dùng trên Render) | local (mặc định, ổ đĩa server)
+var storageProvider = (builder.Configuration["Storage:Provider"] ?? "local").Trim().ToLowerInvariant();
+if (storageProvider == "cloudinary" && VeggieAI.Service.Services.AI.CloudinaryFileStorage.IsConfigured(builder.Configuration))
+{
+    builder.Services.AddSingleton<VeggieAI.Service.Services.AI.IFileStorage, VeggieAI.Service.Services.AI.CloudinaryFileStorage>();
+}
+else
+{
+    if (storageProvider == "cloudinary")
+        Console.WriteLine("[Storage CẢNH BÁO] Storage:Provider=cloudinary nhưng thiếu CloudName/ApiKey/ApiSecret → dùng ổ đĩa local.");
+    builder.Services.AddSingleton<VeggieAI.Service.Services.AI.IFileStorage, VeggieAI.Service.Services.AI.LocalFileStorage>();
+}
 builder.Services.AddScoped<VeggieAI.Service.Services.AI.IAiMealPlanner, VeggieAI.Service.Services.AI.AiMealPlanner>();
 builder.Services.AddScoped<VeggieAI.Service.Services.AI.IChatService, VeggieAI.Service.Services.AI.ChatService>();
 builder.Services.AddScoped<VeggieAI.Service.Services.AI.IIngredientScanService, VeggieAI.Service.Services.AI.IngredientScanService>();
@@ -131,6 +146,73 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "VeggieAIClient",
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ClockSkew = TimeSpan.Zero
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        // Token hợp lệ về chữ ký vẫn bị từ chối nếu tài khoản đã đăng xuất / đổi mật khẩu / bị khóa (TokenVersion đổi)
+        OnTokenValidated = async ctx =>
+        {
+            var principal = ctx.Principal;
+            if (!int.TryParse(principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            {
+                ctx.Fail("TOKEN_INVALID");
+                return;
+            }
+            var tokenVersion = int.TryParse(principal!.FindFirstValue(AuthService.TokenVersionClaim), out var tv) ? tv : 0;
+
+            var db = ctx.HttpContext.RequestServices.GetRequiredService<VeggieAIDbContext>();
+            var user = await db.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.Status, u.TokenVersion })
+                .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
+
+            if (user is null || user.TokenVersion != tokenVersion)
+            {
+                ctx.HttpContext.Items["auth_error"] = "SESSION_REVOKED";
+                ctx.Fail("SESSION_REVOKED");
+            }
+            else if (user.Status != AuthService.StatusActive)
+            {
+                ctx.HttpContext.Items["auth_error"] = "ACCOUNT_LOCKED";
+                ctx.Fail("ACCOUNT_LOCKED");
+            }
+        },
+        OnAuthenticationFailed = ctx =>
+        {
+            if (!ctx.HttpContext.Items.ContainsKey("auth_error"))
+            {
+                ctx.HttpContext.Items["auth_error"] = ctx.Exception is SecurityTokenExpiredException ? "TOKEN_EXPIRED" : "TOKEN_INVALID";
+            }
+            return Task.CompletedTask;
+        },
+        // 401 trả JSON ApiResponse thống nhất; errors[0] cho FE biết nên gọi /api/Auth/refresh (TOKEN_EXPIRED) hay đăng nhập lại
+        OnChallenge = async ctx =>
+        {
+            ctx.HandleResponse();
+            var code = ctx.HttpContext.Items["auth_error"] as string ?? "UNAUTHORIZED";
+            var message = code switch
+            {
+                "TOKEN_EXPIRED" => "Phiên đăng nhập đã hết hạn.",
+                "SESSION_REVOKED" => "Phiên đăng nhập đã bị thu hồi, vui lòng đăng nhập lại.",
+                "ACCOUNT_LOCKED" => "Tài khoản đã bị khóa hoặc chưa kích hoạt.",
+                "TOKEN_INVALID" => "Token không hợp lệ.",
+                _ => "Bạn cần đăng nhập."
+            };
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync(JsonSerializer.Serialize(
+                VeggieAI.Model.DTOs.ApiResponse<object>.Fail(message, new List<string> { code }),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        },
+        OnForbidden = async ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync(JsonSerializer.Serialize(
+                VeggieAI.Model.DTOs.ApiResponse<object>.Fail("Bạn không có quyền thực hiện thao tác này.", new List<string> { "FORBIDDEN" }),
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        }
     };
 });
 builder.Services.AddAuthorization();
@@ -189,6 +271,15 @@ using (var scope = app.Services.CreateScope())
         if (canConnectToPostgres)
         {
             context.Database.EnsureCreated();
+            try
+            {
+                // Thêm cột/bảng mới cho DB đã tồn tại (TokenVersion, AvatarUrl, ViewCount, RefreshToken, EmailOtp...)
+                DatabaseSchemaUpgrader.Upgrade(context);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Không nâng cấp được schema — hãy chạy database/migrations/20261106_api_audit_fixes.sql thủ công.");
+            }
             try
             {
                 // Cho phép trạng thái 'pending' (chờ xác thực email OTP) trên bảng User

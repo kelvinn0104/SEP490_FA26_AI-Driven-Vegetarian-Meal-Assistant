@@ -41,6 +41,7 @@ public interface IIngredientScanService
     Task<ScanResultDto> ConfirmAsync(int userId, int scanId, List<int> ingredientIds, CancellationToken ct = default);
     Task<ScanResultDto> GetAsync(int userId, int scanId, CancellationToken ct = default);
     Task<PagedResult<ScanSummaryDto>> GetHistoryAsync(int userId, PageQuery page, CancellationToken ct = default);
+    Task DeleteAsync(int userId, int scanId, CancellationToken ct = default);
 
     /// <summary>Gợi ý công thức theo danh sách nguyên liệu có sẵn (userId = null → khách, không lọc dị ứng).</summary>
     Task<IReadOnlyList<RecipeSuggestionDto>> SuggestRecipesAsync(int? userId, IReadOnlyCollection<int> ingredientIds, int take, CancellationToken ct = default);
@@ -75,6 +76,8 @@ public class IngredientScanService : IIngredientScanService
         await image.CopyToAsync(ms, ct);
         var bytes = ms.ToArray();
         if (bytes.Length == 0) throw new AppException("File ảnh rỗng.");
+        if (FileSignatures.Detect(bytes) is not { IsImage: true })
+            throw new AppException("File không phải ảnh hợp lệ (JPEG, PNG, WEBP, HEIC).", 400, "INVALID_FILE");
         ms.Position = 0;
         var url = await _storage.SaveAsync(ms, fileName, "scans", ct);
 
@@ -149,6 +152,16 @@ public class IngredientScanService : IIngredientScanService
             return new ScanSummaryDto(s.Id, s.ImageUrl, s.CreatedAt, p.Items.Count, names);
         }).ToList();
         return new PagedResult<ScanSummaryDto> { Items = items, Page = page.Page, PageSize = page.PageSize, TotalCount = total };
+    }
+
+    public async Task DeleteAsync(int userId, int scanId, CancellationToken ct = default)
+    {
+        var scan = await _db.IngredientScans.FirstOrDefaultAsync(s => s.Id == scanId && s.UserId == userId, ct)
+                   ?? throw AppException.NotFound("Lượt quét");
+        var url = scan.ImageUrl;
+        _db.IngredientScans.Remove(scan);
+        await _db.SaveChangesAsync(ct);
+        await _storage.DeleteAsync(url, ct);
     }
 
     private async Task<ScanPayload> RecognizeAsync(int userId, byte[] bytes, string mime, CancellationToken ct)

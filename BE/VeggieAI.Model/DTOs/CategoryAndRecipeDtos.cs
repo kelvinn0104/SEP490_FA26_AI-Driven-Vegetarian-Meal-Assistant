@@ -42,6 +42,8 @@ public class RecipeDto
     public string Category { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public string PublishedAt { get; set; } = string.Empty;
+
+    /// <summary>Lượt xem chi tiết thật (Recipe.ViewCount).</summary>
     public int Views { get; set; }
     public string Status { get; set; } = "published";
     public string? ImageUrl { get; set; }
@@ -58,6 +60,21 @@ public class RecipeDto
 
     /// <summary>Chỉ trả ở GET /api/recipes/{id} (null ở danh sách).</summary>
     public List<RecipeIngredientDto>? Ingredients { get; set; }
+
+    /// <summary>
+    /// Người đang đăng nhập đã lưu món này chưa. Có ở GET /api/Recipes/{id} khi gửi kèm token
+    /// và luôn = true ở GET /api/Recipes/favorites; null khi là khách.
+    /// </summary>
+    public bool? IsFavorite { get; set; }
+}
+
+/// <summary>sort: newest (mặc định) | oldest | popular | protein | kcal_asc | kcal_desc | title.</summary>
+public class RecipeQuery
+{
+    public string? Search { get; set; }
+    public string? Status { get; set; }
+    public int? CategoryId { get; set; }
+    public string? Sort { get; set; }
 }
 
 public class RecipeIngredientDto

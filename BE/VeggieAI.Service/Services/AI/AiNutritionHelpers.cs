@@ -106,6 +106,16 @@ public static class AiMappers
 
         return ingredientIds.ToHashSet();
     }
+
+    /// <summary>
+    /// Công thức được phép đưa vào thực đơn của người dùng: đã published, có dinh dưỡng, CÓ ÍT NHẤT 1 NGUYÊN LIỆU
+    /// (món không có dòng nguyên liệu sẽ lọt bộ lọc dị ứng) và không chứa nguyên liệu gây dị ứng.
+    /// </summary>
+    public static IQueryable<Recipe> EligibleForPlan(this IQueryable<Recipe> recipes, HashSet<int> allergenIngredientIds) =>
+        recipes
+            .Where(r => r.Status == "published" && r.KcalPerServing > 0)
+            .Where(r => r.RecipeIngredients.Any())
+            .Where(r => !r.RecipeIngredients.Any(ri => allergenIngredientIds.Contains(ri.IngredientId)));
 }
 
 /// <summary>

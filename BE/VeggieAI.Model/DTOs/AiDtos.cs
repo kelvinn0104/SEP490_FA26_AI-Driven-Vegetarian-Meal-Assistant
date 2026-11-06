@@ -49,6 +49,12 @@ public class PageQuery
     public int Page { get => _page; set => _page = value < 1 ? 1 : value; }
     public int PageSize { get => _pageSize; set => _pageSize = value is < 1 or > 100 ? 20 : value; }
     public int Skip => (Page - 1) * PageSize;
+
+    /// <summary>
+    /// Controller nhận ?page=&amp;pageSize= dạng tham số thường rồi tạo PageQuery.
+    /// (Bind thẳng [FromQuery] PageQuery khiến ASP.NET chỉ nhận page.Page/page.PageSize và bỏ qua ?page=2.)
+    /// </summary>
+    public static PageQuery Of(int? page, int? pageSize) => new() { Page = page ?? 1, PageSize = pageSize ?? 20 };
 }
 
 // ---------------- AppException ----------------
@@ -57,11 +63,20 @@ public class PageQuery
 public class AppException : Exception
 {
     public int StatusCode { get; }
-    public AppException(string message, int statusCode = 400) : base(message) => StatusCode = statusCode;
-    public static AppException NotFound(string what) => new($"{what} không tồn tại.", 404);
-    public static AppException Forbidden(string message = "Bạn không có quyền thực hiện thao tác này.") => new(message, 403);
-    public static AppException Conflict(string message) => new(message, 409);
-    public static AppException Unauthorized(string message) => new(message, 401);
+
+    /// <summary>Mã lỗi máy đọc được (trả trong errors[0]) để FE xử lý, ví dụ AI_UNAVAILABLE, INVALID_REFRESH_TOKEN.</summary>
+    public string? ErrorCode { get; }
+
+    public AppException(string message, int statusCode = 400, string? errorCode = null) : base(message)
+    {
+        StatusCode = statusCode;
+        ErrorCode = errorCode;
+    }
+
+    public static AppException NotFound(string what) => new($"{what} không tồn tại.", 404, "NOT_FOUND");
+    public static AppException Forbidden(string message = "Bạn không có quyền thực hiện thao tác này.") => new(message, 403, "FORBIDDEN");
+    public static AppException Conflict(string message) => new(message, 409, "CONFLICT");
+    public static AppException Unauthorized(string message) => new(message, 401, "UNAUTHORIZED");
 }
 
 // ---------------- LLM ----------------
@@ -168,6 +183,38 @@ public class GenerateMealPlanRequest
 public class SwapMealRequest
 {
     [MaxLength(300)] public string? Reason { get; set; }
+
+    /// <summary>Món thay thế người dùng tự chọn. Bỏ trống → AI/rule-based chọn giúp.</summary>
+    public int? RecipeId { get; set; }
+
+    /// <summary>Khẩu phần mới (0.25–5). Bỏ trống → tự tính để giữ năng lượng xấp xỉ món cũ.</summary>
+    [Range(0.25, 5.0)] public decimal? Servings { get; set; }
+}
+
+/// <summary>Thêm món thủ công vào thực đơn.</summary>
+public class AddMealPlanItemRequest
+{
+    [Required] public DateOnly PlanDate { get; set; }
+
+    [Required, RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
+    public string MealType { get; set; } = "lunch";
+
+    [Required] public int RecipeId { get; set; }
+
+    [Range(0.25, 5.0)] public decimal Servings { get; set; } = 1;
+}
+
+/// <summary>Sửa một món trong thực đơn — chỉ gửi trường cần đổi.</summary>
+public class UpdateMealPlanItemRequest
+{
+    [RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
+    public string? MealType { get; set; }
+
+    public DateOnly? PlanDate { get; set; }
+
+    public int? RecipeId { get; set; }
+
+    [Range(0.25, 5.0)] public decimal? Servings { get; set; }
 }
 
 public record MealPlanItemDto(int Id, DateOnly PlanDate, string MealType, decimal Servings,

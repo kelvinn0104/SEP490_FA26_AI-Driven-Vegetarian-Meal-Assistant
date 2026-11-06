@@ -124,8 +124,14 @@ public class CategoryService : ICategoryService
 
 public interface IRecipeService
 {
-    Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null);
-    Task<RecipeDto?> GetRecipeByIdAsync(string id);
+    Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null, string? sort = null);
+    Task<PagedResult<RecipeDto>> GetRecipesPagedAsync(RecipeQuery query, PageQuery page);
+
+    /// <summary>
+    /// Chi tiết công thức. Công thức chưa published chỉ tác giả hoặc staff xem được (người khác nhận null → 404).
+    /// viewerId != null → điền IsFavorite. Công thức published được tăng ViewCount.
+    /// </summary>
+    Task<RecipeDto?> GetRecipeByIdAsync(string id, int? viewerId = null, bool viewerIsStaff = false);
     Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId, string? creatorRole);
     Task<bool> UpdateRecipeStatusAsync(string id, string status, int verifierId);
     Task<bool> DeleteRecipeAsync(string id);
@@ -143,17 +149,72 @@ public class RecipeService : IRecipeService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null)
+    public async Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null, string? sort = null)
     {
         var recipes = await _unitOfWork.Recipes.GetRecipesWithCategoryAsync(search, status, categoryId);
-        return recipes.Select(MapRecipeToDto).ToList();
+        return ApplySort(recipes.AsQueryable(), sort).Select(MapRecipeToDto).ToList();
     }
 
-    public async Task<RecipeDto?> GetRecipeByIdAsync(string id)
+    public async Task<PagedResult<RecipeDto>> GetRecipesPagedAsync(RecipeQuery query, PageQuery page)
+    {
+        var q = _unitOfWork.Context.Recipes.AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.Creator)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = query.Search.Trim().ToLower();
+            q = q.Where(r => r.Title.ToLower().Contains(s) || (r.Creator != null && r.Creator.DisplayName.ToLower().Contains(s)));
+        }
+        if (!string.IsNullOrWhiteSpace(query.Status) && query.Status != "all")
+            q = q.Where(r => r.Status == query.Status);
+        if (query.CategoryId is > 0)
+            q = q.Where(r => r.CategoryId == query.CategoryId.Value);
+
+        var total = await q.CountAsync();
+        var rows = await ApplySort(q, query.Sort).Skip(page.Skip).Take(page.PageSize).ToListAsync();
+        return new PagedResult<RecipeDto>
+        {
+            Items = rows.Select(MapRecipeToDto).ToList(),
+            TotalCount = total,
+            Page = page.Page,
+            PageSize = page.PageSize
+        };
+    }
+
+    private static IQueryable<Recipe> ApplySort(IQueryable<Recipe> q, string? sort) =>
+        (sort ?? "newest").Trim().ToLowerInvariant() switch
+        {
+            "oldest" => q.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id),
+            "popular" or "views" => q.OrderByDescending(r => r.ViewCount).ThenByDescending(r => r.CreatedAt),
+            "protein" => q.OrderByDescending(r => r.ProteinG).ThenBy(r => r.KcalPerServing),
+            "kcal_asc" or "kcal" => q.OrderBy(r => r.KcalPerServing).ThenByDescending(r => r.ProteinG),
+            "kcal_desc" => q.OrderByDescending(r => r.KcalPerServing),
+            "title" => q.OrderBy(r => r.Title),
+            _ => q.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id),
+        };
+
+    public async Task<RecipeDto?> GetRecipeByIdAsync(string id, int? viewerId = null, bool viewerIsStaff = false)
     {
         var intId = ParseRecipeId(id);
         var r = await _unitOfWork.Recipes.GetRecipeDetailAsync(intId);
-        return r == null ? null : MapRecipeToDto(r, includeIngredients: true);
+        if (r == null) return null;
+
+        // Công thức nháp / chờ duyệt / đã ẩn: chỉ tác giả hoặc admin/moderator được xem
+        if (r.Status != "published" && !viewerIsStaff && r.CreatedBy != viewerId) return null;
+
+        if (r.Status == "published")
+        {
+            r.ViewCount++;
+            try { await _unitOfWork.CommitAsync(); }
+            catch (DbUpdateException) { /* đếm lượt xem không được làm hỏng request đọc */ }
+        }
+
+        var dto = MapRecipeToDto(r, includeIngredients: true);
+        if (viewerId is int uid)
+            dto.IsFavorite = await _unitOfWork.Context.Favorites.AnyAsync(f => f.UserId == uid && f.RecipeId == r.Id);
+        return dto;
     }
 
     private static readonly HashSet<string> AllowedStatuses = new(StringComparer.Ordinal)
@@ -192,6 +253,12 @@ public class RecipeService : IRecipeService
         var isStaff = AppRoles.IsStaff(creatorRole);
         var now = DateTime.UtcNow;
 
+        // Công thức không có nguyên liệu thì không tính được dinh dưỡng và lọt bộ lọc dị ứng:
+        // user thường bắt buộc nhập nguyên liệu, staff được lưu nháp (draft) rồi bổ sung sau.
+        if (items.Count == 0 && !isStaff)
+            throw new InvalidOperationException("Công thức cần ít nhất 1 nguyên liệu.");
+        var publishNow = isStaff && items.Count > 0;
+
         var recipe = new Recipe
         {
             Title = title,
@@ -200,9 +267,9 @@ public class RecipeService : IRecipeService
             ImageUrl = request.ImageUrl,
             Instructions = request.Instructions,
             Servings = servings,
-            Status = isStaff ? "published" : "pending_verification",
-            VerifiedBy = isStaff ? creatorId : null,
-            VerifiedAt = isStaff ? now : null,
+            Status = publishNow ? "published" : isStaff ? "draft" : "pending_verification",
+            VerifiedBy = publishNow ? creatorId : null,
+            VerifiedAt = publishNow ? now : null,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -254,8 +321,17 @@ public class RecipeService : IRecipeService
         if (normalized == "published")
         {
             if (verifierId <= 0) throw new UnauthorizedAccessException("Không xác định được người duyệt.");
+            await EnsurePublishableAsync(recipe);
             recipe.VerifiedBy = verifierId;
             recipe.VerifiedAt = DateTime.UtcNow;
+        }
+
+        var previous = _unitOfWork.Context.Entry(recipe).Property(r => r.Status).OriginalValue;
+        if (previous != normalized && recipe.CreatedBy != verifierId && normalized is "published" or "hidden")
+        {
+            Notifier.Queue(_unitOfWork.Context, recipe.CreatedBy, NotificationTypes.PostReview, normalized == "published"
+                ? $"Công thức {Notifier.Quote(recipe.Title)} của bạn đã được duyệt và xuất bản."
+                : $"Công thức {Notifier.Quote(recipe.Title)} của bạn đã bị ẩn khỏi danh mục.");
         }
 
         _unitOfWork.Recipes.Update(recipe);
@@ -286,6 +362,16 @@ public class RecipeService : IRecipeService
         }
     }
 
+    /// <summary>Chỉ cho publish công thức đã có nguyên liệu và dinh dưỡng (để bộ lọc dị ứng và tính kcal hoạt động đúng).</summary>
+    private async Task EnsurePublishableAsync(Recipe recipe)
+    {
+        var hasIngredients = await _unitOfWork.Context.RecipeIngredients.AnyAsync(ri => ri.RecipeId == recipe.Id);
+        if (!hasIngredients)
+            throw new AppException("Công thức chưa có nguyên liệu nên chưa thể xuất bản.", 400, "RECIPE_MISSING_INGREDIENTS");
+        if (recipe.KcalPerServing <= 0)
+            throw new AppException("Công thức chưa có dữ liệu dinh dưỡng nên chưa thể xuất bản.", 400, "RECIPE_MISSING_NUTRITION");
+    }
+
     // ---------------- Favorites ----------------
 
     public async Task<PagedResult<RecipeDto>> GetFavoritesAsync(int userId, int page, int pageSize)
@@ -294,7 +380,9 @@ public class RecipeService : IRecipeService
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
         var db = _unitOfWork.Context;
 
-        var baseQuery = db.Favorites.AsNoTracking().Where(f => f.UserId == userId);
+        // Chỉ trả món còn published: món đã ẩn/gỡ không lộ hướng dẫn nấu cho người dùng thường
+        var baseQuery = db.Favorites.AsNoTracking()
+            .Where(f => f.UserId == userId && f.Recipe != null && f.Recipe.Status == "published");
         var total = await baseQuery.CountAsync();
         var ids = await baseQuery
             .OrderByDescending(f => f.CreatedAt)
@@ -311,8 +399,13 @@ public class RecipeService : IRecipeService
         return new PagedResult<RecipeDto>
         {
             Items = ids.Select(id => recipes.FirstOrDefault(r => r.Id == id))
-                .Where(r => r != null)
-                .Select(r => MapRecipeToDto(r!))
+                .Where(r => r != null && r.Status == "published")
+                .Select(r =>
+                {
+                    var dto = MapRecipeToDto(r!);
+                    dto.IsFavorite = true;
+                    return dto;
+                })
                 .ToList(),
             TotalCount = total,
             Page = page,
@@ -354,7 +447,7 @@ public class RecipeService : IRecipeService
             Category = r.Category?.Name ?? "Món chay",
             CategoryId = r.CategoryId,
             PublishedAt = r.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-            Views = 850 + r.Id * 120,
+            Views = r.ViewCount,
             Status = r.Status,
             ImageUrl = r.ImageUrl,
             Servings = r.Servings,

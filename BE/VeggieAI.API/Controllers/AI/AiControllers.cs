@@ -60,11 +60,20 @@ public class ScansController : AiApiControllerBase
         return Ok(ApiResponse<ScanResultDto>.Ok(result));
     }
 
+    /// <summary>Lịch sử quét: ?page=1&amp;pageSize=20.</summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PagedResult<ScanSummaryDto>>>> History([FromQuery] PageQuery page, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<PagedResult<ScanSummaryDto>>>> History([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.GetHistoryAsync(UserId, page, ct);
+        var result = await _svc.GetHistoryAsync(UserId, PageQuery.Of(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<ScanSummaryDto>>.Ok(result));
+    }
+
+    /// <summary>Xóa lượt quét của tôi và file ảnh đã lưu.</summary>
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<ApiResponse<bool>>> Delete(int id, CancellationToken ct)
+    {
+        await _svc.DeleteAsync(UserId, id, ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã xóa lượt quét"));
     }
 
     /// <summary>

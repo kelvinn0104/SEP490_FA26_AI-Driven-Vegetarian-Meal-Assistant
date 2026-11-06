@@ -10,6 +10,12 @@ public interface IModerationService
     Task<List<ModerationItemDto>> GetPendingItemsAsync(string? type = null);
     Task<bool> ModerateAsync(string id, ModerationActionRequest request, int reviewerId);
     Task<int> GetPendingCountAsync();
+
+    /// <summary>Danh sách báo cáo vi phạm cho staff. status: open (mặc định) | resolved | dismissed | all.</summary>
+    Task<PagedResult<StaffReportDto>> GetReportsAsync(string? status, PageQuery page, CancellationToken ct = default);
+
+    /// <summary>Xử lý báo cáo: resolved (có thể gỡ nội dung) hoặc dismissed. Gửi thông báo kết quả cho người báo cáo.</summary>
+    Task<StaffReportDto> HandleReportAsync(int reportId, HandleReportRequest request, int handlerId, CancellationToken ct = default);
 }
 
 public class ModerationService : IModerationService
@@ -57,35 +63,167 @@ public class ModerationService : IModerationService
         var post = await _unitOfWork.Moderation.GetPostByIdAsync(postId);
         if (post == null) return false;
 
-        post.Status = request.Decision.ToLower() switch
+        var decision = (request.Decision ?? "").Trim().ToLowerInvariant();
+        if (decision is not ("approved" or "rejected" or "revision"))
+            throw new AppException("Quyết định không hợp lệ. Cho phép: approved, rejected, revision.");
+
+        // Duyệt bài kèm công thức → công thức cũng được publish, nên phải đủ nguyên liệu/dinh dưỡng
+        if (decision == "approved" && post.Recipe != null && post.Recipe.Status != "published")
+        {
+            var db = _unitOfWork.Context;
+            if (!await db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == post.Recipe.Id) || post.Recipe.KcalPerServing <= 0)
+                throw new AppException("Công thức đính kèm chưa có nguyên liệu/dinh dưỡng nên chưa thể duyệt.", 400, "RECIPE_MISSING_INGREDIENTS");
+        }
+
+        post.Status = decision switch
         {
             "approved" => "published",
             "rejected" => "removed",
-            "revision" => "pending",
             _ => "pending"
         };
+
+        var reason = string.IsNullOrWhiteSpace(request.Reason)
+            ? decision switch
+            {
+                "approved" => "Nội dung đạt chuẩn thuần chay và dinh dưỡng.",
+                "revision" => "Bài viết cần chỉnh sửa thêm trước khi xuất bản.",
+                _ => "Nội dung vi phạm tiêu chuẩn cộng đồng."
+            }
+            : request.Reason.Trim();
 
         var log = new ModerationLog
         {
             PostId = post.Id,
             ReviewedBy = reviewerId,
-            Decision = request.Decision.ToLower(),
+            Decision = decision,
             RiskLevel = "low",
-            Reason = request.Reason ?? (request.Decision == "approved" ? "Nội dung đạt chuẩn thuần chay và dinh dưỡng." : "Nội dung vi phạm tiêu chuẩn."),
+            Reason = reason,
             ReviewedAt = DateTime.UtcNow
         };
         await _unitOfWork.Moderation.AddModerationLogAsync(log);
 
         if (post.Recipe != null)
         {
-            post.Recipe.Status = request.Decision == "approved" ? "published" : "hidden";
+            post.Recipe.Status = decision == "approved" ? "published" : "hidden";
             post.Recipe.VerifiedBy = reviewerId;
             post.Recipe.VerifiedAt = DateTime.UtcNow;
             _unitOfWork.Recipes.Update(post.Recipe);
         }
 
+        var title = Notifier.Quote(post.Title);
+        Notifier.Queue(_unitOfWork.Context, post.UserId, NotificationTypes.PostReview, decision switch
+        {
+            "approved" => $"Bài viết {title} đã được duyệt và hiển thị trên cộng đồng.",
+            "revision" => $"Bài viết {title} cần chỉnh sửa trước khi xuất bản. Lý do: {reason}",
+            _ => $"Bài viết {title} không được duyệt. Lý do: {reason}"
+        });
+
         await _unitOfWork.CommitAsync();
         return true;
+    }
+
+    public async Task<PagedResult<StaffReportDto>> GetReportsAsync(string? status, PageQuery page, CancellationToken ct = default)
+    {
+        var db = _unitOfWork.Context;
+        var s = string.IsNullOrWhiteSpace(status) ? "open" : status.Trim().ToLowerInvariant();
+        var q = db.Reports.AsNoTracking().AsQueryable();
+        if (s != "all") q = q.Where(r => r.Status == s);
+
+        var total = await q.CountAsync(ct);
+        var rows = await q.OrderByDescending(r => r.CreatedAt)
+            .Skip(page.Skip).Take(page.PageSize)
+            .Select(r => new
+            {
+                r.Id, r.TargetType, r.TargetId, r.Category, r.Reason, r.Status, r.CreatedAt, r.HandledAt,
+                ReporterName = r.Reporter != null ? r.Reporter.DisplayName : ""
+            })
+            .ToListAsync(ct);
+
+        var items = new List<StaffReportDto>();
+        foreach (var r in rows)
+            items.Add(new StaffReportDto(r.Id, r.TargetType, r.TargetId, await TargetPreviewAsync(r.TargetType, r.TargetId, ct),
+                r.Category, r.Reason, r.Status, r.ReporterName, r.CreatedAt, r.HandledAt));
+
+        return new PagedResult<StaffReportDto> { Items = items, TotalCount = total, Page = page.Page, PageSize = page.PageSize };
+    }
+
+    public async Task<StaffReportDto> HandleReportAsync(int reportId, HandleReportRequest request, int handlerId, CancellationToken ct = default)
+    {
+        var db = _unitOfWork.Context;
+        var report = await db.Reports.Include(r => r.Reporter).FirstOrDefaultAsync(r => r.Id == reportId, ct)
+                     ?? throw AppException.NotFound("Báo cáo");
+        if (report.Status != "open") throw AppException.Conflict("Báo cáo này đã được xử lý.");
+
+        var status = (request.Status ?? "").Trim().ToLowerInvariant();
+        if (status is not ("resolved" or "dismissed"))
+            throw new AppException("status phải là resolved hoặc dismissed.");
+
+        string? removedOwnerMessage = null;
+        int removedOwnerId = 0;
+        if (status == "resolved" && request.RemoveContent)
+        {
+            switch (report.TargetType)
+            {
+                case "post":
+                    var post = await db.Posts.FirstOrDefaultAsync(p => p.Id == report.TargetId, ct);
+                    if (post != null && post.Status != "removed")
+                    {
+                        post.Status = "removed";
+                        removedOwnerId = post.UserId;
+                        removedOwnerMessage = $"Bài viết {Notifier.Quote(post.Title)} đã bị gỡ do vi phạm tiêu chuẩn cộng đồng.";
+                    }
+                    break;
+                case "comment":
+                    var comment = await db.Comments.FirstOrDefaultAsync(c => c.Id == report.TargetId, ct);
+                    if (comment != null && comment.Status != "removed")
+                    {
+                        comment.Status = "removed";
+                        removedOwnerId = comment.UserId;
+                        removedOwnerMessage = "Một bình luận của bạn đã bị gỡ do vi phạm tiêu chuẩn cộng đồng.";
+                    }
+                    break;
+                case "recipe":
+                    var recipe = await db.Recipes.FirstOrDefaultAsync(r => r.Id == report.TargetId, ct);
+                    if (recipe != null && recipe.Status != "hidden")
+                    {
+                        recipe.Status = "hidden";
+                        recipe.UpdatedAt = DateTime.UtcNow;
+                        removedOwnerId = recipe.CreatedBy;
+                        removedOwnerMessage = $"Công thức {Notifier.Quote(recipe.Title)} đã bị ẩn do vi phạm tiêu chuẩn.";
+                    }
+                    break;
+            }
+        }
+
+        report.Status = status;
+        report.HandledBy = handlerId > 0 ? handlerId : null;
+        report.HandledAt = DateTime.UtcNow;
+
+        var note = string.IsNullOrWhiteSpace(request.Note) ? "" : $" Ghi chú: {request.Note.Trim()}";
+        Notifier.Queue(db, report.ReporterId, NotificationTypes.ReportResult, status == "resolved"
+            ? $"Báo cáo #{report.Id} của bạn đã được xử lý. Cảm ơn bạn đã giúp cộng đồng VeggieAI an toàn hơn.{note}"
+            : $"Báo cáo #{report.Id} của bạn đã được xem xét và không ghi nhận vi phạm.{note}");
+        if (removedOwnerMessage != null && removedOwnerId != report.ReporterId)
+            Notifier.Queue(db, removedOwnerId, NotificationTypes.ReportResult, removedOwnerMessage);
+
+        await _unitOfWork.CommitAsync();
+
+        return new StaffReportDto(report.Id, report.TargetType, report.TargetId,
+            await TargetPreviewAsync(report.TargetType, report.TargetId, ct), report.Category, report.Reason, report.Status,
+            report.Reporter?.DisplayName ?? "", report.CreatedAt, report.HandledAt);
+    }
+
+    private async Task<string?> TargetPreviewAsync(string type, int id, CancellationToken ct)
+    {
+        var db = _unitOfWork.Context;
+        var text = type switch
+        {
+            "post" => await db.Posts.Where(p => p.Id == id).Select(p => p.Title).FirstOrDefaultAsync(ct),
+            "comment" => await db.Comments.Where(c => c.Id == id).Select(c => c.Content).FirstOrDefaultAsync(ct),
+            "recipe" => await db.Recipes.Where(r => r.Id == id).Select(r => r.Title).FirstOrDefaultAsync(ct),
+            _ => null
+        };
+        return text is { Length: > 160 } ? text[..160] + "…" : text;
     }
 
     public async Task<int> GetPendingCountAsync()

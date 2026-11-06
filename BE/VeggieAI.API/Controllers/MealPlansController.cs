@@ -27,10 +27,12 @@ public class MealPlansController : AiApiControllerBase
         return Ok(ApiResponse<MealPlanDetailDto>.Ok(result));
     }
 
+    /// <summary>Lịch sử thực đơn: ?status=all|draft|active|completed|cancelled&amp;page=1&amp;pageSize=20.</summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PagedResult<MealPlanSummaryDto>>>> List([FromQuery] string? status, [FromQuery] PageQuery page, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<PagedResult<MealPlanSummaryDto>>>> List(
+        [FromQuery] string? status, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListAsync(UserId, status, page, ct);
+        var result = await _svc.ListAsync(UserId, status, PageQuery.Of(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<MealPlanSummaryDto>>.Ok(result));
     }
 
@@ -57,7 +59,37 @@ public class MealPlansController : AiApiControllerBase
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa thực đơn"));
     }
 
-    /// <summary>Tạo hoặc làm mới danh sách đi chợ từ các món trong thực đơn.</summary>
+    /// <summary>
+    /// Thêm món thủ công: { planDate, mealType, recipeId, servings }. Món phải published, đủ nguyên liệu và không chứa chất dị ứng.
+    /// Danh sách đi chợ (nếu có) tự cập nhật. Trả về chi tiết thực đơn mới.
+    /// </summary>
+    [HttpPost("{planId:int}/items")]
+    public async Task<ActionResult<ApiResponse<MealPlanDetailDto>>> AddItem(int planId, [FromBody] AddMealPlanItemRequest req, CancellationToken ct)
+    {
+        var result = await _svc.AddItemAsync(UserId, planId, req, ct);
+        return Ok(ApiResponse<MealPlanDetailDto>.Ok(result, "Đã thêm món vào thực đơn"));
+    }
+
+    /// <summary>Sửa món: { servings?, mealType?, planDate?, recipeId? } — chỉ gửi trường cần đổi.</summary>
+    [HttpPatch("{planId:int}/items/{itemId:int}")]
+    public async Task<ActionResult<ApiResponse<MealPlanDetailDto>>> UpdateItem(int planId, int itemId, [FromBody] UpdateMealPlanItemRequest req, CancellationToken ct)
+    {
+        var result = await _svc.UpdateItemAsync(UserId, planId, itemId, req, ct);
+        return Ok(ApiResponse<MealPlanDetailDto>.Ok(result, "Đã cập nhật món"));
+    }
+
+    /// <summary>Bỏ một món khỏi thực đơn. Nhật ký bữa đã ghi từ món này vẫn được giữ.</summary>
+    [HttpDelete("{planId:int}/items/{itemId:int}")]
+    public async Task<ActionResult<ApiResponse<MealPlanDetailDto>>> DeleteItem(int planId, int itemId, CancellationToken ct)
+    {
+        var result = await _svc.DeleteItemAsync(UserId, planId, itemId, ct);
+        return Ok(ApiResponse<MealPlanDetailDto>.Ok(result, "Đã bỏ món khỏi thực đơn"));
+    }
+
+    /// <summary>
+    /// Tạo hoặc làm mới danh sách đi chợ từ các món trong thực đơn (giữ trạng thái đã mua theo nguyên liệu).
+    /// Sau khi đổi/thêm/sửa/xóa món, danh sách đã có được BE tự đồng bộ — FE chỉ cần GET lại.
+    /// </summary>
     [HttpPost("{planId:int}/shopping-list")]
     public async Task<ActionResult<ApiResponse<ShoppingListDto>>> CreateShoppingList(int planId, CancellationToken ct)
     {

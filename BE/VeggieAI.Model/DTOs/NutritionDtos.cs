@@ -107,6 +107,18 @@ public class LogMealRequest
     public DateOnly? LogDate { get; set; }
 }
 
+/// <summary>Sửa bản ghi bữa ăn — chỉ gửi trường cần đổi.</summary>
+public class UpdateMealLogRequest
+{
+    [RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
+    public string? MealType { get; set; }
+
+    [Range(0.25, 10.0, ErrorMessage = "servings phải trong khoảng 0.25–10.")]
+    public decimal? Servings { get; set; }
+
+    public DateOnly? LogDate { get; set; }
+}
+
 public class UpsertActivityRequest
 {
     public DateOnly? ActivityDate { get; set; }

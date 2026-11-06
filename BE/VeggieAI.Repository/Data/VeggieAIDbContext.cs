@@ -52,6 +52,8 @@ public class VeggieAIDbContext : DbContext
     public DbSet<EcoReward> EcoRewards => Set<EcoReward>();
     public DbSet<RewardClaim> RewardClaims => Set<RewardClaim>();
     public DbSet<VeganProductScan> VeganProductScans => Set<VeganProductScan>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<EmailOtp> EmailOtps => Set<EmailOtp>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +78,19 @@ public class VeggieAIDbContext : DbContext
 
         modelBuilder.Entity<RolePermission>()
             .HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+        modelBuilder.Entity<EmailOtp>()
+            .HasKey(o => new { o.Email, o.Purpose });
+
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(t => t.TokenHash)
+            .IsUnique();
+
+        modelBuilder.Entity<RefreshToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Unique indexes
         modelBuilder.Entity<User>()

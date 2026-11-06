@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
@@ -11,20 +12,26 @@ public interface ICommunityService
     Task<PagedResult<PostSummaryDto>> ListMineAsync(int userId, PageQuery page, CancellationToken ct = default);
     Task<PostDetailDto> GetAsync(int? viewerId, bool viewerIsStaff, int postId, CancellationToken ct = default);
     Task<PostDetailDto> CreateAsync(int userId, CreatePostRequest req, CancellationToken ct = default);
+    Task<PostDetailDto> UpdateAsync(int userId, int postId, UpdatePostRequest req, CancellationToken ct = default);
     Task DeletePostAsync(int userId, bool isStaff, int postId, CancellationToken ct = default);
+    Task<PagedResult<PostCommentDto>> ListCommentsAsync(int? viewerId, bool viewerIsStaff, int postId, PageQuery page, CancellationToken ct = default);
     Task<PostCommentDto> AddCommentAsync(int userId, int postId, string content, CancellationToken ct = default);
+    Task<PostCommentDto> UpdateCommentAsync(int userId, int commentId, string content, CancellationToken ct = default);
     Task DeleteCommentAsync(int userId, bool isStaff, int commentId, CancellationToken ct = default);
     Task<int> VoteAsync(int userId, int postId, int value, CancellationToken ct = default);
     Task<ReportDto> ReportAsync(int userId, CreateReportRequest req, CancellationToken ct = default);
+    Task<PagedResult<ReportDto>> ListMyReportsAsync(int userId, PageQuery page, CancellationToken ct = default);
 }
 
 /// <summary>
 /// Bài viết cộng đồng (blog/video), bình luận, vote và báo cáo vi phạm.
 /// Bài mới ở trạng thái "pending" → được duyệt qua /api/Moderation; chỉ bài "published" mới hiện công khai, comment và vote được.
+/// Tác giả sửa bài → bài quay về "pending" để duyệt lại.
 /// Xóa bài/bình luận là xóa mềm (status = removed) để giữ lịch sử kiểm duyệt.
 /// </summary>
 public class CommunityService : ICommunityService
 {
+    private const int ExcerptLength = 200;
     private readonly VeggieAIDbContext _db;
 
     public CommunityService(VeggieAIDbContext db)
@@ -47,13 +54,20 @@ public class CommunityService : ICommunityService
             ? q.OrderByDescending(p => p.Votes.Sum(v => (int)v.Value)).ThenByDescending(p => p.CreatedAt)
             : q.OrderByDescending(p => p.CreatedAt);
 
-        return await PageAsync(q, viewerId, page, ct);
+        return await PageAsync(q, viewerId, includeModeration: false, page, ct);
     }
 
+    /// <summary>
+    /// Bài của tôi: mọi trạng thái, kể cả bài bị moderator từ chối (để tác giả thấy lý do và sửa gửi lại).
+    /// Bài do chính tác giả xóa không hiện.
+    /// </summary>
     public Task<PagedResult<PostSummaryDto>> ListMineAsync(int userId, PageQuery page, CancellationToken ct = default) =>
         PageAsync(_db.Posts.AsNoTracking()
-            .Where(p => p.UserId == userId && p.Status != "removed")
-            .OrderByDescending(p => p.CreatedAt), userId, page, ct);
+            .Where(p => p.UserId == userId &&
+                        (p.Status != "removed" ||
+                         p.ModerationLogs.OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
+                             .Select(l => l.Decision).FirstOrDefault() == "rejected"))
+            .OrderByDescending(p => p.UpdatedAt ?? p.CreatedAt), userId, includeModeration: true, page, ct);
 
     public async Task<PostDetailDto> GetAsync(int? viewerId, bool viewerIsStaff, int postId, CancellationToken ct = default)
     {
@@ -62,26 +76,40 @@ public class CommunityService : ICommunityService
             .Where(x => x.Id == postId)
             .Select(x => new
             {
-                x.Id, x.UserId, x.PostType, x.Title, x.MediaUrl, x.RecipeId, x.Status, x.CreatedAt, x.Content, x.VideoSummary,
+                x.Id, x.UserId, x.PostType, x.Title, x.MediaUrl, x.RecipeId, x.Status, x.CreatedAt, x.UpdatedAt, x.Content, x.VideoSummary,
                 AuthorName = x.User != null ? x.User.DisplayName : "",
                 RecipeTitle = x.Recipe != null ? x.Recipe.Title : null,
                 Score = x.Votes.Sum(v => (int)v.Value),
                 MyVote = x.Votes.Where(v => v.UserId == vid).Select(v => (int)v.Value).FirstOrDefault(),
+                Moderation = x.ModerationLogs.OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
+                    .Select(l => new { l.Decision, l.Reason, l.ReviewedAt }).FirstOrDefault(),
             })
             .FirstOrDefaultAsync(ct);
 
         // Bài chưa duyệt / đã gỡ: chỉ tác giả hoặc admin/mod xem được
-        if (p is null || (p.Status != "published" && p.UserId != vid && !viewerIsStaff) || (p.Status == "removed" && !viewerIsStaff))
+        var isAuthor = p is not null && vid != 0 && p.UserId == vid;
+        if (p is null || (p.Status != "published" && !isAuthor && !viewerIsStaff) || (p.Status == "removed" && !viewerIsStaff && !isAuthor))
             throw AppException.NotFound("Bài viết");
 
         var comments = await _db.Comments.AsNoTracking()
             .Where(c => c.PostId == postId && c.Status == "visible")
-            .OrderBy(c => c.CreatedAt)
-            .Select(c => new PostCommentDto(c.Id, c.UserId, c.User != null ? c.User.DisplayName : "", c.Content, c.CreatedAt))
+            .OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
+            .Select(c => new { c.Id, c.UserId, AuthorName = c.User != null ? c.User.DisplayName : "", c.Content, c.CreatedAt, c.UpdatedAt })
             .ToListAsync(ct);
 
+        var commentDtos = comments
+            .Select(c => new PostCommentDto(c.Id, c.UserId, c.AuthorName, c.Content, c.CreatedAt, c.UpdatedAt,
+                CanEdit: c.UserId == vid, CanDelete: c.UserId == vid || viewerIsStaff))
+            .ToList();
+
+        var showModeration = (isAuthor || viewerIsStaff) && p.Moderation is not null;
         return new PostDetailDto(p.Id, p.PostType, p.Title, p.MediaUrl, p.AuthorName, p.RecipeId, p.Status, p.Score,
-            comments.Count, p.MyVote, p.CreatedAt, p.Content, p.VideoSummary, p.RecipeTitle, comments);
+            commentDtos.Count, p.MyVote, p.CreatedAt, p.Content, p.VideoSummary, p.RecipeTitle, commentDtos,
+            AuthorId: p.UserId,
+            UpdatedAt: p.UpdatedAt,
+            CanEdit: isAuthor && CanAuthorEdit(p.Status, p.Moderation?.Decision),
+            CanDelete: (isAuthor || viewerIsStaff) && p.Status != "removed",
+            Moderation: showModeration ? new PostModerationDto(p.Moderation!.Decision, p.Moderation.Reason, p.Moderation.ReviewedAt) : null);
     }
 
     public async Task<PostDetailDto> CreateAsync(int userId, CreatePostRequest req, CancellationToken ct = default)
@@ -92,8 +120,7 @@ public class CommunityService : ICommunityService
             throw new AppException("Bài video bắt buộc có mediaUrl.");
         if (req.PostType == "blog" && string.IsNullOrWhiteSpace(req.Content))
             throw new AppException("Bài blog cần có nội dung.");
-        if (req.RecipeId is int rid && !await _db.Recipes.AnyAsync(r => r.Id == rid && r.Status == "published", ct))
-            throw AppException.NotFound("Công thức");
+        await EnsureRecipeAttachableAsync(req.RecipeId, ct);
 
         var post = new Post
         {
@@ -111,27 +138,101 @@ public class CommunityService : ICommunityService
         return await GetAsync(userId, false, post.Id, ct);
     }
 
+    public async Task<PostDetailDto> UpdateAsync(int userId, int postId, UpdatePostRequest req, CancellationToken ct = default)
+    {
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId, ct) ?? throw AppException.NotFound("Bài viết");
+        if (post.UserId != userId) throw AppException.Forbidden("Chỉ tác giả mới được sửa bài viết.");
+
+        var lastDecision = await LastDecisionAsync(postId, ct);
+        if (!CanAuthorEdit(post.Status, lastDecision))
+            throw new AppException("Bài viết đã bị xóa nên không thể sửa.", 400, "POST_NOT_EDITABLE");
+
+        var title = req.Title.Trim();
+        if (title.Length == 0) throw new AppException("Tiêu đề không được để trống.");
+        var mediaUrl = string.IsNullOrWhiteSpace(req.MediaUrl) ? null : req.MediaUrl.Trim();
+        if (post.PostType == "video" && mediaUrl is null) throw new AppException("Bài video bắt buộc có mediaUrl.");
+        if (post.PostType == "blog" && string.IsNullOrWhiteSpace(req.Content)) throw new AppException("Bài blog cần có nội dung.");
+        if (req.RecipeId != post.RecipeId) await EnsureRecipeAttachableAsync(req.RecipeId, ct);
+
+        post.Title = title;
+        post.Content = req.Content;
+        post.MediaUrl = mediaUrl;
+        post.RecipeId = req.RecipeId;
+        post.UpdatedAt = DateTime.UtcNow;
+        post.Status = "pending"; // nội dung mới → kiểm duyệt lại
+        await _db.SaveChangesAsync(ct);
+        return await GetAsync(userId, false, post.Id, ct);
+    }
+
     public async Task DeletePostAsync(int userId, bool isStaff, int postId, CancellationToken ct = default)
     {
         var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.Status != "removed", ct)
                    ?? throw AppException.NotFound("Bài viết");
         if (post.UserId != userId && !isStaff) throw AppException.Forbidden();
         post.Status = "removed";
+        if (post.UserId != userId)
+            Notifier.Queue(_db, post.UserId, NotificationTypes.PostReview, $"Bài viết {Notifier.Quote(post.Title)} đã bị quản trị viên gỡ.");
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<PagedResult<PostCommentDto>> ListCommentsAsync(int? viewerId, bool viewerIsStaff, int postId, PageQuery page,
+        CancellationToken ct = default)
+    {
+        var vid = viewerId ?? 0;
+        var post = await _db.Posts.AsNoTracking().Where(p => p.Id == postId).Select(p => new { p.UserId, p.Status }).FirstOrDefaultAsync(ct);
+        if (post is null || (post.Status != "published" && post.UserId != vid && !viewerIsStaff))
+            throw AppException.NotFound("Bài viết");
+
+        var q = _db.Comments.AsNoTracking().Where(c => c.PostId == postId && c.Status == "visible");
+        var total = await q.CountAsync(ct);
+        var rows = await q.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
+            .Skip(page.Skip).Take(page.PageSize)
+            .Select(c => new { c.Id, c.UserId, AuthorName = c.User != null ? c.User.DisplayName : "", c.Content, c.CreatedAt, c.UpdatedAt })
+            .ToListAsync(ct);
+
+        return new PagedResult<PostCommentDto>
+        {
+            Items = rows.Select(c => new PostCommentDto(c.Id, c.UserId, c.AuthorName, c.Content, c.CreatedAt, c.UpdatedAt,
+                CanEdit: c.UserId == vid, CanDelete: c.UserId == vid || viewerIsStaff)).ToList(),
+            TotalCount = total,
+            Page = page.Page,
+            PageSize = page.PageSize
+        };
     }
 
     public async Task<PostCommentDto> AddCommentAsync(int userId, int postId, string content, CancellationToken ct = default)
     {
         var text = content.Trim();
         if (text.Length == 0) throw new AppException("Nội dung bình luận không được để trống.");
-        await EnsurePublishedAsync(postId, ct);
+        var post = await EnsurePublishedAsync(postId, ct);
 
         var c = new Comment { PostId = postId, UserId = userId, Content = text, Status = "visible", CreatedAt = DateTime.UtcNow };
         _db.Comments.Add(c);
+
+        var author = await _db.Users.Where(u => u.Id == userId).Select(u => u.DisplayName).FirstOrDefaultAsync(ct) ?? "";
+        if (post.UserId != userId)
+        {
+            Notifier.Queue(_db, post.UserId, NotificationTypes.System,
+                $"{(author.Length > 0 ? author : "Một thành viên")} đã bình luận về bài viết {Notifier.Quote(post.Title)} của bạn.");
+        }
         await _db.SaveChangesAsync(ct);
 
-        var author = await _db.Users.Where(u => u.Id == userId).Select(u => u.DisplayName).FirstOrDefaultAsync(ct);
-        return new PostCommentDto(c.Id, userId, author ?? "", c.Content, c.CreatedAt);
+        return new PostCommentDto(c.Id, userId, author, c.Content, c.CreatedAt, null, CanEdit: true, CanDelete: true);
+    }
+
+    public async Task<PostCommentDto> UpdateCommentAsync(int userId, int commentId, string content, CancellationToken ct = default)
+    {
+        var text = content.Trim();
+        if (text.Length == 0) throw new AppException("Nội dung bình luận không được để trống.");
+
+        var c = await _db.Comments.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == commentId && x.Status == "visible", ct)
+                ?? throw AppException.NotFound("Bình luận");
+        if (c.UserId != userId) throw AppException.Forbidden("Chỉ người viết mới được sửa bình luận.");
+
+        c.Content = text;
+        c.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return new PostCommentDto(c.Id, c.UserId, c.User?.DisplayName ?? "", c.Content, c.CreatedAt, c.UpdatedAt, CanEdit: true, CanDelete: true);
     }
 
     public async Task DeleteCommentAsync(int userId, bool isStaff, int commentId, CancellationToken ct = default)
@@ -173,7 +274,7 @@ public class CommunityService : ICommunityService
         {
             "post" => await _db.Posts.AnyAsync(p => p.Id == req.TargetId && p.Status != "removed", ct),
             "comment" => await _db.Comments.AnyAsync(c => c.Id == req.TargetId && c.Status != "removed", ct),
-            "recipe" => await _db.Recipes.AnyAsync(r => r.Id == req.TargetId, ct),
+            "recipe" => await _db.Recipes.AnyAsync(r => r.Id == req.TargetId && r.Status == "published", ct),
             _ => false,
         };
         if (!exists) throw AppException.NotFound("Nội dung bị báo cáo");
@@ -194,32 +295,110 @@ public class CommunityService : ICommunityService
         };
         _db.Reports.Add(report);
         await _db.SaveChangesAsync(ct);
-        return new ReportDto(report.Id, report.TargetType, report.TargetId, report.Category, report.Reason, report.Status, report.CreatedAt);
+        return new ReportDto(report.Id, report.TargetType, report.TargetId, report.Category, report.Reason, report.Status, report.CreatedAt,
+            null, await TargetPreviewAsync(report.TargetType, report.TargetId, ct));
+    }
+
+    public async Task<PagedResult<ReportDto>> ListMyReportsAsync(int userId, PageQuery page, CancellationToken ct = default)
+    {
+        var q = _db.Reports.AsNoTracking().Where(r => r.ReporterId == userId);
+        var total = await q.CountAsync(ct);
+        var rows = await q.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
+            .Skip(page.Skip).Take(page.PageSize).ToListAsync(ct);
+
+        var items = new List<ReportDto>();
+        foreach (var r in rows)
+        {
+            items.Add(new ReportDto(r.Id, r.TargetType, r.TargetId, r.Category, r.Reason, r.Status, r.CreatedAt, r.HandledAt,
+                await TargetPreviewAsync(r.TargetType, r.TargetId, ct)));
+        }
+        return new PagedResult<ReportDto> { Items = items, TotalCount = total, Page = page.Page, PageSize = page.PageSize };
     }
 
     // ---------------- helpers ----------------
 
-    private async Task EnsurePublishedAsync(int postId, CancellationToken ct)
+    /// <summary>Tác giả được sửa bài pending/published/flagged, và bài bị moderator từ chối (để sửa rồi gửi duyệt lại).</summary>
+    private static bool CanAuthorEdit(string status, string? lastDecision) =>
+        status != "removed" || lastDecision == "rejected";
+
+    private Task<string?> LastDecisionAsync(int postId, CancellationToken ct) =>
+        _db.ModerationLogs.AsNoTracking().Where(l => l.PostId == postId)
+            .OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
+            .Select(l => l.Decision).FirstOrDefaultAsync(ct);
+
+    private async Task EnsureRecipeAttachableAsync(int? recipeId, CancellationToken ct)
     {
-        var status = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Status).FirstOrDefaultAsync(ct)
-                     ?? throw AppException.NotFound("Bài viết");
-        if (status != "published") throw new AppException("Bài viết chưa được duyệt nên chưa thể bình luận/vote.");
+        if (recipeId is int rid && !await _db.Recipes.AnyAsync(r => r.Id == rid && r.Status == "published", ct))
+            throw AppException.NotFound("Công thức");
     }
 
-    private static async Task<PagedResult<PostSummaryDto>> PageAsync(IQueryable<Post> q, int? viewerId, PageQuery page, CancellationToken ct)
+    private async Task<Post> EnsurePublishedAsync(int postId, CancellationToken ct)
+    {
+        var post = await _db.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == postId, ct)
+                   ?? throw AppException.NotFound("Bài viết");
+        if (post.Status != "published") throw new AppException("Bài viết chưa được duyệt nên chưa thể bình luận/vote.");
+        return post;
+    }
+
+    private async Task<string?> TargetPreviewAsync(string type, int id, CancellationToken ct)
+    {
+        var text = type switch
+        {
+            "post" => await _db.Posts.Where(p => p.Id == id).Select(p => p.Title).FirstOrDefaultAsync(ct),
+            "comment" => await _db.Comments.Where(c => c.Id == id).Select(c => c.Content).FirstOrDefaultAsync(ct),
+            "recipe" => await _db.Recipes.Where(r => r.Id == id).Select(r => r.Title).FirstOrDefaultAsync(ct),
+            _ => null
+        };
+        return text is { Length: > 120 } ? text[..120] + "…" : text;
+    }
+
+    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled);
+    private static readonly Regex MarkdownNoise = new(@"[#>*_`\[\]!]|\(https?://[^)]*\)|<[^>]+>", RegexOptions.Compiled);
+
+    /// <summary>Đoạn trích ~200 ký tự: bỏ thẻ HTML/ký hiệu markdown, gộp khoảng trắng, cắt ở ranh giới từ.</summary>
+    public static string? MakeExcerpt(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return null;
+        var text = Whitespace.Replace(MarkdownNoise.Replace(content, " "), " ").Trim();
+        if (text.Length <= ExcerptLength) return text;
+        var cut = text.LastIndexOf(' ', ExcerptLength);
+        return text[..(cut > ExcerptLength / 2 ? cut : ExcerptLength)].TrimEnd(',', '.', ';', ':') + "…";
+    }
+
+    private static async Task<PagedResult<PostSummaryDto>> PageAsync(IQueryable<Post> q, int? viewerId, bool includeModeration,
+        PageQuery page, CancellationToken ct)
     {
         var vid = viewerId ?? 0;
         var total = await q.CountAsync(ct);
-        var items = await q.Skip(page.Skip).Take(page.PageSize)
-            .Select(p => new PostSummaryDto(
-                p.Id, p.PostType, p.Title, p.MediaUrl,
-                p.User != null ? p.User.DisplayName : "",
-                p.RecipeId, p.Status,
-                p.Votes.Sum(v => (int)v.Value),
-                p.Comments.Count(c => c.Status == "visible"),
-                p.Votes.Where(v => v.UserId == vid).Select(v => (int)v.Value).FirstOrDefault(),
-                p.CreatedAt))
+        var rows = await q.Skip(page.Skip).Take(page.PageSize)
+            .Select(p => new
+            {
+                p.Id, p.UserId, p.PostType, p.Title, p.MediaUrl, p.RecipeId, p.Status, p.CreatedAt, p.UpdatedAt,
+                AuthorName = p.User != null ? p.User.DisplayName : "",
+                ContentHead = p.Content == null ? null : (p.Content.Length > 600 ? p.Content.Substring(0, 600) : p.Content),
+                Score = p.Votes.Sum(v => (int)v.Value),
+                CommentCount = p.Comments.Count(c => c.Status == "visible"),
+                MyVote = p.Votes.Where(v => v.UserId == vid).Select(v => (int)v.Value).FirstOrDefault(),
+                Moderation = p.ModerationLogs.OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
+                    .Select(l => new { l.Decision, l.Reason, l.ReviewedAt }).FirstOrDefault(),
+            })
             .ToListAsync(ct);
+
+        var items = rows.Select(p =>
+        {
+            var isAuthor = vid != 0 && p.UserId == vid;
+            return new PostSummaryDto(p.Id, p.PostType, p.Title, p.MediaUrl, p.AuthorName, p.RecipeId, p.Status, p.Score,
+                p.CommentCount, p.MyVote, p.CreatedAt,
+                AuthorId: p.UserId,
+                Excerpt: MakeExcerpt(p.ContentHead),
+                UpdatedAt: p.UpdatedAt,
+                CanEdit: isAuthor && CanAuthorEdit(p.Status, p.Moderation?.Decision),
+                CanDelete: isAuthor && p.Status != "removed",
+                Moderation: includeModeration && isAuthor && p.Moderation is not null
+                    ? new PostModerationDto(p.Moderation.Decision, p.Moderation.Reason, p.Moderation.ReviewedAt)
+                    : null);
+        }).ToList();
+
         return new PagedResult<PostSummaryDto> { Items = items, TotalCount = total, Page = page.Page, PageSize = page.PageSize };
     }
 }

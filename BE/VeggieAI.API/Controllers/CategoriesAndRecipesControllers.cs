@@ -62,16 +62,39 @@ public class RecipesController : ControllerBase
         _recipeService = recipeService;
     }
 
+    /// <summary>
+    /// Toàn bộ danh mục (không phân trang, giữ tương thích FE hiện tại).
+    /// sort: newest (mặc định) | oldest | popular | protein | kcal_asc | kcal_desc | title.
+    /// Cần phân trang → dùng GET /api/Recipes/paged.
+    /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<RecipeDto>>>> GetRecipes(
         [FromQuery] string? search,
         [FromQuery] string? status,
-        [FromQuery] int? categoryId)
+        [FromQuery] int? categoryId,
+        [FromQuery] string? sort)
     {
         // Khách/người dùng thường chỉ xem công thức đã duyệt; admin/mod xem được mọi trạng thái
         if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
-        var result = await _recipeService.GetRecipesAsync(search, status, categoryId);
+        var result = await _recipeService.GetRecipesAsync(search, status, categoryId, sort);
         return Ok(ApiResponse<List<RecipeDto>>.Ok(result));
+    }
+
+    /// <summary>Danh mục có phân trang: ?search=&amp;categoryId=&amp;sort=&amp;page=1&amp;pageSize=20.</summary>
+    [HttpGet("paged")]
+    public async Task<ActionResult<ApiResponse<PagedResult<RecipeDto>>>> GetRecipesPaged(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] int? categoryId,
+        [FromQuery] string? sort,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize)
+    {
+        if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
+        var result = await _recipeService.GetRecipesPagedAsync(
+            new RecipeQuery { Search = search, Status = status, CategoryId = categoryId, Sort = sort },
+            PageQuery.Of(page, pageSize));
+        return Ok(ApiResponse<PagedResult<RecipeDto>>.Ok(result));
     }
 
     /// <summary>Danh sách công thức người dùng đã lưu yêu thích.</summary>
@@ -104,10 +127,15 @@ public class RecipesController : ControllerBase
             ? id
             : throw AppException.Unauthorized("Bạn cần đăng nhập.");
 
+    /// <summary>
+    /// Chi tiết công thức. Gửi kèm token → có isFavorite. Công thức chưa published chỉ tác giả/staff xem được, người khác nhận 404.
+    /// </summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RecipeDto>>> GetRecipeById(string id)
     {
-        var result = await _recipeService.GetRecipeByIdAsync(id);
+        int? viewerId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+        var isStaff = AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role));
+        var result = await _recipeService.GetRecipeByIdAsync(id, viewerId, isStaff);
         if (result == null) return NotFound(ApiResponse<RecipeDto>.Fail("Không tìm thấy công thức"));
         return Ok(ApiResponse<RecipeDto>.Ok(result));
     }
