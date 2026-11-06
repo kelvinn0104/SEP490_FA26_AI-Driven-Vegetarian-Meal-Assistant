@@ -214,7 +214,19 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   else if (!user && protectedScreens.includes(screen))
     content = (
       <div className="vp-gate">
-        <Leaf size={36} />
+        {screen === "vision" ? (
+          <figure className="vp-pantry-illustration">
+            <img
+              src="/images/brand/pantry-light.webp"
+              alt=""
+              width="900"
+              height="600"
+            />
+            <figcaption>Ảnh minh họa</figcaption>
+          </figure>
+        ) : (
+          <Leaf size={36} />
+        )}
         <span className="vp-eyebrow">Không gian của bạn</span>
         <h1>{gate[0]}</h1>
         <p>{gate[1]}</p>
@@ -438,6 +450,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
               "home",
               "discover",
               "blog",
+              "article-detail",
               "planner",
               "user-collection",
               "me",
@@ -453,13 +466,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
             ].includes(screen) && (
               <button
                 className="vp-mobile-back"
-                onClick={() =>
-                  go(
-                    ["community", "article-detail"].includes(screen)
-                      ? "discover"
-                      : "me",
-                  )
-                }
+                onClick={() => go("me")}
               >
                 <ArrowLeft size={18} />
                 Quay lại

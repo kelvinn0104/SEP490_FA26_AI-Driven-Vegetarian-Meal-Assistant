@@ -621,10 +621,10 @@
   font-size: 14px;
 }
 .vp-composer-fields > label {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 .vp-content-field {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 .vp-content-field > label {
   margin-bottom: 10px;
@@ -827,6 +827,8 @@
     align-items: start;
     flex-wrap: wrap;
     gap: 10px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
   }
   .vp-post-interactions {
     gap: 10px 18px;

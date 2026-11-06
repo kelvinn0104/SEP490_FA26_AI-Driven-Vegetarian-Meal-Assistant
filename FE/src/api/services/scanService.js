@@ -8,7 +8,6 @@ export const scanService = {
   uploadScan: async (imageFile) => {
     const formData = new FormData();
     formData.append('Image', imageFile);
-    formData.append('image', imageFile);
 
     const raw = await apiRequest('/scans', {
       method: 'POST',
@@ -43,7 +42,7 @@ export const scanService = {
    * Lịch sử các lần quét ảnh
    */
   getScanHistory: async (page = 1, pageSize = 10) => {
-    const raw = await apiRequest(`/scans?page=${page}&pageSize=${pageSize}`);
+    const raw = await apiRequest(`/scans?page.Page=${page}&page.PageSize=${pageSize}`);
     return unwrap(raw);
   },
 };

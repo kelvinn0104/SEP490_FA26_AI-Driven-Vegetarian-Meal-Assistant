@@ -9,8 +9,8 @@ export const communityService = {
     if (params.keyword) query.append('keyword', params.keyword);
     if (params.postType) query.append('postType', params.postType); // 'blog' | 'video'
     if (params.sort) query.append('sort', params.sort); // 'newest' | 'top'
-    if (params.page) query.append('page', params.page);
-    if (params.pageSize) query.append('pageSize', params.pageSize);
+    if (params.page) query.append('page.Page', params.page);
+    if (params.pageSize) query.append('page.PageSize', params.pageSize);
 
     const qs = query.toString() ? `?${query.toString()}` : '';
     const raw = await apiRequest(`/community/posts${qs}`);
@@ -21,7 +21,7 @@ export const communityService = {
    * Lấy danh sách bài viết của chính người dùng đăng nhập
    */
   getMyPosts: async (page = 1, pageSize = 20) => {
-    const raw = await apiRequest(`/community/posts/mine?page=${page}&pageSize=${pageSize}`);
+    const raw = await apiRequest(`/community/posts/mine?page.Page=${page}&page.PageSize=${pageSize}`);
     return unwrap(raw);
   },
 

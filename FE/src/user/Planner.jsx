@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { AiActivity } from "./AiActivity";
 import {
   Plus,
   ArrowRight,
@@ -44,7 +45,8 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
     [history, page],
   );
   const [generated, setGenerated] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(null);
+  const lock = useRef(false);
   const [error, setError] = useState("");
   const [days, setDays] = useState(7);
   const [note, setNote] = useState("");
@@ -60,9 +62,10 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
   const testPlan = plan?.days?.some((day) =>
     day.meals?.some((meal) => isTestContent({ title: meal.recipeTitle })),
   );
-  const action = async (fn, success) => {
-    if (busy) return;
-    setBusy(true);
+  const action = async (fn, success, task = {}) => {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(task);
     setError("");
     try {
       const res = await fn();
@@ -71,60 +74,72 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
     } catch (e) {
       setError(userError(e));
     } finally {
-      setBusy(false);
+      lock.current = false;
+      setBusy(null);
     }
   };
   const generate = (e) => {
     e.preventDefault();
-    action(async () => {
-      setProfileRequired(false);
-      try {
-        await request("/health-profile");
-      } catch (error) {
-        if (error.status === 404) {
-          setProfileRequired(true);
-          throw new Error("Thiết lập hồ sơ sức khỏe trước khi tạo thực đơn.");
+    action(
+      async () => {
+        setProfileRequired(false);
+        try {
+          await request("/health-profile");
+        } catch (error) {
+          if (error.status === 404) {
+            setProfileRequired(true);
+            throw new Error("Thiết lập hồ sơ sức khỏe trước khi tạo thực đơn.");
+          }
+          throw error;
         }
-        throw error;
-      }
-      const result = await request("/meal-plans/ai/generate", {
-        startDate: date,
-        days: Number(days),
-        mealTypes: ["breakfast", "lunch", "dinner"],
-        healthGoal: goal,
-        note,
-      });
-      const next = result?.plan;
-      if (!next?.days?.length)
-        throw new Error("Chưa nhận được thực đơn hợp lệ. Vui lòng thử lại.");
-      if (
-        next.days.some((day) =>
-          day.meals?.some((meal) => isTestContent({ title: meal.recipeTitle })),
+        setBusy({ kind: "generate" });
+        const result = await request("/meal-plans/ai/generate", {
+          startDate: date,
+          days: Number(days),
+          mealTypes: ["breakfast", "lunch", "dinner"],
+          healthGoal: goal,
+          note,
+        });
+        const next = result?.plan;
+        if (!next?.days?.length)
+          throw new Error("Chưa nhận được thực đơn hợp lệ. Vui lòng thử lại.");
+        if (
+          next.days.some((day) =>
+            day.meals?.some((meal) =>
+              isTestContent({ title: meal.recipeTitle }),
+            ),
+          )
         )
-      )
-        throw new Error(
-          "Máy chủ trả về món thử nghiệm. Chưa thể sử dụng thực đơn này.",
-        );
-      setGenerated(next);
-      setEditing(false);
-      setWarnings(result.validationWarnings || []);
-      setShopping(null);
-      setSelectedDate(next.days[0].date);
-    }, "Đã tạo thực đơn. Kiểm tra các bữa trước khi sử dụng.");
+          throw new Error(
+            "Máy chủ trả về món thử nghiệm. Chưa thể sử dụng thực đơn này.",
+          );
+        setGenerated(next);
+        setEditing(false);
+        setWarnings(result.validationWarnings || []);
+        setShopping(null);
+        setSelectedDate(next.days[0].date);
+      },
+      "Đã tạo thực đơn. Kiểm tra các bữa trước khi sử dụng.",
+      { kind: "profile" },
+    );
   };
   const swap = (meal) =>
-    action(async () => {
-      const result = await request(
-        `/meal-plans/ai/${plan.id}/items/${meal.id}/swap`,
-        { reason: "Tôi muốn đổi món khác phù hợp với hồ sơ và dị ứng." },
-      );
-      const next = result?.plan || (result?.days ? result : null);
-      if (next) setGenerated(next);
-      else {
-        const refreshed = await request(`/meal-plans/${plan.id}`);
-        setGenerated(refreshed);
-      }
-    }, "Đã đổi món.");
+    action(
+      async () => {
+        const result = await request(
+          `/meal-plans/ai/${plan.id}/items/${meal.id}/swap`,
+          { reason: "Tôi muốn đổi món khác phù hợp với hồ sơ và dị ứng." },
+        );
+        const next =
+          result?.plan ||
+          (result?.days ? result : await request(`/meal-plans/${plan.id}`));
+        if (!next?.days?.length)
+          throw new Error("Chưa xác nhận được thực đơn sau khi đổi món.");
+        setGenerated(next);
+      },
+      "Đã đổi món.",
+      { kind: "swap", mealId: meal.id },
+    );
   if (hasProfile === false)
     return (
       <>
@@ -165,7 +180,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
               </p>
               <Button
                 secondary
-                disabled={busy}
+                disabled={!!busy}
                 onClick={() =>
                   action(async () =>
                     setGenerated(await request(`/meal-plans/${p.id}`)),
@@ -192,6 +207,15 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
           <button className="vp-text-button" onClick={() => go("meal-history")}>
             Lịch sử <ArrowRight size={16} />
           </button>
+          {editing && (
+            <button
+              className="vp-text-button"
+              disabled={!!busy}
+              onClick={() => setEditing(false)}
+            >
+              Hủy tạo mới
+            </button>
+          )}
           {!editing && plan?.days && (
             <Button secondary onClick={() => setEditing(true)}>
               <Plus size={17} />
@@ -209,42 +233,33 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
           <p>Chọn ngày và nhu cầu khi bạn muốn bắt đầu.</p>
         </div>
       )}
-      {editing && (
-        <button
-          className="vp-text-button"
-          disabled={busy}
-          onClick={() => setEditing(false)}
-        >
-          Hủy tạo mới
-        </button>
-      )}
       <div className={`vp-planner-layout ${editing ? "" : "vp-plan-view"}`}>
         {editing && (
           <form className="vp-panel" onSubmit={generate}>
-            <fieldset className="vp-plan-fields" disabled={busy}>
-              <span className="vp-eyebrow">Bắt đầu một kế hoạch mới</span>
-              <h2>Sắp xếp bữa ăn</h2>
-              <p>Từ công thức trong thư viện, theo hồ sơ sức khỏe đã lưu.</p>
-              <label>
-                Ngày bắt đầu
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </label>
-              <label>
-                Số ngày
-                <input
-                  type="number"
-                  min="1"
-                  max="14"
-                  required
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                />
-              </label>
+            <fieldset className="vp-plan-fields" disabled={!!busy}>
+              <h2>Thông tin thực đơn</h2>
+              <div className="vp-plan-date-fields">
+                <label>
+                  Ngày bắt đầu
+                  <input
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Số ngày
+                  <input
+                    type="number"
+                    min="1"
+                    max="14"
+                    required
+                    value={days}
+                    onChange={(e) => setDays(e.target.value)}
+                  />
+                </label>
+              </div>
               <div
                 className="vp-type-filter vp-days-shortcuts"
                 role="group"
@@ -273,7 +288,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 Sở thích, lưu ý
                 <textarea
                   maxLength={500}
-                  rows={3}
+                  rows={2}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Ví dụ: món Việt, ít cay…"
@@ -283,27 +298,35 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 Dị ứng phải được lưu trong hồ sơ sức khỏe trước khi tạo thực
                 đơn.
               </small>
-              <Button disabled={busy}>
-                {busy ? "Đang xử lý…" : "Tạo thực đơn"}
-                <ArrowRight size={17} />
-              </Button>
-              <button
-                type="button"
-                className="vp-text-button"
-                onClick={() => go("user-profile")}
-              >
-                Kiểm tra hồ sơ sức khỏe
-              </button>
+              <div className="vp-plan-form-actions">
+                <Button disabled={!!busy}>
+                  {busy?.kind === "profile"
+                    ? "Đang kiểm tra hồ sơ…"
+                    : busy
+                      ? "Đang tạo thực đơn…"
+                      : "Tạo thực đơn"}
+                  <ArrowRight size={17} />
+                </Button>
+                <button
+                  type="button"
+                  className="vp-text-button"
+                  onClick={() => go("user-profile")}
+                >
+                  Kiểm tra hồ sơ sức khỏe
+                </button>
+              </div>
             </fieldset>
+            {error && <Notice error>{error}</Notice>}
+            {profileRequired && (
+              <Button secondary onClick={() => go("user-profile")}>
+                Thiết lập hồ sơ
+              </Button>
+            )}
+            {busy?.kind === "generate" && <AiActivity kind="generate" />}
           </form>
         )}
         <section>
-          {error && <Notice error>{error}</Notice>}
-          {profileRequired && (
-            <Button secondary onClick={() => go("user-profile")}>
-              Thiết lập hồ sơ
-            </Button>
-          )}
+          {!editing && error && <Notice error>{error}</Notice>}
           {warnings.map((w, i) => (
             <Notice key={i}>{w}</Notice>
           ))}
@@ -375,7 +398,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 {plan.status !== "active" && (
                   <Button
                     secondary
-                    disabled={busy}
+                    disabled={!!busy}
                     onClick={() =>
                       action(async () => {
                         const activated = await request(
@@ -392,7 +415,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 )}
                 <Button
                   secondary
-                  disabled={busy}
+                  disabled={!!busy}
                   onClick={() =>
                     action(async () => {
                       try {
@@ -465,7 +488,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                       <div className="vp-actions">
                         <button
                           className="vp-icon"
-                          disabled={busy}
+                          disabled={!!busy}
                           aria-label={`Đổi ${meal.recipeTitle}`}
                           onClick={() => swap(meal)}
                         >
@@ -473,7 +496,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                         </button>
                         <button
                           className="vp-icon"
-                          disabled={busy}
+                          disabled={!!busy}
                           aria-label={`Ghi nhận đã ăn ${meal.recipeTitle}`}
                           onClick={() =>
                             action(
@@ -488,6 +511,9 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                           <Check size={19} />
                         </button>
                       </div>
+                      {busy?.kind === "swap" && busy.mealId === meal.id && (
+                        <AiActivity kind="swap" />
+                      )}
                     </div>
                   ))}
                 </article>
@@ -513,7 +539,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                       <input
                         type="checkbox"
                         checked={!!item.isBought}
-                        disabled={busy}
+                        disabled={!!busy}
                         onChange={(e) => {
                           const value = e.target.checked;
                           action(async () => {

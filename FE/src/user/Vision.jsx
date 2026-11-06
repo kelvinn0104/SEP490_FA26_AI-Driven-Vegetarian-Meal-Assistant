@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { Camera, Check, Leaf, ScanLine } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Camera, Check, ScanLine } from "lucide-react";
+import { AiActivity } from "./AiActivity";
 import { Button, Notice, PageHeading, Card } from "./ui";
 import { userError, validatePhoto, isTestContent } from "./data";
 import { request } from "./api";
@@ -10,6 +11,7 @@ export function Vision({ open, flash }) {
   const [selected, setSelected] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(null);
+  const lock = useRef(false);
   const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
     if (!file) {
@@ -29,7 +31,8 @@ export function Vision({ open, flash }) {
     setFile(message ? null : next);
   };
   const scan = async () => {
-    if (!file || busy) return;
+    if (!file || lock.current) return;
+    lock.current = true;
     setBusy("scan");
     setError("");
     try {
@@ -41,6 +44,7 @@ export function Vision({ open, flash }) {
           "Chưa nhận được kết quả nhận diện hợp lệ. Vui lòng thử lại.",
         );
       setResult(data);
+      setConfirmed(false);
       setSelected(
         (data?.detectedItems || [])
           .filter((i) => i.ingredientId != null)
@@ -49,11 +53,13 @@ export function Vision({ open, flash }) {
     } catch (e) {
       setError(userError(e));
     } finally {
+      lock.current = false;
       setBusy(null);
     }
   };
   const confirm = async () => {
-    if (busy || !result?.scanId || !selected.length) return;
+    if (lock.current || !result?.scanId || !selected.length) return;
+    lock.current = true;
     setBusy("confirm");
     setError("");
     try {
@@ -68,6 +74,7 @@ export function Vision({ open, flash }) {
     } catch (e) {
       setError(userError(e));
     } finally {
+      lock.current = false;
       setBusy(null);
     }
   };
@@ -102,12 +109,9 @@ export function Vision({ open, flash }) {
         </li>
       </ol>
       <div className="vp-two-columns vp-scan-layout">
-        <section className="vp-panel">
-          <h2>Chọn ảnh nguyên liệu</h2>
-          <p>
-            Chụp rõ từng nguyên liệu, đủ sáng. Bạn sẽ kiểm tra lại kết quả trước
-            khi dùng.
-          </p>
+        <section className="vp-panel vp-scan-input">
+          <h2>Ảnh nguyên liệu</h2>
+          <p>Chụp đủ sáng để thấy rõ từng nguyên liệu.</p>
           {preview && (
             <div
               className={`vp-scan-image ${busy === "scan" ? "is-scanning" : ""}`}
@@ -122,6 +126,17 @@ export function Vision({ open, flash }) {
                 <span className="vp-scan-line" aria-hidden="true" />
               )}
             </div>
+          )}
+          {!preview && (
+            <figure className="vp-pantry-illustration">
+              <img
+                src="/images/brand/pantry-light.webp"
+                alt=""
+                width="900"
+                height="600"
+              />
+              <figcaption>Ảnh minh họa</figcaption>
+            </figure>
           )}
           <label className={`vp-upload ${preview ? "has-preview" : ""}`}>
             <Camera size={30} />
@@ -138,6 +153,7 @@ export function Vision({ open, flash }) {
           <Button disabled={!file || busy} onClick={scan}>
             {busy === "scan" ? "Đang nhận diện…" : "Nhận diện nguyên liệu"}
           </Button>
+          {busy === "scan" && <AiActivity kind="scan" />}
         </section>
         <section
           className={`vp-panel vp-scan-review ${result ? "has-result" : ""}`}
@@ -145,7 +161,12 @@ export function Vision({ open, flash }) {
           <h2>Kiểm tra nguyên liệu</h2>
           {!result ? (
             <div className="vp-scan-waiting">
-              <Leaf size={42} strokeWidth={1} />
+              <img
+                src="/images/brand/basil-sprout.webp"
+                alt=""
+                width="92"
+                height="92"
+              />
               <h3>Từ nguyên liệu đến ý tưởng</h3>
               <p>Kết quả và gợi ý món ăn sẽ xuất hiện tại đây.</p>
             </div>

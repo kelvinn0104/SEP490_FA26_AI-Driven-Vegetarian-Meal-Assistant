@@ -460,7 +460,19 @@
     margin: auto;
   }
   .vp-auth section > h2 {
-    font-size: 35px;
+    font-size: 30px;
+    margin-bottom: 10px;
+  }
+  .vp-auth-steps + .vp-eyebrow {
+    display: none;
+  }
+  .vp-auth section > p,
+  .vp-auth-steps {
+    margin-bottom: 16px;
+  }
+  .vp-auth-switch {
+    margin-top: 18px;
+    padding-top: 12px;
   }
   .vp-gate {
     padding: 36px 25px;
@@ -624,7 +636,10 @@
     padding-top: 16px;
   }
   .vp-auth label {
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+  }
+  .vp-auth form > .vp-button {
+    margin-top: 8px;
   }
   .vp-personal-header {
     padding: 16px;

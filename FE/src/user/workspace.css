@@ -350,35 +350,47 @@
   margin: auto;
 }
 .vp-plan-fields > h2 {
-  font: 400 30px/1.4 var(--font-editorial);
-  margin: 12px 0 14px;
+  font: 500 23px/1.35 var(--font-editorial);
+  margin: 0 0 16px;
 }
-.vp-plan-fields > p {
-  font-size: 14px;
-  margin-bottom: 26px;
+.vp-plan-date-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 12px;
 }
-.vp-plan-fields > .vp-button {
-  margin: 24px 0 10px;
+.vp-plan-fields label {
+  min-width: 0;
+  margin-bottom: 14px;
+}
+.vp-plan-date-fields input {
+  min-width: 0;
+}
+.vp-plan-form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 16px;
 }
 .vp-plan-fields > small {
   display: block;
   font-size: 12px;
   margin-top: 18px;
 }
-.vp-plan-fields > .vp-text-button {
+.vp-plan-form-actions > .vp-text-button {
   font-size: 12px;
 }
 .vp-days-shortcuts {
-  margin: -5px 0 24px;
+  margin: 0 0 16px;
 }
 .vp-plan-intro {
-  padding: 38px;
+  padding: 30px;
   background: var(--theme-tint, #e8eedf);
   border-radius: 26px;
 }
 .vp-plan-intro > svg {
   display: block;
-  margin-bottom: 36px;
+  margin-bottom: 18px;
 }
 .vp-plan-intro > .vp-eyebrow {
   display: block;
@@ -575,8 +587,8 @@
 .vp-scan-flow {
   display: flex;
   gap: 20px;
-  padding: 0 0 28px;
-  margin: 0 0 28px;
+  padding: 0 0 16px;
+  margin: 0 0 16px;
   list-style: none;
   border-bottom: 1px solid var(--line);
 }
@@ -613,7 +625,7 @@
 }
 .vp-scan-layout h2 {
   font-family: var(--font-editorial);
-  font-size: 27px;
+  font-size: clamp(20px, 2.5vw, 25px);
 }
 .vp .vp-upload {
   position: relative;
@@ -646,6 +658,12 @@
   outline: 2px solid var(--green);
   outline-offset: 4px;
 }
+.vp .vp-scan-input .vp-upload:not(.has-preview) {
+  min-height: 88px;
+  padding: 12px;
+  gap: 5px;
+  margin: 12px 0;
+}
 .vp-scan-image {
   position: relative;
   overflow: hidden;
@@ -675,14 +693,14 @@
   justify-content: center;
   flex-direction: column;
   text-align: center;
-  min-height: 340px;
+  min-height: 250px;
   padding: 24px;
   background: var(--theme-tint, #f2f4eb);
   border-radius: 18px;
 }
-.vp-scan-waiting > svg {
-  color: var(--theme-muted, #8b9d7d);
-  margin-bottom: 24px;
+.vp-scan-waiting > img,
+.vp-chat-welcome > img {
+  object-fit: contain;
 }
 .vp-scan-waiting h3 {
   font-family: var(--font-editorial);
@@ -794,10 +812,6 @@
   min-height: 320px;
   padding: 20px;
   text-align: center;
-}
-.vp-chat-welcome > svg {
-  color: var(--green);
-  margin: 0 0 8px;
 }
 .vp-chat-welcome h2 {
   font: 400 32px/1.4 var(--font-editorial);
@@ -1099,9 +1113,9 @@
 }
 @media (max-width: 600px) {
   .vp-screen-planner .vp-page-heading {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 6px 12px;
   }
   .vp-screen-planner .vp-page-heading h1 {
     font-size: 28px;
@@ -1308,15 +1322,23 @@
     margin-bottom: 12px;
   }
   .vp-screen-chatbot .vp-page-heading {
+    flex-wrap: nowrap;
     align-items: center;
     gap: 10px;
     margin-bottom: 12px;
+  }
+  .vp-chat-heading-actions > .vp-button {
+    width: 44px;
+    padding: 0;
+  }
+  .vp-chat-heading-actions > .vp-button > span {
+    display: none;
   }
   .vp-screen-chatbot .vp-page-heading .vp-eyebrow {
     display: none;
   }
   .vp-screen-chatbot .vp-chat {
-    height: min(620px, calc(100dvh - 270px - env(safe-area-inset-bottom, 0px)));
+    height: min(620px, calc(100dvh - 282px - env(safe-area-inset-bottom, 0px)));
     min-height: 330px;
     padding: 12px;
   }
@@ -1347,13 +1369,131 @@
 
 @media (max-width: 800px) {
   .vp-nutrition-summary .vp-energy-gauge {
-    width: min(215px, 100%);
+    width: min(195px, 100%);
     margin-bottom: 4px;
   }
   .vp-nutrition-summary .vp-daily-totals {
     margin: 8px 0;
   }
-  .vp .vp-scan-layout .vp-upload:not(.has-preview) {
-    min-height: 156px;
+}
+
+.vp-pantry-illustration {
+  position: relative;
+  margin: 12px 0 0;
+}
+.vp-pantry-illustration img {
+  display: block;
+  width: 100%;
+  height: clamp(112px, 20vw, 165px);
+  object-fit: cover;
+  border-radius: 14px;
+}
+.vp-pantry-illustration figcaption {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+}
+.vp-gate > .vp-pantry-illustration {
+  max-width: 480px;
+  margin: 0 auto 18px;
+}
+
+.vp-ai-activity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--mint);
+}
+@media (max-width: 800px) {
+  .vp-ai-activity[data-activity="generate"] {
+    scroll-margin-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+}
+.vp-ai-activity[data-activity="swap"] {
+  grid-column: 1 / -1;
+  margin-top: 0;
+  background: var(--theme-warm, #f7eee5);
+}
+.vp-ai-activity[data-activity="chat"] {
+  flex: none;
+  margin: 0 0 10px;
+  background: var(--theme-cool, #edf2f3);
+}
+.vp-ai-art {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+.vp-ai-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.vp-ai-art svg {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  box-sizing: content-box;
+  padding: 3px;
+  color: var(--green);
+  border-radius: 50%;
+  background: var(--surface);
+}
+.vp-ai-copy strong {
+  display: block;
+  font-size: 14px;
+}
+.vp-ai-copy p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+.vp-ai-pulse {
+  display: flex;
+  gap: 4px;
+  color: var(--green);
+}
+.vp-ai-pulse i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vp-ai-pulse i {
+    animation: vp-ai-pulse 1.5s ease-in-out infinite alternate;
+  }
+  .vp-ai-pulse i:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .vp-ai-pulse i:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+@keyframes vp-ai-pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@media (max-width: 360px) {
+  .vp-plan-date-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .vp-ai-pulse {
+    display: none;
   }
 }

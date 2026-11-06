@@ -28,7 +28,7 @@ export function userError(error) {
     return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
   if (error.status === 403)
     return "Tài khoản chưa được phép thực hiện thao tác này.";
-  if (error.status === 408 || error.name === "AbortError")
+  if ([408, 504].includes(error.status) || error.name === "AbortError")
     return "Máy chủ phản hồi chậm. Vui lòng thử lại sau ít phút.";
   if (error instanceof TypeError)
     return "Không thể kết nối. Kiểm tra mạng rồi thử lại.";

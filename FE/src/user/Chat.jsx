@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Leaf, ArrowRight, Send, History } from "lucide-react";
+import { ArrowRight, Send, History, Plus } from "lucide-react";
+import { AiActivity } from "./AiActivity";
 import ReactMarkdown from "react-markdown";
 import { useResource, Button, Notice, PageHeading, Dialog } from "./ui";
 import { listOf, userError, isUnavailableChat } from "./data";
@@ -42,7 +43,7 @@ export function Chat() {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const end = useRef();
@@ -59,7 +60,7 @@ export function Chat() {
   const select = async (id) => {
     if (lock.current) return;
     lock.current = true;
-    setBusy(true);
+    setBusy("history");
     setError("");
     try {
       const data = await request(`/chat/sessions/${id}/messages`);
@@ -79,14 +80,14 @@ export function Chat() {
       setError(userError(e));
     } finally {
       lock.current = false;
-      setBusy(false);
+      setBusy(null);
     }
   };
   const send = async (e) => {
     e.preventDefault();
     if (!text.trim() || lock.current) return;
     lock.current = true;
-    setBusy(true);
+    setBusy("send");
     setError("");
     const content = text.trim();
     try {
@@ -121,7 +122,7 @@ export function Chat() {
       setError(userError(err));
     } finally {
       lock.current = false;
-      setBusy(false);
+      setBusy(null);
     }
   };
   return (
@@ -137,14 +138,16 @@ export function Chat() {
           </button>
           <Button
             secondary
-            disabled={busy}
+            disabled={!!busy}
+            aria-label="Cuộc trò chuyện mới"
             onClick={() => {
               setSession(null);
               setMessages([]);
               setError("");
             }}
           >
-            Cuộc trò chuyện mới
+            <Plus size={19} aria-hidden="true" />
+            <span>Cuộc trò chuyện mới</span>
           </Button>
         </div>
       </PageHeading>
@@ -160,9 +163,14 @@ export function Chat() {
         </aside>
         <section className="vp-chat">
           <div className="vp-messages" role="log" aria-label="Tin nhắn">
-            {!messages.length && (
+            {!messages.length && !busy && (
               <div className="vp-chat-welcome">
-                <Leaf size={36} />
+                <img
+                  src="/images/brand/basil-sprout.webp"
+                  alt=""
+                  width="88"
+                  height="88"
+                />
                 <h2>Bạn đang muốn nấu gì?</h2>
                 <p>
                   Hỏi cách thay nguyên liệu, gợi ý món chay hoặc cách chuẩn bị
@@ -190,9 +198,12 @@ export function Chat() {
                 </div>
               </article>
             ))}
-            {busy && <p role="status">Đang xử lý…</p>}
+            {busy === "history" && (
+              <p role="status">Đang tải cuộc trò chuyện…</p>
+            )}
             <div ref={end} />
           </div>
+          {busy === "send" && <AiActivity kind="chat" />}
           {error && <Notice error>{error}</Notice>}
           <form className="vp-chat-form" onSubmit={send}>
             <textarea
@@ -211,6 +222,7 @@ export function Chat() {
               maxLength={2000}
               rows={2}
               required
+              readOnly={busy === "send"}
               value={text}
               onChange={(e) => setText(e.target.value)}
             />

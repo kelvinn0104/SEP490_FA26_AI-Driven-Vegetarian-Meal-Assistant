@@ -776,19 +776,16 @@
   }
   .vp-hero-photo {
     width: min(410px, 100%);
+    aspect-ratio: 1.38;
     margin: auto;
   }
   .vp-hero-still-life img {
+    aspect-ratio: 1.38;
+    object-fit: cover;
     border-radius: 26px 50px 26px 26px;
   }
-  .vp-hero-scan {
-    right: 0;
-    top: 24%;
-  }
-  .vp-hero-photo > .vp-hero-plan {
-    bottom: 13%;
-    right: 3%;
-    padding: 12px 14px;
+  .vp-hero-photo > button {
+    display: none;
   }
   .vp-hero .vp-button {
     width: 100%;
