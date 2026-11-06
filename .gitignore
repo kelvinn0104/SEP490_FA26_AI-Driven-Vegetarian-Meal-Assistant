@@ -48,3 +48,6 @@ dist-ssr/
 *.pt
 *.bin
 FE-backup/
+
+# Local browser verification traces
+.playwright-cli/

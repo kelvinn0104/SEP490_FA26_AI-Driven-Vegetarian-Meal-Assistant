@@ -1,0 +1,57 @@
+async (page) => {
+  const base = 'http://127.0.0.1:5173';
+  const api = 'https://veggieai-api.onrender.com/api';
+  const check = (ok, message) => { if (!ok) throw new Error(message); };
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.unrouteAll({ behavior: 'wait' });
+  await page.goto(base);
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  const firstPage = (await (await page.request.get(api + '/community/posts?page.Page=1&page.PageSize=2')).json()).data;
+  const secondPage = (await (await page.request.get(api + '/community/posts?page.Page=2&page.PageSize=2')).json()).data;
+  check(firstPage.pageSize === 2 && secondPage.page === 2 && firstPage.items[0].id !== secondPage.items[0].id, 'Live prefix pagination');
+  const expected = firstPage.items.find(post => post.postType === 'blog');
+  check(expected, 'No public blog available for live audit');
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + '/community');
+    await page.locator('.vp-post-card').first().waitFor({ timeout: 100000 });
+    check(!await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'Live feed overflow ' + width);
+    const source = page.locator('.vp-post-card').filter({ has: page.getByRole('link', { name: expected.title, exact: true }) });
+    await source.getByRole('link', { name: 'Đọc bài', exact: true }).click();
+    await page.getByRole('heading', { name: expected.title, exact: true }).waitFor({ timeout: 100000 });
+    check(new URL(page.url()).searchParams.get('id') === String(expected.id), 'Wrong live detail URL');
+    check(!await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), 'Live reader overflow ' + width);
+    if (width === 390) await page.screenshot({ path: 'docs/screenshots/community-reader-mobile.png', fullPage: true });
+  }
+  await page.reload();
+  await page.getByRole('heading', { name: expected.title, exact: true }).waitFor({ timeout: 100000 });
+  await page.goto(base + '/community');
+  await page.getByRole('searchbox', { name: 'Tìm bài viết' }).fill('Salad');
+  await page.getByRole('button', { name: 'Tìm', exact: true }).click();
+  await page.getByRole('heading', { name: 'Salad bơ đậu gà không gluten cho dân văn phòng', exact: true }).waitFor({ timeout: 100000 });
+  check(new URL(page.url()).searchParams.get('q') === 'Salad', 'Search state missing from URL');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Salad bơ đậu gà không gluten cho dân văn phòng', exact: true }).waitFor({ timeout: 100000 });
+  await page.getByRole('link', { name: 'Đọc bài', exact: true }).click();
+  await page.getByRole('link', { name: 'Công thức trong bài', exact: false }).waitFor({ timeout: 100000 });
+  await page.getByRole('link', { name: 'Công thức trong bài', exact: false }).click();
+  await page.getByRole('button', { name: 'Vào bếp', exact: true }).waitFor({ timeout: 100000 });
+  await page.goto(base + '/post-detail?id=16');
+  await page.getByText('Bài viết này chưa sẵn sàng.', { exact: true }).waitFor({ timeout: 100000 });
+  await page.goto(base + '/community');
+  await page.locator('.vp-post-card').first().waitFor({ timeout: 100000 });
+  await page.getByRole('combobox', { name: 'Sắp xếp bài viết' }).selectOption('top');
+  await page.waitForResponse(response => response.url().includes('/community/posts?') && response.url().includes('sort=top') && response.status() === 200);
+  await page.locator('.vp-post-card').first().waitFor();
+  check(!(await page.locator('.vp-community-list').innerText()).toLowerCase().includes('dummy'), 'Explicit dummy visible');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({ path: 'docs/screenshots/community-desktop.png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'docs/screenshots/community-mobile.png' });
+  await page.getByRole('button', { name: 'Viết bài', exact: true }).click();
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).last().click();
+  await page.getByRole('heading', { name: 'Đăng nhập', exact: true }).waitFor();
+  check(errors.length === 0, errors.join('; '));
+  await page.goto(base + '/community');
+}

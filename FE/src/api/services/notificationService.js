@@ -6,7 +6,7 @@ export const notificationService = {
    */
   getNotifications: async (unreadOnly = false, page = 1, pageSize = 20) => {
     try {
-      const raw = await apiRequest(`/notifications?unreadOnly=${unreadOnly}&page=${page}&pageSize=${pageSize}`);
+      const raw = await apiRequest(`/notifications?unreadOnly=${unreadOnly}&page.Page=${page}&page.PageSize=${pageSize}`);
       return unwrap(raw);
     } catch {
       return [];

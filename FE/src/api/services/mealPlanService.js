@@ -75,8 +75,8 @@ export const mealPlanService = {
   getMealPlans: async (params = {}) => {
     const query = new URLSearchParams();
     if (params.status) query.append('status', params.status);
-    if (params.page) query.append('page', params.page);
-    if (params.pageSize) query.append('pageSize', params.pageSize);
+    if (params.page) query.append('page.Page', params.page);
+    if (params.pageSize) query.append('page.PageSize', params.pageSize);
 
     const qs = query.toString() ? `?${query.toString()}` : '';
     const raw = await apiRequest(`/meal-plans${qs}`);

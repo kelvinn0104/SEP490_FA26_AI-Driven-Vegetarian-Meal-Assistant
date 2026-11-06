@@ -1,0 +1,9 @@
+{
+  "name": "veggie-app",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm --prefix FE install && npm --prefix FE run build",
+    "start": "npm --prefix FE run preview"
+  }
+}

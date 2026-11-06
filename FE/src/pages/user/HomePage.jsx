@@ -72,88 +72,139 @@ export default function HomePage({ onNavigate }) {
       {/* ====================================================================
           1. HERO EDITORIAL SECTION
       ==================================================================== */}
-      <section className="bg-forest text-alabaster rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden shadow-card">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
+      <section className="bg-forest text-alabaster rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden shadow-xl border border-white/10">
+        {/* Subtle architectural gradient background (no tacky AI blob) */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_70%_20%,rgba(36,107,72,0.22),transparent_70%)] pointer-events-none" />
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Hero Text (7 cols) */}
-          <div className="lg:col-span-7 space-y-4 sm:space-y-5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/15 border border-emerald-400/20 text-emerald-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>THUẦN CHAY KHOA HỌC • CHUẨN WHO Á CHÂU</span>
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Hero Content (7 cols) */}
+          <div className="lg:col-span-7 space-y-5">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-emerald-200 text-xs font-medium tracking-wide backdrop-blur-xs">
+              <Leaf className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Dinh Dưỡng Thực Vật • Chuẩn WHO Tây Thái Bình Dương</span>
             </div>
 
-            <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.15]">
-              Hôm nay ăn gì để <span className="text-emerald-300">đủ đạm & vi chất?</span>
+            <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.18]">
+              Cân bằng thực dưỡng, <br className="hidden sm:inline" />
+              <span className="text-emerald-300 font-serif italic font-normal">đủ đạm &amp; trọn vi chất.</span>
             </h1>
 
             {user && profile ? (
-              <p className="text-xs sm:text-sm text-alabaster/80 leading-relaxed max-w-xl">
-                Mọi công thức được tính toán theo thể trạng <strong>BMI {metrics.bmi} ({metrics.category})</strong> và mục tiêu{' '}
-                <strong>{metrics.targetProtein}g Đạm • 2.4µg B12 • {metrics.tdee} kcal</strong> của bạn.
+              <p className="text-xs sm:text-sm text-alabaster/85 leading-relaxed max-w-xl">
+                Thực đơn được định lượng chuẩn theo thể trạng <strong>BMI {metrics.bmi} ({metrics.category})</strong> — đáp ứng mục tiêu{' '}
+                <strong className="text-white">{metrics.targetProtein}g Đạm thực vật</strong>, <strong className="text-white">{metrics.tdee} kcal</strong> và vi chất B12 thiết yếu mỗi ngày.
               </p>
             ) : (
-              <p className="text-xs sm:text-sm text-alabaster/80 leading-relaxed max-w-xl">
-                Hệ thống gợi ý thực đơn chay khoa học cân bằng dinh dưỡng, giàu đạm thực vật và vi chất thiết yếu theo thể trạng cá nhân hóa.
+              <p className="text-xs sm:text-sm text-alabaster/85 leading-relaxed max-w-xl">
+                Hệ thống gợi ý thực đơn chay khoa học cân bằng dinh dưỡng, tối ưu hóa đạm thực vật và vi chất thiết yếu theo thể trạng cá nhân hóa.
               </p>
             )}
 
-            {/* Quick Action CTA */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            {/* CTAs */}
+            <div className="pt-1 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => onNavigate && onNavigate('planner')}
-                className="px-5 py-3 rounded-2xl bg-terracotta hover:bg-terracottaDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs flex items-center gap-2 active:scale-95"
+                className="px-5 py-3 rounded-2xl bg-terracotta hover:bg-terracottaDark text-white text-xs sm:text-sm font-semibold transition cursor-pointer shadow-sm flex items-center gap-2 active:scale-95"
               >
                 <span>Xem Thực Đơn Tuần</span>
-                <ChevronRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={() => onNavigate && onNavigate('chatbot')}
-                className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold transition cursor-pointer border border-white/20 flex items-center gap-2"
+                className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold transition cursor-pointer border border-white/15 flex items-center gap-2 active:scale-95"
               >
-                <Sparkles className="w-4 h-4 text-emerald-300" />
-                <span>Hỏi Trợ Lý Chatbox</span>
+                <Utensils className="w-4 h-4 text-emerald-300" />
+                <span>Tư Vấn Dinh Dưỡng</span>
               </button>
+            </div>
+
+            {/* Tangible Quick Filter Chips */}
+            <div className="pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
+              <span className="text-white/60 text-[11px] font-medium mr-1">Bộ lọc nhanh:</span>
+              {[
+                { id: 'high-protein', label: 'Giàu Đạm (24g+)' },
+                { id: 'quick', label: 'Nấu Nhanh (<22p)' },
+                { id: 'vietnam', label: 'Món Chay Việt' },
+                { id: 'b12', label: 'Giàu B12' }
+              ].map(chip => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => {
+                    setFilterTag(filterTag === chip.id ? 'all' : chip.id);
+                    const el = document.getElementById('recipe-library-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className={`px-3 py-1 rounded-full text-[11px] font-medium transition cursor-pointer ${
+                    filterTag === chip.id
+                      ? 'bg-emerald-400 text-forest font-semibold shadow-xs'
+                      : 'bg-white/10 hover:bg-white/20 text-white/90 border border-white/15'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Right Hero Card: Top Matched Dish (5 cols) */}
+          {/* Right Hero Card: Editorial Featured Recipe (5 cols) */}
           {heroRecipe && (
             <div className="lg:col-span-5">
               <div
                 onClick={() => setSelectedRecipeDetail(heroRecipe)}
-                className="bg-white/10 backdrop-blur-md rounded-3xl p-4 sm:p-5 border border-white/20 hover:border-emerald-300/60 transition cursor-pointer group shadow-elevated"
+                className="bg-white/[0.08] backdrop-blur-md rounded-3xl p-4 sm:p-5 border border-white/15 hover:border-emerald-300/50 transition duration-300 cursor-pointer group shadow-2xl"
               >
                 <div className="relative aspect-[16/10] rounded-2xl overflow-hidden mb-4">
                   <img
                     src={heroRecipe.image}
                     alt={heroRecipe.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out"
                   />
-                  <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-forest/90 text-emerald-300 font-metric text-xs font-bold">
-                    ★ {heroRecipe.matchScore}% Match Thể Trạng
+                  <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-forest/85 backdrop-blur-sm text-emerald-300 text-xs font-semibold border border-emerald-500/20 shadow-xs flex items-center gap-1.5">
+                    <Leaf className="w-3 h-3 text-emerald-400" />
+                    <span>Món tiêu biểu hôm nay</span>
                   </div>
-                  <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-white/90 text-forest font-metric text-xs font-bold">
-                    {heroRecipe.prepTime} phút
+                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-sm text-forest font-metric text-xs font-semibold shadow-xs flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-olive" />
+                    <span>{heroRecipe.prepTime} phút</span>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-metric uppercase tracking-wider text-emerald-300">
-                    Gợi ý tối ưu cho hôm nay
-                  </span>
-                  <h3 className="font-editorial text-lg font-bold text-white group-hover:text-emerald-300 transition">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-emerald-300 uppercase tracking-wider font-medium">
+                    <span>Gợi ý cho thể trạng của bạn</span>
+                    <span className="text-white/60 font-metric">Chuẩn WHO</span>
+                  </div>
+                  <h3 className="font-editorial text-lg sm:text-xl font-bold text-white group-hover:text-emerald-300 transition line-clamp-1">
                     {heroRecipe.title}
                   </h3>
-                  <div className="flex items-center gap-3 text-xs font-metric text-alabaster/80 pt-1">
-                    <span>{heroRecipe.nutrients?.calories ?? heroRecipe.kcalPerServing ?? 400} kcal</span>
-                    <span>•</span>
-                    <span>{heroRecipe.nutrients?.protein ?? heroRecipe.proteinG ?? 18}g Đạm</span>
-                    <span>•</span>
-                    <span>{heroRecipe.nutrients?.b12 ?? heroRecipe.b12Mcg ?? 1.2}µg B12</span>
+                  <p className="text-xs text-alabaster/70 line-clamp-1">
+                    {heroRecipe.subtitle || heroRecipe.instructions || 'Món chay cân bằng năng lượng và dưỡng chất'}
+                  </p>
+
+                  {/* Nutritional Breakdown Row */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center">
+                    <div className="bg-white/5 rounded-xl py-1.5 px-2">
+                      <span className="block text-[10px] text-white/60 uppercase">Năng lượng</span>
+                      <span className="font-metric text-xs font-bold text-white">
+                        {heroRecipe.nutrients?.calories ?? heroRecipe.kcalPerServing ?? 400} kcal
+                      </span>
+                    </div>
+                    <div className="bg-white/5 rounded-xl py-1.5 px-2">
+                      <span className="block text-[10px] text-white/60 uppercase">Chất đạm</span>
+                      <span className="font-metric text-xs font-bold text-emerald-300">
+                        {heroRecipe.nutrients?.protein ?? heroRecipe.proteinG ?? 18}g
+                      </span>
+                    </div>
+                    <div className="bg-white/5 rounded-xl py-1.5 px-2">
+                      <span className="block text-[10px] text-white/60 uppercase">Vitamin B12</span>
+                      <span className="font-metric text-xs font-bold text-white">
+                        {heroRecipe.nutrients?.b12 ?? heroRecipe.b12Mcg ?? 1.2}µg
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -271,7 +322,7 @@ export default function HomePage({ onNavigate }) {
       {/* ====================================================================
           5. COMPLETE RECIPE LIBRARY & FILTER BAR
       ==================================================================== */}
-      <section className="space-y-6 pt-4 border-t border-hairline">
+      <section id="recipe-library-section" className="space-y-6 pt-4 border-t border-hairline scroll-mt-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <span className="font-metric text-xs font-bold uppercase tracking-wider text-emeraldBotanic">
