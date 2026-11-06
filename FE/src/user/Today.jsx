@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
-  Camera,
   MessageCircle,
   CalendarDays,
   Check,
@@ -252,12 +251,6 @@ export function Today({ user, go, open, flash }) {
       )}
       <section className="vp-today-tools" aria-label="Công cụ bếp">
         {[
-          [
-            "vision",
-            "Từ ảnh nguyên liệu",
-            "Tìm món với những gì đang có",
-            Camera,
-          ],
           [
             "chatbot",
             "Hỏi trợ lý bếp",

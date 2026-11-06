@@ -167,21 +167,23 @@ export function PostDetail({ id, go, user, flash }) {
         {post && (
           <>
             <article className="vp-post-article">
-              <PostMedia key={post.mediaUrl} post={post} />
-              <div className="vp-post-reader-top">
-                <span className="vp-eyebrow">
-                  {post.postType === "video"
-                    ? "Video từ cộng đồng"
-                    : "Chuyện từ căn bếp"}
-                </span>
-                {!published && (
-                  <span className="vp-post-status" data-status={post.status}>
-                    {statusLabel(post.status)}
+              <header className="vp-reader-heading">
+                <div className="vp-post-reader-top">
+                  <span className="vp-eyebrow">
+                    {post.postType === "video"
+                      ? "Video từ cộng đồng"
+                      : "Chuyện từ căn bếp"}
                   </span>
-                )}
-              </div>
-              <h1>{post.title}</h1>
-              <PostMeta post={post} />
+                  {!published && (
+                    <span className="vp-post-status" data-status={post.status}>
+                      {statusLabel(post.status)}
+                    </span>
+                  )}
+                </div>
+                <h1>{post.title}</h1>
+                <PostMeta post={post} />
+              </header>
+              <PostMedia key={post.mediaUrl} post={post} />
               {!published && (
                 <Notice>
                   Bài chưa hiển thị công khai. Bình chọn và bình luận mở khi bài

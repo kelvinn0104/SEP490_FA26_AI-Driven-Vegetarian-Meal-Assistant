@@ -285,7 +285,7 @@
 }
 .vp-today-tools {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 36px;
 }
@@ -1495,5 +1495,263 @@
   }
   .vp-ai-pulse {
     display: none;
+  }
+}
+
+/* Shared editorial introduction for planning and community. */
+.vp-editorial-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  margin-bottom: 28px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--theme-tint, #eaf0e2);
+}
+.vp-editorial-banner > div {
+  align-self: center;
+  padding: clamp(20px, 4vw, 48px);
+}
+.vp-editorial-banner h1,
+.vp-editorial-banner h2 {
+  font: 500 clamp(27px, 4vw, 50px)/1.16 var(--font-editorial);
+  margin: 8px 0 10px;
+  text-wrap: balance;
+}
+.vp-editorial-banner p {
+  margin-bottom: 18px;
+}
+.vp-editorial-banner > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 264px;
+  object-fit: cover;
+}
+.vp-plan-intro-photo {
+  display: block;
+  width: 100%;
+  height: clamp(132px, 15vw, 200px);
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 18px;
+}
+.vp-plan-overview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  padding: clamp(16px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--theme-tint, #eaf0e2);
+}
+.vp-plan-overview .vp-section-heading {
+  margin: 0;
+}
+.vp-plan-overview .vp-section-heading .vp-eyebrow {
+  margin-bottom: 4px;
+}
+.vp-plan-overview .vp-plan-status {
+  background: var(--surface);
+}
+.vp-plan-view .vp-day-picker {
+  scroll-snap-type: x proximity;
+  padding-inline: 4px;
+}
+.vp-plan-view .vp-day-picker button {
+  scroll-snap-align: start;
+}
+.vp-plan-view .vp-day-picker button[aria-pressed="true"] {
+  box-shadow: inset 0 -3px var(--theme-inverse, var(--lime));
+}
+.vp-plan-history {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+  gap: 12px;
+}
+.vp-plan-history-card.vp-list-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.vp-plan-history-card > svg {
+  color: var(--green);
+}
+.vp-plan-history-card h3 {
+  overflow-wrap: anywhere;
+}
+.vp-day-empty {
+  padding-top: 16px;
+}
+.vp-plan-shopping .vp-check {
+  border-bottom: 1px solid var(--line);
+  padding-block: 10px;
+}
+@media (max-width: 600px) {
+  .vp-editorial-banner {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 18px;
+  }
+  .vp-editorial-banner > img {
+    height: clamp(96px, 28vw, 152px);
+  }
+  .vp-plan-overview .vp-section-heading {
+    width: 100%;
+  }
+  .vp-plan-overview .vp-actions {
+    gap: 8px;
+  }
+  .vp-plan-overview .vp-button {
+    padding-inline: 13px;
+  }
+  .vp-plan-view .vp-day {
+    padding: 16px;
+  }
+  .vp-plan-view .vp-meal {
+    gap: 10px;
+  }
+  .vp-plan-history-card.vp-list-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .vp-plan-history-card > .vp-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* Meal planning has a visual hierarchy of period, day, then individual meals. */
+.vp-plan-view {
+  max-width: 1120px;
+}
+.vp-plan-overview {
+  background: var(--surface);
+  border-top: 3px solid var(--green);
+}
+.vp-plan-overview h2 {
+  font: 500 clamp(28px, 4vw, 40px)/1.2 "Lora", serif;
+  letter-spacing: -0.04em;
+}
+.vp-plan-view .vp-day-picker {
+  gap: 8px;
+  padding-block: 18px;
+  margin: 8px 0;
+}
+.vp-plan-view .vp-day-picker button {
+  flex: 1 0 76px;
+  max-width: 136px;
+  border-radius: 16px;
+  padding-block: 12px;
+}
+.vp-plan-view .vp-day {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.vp-plan-view .vp-day > h3 {
+  border: 0;
+  padding: 0;
+  margin: 4px 0 18px;
+  font-weight: 500;
+}
+.vp-meal-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+}
+.vp-plan-view .vp-meal {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+}
+.vp-plan-view .vp-meal-symbol {
+  width: 100%;
+  height: 144px;
+  border-radius: 14px;
+  background: var(--mint);
+  overflow: hidden;
+}
+.vp-plan-view .vp-meal-symbol:not(:has(img)) {
+  height: 72px;
+}
+.vp-plan-view .vp-meal-symbol > svg {
+  width: 42px;
+  height: 42px;
+  opacity: 0.7;
+}
+.vp-plan-view .vp-meal:nth-child(2) .vp-meal-symbol {
+  background: var(--theme-warm, #f3eadc);
+}
+.vp-plan-view .vp-meal:nth-child(3) .vp-meal-symbol {
+  background: var(--theme-cool, #e6eeea);
+}
+.vp-plan-view .vp-meal-symbol img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vp-plan-view .vp-meal .vp-eyebrow {
+  color: var(--green);
+  letter-spacing: 0.12em;
+}
+.vp-plan-view .vp-meal > .vp-actions {
+  margin-top: auto;
+  flex-direction: row;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.vp-plan-view .vp-meal .vp-icon {
+  width: auto;
+  flex: 1;
+  border-radius: 10px;
+  gap: 6px;
+  padding-inline: 8px;
+}
+.vp-plan-view .vp-meal .vp-icon span {
+  font-size: 12px;
+}
+@media (max-width: 800px) {
+  .vp-meal-cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .vp-plan-view .vp-meal {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+  .vp-plan-view .vp-meal-symbol {
+    height: 72px;
+  }
+  .vp-plan-view .vp-meal > .vp-actions {
+    grid-column: 1 / -1;
+  }
+  .vp-plan-view .vp-meal > .vp-ai-activity {
+    grid-column: 1 / -1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vp-plan-view .vp-day-picker button {
+    transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+  .vp-plan-view .vp-day-picker button:active {
+    transform: scale(0.96);
+  }
+  .vp-meal-cards {
+    animation: vp-enter 180ms var(--ease-out) both;
   }
 }

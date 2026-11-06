@@ -138,8 +138,8 @@ async (page) => {
   await page.getByRole('heading', { name: 'Bếp đang chờ một kế hoạch mới', exact: true }).waitFor();
   check(!writes.some(w => w.p.includes('/generate')), 'Home created plan automatically');
   current = { id: 7, status: 'active', startDate: date, endDate: nextDate, days: [{ date, total: { kcal: 600 }, meals: [meal(101, 'breakfast'), meal(102, 'lunch')] }, { date: nextDate, total: { kcal: 300 }, meals: [meal(103, 'dinner', 'Bữa ngày mai')] }] };
-  const routes = ['/', '/discover', '/article-detail?id=r1', '/planner', '/create-plan', '/meal-history', '/user-nutrition', '/vision', '/chatbot', '/community', '/post-detail?id=12', '/create-post', '/user-posts', '/user-collection', '/me', '/user-profile', '/user-settings', '/notifications', '/welcome'];
-  const photos = { '/': 'today', '/planner': 'planner', '/user-nutrition': 'nutrition', '/vision': 'scan', '/chatbot': 'chat', '/user-profile': 'profile', '/user-settings': 'settings', '/create-post': 'compose' };
+  const routes = ['/', '/discover', '/article-detail?id=r1', '/planner', '/create-plan', '/meal-history', '/user-nutrition', '/chatbot', '/community', '/post-detail?id=12', '/create-post', '/user-posts', '/user-collection', '/me', '/user-profile', '/user-settings', '/notifications', '/welcome'];
+  const photos = { '/': 'today', '/planner': 'planner', '/user-nutrition': 'nutrition', '/chatbot': 'chat', '/user-profile': 'profile', '/user-settings': 'settings', '/create-post': 'compose' };
   for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of routes) {

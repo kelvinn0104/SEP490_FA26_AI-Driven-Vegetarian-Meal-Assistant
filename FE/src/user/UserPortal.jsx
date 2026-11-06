@@ -13,7 +13,6 @@ import {
   X,
   User,
   Bell,
-  Camera,
   MessageCircle,
   ArrowLeft,
   Moon,
@@ -35,9 +34,6 @@ const Planner = lazy(() =>
 );
 const Chat = lazy(() =>
   import("./Chat").then((module) => ({ default: module.Chat })),
-);
-const Vision = lazy(() =>
-  import("./Vision").then((module) => ({ default: module.Vision })),
 );
 const Profile = lazy(() =>
   import("./Account").then((module) => ({ default: module.Profile })),
@@ -79,7 +75,6 @@ const titles = {
   "create-plan": "Tạo thực đơn",
   "meal-history": "Lịch sử thực đơn",
   chatbot: "Trò chuyện",
-  vision: "Nhận diện nguyên liệu",
   community: "Cộng đồng",
   "post-detail": "Bài viết cộng đồng",
   "user-collection": "Món đã lưu",
@@ -97,7 +92,6 @@ const protectedScreens = [
   "create-mealplan",
   "meal-history",
   "chatbot",
-  "vision",
   "user-collection",
   "user-profile",
   "user-settings",
@@ -115,10 +109,6 @@ const guestCopy = {
   chatbot: [
     "Bạn muốn hỏi gì về bữa chay?",
     "Đăng nhập để hỏi trợ lý và xem lại những cuộc trò chuyện của bạn.",
-  ],
-  vision: [
-    "Từ nguyên liệu đang có đến món muốn nấu.",
-    "Chọn ảnh, kiểm tra nguyên liệu được nhận diện rồi khám phá các món phù hợp.",
   ],
   "user-collection": [
     "Giữ lại món bạn muốn nấu.",
@@ -214,19 +204,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   else if (!user && protectedScreens.includes(screen))
     content = (
       <div className="vp-gate">
-        {screen === "vision" ? (
-          <figure className="vp-pantry-illustration">
-            <img
-              src="/images/brand/pantry-light.webp"
-              alt=""
-              width="900"
-              height="600"
-            />
-            <figcaption>Ảnh minh họa</figcaption>
-          </figure>
-        ) : (
-          <Leaf size={36} />
-        )}
+        <Leaf size={36} />
         <span className="vp-eyebrow">Không gian của bạn</span>
         <h1>{gate[0]}</h1>
         <p>{gate[1]}</p>
@@ -292,7 +270,6 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
       />
     );
   else if (screen === "chatbot") content = <Chat />;
-  else if (screen === "vision") content = <Vision open={open} flash={flash} />;
   else if (screen === "user-profile")
     content = <Profile flash={flash} go={go} />;
   else if (screen === "user-settings") content = <Account user={user} />;
@@ -400,15 +377,6 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
                     <Moon size={19} aria-hidden="true" />
                   )}
                   <span aria-hidden="true">{dark ? "Sáng" : "Tối"}</span>
-                </button>
-                <button
-                  className="vp-header-tool vp-desktop-tool"
-                  title="Quét nguyên liệu"
-                  aria-label="Quét nguyên liệu"
-                  onClick={() => go("vision")}
-                >
-                  <Camera size={20} />
-                  <span>Quét ảnh</span>
                 </button>
                 <button
                   className="vp-header-tool vp-desktop-tool"
