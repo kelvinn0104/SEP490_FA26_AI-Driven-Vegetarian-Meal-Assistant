@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Leaf, ArrowRight, Mail, Check } from "lucide-react";
+import { Leaf, ArrowRight, Mail, Check, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { request } from "./api";
 import { BrandArt } from "./BrandArt";
@@ -23,12 +23,14 @@ export function AuthForm({ register, go, onLogin }) {
   );
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [now, setNow] = useState(Date.now());
   const otpInput = useRef(null);
   useEffect(() => {
@@ -50,6 +52,7 @@ export function AuthForm({ register, go, onLogin }) {
       /* Verification still works when storage is unavailable. */
     }
     setPassword("");
+    setConfirmPassword("");
     setOtp("");
     setStep("otp");
     setInfo(
@@ -110,6 +113,12 @@ export function AuthForm({ register, go, onLogin }) {
     setInfo("");
     try {
       if (register && step === "form") {
+        if (password !== confirmPassword) {
+          setError("Mật khẩu xác nhận không khớp.");
+          setBusy(false);
+          lock.current = false;
+          return;
+        }
         remember(
           await request("/Auth/register", {
             email: email.trim().toLowerCase(),
@@ -303,24 +312,54 @@ export function AuthForm({ register, go, onLogin }) {
               </label>
               <label>
                 Mật khẩu
-                <input
-                  type={showPassword ? "text" : "password"}
-                  minLength={register ? 6 : 1}
-                  required
-                  autoComplete={register ? "new-password" : "current-password"}
-                  disabled={busy}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="vp-password-wrapper">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    minLength={register ? 6 : 1}
+                    required
+                    autoComplete={register ? "new-password" : "current-password"}
+                    disabled={busy}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu"
+                  />
+                  <button
+                    type="button"
+                    className="vp-password-toggle"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </label>
-              <button
-                type="button"
-                className="vp-text-button vp-show-password"
-                aria-pressed={showPassword}
-                onClick={() => setShowPassword((v) => !v)}
-              >
-                {showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-              </button>
+              {register && (
+                <label>
+                  Xác nhận mật khẩu
+                  <div className="vp-password-wrapper">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      minLength={6}
+                      required
+                      autoComplete="new-password"
+                      disabled={busy}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Xác nhận mật khẩu"
+                    />
+                    <button
+                      type="button"
+                      className="vp-password-toggle"
+                      aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      title={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </label>
+              )}
               {register && (
                 <small>
                   Tối thiểu 6 ký tự. Nên dùng mật khẩu riêng cho tài khoản này.
