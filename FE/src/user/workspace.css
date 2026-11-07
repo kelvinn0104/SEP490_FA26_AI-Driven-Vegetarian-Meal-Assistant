@@ -1755,3 +1755,351 @@
     animation: vp-enter 180ms var(--ease-out) both;
   }
 }
+
+.vp-plan-nutrients {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: center;
+  padding: 22px 28px;
+  margin-bottom: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+}
+.vp-plan-energy {
+  padding-right: 24px;
+  border-right: 1px solid var(--line);
+}
+.vp-plan-energy .vp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+}
+.vp-plan-energy > strong {
+  display: block;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 500;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+.vp-plan-energy strong small,
+.vp-plan-energy > span:last-child,
+.vp-plan-macros small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.vp-plan-macros dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 14px;
+}
+.vp-plan-macros dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+.vp-plan-macros dd {
+  margin: 3px 0 0;
+  font-size: 23px;
+  font-variant-numeric: tabular-nums;
+}
+.vp-plan-energy-split {
+  display: flex;
+  overflow: hidden;
+  gap: 3px;
+  height: 8px;
+  border-radius: 99px;
+  margin-bottom: 10px;
+}
+.vp-plan-energy-split span {
+  flex-basis: 0;
+  background: var(--green);
+}
+.vp-plan-energy-split [data-meal="breakfast"],
+.vp-plan-energy-legend [data-meal="breakfast"] i {
+  background: var(--gauge-fill);
+}
+.vp-plan-energy-split [data-meal="dinner"],
+.vp-plan-energy-legend [data-meal="dinner"] i {
+  background: var(--accent);
+}
+.vp-plan-energy-split [data-meal="snack"],
+.vp-plan-energy-legend [data-meal="snack"] i {
+  background: var(--muted);
+}
+.vp-plan-energy-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+.vp-plan-energy-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.vp-plan-energy-legend i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.vp-plan-meal-art {
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100px;
+  border-radius: 14px;
+  background: var(--mint);
+  color: var(--green);
+}
+.vp-plan-meal-art > span {
+  width: 36px;
+  height: 36px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.18;
+}
+.vp-plan-meal-art::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 130px;
+  height: 130px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.12;
+}
+.vp-plan-meal-art[data-meal="breakfast"] {
+  background: var(--theme-warm, #f3eadc);
+  color: var(--accent);
+}
+.vp-plan-meal-art[data-meal="dinner"] {
+  background: var(--theme-cool, #e6eeea);
+}
+@media (max-width: 800px) {
+  .vp-plan-nutrients {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+    gap: 14px;
+  }
+  .vp-plan-energy {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 0 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+  }
+  .vp-plan-energy > span:last-child {
+    flex-basis: 100%;
+  }
+  .vp-plan-meal-art {
+    height: 72px;
+  }
+  .vp-plan-meal-art > span {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .vp-plan-nutrients {
+    padding: 14px 16px;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .vp-plan-energy {
+    padding-bottom: 6px;
+  }
+  .vp-plan-energy > strong {
+    font-size: 26px;
+    line-height: 1.3;
+  }
+  .vp-plan-energy > span:last-child {
+    flex-basis: auto;
+    font-size: 10px;
+  }
+  .vp-plan-macros dl {
+    margin-bottom: 8px;
+  }
+  .vp-plan-macros dd {
+    font-size: 19px;
+    margin-top: 0;
+  }
+  .vp-plan-energy-legend {
+    gap: 4px 10px;
+  }
+  .vp-plan-view .vp-day-picker {
+    padding-block: 10px;
+    margin-block: 4px;
+  }
+  .vp-plan-view .vp-day-picker button {
+    padding-block: 7px;
+  }
+}
+
+.vp-plan-tracking {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.vp-plan-track-ring {
+  position: relative;
+  flex: 0 0 64px;
+  height: 64px;
+}
+.vp-plan-track-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.vp-plan-track-ring strong {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.vp-plan-track-copy {
+  flex: 1;
+  min-width: 0;
+}
+.vp-plan-track-copy > strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.vp-plan-track-stops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+}
+.vp-plan-track-stops a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.vp-plan-track-stops a[data-recorded="true"] {
+  color: var(--green);
+}
+.vp-plan-track-stops a svg {
+  box-sizing: content-box;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.vp-plan-track-stops a[data-recorded="true"] svg {
+  background: var(--mint);
+}
+.vp-plan-nutrition-details {
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.vp-plan-nutrition-details > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  min-height: 44px;
+  font-size: 12px;
+}
+.vp-plan-nutrition-details > summary > span {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.vp-plan-view .vp-meal {
+  scroll-margin-block: 120px;
+}
+.vp-plan-view .vp-meal[data-recorded="true"] {
+  border-color: var(--green);
+}
+@media (max-width: 800px) {
+  .vp-screen-planner .vp-page-heading > div:first-child > .vp-eyebrow {
+    display: none;
+  }
+  .vp-screen-planner .vp-page-heading {
+    margin-bottom: 14px;
+  }
+  .vp-screen-planner .vp-page-heading h1 {
+    font-size: 25px;
+  }
+  .vp-plan-overview {
+    padding: 14px 16px;
+    gap: 10px;
+    border-radius: 16px;
+  }
+  .vp-plan-overview .vp-section-heading {
+    gap: 10px;
+  }
+  .vp-plan-overview .vp-section-heading .vp-eyebrow {
+    display: none;
+  }
+  .vp-plan-overview h2 {
+    font-size: 25px;
+    letter-spacing: -0.03em;
+  }
+  .vp-plan-overview .vp-actions {
+    width: 100%;
+  }
+  .vp-plan-overview .vp-button {
+    min-height: 44px;
+    padding-block: 8px;
+    font-size: 12px;
+    flex: 1;
+  }
+  .vp-plan-view .vp-day-picker button {
+    flex: 0 0 60px;
+    gap: 0;
+    padding: 5px 8px;
+    border-radius: 12px;
+  }
+  .vp-plan-view .vp-day-picker button small {
+    display: none;
+  }
+  .vp-plan-view .vp-day > h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .vp-plan-tracking {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 16px;
+    margin-bottom: 0;
+  }
+  .vp-plan-track-ring {
+    flex-basis: 52px;
+    height: 52px;
+  }
+  .vp-plan-track-stops {
+    gap: 2px 8px;
+    margin-top: 4px;
+  }
+  .vp-plan-track-stops a {
+    min-height: 36px;
+    font-size: 10px;
+  }
+  .vp-plan-track-stops a svg {
+    padding: 3px;
+  }
+  .vp-plan-track-copy > strong {
+    font-size: 12px;
+  }
+}
