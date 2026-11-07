@@ -32,6 +32,7 @@ import {
   vietnamDate,
   mealLabels,
   safeImage,
+  mealsForDate,
 } from "./data";
 import { request } from "./api";
 
@@ -122,6 +123,83 @@ function DayOverview({ day }) {
   );
 }
 
+function DayTracking({ meals, resource, date, go }) {
+  const completed = meals.filter((meal) => meal.recorded).length;
+  const ready =
+    !resource.loading && !resource.error && resource.data?.date === date;
+  return (
+    <section className="vp-plan-tracking" aria-label="Theo dõi bữa ăn">
+      <div className="vp-plan-track-ring">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <circle
+            cx="32"
+            cy="32"
+            r="27"
+            fill="none"
+            stroke="var(--line)"
+            strokeWidth="5"
+          />
+          {ready && meals.length > 0 && (
+            <circle
+              cx="32"
+              cy="32"
+              r="27"
+              fill="none"
+              stroke="var(--green)"
+              strokeWidth="5"
+              pathLength="100"
+              strokeDasharray={`${(completed / meals.length) * 100} 100`}
+              strokeLinecap="round"
+              transform="rotate(-90 32 32)"
+            />
+          )}
+        </svg>
+        <strong>{ready ? `${completed}/${meals.length}` : "—"}</strong>
+      </div>
+      <div className="vp-plan-track-copy">
+        <strong>
+          {resource.loading
+            ? "Đang tải nhật ký…"
+            : !ready
+              ? "Chưa tải được nhật ký"
+              : completed === meals.length && meals.length
+                ? "Đã ghi nhận đủ các bữa"
+                : "Bữa ăn trong ngày"}
+        </strong>
+        {ready ? (
+          <div className="vp-plan-track-stops">
+            {meals.map((meal) => {
+              const Icon = mealIcons[meal.mealType] || CalendarDays;
+              return (
+                <a
+                  key={meal.id}
+                  href={`#plan-meal-${meal.id}`}
+                  data-recorded={meal.recorded}
+                  aria-label={`${mealLabels[meal.mealType] || meal.mealType}: ${meal.recorded ? "đã ghi nhận" : "chưa ghi nhận"}`}
+                >
+                  {meal.recorded ? <Check size={14} /> : <Icon size={14} />}
+                  <span>{mealLabels[meal.mealType] || meal.mealType}</span>
+                </a>
+              );
+            })}
+          </div>
+        ) : resource.error ? (
+          <button className="vp-text-button" onClick={resource.reload}>
+            Thử tải lại
+          </button>
+        ) : null}
+      </div>
+      <button
+        className="vp-icon"
+        aria-label="Mở nhật ký dinh dưỡng"
+        onClick={() => go("user-nutrition")}
+      >
+        <ArrowRight size={18} />
+      </button>
+    </section>
+  );
+}
+
 function PlanMealVisual({ meal }) {
   const Icon = mealIcons[meal.mealType] || CalendarDays;
   if (safeImage(meal.imageUrl)) return <MealImage meal={meal} />;
@@ -169,6 +247,23 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
   const plan = generated || resource.data;
   const selectedDay =
     plan?.days?.find((day) => day.date === selectedDate) || plan?.days?.[0];
+  const daily = useResource(
+    (signal) =>
+      !editing && (!history || generated) && selectedDay?.date
+        ? request(
+            `/nutrition/daily?date=${selectedDay.date}`,
+            undefined,
+            undefined,
+            signal,
+          )
+        : Promise.resolve(null),
+    [editing, history, generated?.id, selectedDay?.date],
+  );
+  const trackedMeals = mealsForDate(
+    plan,
+    selectedDay?.date,
+    daily.data?.date === selectedDay?.date ? daily.data?.logs : [],
+  );
   const testPlan = plan?.days?.some((day) =>
     day.meals?.some((meal) => isTestContent({ title: meal.recipeTitle })),
   );
@@ -600,13 +695,32 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                       { weekday: "long", day: "numeric", month: "numeric" },
                     )}
                   </h3>
-                  <DayOverview day={day} />
+                  <DayTracking
+                    meals={trackedMeals}
+                    resource={daily}
+                    date={day.date}
+                    go={go}
+                  />
+                  <details className="vp-plan-nutrition-details">
+                    <summary>
+                      Dinh dưỡng dự kiến{" "}
+                      <span>{amount(day.total?.kcal)} kcal</span>
+                    </summary>
+                    <DayOverview day={day} />
+                  </details>
                   {!day.meals?.length && (
                     <p className="vp-day-empty">Ngày này chưa có món.</p>
                   )}
                   <div className="vp-meal-cards">
-                    {day.meals?.map((meal) => (
-                      <div className="vp-meal" key={meal.id}>
+                    {trackedMeals.map((meal) => (
+                      <div
+                        className="vp-meal"
+                        key={meal.id}
+                        id={`plan-meal-${meal.id}`}
+                        data-recorded={
+                          !daily.loading && !daily.error && meal.recorded
+                        }
+                      >
                         <PlanMealVisual meal={meal} />
                         <div>
                           <span className="vp-eyebrow">
@@ -632,20 +746,30 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                           </button>
                           <button
                             className="vp-icon"
-                            disabled={!!busy}
-                            aria-label={`Ghi nhận đã ăn ${meal.recipeTitle}`}
+                            disabled={
+                              !!busy ||
+                              daily.loading ||
+                              !!daily.error ||
+                              daily.data?.date !== day.date ||
+                              meal.recorded
+                            }
+                            aria-label={`${meal.recorded && !daily.loading && !daily.error ? "Đã ghi nhận" : "Ghi nhận đã ăn"} ${meal.recipeTitle}`}
                             onClick={() =>
-                              action(
-                                () =>
-                                  request("/nutrition/logs", {
-                                    planItemId: meal.id,
-                                  }),
-                                "Đã ghi nhận bữa ăn.",
-                              )
+                              action(async () => {
+                                await request("/nutrition/logs", {
+                                  planItemId: meal.id,
+                                  logDate: day.date,
+                                });
+                                daily.reload();
+                              }, "Đã ghi nhận bữa ăn.")
                             }
                           >
                             <Check size={19} />
-                            <span>Đã ăn</span>
+                            <span>
+                              {meal.recorded && !daily.loading && !daily.error
+                                ? "Đã ghi nhận"
+                                : "Ghi nhận bữa"}
+                            </span>
                           </button>
                         </div>
                         {busy?.kind === "swap" && busy.mealId === meal.id && (

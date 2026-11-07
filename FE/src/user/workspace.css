@@ -1947,3 +1947,159 @@
     padding-block: 7px;
   }
 }
+
+.vp-plan-tracking {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.vp-plan-track-ring {
+  position: relative;
+  flex: 0 0 64px;
+  height: 64px;
+}
+.vp-plan-track-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.vp-plan-track-ring strong {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.vp-plan-track-copy {
+  flex: 1;
+  min-width: 0;
+}
+.vp-plan-track-copy > strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.vp-plan-track-stops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+}
+.vp-plan-track-stops a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.vp-plan-track-stops a[data-recorded="true"] {
+  color: var(--green);
+}
+.vp-plan-track-stops a svg {
+  box-sizing: content-box;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+.vp-plan-track-stops a[data-recorded="true"] svg {
+  background: var(--mint);
+}
+.vp-plan-nutrition-details {
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.vp-plan-nutrition-details > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  min-height: 44px;
+  font-size: 12px;
+}
+.vp-plan-nutrition-details > summary > span {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.vp-plan-view .vp-meal {
+  scroll-margin-block: 120px;
+}
+.vp-plan-view .vp-meal[data-recorded="true"] {
+  border-color: var(--green);
+}
+@media (max-width: 800px) {
+  .vp-screen-planner .vp-page-heading > div:first-child > .vp-eyebrow {
+    display: none;
+  }
+  .vp-screen-planner .vp-page-heading {
+    margin-bottom: 14px;
+  }
+  .vp-screen-planner .vp-page-heading h1 {
+    font-size: 25px;
+  }
+  .vp-plan-overview {
+    padding: 14px 16px;
+    gap: 10px;
+    border-radius: 16px;
+  }
+  .vp-plan-overview .vp-section-heading {
+    gap: 10px;
+  }
+  .vp-plan-overview .vp-section-heading .vp-eyebrow {
+    display: none;
+  }
+  .vp-plan-overview h2 {
+    font-size: 25px;
+    letter-spacing: -0.03em;
+  }
+  .vp-plan-overview .vp-actions {
+    width: 100%;
+  }
+  .vp-plan-overview .vp-button {
+    min-height: 44px;
+    padding-block: 8px;
+    font-size: 12px;
+    flex: 1;
+  }
+  .vp-plan-view .vp-day-picker button {
+    flex: 0 0 60px;
+    gap: 0;
+    padding: 5px 8px;
+    border-radius: 12px;
+  }
+  .vp-plan-view .vp-day-picker button small {
+    display: none;
+  }
+  .vp-plan-view .vp-day > h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .vp-plan-tracking {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 16px;
+    margin-bottom: 0;
+  }
+  .vp-plan-track-ring {
+    flex-basis: 52px;
+    height: 52px;
+  }
+  .vp-plan-track-stops {
+    gap: 2px 8px;
+    margin-top: 4px;
+  }
+  .vp-plan-track-stops a {
+    min-height: 36px;
+    font-size: 10px;
+  }
+  .vp-plan-track-stops a svg {
+    padding: 3px;
+  }
+  .vp-plan-track-copy > strong {
+    font-size: 12px;
+  }
+}

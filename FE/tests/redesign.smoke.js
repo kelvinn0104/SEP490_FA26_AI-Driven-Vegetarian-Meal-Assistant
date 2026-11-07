@@ -108,6 +108,11 @@ async (page) => {
   await page.waitForFunction(() => Array.from(document.querySelectorAll('.vp-record-meal')).every(button => button.disabled));
   check(writes.filter(w => w.p.endsWith('/nutrition/logs')).length === 1 && writes[0].body.planItemId === 102, 'Home logging uses wrong ID');
   await page.goto(base + '/planner');
+  await page.getByRole('region', {name:'Theo dõi bữa ăn'}).getByText('2/2', {exact:true}).waitFor();
+  check(await page.locator('.vp-plan-view .vp-meal[data-recorded="true"]').count() === 2, 'Planner lost recorded meals');
+  check(await page.getByRole('button', {name:'Đã ghi nhận ' + recipe.title, exact:true}).count() === 2, 'Planner does not prevent duplicate logs');
+  await page.reload();
+  await page.getByRole('region', {name:'Theo dõi bữa ăn'}).getByText('2/2', {exact:true}).waitFor();
   await page.locator('.vp-day-picker button').nth(1).click();
   await page.getByRole('button', { name: 'Bữa ngày mai', exact: true }).waitFor();
   check(await page.getByRole('button', { name: recipe.title, exact: true }).count() === 0, 'Inactive day meals remained visible');
