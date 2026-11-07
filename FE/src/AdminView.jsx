@@ -16,7 +16,13 @@ import {
   CategoryManagementScreen,
   ContentModerationScreen,
   RecipeManagementScreen,
+  IngredientManagementScreen,
+  VeganChallengeManagementScreen,
 } from "./pages/mod";
+import { FeedbackManagementScreen } from "./pages/FeedbackManagementScreen";
+import { NutritionAnalyticsScreen } from "./pages/NutritionAnalyticsScreen";
+import { BroadcastNotificationScreen } from "./pages/BroadcastNotificationScreen";
+import { RewardManagementScreen } from "./pages/RewardManagementScreen";
 
 import "./index.css";
 import "./admin-fonts.css";
@@ -82,6 +88,10 @@ export default function AdminView({
             <CategoryManagementScreen />
           )}
 
+          {currentScreen === "ingredient-management" && (
+            <IngredientManagementScreen />
+          )}
+
           {currentScreen === "content-moderation" && (
             <ContentModerationScreen
               onUpdatePendingCount={(count) => setPendingCount(count)}
@@ -90,9 +100,29 @@ export default function AdminView({
 
           {currentScreen === "recipe-management" && <RecipeManagementScreen />}
 
+          {currentScreen === "challenge-management" && (
+            <VeganChallengeManagementScreen />
+          )}
+
           {currentScreen === "ai-model-monitoring" && <AiMonitoringScreen />}
 
           {currentScreen === "role-management" && <RoleManagementScreen />}
+
+          {currentScreen === "feedback-management" && (
+            <FeedbackManagementScreen userRole={userRole} />
+          )}
+
+          {currentScreen === "nutrition-analytics" && (
+            <NutritionAnalyticsScreen userRole={userRole} />
+          )}
+
+          {currentScreen === "broadcast-notification" && (
+            <BroadcastNotificationScreen />
+          )}
+
+          {currentScreen === "reward-management" && (
+            <RewardManagementScreen />
+          )}
         </main>
       </div>
 
