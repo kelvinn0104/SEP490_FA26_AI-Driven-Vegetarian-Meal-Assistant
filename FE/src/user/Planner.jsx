@@ -7,6 +7,11 @@ import {
   Check,
   ShoppingBasket,
   CalendarDays,
+  Flame,
+  Sunrise,
+  Sun,
+  Moon,
+  Apple,
 } from "lucide-react";
 import {
   useResource,
@@ -26,6 +31,7 @@ import {
   isTestContent,
   vietnamDate,
   mealLabels,
+  safeImage,
 } from "./data";
 import { request } from "./api";
 
@@ -37,6 +43,101 @@ function formatPlanDate(date, withYear = false) {
     ...(withYear && { year: "numeric" }),
   });
 }
+const mealIcons = {
+  breakfast: Sunrise,
+  lunch: Sun,
+  dinner: Moon,
+  snack: Apple,
+};
+
+function DayOverview({ day }) {
+  const meals = day.meals || [];
+  const hasEnergy =
+    meals.length > 0 &&
+    meals.every(
+      (meal) =>
+        typeof meal.nutrition?.kcal === "number" &&
+        Number.isFinite(meal.nutrition.kcal) &&
+        meal.nutrition.kcal >= 0,
+    );
+  const energy = hasEnergy
+    ? meals.reduce((sum, meal) => sum + meal.nutrition.kcal, 0)
+    : 0;
+  return (
+    <section
+      className="vp-plan-nutrients"
+      aria-label="Dinh dưỡng dự kiến trong ngày"
+    >
+      <div className="vp-plan-energy">
+        <span className="vp-eyebrow">
+          <Flame size={16} /> Theo thực đơn
+        </span>
+        <strong>
+          {amount(day.total?.kcal)} <small>kcal</small>
+        </strong>
+        <span>{meals.length} bữa trong ngày</span>
+      </div>
+      <div className="vp-plan-macros">
+        <dl>
+          {[
+            ["proteinG", "Đạm"],
+            ["carbG", "Tinh bột"],
+            ["fatG", "Chất béo"],
+          ].map(([key, label]) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd>
+                {amount(day.total?.[key])} <small>g</small>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {energy > 0 ? (
+          <>
+            <div className="vp-plan-energy-split" aria-hidden="true">
+              {meals.map((meal) => (
+                <span
+                  key={meal.id}
+                  data-meal={meal.mealType}
+                  style={{ flexGrow: meal.nutrition.kcal / energy }}
+                />
+              ))}
+            </div>
+            <div className="vp-plan-energy-legend">
+              {meals.map((meal) => (
+                <span key={meal.id} data-meal={meal.mealType}>
+                  <i aria-hidden="true" />
+                  {mealLabels[meal.mealType] || meal.mealType} ·{" "}
+                  {amount(meal.nutrition.kcal)} kcal
+                </span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p>Phân bổ năng lượng sẽ hiện khi có đủ dữ liệu từng bữa.</p>
+        )}
+        <small>Dinh dưỡng dự kiến từ món trong thực đơn.</small>
+      </div>
+    </section>
+  );
+}
+
+function PlanMealVisual({ meal }) {
+  const Icon = mealIcons[meal.mealType] || CalendarDays;
+  if (safeImage(meal.imageUrl)) return <MealImage meal={meal} />;
+  return (
+    <div
+      className="vp-plan-meal-art"
+      data-meal={meal.mealType}
+      aria-hidden="true"
+    >
+      <span />
+      <Icon size={38} strokeWidth={1.2} />
+      <span />
+    </div>
+  );
+}
+
 export function Planner({ go, flash, open, history, create, hasProfile }) {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(!!create);
@@ -498,17 +599,15 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                       "vi-VN",
                       { weekday: "long", day: "numeric", month: "numeric" },
                     )}
-                    {day.total?.kcal != null && (
-                      <small>{amount(day.total.kcal)} kcal</small>
-                    )}
                   </h3>
+                  <DayOverview day={day} />
                   {!day.meals?.length && (
                     <p className="vp-day-empty">Ngày này chưa có món.</p>
                   )}
                   <div className="vp-meal-cards">
                     {day.meals?.map((meal) => (
                       <div className="vp-meal" key={meal.id}>
-                        <MealImage meal={meal} />
+                        <PlanMealVisual meal={meal} />
                         <div>
                           <span className="vp-eyebrow">
                             {mealLabels[meal.mealType] || meal.mealType}
