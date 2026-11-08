@@ -162,6 +162,36 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                         Danh mục dinh dưỡng ({categories.length})
                       </span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigate('ingredient-management');
+                        onClose();
+                      }}
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-secondary text-[20px]">
+                        science
+                      </span>
+                      <span className="text-xs font-semibold text-on-surface">
+                        Thư viện Vi chất &amp; Đạm
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigate('challenge-management');
+                        onClose();
+                      }}
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-primary text-[20px]">
+                        military_tech
+                      </span>
+                      <span className="text-xs font-semibold text-on-surface">
+                        Thử thách lối sống thuần chay
+                      </span>
+                    </button>
                   </>
                 )}
 
@@ -182,6 +212,70 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                     </span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('feedback-management');
+                    onClose();
+                  }}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-rose-600 text-[20px]">
+                    rate_review
+                  </span>
+                  <span className="text-xs font-semibold text-on-surface">
+                    Phản hồi &amp; Báo cáo vi phạm
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('nutrition-analytics');
+                    onClose();
+                  }}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-emerald-600 text-[20px]">
+                    insights
+                  </span>
+                  <span className="text-xs font-semibold text-on-surface">
+                    Báo cáo dịch tễ dinh dưỡng
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('broadcast-notification');
+                    onClose();
+                  }}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sky-600 text-[20px]">
+                    campaign
+                  </span>
+                  <span className="text-xs font-semibold text-on-surface">
+                    Phát sóng thông báo &amp; mẹo
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('reward-management');
+                    onClose();
+                  }}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-primary text-[20px]">
+                    redeem
+                  </span>
+                  <span className="text-xs font-semibold text-on-surface">
+                    Kho quà đổi điểm mầm xanh
+                  </span>
+                </button>
               </div>
             </div>
           )}

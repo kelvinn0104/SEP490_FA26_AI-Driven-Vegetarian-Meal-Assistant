@@ -9,10 +9,16 @@ const adminScreens = [
   "dashboard",
   "user-management",
   "category-management",
+  "ingredient-management",
   "content-moderation",
   "recipe-management",
+  "challenge-management",
   "ai-model-monitoring",
   "role-management",
+  "feedback-management",
+  "nutrition-analytics",
+  "broadcast-notification",
+  "reward-management",
 ];
 
 const userScreens = [
@@ -195,8 +201,10 @@ export default function App() {
         isAdmin &&
         [
           "category-management",
+          "ingredient-management",
           "content-moderation",
           "recipe-management",
+          "challenge-management",
         ].includes(target)
       ) {
         setCurrentScreen("dashboard");
@@ -265,8 +273,10 @@ export default function App() {
       nextRole === "admin" &&
       [
         "category-management",
+        "ingredient-management",
         "content-moderation",
         "recipe-management",
+        "challenge-management",
       ].includes(currentScreen)
     ) {
       handleNavigate("dashboard");

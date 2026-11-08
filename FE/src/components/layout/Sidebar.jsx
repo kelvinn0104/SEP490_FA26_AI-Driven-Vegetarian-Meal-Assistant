@@ -29,6 +29,12 @@ export const Sidebar = ({
       modOnly: true,
     },
     {
+      id: 'ingredient-management',
+      label: 'Thư viện Vi chất & Đạm',
+      icon: 'science',
+      modOnly: true,
+    },
+    {
       id: 'content-moderation',
       label: 'Duyệt bài & Công thức',
       icon: 'local_hospital',
@@ -39,6 +45,12 @@ export const Sidebar = ({
       id: 'recipe-management',
       label: 'Quản lý Bài viết',
       icon: 'menu_book',
+      modOnly: true,
+    },
+    {
+      id: 'challenge-management',
+      label: 'Thử thách Lối sống Chay',
+      icon: 'military_tech',
       modOnly: true,
     },
     {
@@ -53,6 +65,26 @@ export const Sidebar = ({
       label: 'Phân quyền Hệ thống',
       icon: 'admin_panel_settings',
       adminOnly: true,
+    },
+    {
+      id: 'feedback-management',
+      label: 'Phản hồi & Báo cáo',
+      icon: 'rate_review',
+    },
+    {
+      id: 'nutrition-analytics',
+      label: 'Phân tích Dịch tễ & Macro',
+      icon: 'insights',
+    },
+    {
+      id: 'broadcast-notification',
+      label: 'Thông báo & Mẹo Dinh dưỡng',
+      icon: 'campaign',
+    },
+    {
+      id: 'reward-management',
+      label: 'Đổi Thưởng Mầm Xanh',
+      icon: 'redeem',
     },
   ];
 
