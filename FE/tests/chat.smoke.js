@@ -44,16 +44,30 @@ async (page) => {
  const style=await page.locator('.vp-message .vp-prose strong').first().evaluate(el=>({display:getComputedStyle(el).display,transform:getComputedStyle(el).textTransform,size:parseFloat(getComputedStyle(el).fontSize)}));
  check(style.display==='inline'&&style.transform==='none'&&style.size>=14,'Markdown emphasis inherits sender label styling');
  check(await page.locator('.vp-chat-table table').count()===1,'Markdown table missing');
+ await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.__copiedAnswer=text}}})});
+ await page.getByRole('button',{name:'Sao chép câu trả lời',exact:true}).first().click();
+ check(await page.evaluate(()=>window.__copiedAnswer)===answer,'Copy lost answer text');
+ await page.getByRole('button',{name:'Tóm tắt thành các bước ngắn',exact:true}).click();
+ check(await input.inputValue()==='Tóm tắt thành các bước ngắn','Follow-up did not fill draft');
+ check(writes===1,'Follow-up sent without confirmation');
+ await input.fill('');
+
  check((await page.locator('.vp-message.own').innerText()).includes('**trứng**'),'User message reformatted');
  for(const mode of ['light','dark']){
   await page.evaluate(mode=>document.querySelector('.vp').setAttribute('data-theme',mode),mode);
   for(const width of [320,390,1440]){
    await page.setViewportSize({width,height:width===1440?900:844});
    check(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),'Chat overflow '+width);
+   check(await page.locator('.vp-page-heading').evaluate(el=>el.getBoundingClientRect().top >= document.querySelector('.vp-header').getBoundingClientRect().bottom),'Chat heading behind header');
+
    check(await page.locator('.vp-chat-form').evaluate(el=>el.getBoundingClientRect().bottom < (document.querySelector('.vp-bottom-nav')?.getBoundingClientRect().height ? document.querySelector('.vp-bottom-nav').getBoundingClientRect().top : innerHeight)),'Composer obscured by dock');
   }
  }
- for(const failure of ['timeout','empty','busy']){
+ await page.setViewportSize({width:390,height:600});
+ await page.waitForFunction(()=>document.querySelector('.vp-chat-form').getBoundingClientRect().bottom<innerHeight-65);
+ check(await page.locator('.vp-messages').evaluate(el=>el.clientHeight>100),'Transcript collapsed in short viewport');
+ await page.setViewportSize({width:1440,height:900});
+  for(const failure of ['timeout','empty','busy']){
   outcome=failure;
   const nextStarted=new Promise(resolve=>{started=resolve});
   await input.fill('Câu hỏi cần gửi lại');

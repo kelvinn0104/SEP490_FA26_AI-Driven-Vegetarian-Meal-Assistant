@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Send, History, Plus } from "lucide-react";
+import { ArrowRight, Send, History, Plus, Copy, Check } from "lucide-react";
 import { AiActivity } from "./AiActivity";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -38,6 +38,45 @@ const markdownComponents = {
     </a>
   ),
 };
+
+function Answer({ content }) {
+  const [copyState, setCopyState] = useState("");
+  return (
+    <>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
+      >
+        {content}
+      </ReactMarkdown>
+      <div className="vp-answer-tools">
+        <button
+          type="button"
+          className="vp-text-button"
+          aria-label="Sao chép câu trả lời"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(content);
+              setCopyState("Đã sao chép");
+            } catch {
+              setCopyState(
+                "Chưa sao chép được. Bạn có thể chọn văn bản để sao chép.",
+              );
+            }
+          }}
+        >
+          {copyState === "Đã sao chép" ? (
+            <Check size={14} />
+          ) : (
+            <Copy size={14} />
+          )}{" "}
+          Sao chép
+        </button>
+        <span role="status">{copyState}</span>
+      </div>
+    </>
+  );
+}
 
 function ChatHistory({ sessions, session, busy, select }) {
   return (
@@ -83,6 +122,32 @@ export function Chat() {
   const end = useRef();
   const composer = useRef(null);
   const lock = useRef(false);
+  const workspace = useRef(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const root = workspace.current?.closest(".vp-screen-chatbot");
+    if (!viewport || !root) return;
+    const resize = () => {
+      root.style.setProperty("--chat-viewport-height", viewport.height + "px");
+      root.toggleAttribute(
+        "data-chat-keyboard",
+        window.innerHeight - viewport.height > 120,
+      );
+    };
+    resize();
+    viewport.addEventListener("resize", resize);
+    return () => {
+      viewport.removeEventListener("resize", resize);
+      root.style.removeProperty("--chat-viewport-height");
+      root.removeAttribute("data-chat-keyboard");
+    };
+  }, []);
+  useEffect(() => {
+    const input = composer.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = Math.min(144, Math.max(44, input.scrollHeight)) + "px";
+  }, [text]);
   useEffect(() => {
     const container = end.current?.parentElement;
     container?.scrollTo({
@@ -191,7 +256,7 @@ export function Chat() {
           </Button>
         </div>
       </PageHeading>
-      <div className="vp-chat-layout">
+      <div className="vp-chat-layout" ref={workspace}>
         <aside className="vp-chat-history">
           <h2>Gần đây</h2>
           <ChatHistory
@@ -214,8 +279,8 @@ export function Chat() {
                 <img
                   src="/images/brand/basil-sprout.webp"
                   alt=""
-                  width="88"
-                  height="88"
+                  width="48"
+                  height="48"
                 />
                 <h2>Bạn đang muốn nấu gì?</h2>
                 <p>
@@ -250,12 +315,7 @@ export function Chat() {
                     {m.sender === "user" ? (
                       <p className="vp-chat-user-text">{m.content}</p>
                     ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={markdownComponents}
-                      >
-                        {m.content}
-                      </ReactMarkdown>
+                      <Answer content={m.content} />
                     )}
                   </div>
                 </article>
@@ -278,23 +338,57 @@ export function Chat() {
           </div>
           {busy === "send" && <AiActivity kind="chat" />}
           {error && <Notice error>{error}</Notice>}
+          {!busy &&
+            !error &&
+            !text &&
+            messages.at(-1)?.sender !== "user" &&
+            messages.length > 0 && (
+              <div
+                className="vp-chat-followups"
+                role="group"
+                aria-label="Gợi ý hỏi tiếp"
+              >
+                {[
+                  "Tóm tắt thành các bước ngắn",
+                  "Có thể thay nguyên liệu nào?",
+                ].map((question) => (
+                  <button
+                    key={question}
+                    onClick={() => {
+                      setText(question);
+                      composer.current?.focus();
+                    }}
+                  >
+                    {question}
+                    <Plus size={13} />
+                  </button>
+                ))}
+              </div>
+            )}
           <form className="vp-chat-form" onSubmit={send}>
             <textarea
               ref={composer}
               aria-label="Tin nhắn"
-              placeholder="Hỏi trợ lý bếp chay…"
+              placeholder={
+                messages.length
+                  ? "Hỏi tiếp về món này…"
+                  : "Bạn có nguyên liệu gì, muốn nấu món nào?"
+              }
               onKeyDown={(e) => {
                 if (
                   e.key === "Enter" &&
                   !e.shiftKey &&
-                  !e.nativeEvent.isComposing
+                  !e.nativeEvent.isComposing &&
+                  (e.ctrlKey ||
+                    e.metaKey ||
+                    !window.matchMedia("(pointer: coarse)").matches)
                 ) {
                   e.preventDefault();
                   send(e);
                 }
               }}
               maxLength={2000}
-              rows={2}
+              rows={1}
               required
               readOnly={busy === "send"}
               value={text}
