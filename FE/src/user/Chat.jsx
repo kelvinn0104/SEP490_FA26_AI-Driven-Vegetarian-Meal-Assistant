@@ -2,9 +2,43 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowRight, Send, History, Plus } from "lucide-react";
 import { AiActivity } from "./AiActivity";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useResource, Button, Notice, PageHeading, Dialog } from "./ui";
 import { listOf, userError, isUnavailableChat } from "./data";
 import { request } from "./api";
+function historyPreview(message) {
+  if (!message || isUnavailableChat(message))
+    return "Cuộc trò chuyện chưa có phản hồi";
+  return message
+    .replace(/[*_`#>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 90);
+}
+
+const markdownComponents = {
+  table: ({ children }) => (
+    <div
+      className="vp-chat-table"
+      tabIndex={0}
+      role="region"
+      aria-label="Bảng trong câu trả lời"
+    >
+      <table>{children}</table>
+    </div>
+  ),
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ),
+  img: ({ src, alt }) => (
+    <a href={src} target="_blank" rel="noopener noreferrer">
+      {alt || "Xem ảnh đính kèm"}
+    </a>
+  ),
+};
+
 function ChatHistory({ sessions, session, busy, select }) {
   return (
     <>
@@ -25,7 +59,7 @@ function ChatHistory({ sessions, session, busy, select }) {
             aria-pressed={session === s.id}
             onClick={() => select(s.id)}
           >
-            {s.lastMessage?.slice(0, 65) || "Cuộc trò chuyện"}
+            {historyPreview(s.lastMessage)}
             <small>{new Date(s.createdAt).toLocaleDateString("vi-VN")}</small>
           </button>
         ))
@@ -47,6 +81,7 @@ export function Chat() {
   const [error, setError] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const end = useRef();
+  const composer = useRef(null);
   const lock = useRef(false);
   useEffect(() => {
     const container = end.current?.parentElement;
@@ -99,15 +134,17 @@ export function Chat() {
         setSession(id);
       }
       const reply = await request(`/chat/sessions/${id}/messages`, { content });
-      if (!reply?.aiMessage)
+      if (
+        typeof reply?.aiMessage?.content !== "string" ||
+        !reply.aiMessage.content.trim()
+      )
         throw new Error("Chưa nhận được câu trả lời. Bạn có thể thử lại.");
       if (isUnavailableChat(reply.aiMessage.content)) {
         setMessages((previous) => [
           ...previous,
           reply.userMessage || { sender: "user", content },
         ]);
-        setText("");
-        setError("Trợ lý đang bận. Bạn có thể quay lại sau.");
+        setError("Trợ lý đang bận. Bạn có thể thử gửi lại sau.");
         sessions.reload();
         return;
       }
@@ -132,6 +169,7 @@ export function Chat() {
           <button
             className="vp-icon vp-chat-history-toggle"
             aria-label="Trò chuyện gần đây"
+            disabled={!!busy}
             onClick={() => setHistoryOpen(true)}
           >
             <History size={20} />
@@ -143,7 +181,9 @@ export function Chat() {
             onClick={() => {
               setSession(null);
               setMessages([]);
+              setText("");
               setError("");
+              composer.current?.focus();
             }}
           >
             <Plus size={19} aria-hidden="true" />
@@ -162,7 +202,13 @@ export function Chat() {
           />
         </aside>
         <section className="vp-chat">
-          <div className="vp-messages" role="log" aria-label="Tin nhắn">
+          <div
+            className="vp-messages"
+            role="log"
+            aria-label="Tin nhắn"
+            tabIndex={0}
+            aria-busy={busy === "history"}
+          >
             {!messages.length && !busy && (
               <div className="vp-chat-welcome">
                 <img
@@ -180,24 +226,51 @@ export function Chat() {
                   "Gợi ý bữa tối chay với đậu hũ",
                   "Thay trứng khi làm bánh như thế nào?",
                 ].map((q) => (
-                  <button key={q} onClick={() => setText(q)}>
+                  <button
+                    key={q}
+                    onClick={() => {
+                      setText(q);
+                      composer.current?.focus();
+                    }}
+                  >
                     {q}
                     <ArrowRight size={15} />
                   </button>
                 ))}
               </div>
             )}
-            {messages.map((m, i) => (
+            {busy !== "history" &&
+              messages.map((m, i) => (
+                <article
+                  key={m.id || i}
+                  className={`vp-message ${m.sender === "user" ? "own" : ""}`}
+                >
+                  <strong>{m.sender === "user" ? "Bạn" : "Trợ lý"}</strong>
+                  <div className="vp-prose">
+                    {m.sender === "user" ? (
+                      <p className="vp-chat-user-text">{m.content}</p>
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponents}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    )}
+                  </div>
+                </article>
+              ))}
+            {busy === "send" && (
               <article
-                key={m.id || i}
-                className={`vp-message ${m.sender === "user" ? "own" : ""}`}
+                className="vp-message own"
+                aria-label="Tin nhắn đang gửi"
               >
-                <strong>{m.sender === "user" ? "Bạn" : "Trợ lý"}</strong>
+                <strong>Bạn · đang gửi</strong>
                 <div className="vp-prose">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                  <p className="vp-chat-user-text">{text.trim()}</p>
                 </div>
               </article>
-            ))}
+            )}
             {busy === "history" && (
               <p role="status">Đang tải cuộc trò chuyện…</p>
             )}
@@ -207,6 +280,7 @@ export function Chat() {
           {error && <Notice error>{error}</Notice>}
           <form className="vp-chat-form" onSubmit={send}>
             <textarea
+              ref={composer}
               aria-label="Tin nhắn"
               placeholder="Hỏi trợ lý bếp chay…"
               onKeyDown={(e) => {

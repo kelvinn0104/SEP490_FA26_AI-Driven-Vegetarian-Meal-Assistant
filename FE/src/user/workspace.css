@@ -841,7 +841,7 @@
   max-width: 92%;
   padding: 4px 0;
 }
-.vp-message strong {
+.vp-message > strong {
   display: block;
   font-size: 10px;
   font-weight: 500;
@@ -2101,5 +2101,110 @@
   }
   .vp-plan-track-copy > strong {
     font-size: 12px;
+  }
+}
+
+.vp-chat .vp-prose {
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.vp-chat .vp-prose strong {
+  display: inline;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0;
+}
+.vp-chat .vp-prose p {
+  margin: 0 0 12px;
+}
+.vp-chat .vp-prose h1,
+.vp-chat .vp-prose h2,
+.vp-chat .vp-prose h3,
+.vp-chat .vp-prose h4 {
+  font-family: var(--font-body);
+  font-size: 1.08em;
+  font-weight: 650;
+  line-height: 1.5;
+  margin: 18px 0 8px;
+  letter-spacing: normal;
+}
+.vp-chat .vp-prose ul,
+.vp-chat .vp-prose ol {
+  padding-left: 22px;
+  margin: 8px 0 14px;
+}
+.vp-chat .vp-prose li {
+  margin: 5px 0;
+}
+.vp-chat .vp-prose li > p {
+  margin-block: 4px;
+}
+.vp-chat .vp-prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vp-chat .vp-prose pre {
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--theme-tint, #edf2e5);
+  white-space: pre;
+}
+.vp-chat .vp-prose code {
+  font-size: 0.9em;
+}
+.vp-chat .vp-prose blockquote {
+  margin: 12px 0;
+  border-left: 3px solid var(--line);
+  padding-left: 14px;
+}
+.vp-chat-table {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: 12px;
+}
+.vp-chat-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.vp-chat-table th,
+.vp-chat-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+  min-width: 110px;
+}
+.vp-chat-table th {
+  background: var(--mint);
+}
+.vp-chat .vp-chat-user-text {
+  white-space: pre-wrap;
+}
+.vp-chat > .vp-chat-form,
+.vp-chat > small,
+.vp-chat > .vp-notice {
+  flex-shrink: 0;
+}
+.vp-chat-layout,
+.vp-chat,
+.vp-messages,
+.vp-message,
+.vp-chat-history {
+  min-width: 0;
+}
+.vp-chat-history button small {
+  color: var(--muted);
+}
+@media (min-width: 801px) {
+  .vp-chat {
+    min-height: 360px;
+    height: max(360px, min(760px, calc(100dvh - 310px)));
   }
 }
