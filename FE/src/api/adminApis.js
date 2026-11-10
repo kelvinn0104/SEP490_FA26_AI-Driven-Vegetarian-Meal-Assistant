@@ -252,3 +252,56 @@ export const recipesApi = {
     return unwrap(res);
   },
 };
+
+export const productScansApi = {
+  getProducts: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/productscans${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/productscans/stats');
+    return unwrap(res);
+  },
+
+  getProductById: async (id) => {
+    const res = await apiRequest(`/productscans/${id}`);
+    return unwrap(res);
+  },
+
+  createProduct: async (data) => {
+    const res = await apiRequest('/productscans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  updateProduct: async (id, data) => {
+    const res = await apiRequest(`/productscans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  deleteProduct: async (id) => {
+    const res = await apiRequest(`/productscans/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
+  reviewProduct: async (id, data) => {
+    const res = await apiRequest(`/productscans/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+};
