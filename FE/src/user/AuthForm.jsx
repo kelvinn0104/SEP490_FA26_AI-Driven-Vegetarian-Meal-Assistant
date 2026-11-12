@@ -16,7 +16,7 @@ export function AuthForm({ register, go, onLogin }) {
   const { login } = useAuth();
   const [pending, setPending] = useState(() => readPending(sessionStorage));
   const [step, setStep] = useState(() =>
-    readPending(sessionStorage) ? "otp" : "form",
+    register && readPending(sessionStorage) ? "otp" : "form",
   );
   const [email, setEmail] = useState(
     () => readPending(sessionStorage)?.email || "",
@@ -112,6 +112,12 @@ export function AuthForm({ register, go, onLogin }) {
   const submit = async (e) => {
     e.preventDefault();
     if (lock.current) return;
+    if (register && step === "form" && name.trim().length < 2) {
+      setError(
+        "Tên hiển thị cần ít nhất 2 ký tự, không tính khoảng trắng ở đầu và cuối.",
+      );
+      return;
+    }
     lock.current = true;
     setBusy(true);
     setError("");
@@ -338,7 +344,28 @@ export function AuthForm({ register, go, onLogin }) {
             "Dùng email của bạn để tiếp tục."
           )}
         </p>
-        <form onSubmit={submit} aria-busy={busy}>
+        <form
+          onSubmit={submit}
+          aria-busy={busy}
+          onInvalid={(event) => {
+            const input = event.target;
+            const label = input
+              .closest("label")
+              ?.childNodes[0]?.textContent?.trim();
+            input.setCustomValidity(
+              input.validity.valueMissing
+                ? `Vui lòng nhập ${label?.toLowerCase() || "thông tin này"}.`
+                : input.validity.typeMismatch
+                  ? "Nhập địa chỉ email hợp lệ, ví dụ ban@example.com."
+                  : input.validity.patternMismatch
+                    ? "Mã xác thực gồm 6 chữ số."
+                    : input.validity.tooShort
+                      ? `Cần nhập ít nhất ${input.minLength} ký tự.`
+                      : "",
+            );
+          }}
+          onInput={(event) => event.target.setCustomValidity?.("")}
+        >
           {error && <Notice error>{error}</Notice>}
           {info && <Notice>{info}</Notice>}
           {step === "otp" ? (
@@ -396,6 +423,8 @@ export function AuthForm({ register, go, onLogin }) {
                   type="email"
                   required
                   autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   disabled={busy}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -482,7 +511,7 @@ export function AuthForm({ register, go, onLogin }) {
                 onClick={resend}
               >
                 <Mail size={16} />
-                {cooldown ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
+                {cooldown ? `Gửi lại sau ${cooldown} giây` : "Gửi lại mã"}
               </button>
               <button
                 className="vp-text-button"
@@ -492,6 +521,18 @@ export function AuthForm({ register, go, onLogin }) {
                 Đổi email
               </button>
             </div>
+            <button
+              className="vp-text-button"
+              disabled={busy}
+              onClick={() => {
+                setStep("form");
+                setError("");
+                setInfo("");
+                go("login");
+              }}
+            >
+              Đăng nhập bằng mật khẩu
+            </button>
             <p className="vp-otp-help">
               Chưa nhận được? Kiểm tra thư rác, địa chỉ email và chờ hết thời
               gian gửi lại.
@@ -505,6 +546,11 @@ export function AuthForm({ register, go, onLogin }) {
                 {register ? "Đăng nhập" : "Tạo tài khoản"}
               </button>
             </p>
+            {!register && pending && (
+              <button className="vp-text-button" onClick={() => go("register")}>
+                Tiếp tục xác thực {pending.email}
+              </button>
+            )}
             {!register && (
               <button
                 className="vp-text-button"
@@ -513,7 +559,20 @@ export function AuthForm({ register, go, onLogin }) {
                     setError("Nhập email cần xác thực trước.");
                     return;
                   }
-                  setPending({ email, expiresAt: null, resendAt: Date.now() });
+                  const next = {
+                    email: email.trim().toLowerCase(),
+                    expiresAt: null,
+                    resendAt: Date.now(),
+                  };
+                  setPending(next);
+                  setEmail(next.email);
+                  setPassword("");
+                  setOtp("");
+                  try {
+                    sessionStorage.setItem(PENDING_KEY, JSON.stringify(next));
+                  } catch {
+                    /* Optional resume state. */
+                  }
                   setStep("otp");
                   setError("");
                 }}

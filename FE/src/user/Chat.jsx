@@ -1,10 +1,83 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Send, History, Plus } from "lucide-react";
+import { ArrowRight, Send, History, Plus, Copy, Check } from "lucide-react";
 import { AiActivity } from "./AiActivity";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useResource, Button, Notice, PageHeading, Dialog } from "./ui";
 import { listOf, userError, isUnavailableChat } from "./data";
 import { request } from "./api";
+function historyPreview(message) {
+  if (!message || isUnavailableChat(message))
+    return "Cuộc trò chuyện chưa có phản hồi";
+  return message
+    .replace(/[*_`#>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 90);
+}
+
+const markdownComponents = {
+  table: ({ children }) => (
+    <div
+      className="vp-chat-table"
+      tabIndex={0}
+      role="region"
+      aria-label="Bảng trong câu trả lời"
+    >
+      <table>{children}</table>
+    </div>
+  ),
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  ),
+  img: ({ src, alt }) => (
+    <a href={src} target="_blank" rel="noopener noreferrer">
+      {alt || "Xem ảnh đính kèm"}
+    </a>
+  ),
+};
+
+function Answer({ content }) {
+  const [copyState, setCopyState] = useState("");
+  return (
+    <>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
+      >
+        {content}
+      </ReactMarkdown>
+      <div className="vp-answer-tools">
+        <button
+          type="button"
+          className="vp-text-button"
+          aria-label="Sao chép câu trả lời"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(content);
+              setCopyState("Đã sao chép");
+            } catch {
+              setCopyState(
+                "Chưa sao chép được. Bạn có thể chọn văn bản để sao chép.",
+              );
+            }
+          }}
+        >
+          {copyState === "Đã sao chép" ? (
+            <Check size={14} />
+          ) : (
+            <Copy size={14} />
+          )}{" "}
+          Sao chép
+        </button>
+        <span role="status">{copyState}</span>
+      </div>
+    </>
+  );
+}
+
 function ChatHistory({ sessions, session, busy, select }) {
   return (
     <>
@@ -25,7 +98,7 @@ function ChatHistory({ sessions, session, busy, select }) {
             aria-pressed={session === s.id}
             onClick={() => select(s.id)}
           >
-            {s.lastMessage?.slice(0, 65) || "Cuộc trò chuyện"}
+            {historyPreview(s.lastMessage)}
             <small>{new Date(s.createdAt).toLocaleDateString("vi-VN")}</small>
           </button>
         ))
@@ -47,7 +120,34 @@ export function Chat() {
   const [error, setError] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const end = useRef();
+  const composer = useRef(null);
   const lock = useRef(false);
+  const workspace = useRef(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const root = workspace.current?.closest(".vp-screen-chatbot");
+    if (!viewport || !root) return;
+    const resize = () => {
+      root.style.setProperty("--chat-viewport-height", viewport.height + "px");
+      root.toggleAttribute(
+        "data-chat-keyboard",
+        window.innerHeight - viewport.height > 120,
+      );
+    };
+    resize();
+    viewport.addEventListener("resize", resize);
+    return () => {
+      viewport.removeEventListener("resize", resize);
+      root.style.removeProperty("--chat-viewport-height");
+      root.removeAttribute("data-chat-keyboard");
+    };
+  }, []);
+  useEffect(() => {
+    const input = composer.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = Math.min(144, Math.max(44, input.scrollHeight)) + "px";
+  }, [text]);
   useEffect(() => {
     const container = end.current?.parentElement;
     container?.scrollTo({
@@ -99,15 +199,17 @@ export function Chat() {
         setSession(id);
       }
       const reply = await request(`/chat/sessions/${id}/messages`, { content });
-      if (!reply?.aiMessage)
+      if (
+        typeof reply?.aiMessage?.content !== "string" ||
+        !reply.aiMessage.content.trim()
+      )
         throw new Error("Chưa nhận được câu trả lời. Bạn có thể thử lại.");
       if (isUnavailableChat(reply.aiMessage.content)) {
         setMessages((previous) => [
           ...previous,
           reply.userMessage || { sender: "user", content },
         ]);
-        setText("");
-        setError("Trợ lý đang bận. Bạn có thể quay lại sau.");
+        setError("Trợ lý đang bận. Bạn có thể thử gửi lại sau.");
         sessions.reload();
         return;
       }
@@ -132,6 +234,7 @@ export function Chat() {
           <button
             className="vp-icon vp-chat-history-toggle"
             aria-label="Trò chuyện gần đây"
+            disabled={!!busy}
             onClick={() => setHistoryOpen(true)}
           >
             <History size={20} />
@@ -143,7 +246,9 @@ export function Chat() {
             onClick={() => {
               setSession(null);
               setMessages([]);
+              setText("");
               setError("");
+              composer.current?.focus();
             }}
           >
             <Plus size={19} aria-hidden="true" />
@@ -151,7 +256,7 @@ export function Chat() {
           </Button>
         </div>
       </PageHeading>
-      <div className="vp-chat-layout">
+      <div className="vp-chat-layout" ref={workspace}>
         <aside className="vp-chat-history">
           <h2>Gần đây</h2>
           <ChatHistory
@@ -162,14 +267,20 @@ export function Chat() {
           />
         </aside>
         <section className="vp-chat">
-          <div className="vp-messages" role="log" aria-label="Tin nhắn">
+          <div
+            className="vp-messages"
+            role="log"
+            aria-label="Tin nhắn"
+            tabIndex={0}
+            aria-busy={busy === "history"}
+          >
             {!messages.length && !busy && (
               <div className="vp-chat-welcome">
                 <img
                   src="/images/brand/basil-sprout.webp"
                   alt=""
-                  width="88"
-                  height="88"
+                  width="48"
+                  height="48"
                 />
                 <h2>Bạn đang muốn nấu gì?</h2>
                 <p>
@@ -180,24 +291,46 @@ export function Chat() {
                   "Gợi ý bữa tối chay với đậu hũ",
                   "Thay trứng khi làm bánh như thế nào?",
                 ].map((q) => (
-                  <button key={q} onClick={() => setText(q)}>
+                  <button
+                    key={q}
+                    onClick={() => {
+                      setText(q);
+                      composer.current?.focus();
+                    }}
+                  >
                     {q}
                     <ArrowRight size={15} />
                   </button>
                 ))}
               </div>
             )}
-            {messages.map((m, i) => (
+            {busy !== "history" &&
+              messages.map((m, i) => (
+                <article
+                  key={m.id || i}
+                  className={`vp-message ${m.sender === "user" ? "own" : ""}`}
+                >
+                  <strong>{m.sender === "user" ? "Bạn" : "Trợ lý"}</strong>
+                  <div className="vp-prose">
+                    {m.sender === "user" ? (
+                      <p className="vp-chat-user-text">{m.content}</p>
+                    ) : (
+                      <Answer content={m.content} />
+                    )}
+                  </div>
+                </article>
+              ))}
+            {busy === "send" && (
               <article
-                key={m.id || i}
-                className={`vp-message ${m.sender === "user" ? "own" : ""}`}
+                className="vp-message own"
+                aria-label="Tin nhắn đang gửi"
               >
-                <strong>{m.sender === "user" ? "Bạn" : "Trợ lý"}</strong>
+                <strong>Bạn · đang gửi</strong>
                 <div className="vp-prose">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                  <p className="vp-chat-user-text">{text.trim()}</p>
                 </div>
               </article>
-            ))}
+            )}
             {busy === "history" && (
               <p role="status">Đang tải cuộc trò chuyện…</p>
             )}
@@ -205,22 +338,57 @@ export function Chat() {
           </div>
           {busy === "send" && <AiActivity kind="chat" />}
           {error && <Notice error>{error}</Notice>}
+          {!busy &&
+            !error &&
+            !text &&
+            messages.at(-1)?.sender !== "user" &&
+            messages.length > 0 && (
+              <div
+                className="vp-chat-followups"
+                role="group"
+                aria-label="Gợi ý hỏi tiếp"
+              >
+                {[
+                  "Tóm tắt thành các bước ngắn",
+                  "Có thể thay nguyên liệu nào?",
+                ].map((question) => (
+                  <button
+                    key={question}
+                    onClick={() => {
+                      setText(question);
+                      composer.current?.focus();
+                    }}
+                  >
+                    {question}
+                    <Plus size={13} />
+                  </button>
+                ))}
+              </div>
+            )}
           <form className="vp-chat-form" onSubmit={send}>
             <textarea
+              ref={composer}
               aria-label="Tin nhắn"
-              placeholder="Hỏi trợ lý bếp chay…"
+              placeholder={
+                messages.length
+                  ? "Hỏi tiếp về món này…"
+                  : "Bạn có nguyên liệu gì, muốn nấu món nào?"
+              }
               onKeyDown={(e) => {
                 if (
                   e.key === "Enter" &&
                   !e.shiftKey &&
-                  !e.nativeEvent.isComposing
+                  !e.nativeEvent.isComposing &&
+                  (e.ctrlKey ||
+                    e.metaKey ||
+                    !window.matchMedia("(pointer: coarse)").matches)
                 ) {
                   e.preventDefault();
                   send(e);
                 }
               }}
               maxLength={2000}
-              rows={2}
+              rows={1}
               required
               readOnly={busy === "send"}
               value={text}

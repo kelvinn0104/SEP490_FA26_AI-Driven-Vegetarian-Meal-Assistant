@@ -35,6 +35,7 @@ import {
   mealsForDate,
 } from "./data";
 import { request } from "./api";
+import { useAuth } from "../context/AuthContext";
 
 function formatPlanDate(date, withYear = false) {
   if (!date) return "—";
@@ -217,20 +218,70 @@ function PlanMealVisual({ meal }) {
 }
 
 export function Planner({ go, flash, open, history, create, hasProfile }) {
+  const { user } = useAuth();
+  const selectionKey = user
+    ? `veggie:meal-plan:${user.id || user.email}`
+    : null;
+  const rememberPlan = (next) => {
+    setGenerated(next);
+    if (!next?.id || !selectionKey) return;
+    try {
+      localStorage.setItem(selectionKey, String(next.id));
+    } catch {
+      /* The server remains the source of the plan when storage is unavailable. */
+    }
+  };
+  const loadPlan = async (signal) => {
+    let id;
+    try {
+      id = selectionKey ? localStorage.getItem(selectionKey) : null;
+    } catch {
+      /* Optional selection. */
+    }
+    if (id && /^[1-9][0-9]*$/.test(id)) {
+      try {
+        return await request(`/meal-plans/${id}`, undefined, undefined, signal);
+      } catch (error) {
+        if (error.status !== 404) throw error;
+        try {
+          localStorage.removeItem(selectionKey);
+        } catch {
+          /* Optional selection. */
+        }
+      }
+    }
+    const current = await request(
+      "/meal-plans/current",
+      undefined,
+      undefined,
+      signal,
+    );
+    if (current) return current;
+    const drafts = await request(
+      "/meal-plans?status=draft&page.Page=1&page.PageSize=1",
+      undefined,
+      undefined,
+      signal,
+    );
+    const draft = listOf(drafts)[0];
+    return draft
+      ? request(`/meal-plans/${draft.id}`, undefined, undefined, signal)
+      : null;
+  };
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(!!create);
   const [profileRequired, setProfileRequired] = useState(false);
   const resource = useResource(
     (signal) =>
-      request(
-        history
-          ? `/meal-plans?page.Page=${page}&page.PageSize=10`
-          : "/meal-plans/current",
-        undefined,
-        undefined,
-        signal,
-      ),
-    [history, page],
+      history
+        ? request(
+            `/meal-plans?page.Page=${page}&page.PageSize=10`,
+            undefined,
+            undefined,
+            signal,
+          )
+        : loadPlan(signal),
+    [history, page, selectionKey],
   );
   const [generated, setGenerated] = useState(null);
   const [busy, setBusy] = useState(null);
@@ -318,7 +369,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
           throw new Error(
             "Máy chủ trả về món thử nghiệm. Chưa thể sử dụng thực đơn này.",
           );
-        setGenerated(next);
+        rememberPlan(next);
         setEditing(false);
         setWarnings(result.validationWarnings || []);
         setShopping(null);
@@ -340,7 +391,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
           (result?.days ? result : await request(`/meal-plans/${plan.id}`));
         if (!next?.days?.length)
           throw new Error("Chưa xác nhận được thực đơn sau khi đổi món.");
-        setGenerated(next);
+        rememberPlan(next);
       },
       "Đã đổi món.",
       { kind: "swap", mealId: meal.id },
@@ -394,7 +445,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   disabled={!!busy}
                   onClick={() =>
                     action(async () =>
-                      setGenerated(await request(`/meal-plans/${p.id}`)),
+                      rememberPlan(await request(`/meal-plans/${p.id}`)),
                     )
                   }
                 >
@@ -629,7 +680,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                             { status: "active" },
                             "PATCH",
                           );
-                          setGenerated(activated);
+                          rememberPlan(activated);
                         }, "Đã kích hoạt thực đơn.")
                       }
                     >
