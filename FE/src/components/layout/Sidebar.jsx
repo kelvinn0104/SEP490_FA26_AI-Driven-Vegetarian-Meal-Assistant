@@ -54,6 +54,12 @@ export const Sidebar = ({
       modOnly: true,
     },
     {
+      id: 'product-scanner',
+      label: 'Thẩm định Nhãn & Quét Chay',
+      icon: 'document_scanner',
+      modOnly: true,
+    },
+    {
       id: 'ai-model-monitoring',
       label: 'Log Hệ thống',
       icon: 'neurology',

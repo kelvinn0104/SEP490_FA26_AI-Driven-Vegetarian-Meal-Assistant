@@ -13,6 +13,7 @@ const adminScreens = [
   "content-moderation",
   "recipe-management",
   "challenge-management",
+  "product-scanner",
   "ai-model-monitoring",
   "role-management",
   "feedback-management",
