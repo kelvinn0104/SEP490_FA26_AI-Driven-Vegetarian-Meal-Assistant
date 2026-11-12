@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
 using VeggieAI.Repository.Repositories;
@@ -125,9 +126,12 @@ public interface IRecipeService
 {
     Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null);
     Task<RecipeDto?> GetRecipeByIdAsync(string id);
-    Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId);
-    Task<bool> UpdateRecipeStatusAsync(string id, string status);
+    Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId, string? creatorRole);
+    Task<bool> UpdateRecipeStatusAsync(string id, string status, int verifierId);
     Task<bool> DeleteRecipeAsync(string id);
+    Task<PagedResult<RecipeDto>> GetFavoritesAsync(int userId, int page, int pageSize);
+    Task AddFavoriteAsync(int userId, string recipeId);
+    Task RemoveFavoriteAsync(int userId, string recipeId);
 }
 
 public class RecipeService : IRecipeService
@@ -149,49 +153,109 @@ public class RecipeService : IRecipeService
     {
         var intId = ParseRecipeId(id);
         var r = await _unitOfWork.Recipes.GetRecipeDetailAsync(intId);
-        return r == null ? null : MapRecipeToDto(r);
+        return r == null ? null : MapRecipeToDto(r, includeIngredients: true);
     }
 
-    public async Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId)
+    private static readonly HashSet<string> AllowedStatuses = new(StringComparer.Ordinal)
     {
+        "draft", "pending_verification", "published", "hidden"
+    };
+
+    public async Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId, string? creatorRole)
+    {
+        var db = _unitOfWork.Context;
+
+        var title = request.Title?.Trim() ?? string.Empty;
+        if (title.Length == 0) throw new InvalidOperationException("Tên công thức không được để trống.");
+
+        if (!await db.Categories.AnyAsync(c => c.Id == request.CategoryId))
+            throw new InvalidOperationException("Danh mục không tồn tại.");
+
+        var servings = request.Servings > 0 ? request.Servings : 1;
+
+        // Gộp nguyên liệu trùng, kiểm tra số lượng và sự tồn tại trong thư viện
+        var items = (request.Ingredients ?? new List<RecipeIngredientItemDto>())
+            .GroupBy(i => i.IngredientId)
+            .Select(g => new { IngredientId = g.Key, QuantityG = g.Sum(x => x.QuantityG) })
+            .ToList();
+        if (items.Any(i => i.QuantityG <= 0))
+            throw new InvalidOperationException("Khối lượng nguyên liệu phải lớn hơn 0 gram.");
+
+        var ids = items.Select(i => i.IngredientId).ToList();
+        var ingredients = await db.Ingredients.Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+        var missing = ids.Where(id => !ingredients.ContainsKey(id)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException("Nguyên liệu không tồn tại: " + string.Join(", ", missing));
+
+        // Admin/Moderator tạo → đăng ngay và chính họ là người duyệt (thỏa CHECK "Recipe_check").
+        // User thường → chờ kiểm duyệt.
+        var isStaff = AppRoles.IsStaff(creatorRole);
+        var now = DateTime.UtcNow;
+
         var recipe = new Recipe
         {
-            Title = request.Title.Trim(),
+            Title = title,
             CategoryId = request.CategoryId,
             CreatedBy = creatorId,
             ImageUrl = request.ImageUrl,
             Instructions = request.Instructions,
-            Servings = request.Servings > 0 ? request.Servings : 1,
-            Status = "published", // Direct publish by admin/mod
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            KcalPerServing = 320,
-            ProteinG = 18.5m,
-            CarbG = 42.0m,
-            FatG = 7.5m
+            Servings = servings,
+            Status = isStaff ? "published" : "pending_verification",
+            VerifiedBy = isStaff ? creatorId : null,
+            VerifiedAt = isStaff ? now : null,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
+
+        // Dinh dưỡng / 1 khẩu phần = Σ(giá trị per100g × khối lượng / 100) / số khẩu phần
+        foreach (var it in items)
+        {
+            var ing = ingredients[it.IngredientId];
+            var f = it.QuantityG / 100m / servings;
+            recipe.KcalPerServing += ing.KcalPer100g * f;
+            recipe.ProteinG += ing.ProteinPer100g * f;
+            recipe.CarbG += ing.CarbPer100g * f;
+            recipe.FatG += ing.FatPer100g * f;
+            recipe.IronMg += ing.IronPer100g * f;
+            recipe.B12Mcg += ing.B12Per100g * f;
+            recipe.CalciumMg += ing.CalciumPer100g * f;
+            recipe.ZincMg += ing.ZincPer100g * f;
+            recipe.RecipeIngredients.Add(new RecipeIngredient { IngredientId = it.IngredientId, QuantityG = it.QuantityG });
+        }
+        recipe.KcalPerServing = Math.Round(recipe.KcalPerServing, 2);
+        recipe.ProteinG = Math.Round(recipe.ProteinG, 2);
+        recipe.CarbG = Math.Round(recipe.CarbG, 2);
+        recipe.FatG = Math.Round(recipe.FatG, 2);
+        recipe.IronMg = Math.Round(recipe.IronMg, 2);
+        recipe.B12Mcg = Math.Round(recipe.B12Mcg, 2);
+        recipe.CalciumMg = Math.Round(recipe.CalciumMg, 2);
+        recipe.ZincMg = Math.Round(recipe.ZincMg, 2);
 
         await _unitOfWork.Recipes.AddAsync(recipe);
         await _unitOfWork.CommitAsync();
 
         var created = await _unitOfWork.Recipes.GetRecipeDetailAsync(recipe.Id);
-        return MapRecipeToDto(created ?? recipe);
+        return MapRecipeToDto(created ?? recipe, includeIngredients: true);
     }
 
-    public async Task<bool> UpdateRecipeStatusAsync(string id, string status)
+    public async Task<bool> UpdateRecipeStatusAsync(string id, string status, int verifierId)
     {
+        var normalized = (status ?? string.Empty).Trim().ToLowerInvariant();
+        if (!AllowedStatuses.Contains(normalized))
+            throw new InvalidOperationException("Trạng thái không hợp lệ. Cho phép: " + string.Join(", ", AllowedStatuses));
+
         var intId = ParseRecipeId(id);
         var recipe = await _unitOfWork.Recipes.GetByIdAsync(intId);
         if (recipe == null) return false;
 
-        var normalized = status.Trim().ToLower();
         recipe.Status = normalized;
         recipe.UpdatedAt = DateTime.UtcNow;
 
         if (normalized == "published")
         {
-            recipe.VerifiedBy ??= 2; // Moderator default
-            recipe.VerifiedAt ??= DateTime.UtcNow;
+            if (verifierId <= 0) throw new UnauthorizedAccessException("Không xác định được người duyệt.");
+            recipe.VerifiedBy = verifierId;
+            recipe.VerifiedAt = DateTime.UtcNow;
         }
 
         _unitOfWork.Recipes.Update(recipe);
@@ -222,7 +286,65 @@ public class RecipeService : IRecipeService
         }
     }
 
-    private static RecipeDto MapRecipeToDto(Recipe r)
+    // ---------------- Favorites ----------------
+
+    public async Task<PagedResult<RecipeDto>> GetFavoritesAsync(int userId, int page, int pageSize)
+    {
+        page = Math.Max(1, page);
+        pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
+        var db = _unitOfWork.Context;
+
+        var baseQuery = db.Favorites.AsNoTracking().Where(f => f.UserId == userId);
+        var total = await baseQuery.CountAsync();
+        var ids = await baseQuery
+            .OrderByDescending(f => f.CreatedAt)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(f => f.RecipeId)
+            .ToListAsync();
+
+        var recipes = await db.Recipes.AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.Creator)
+            .Where(r => ids.Contains(r.Id))
+            .ToListAsync();
+
+        return new PagedResult<RecipeDto>
+        {
+            Items = ids.Select(id => recipes.FirstOrDefault(r => r.Id == id))
+                .Where(r => r != null)
+                .Select(r => MapRecipeToDto(r!))
+                .ToList(),
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task AddFavoriteAsync(int userId, string recipeId)
+    {
+        var id = ParseRecipeId(recipeId);
+        var db = _unitOfWork.Context;
+        if (!await db.Recipes.AnyAsync(r => r.Id == id && r.Status == "published"))
+            throw AppException.NotFound("Công thức");
+        if (await db.Favorites.AnyAsync(f => f.UserId == userId && f.RecipeId == id)) return; // idempotent
+
+        db.Favorites.Add(new Favorite { UserId = userId, RecipeId = id, CreatedAt = DateTime.UtcNow });
+        await _unitOfWork.CommitAsync();
+    }
+
+    public async Task RemoveFavoriteAsync(int userId, string recipeId)
+    {
+        var id = ParseRecipeId(recipeId);
+        var db = _unitOfWork.Context;
+        var fav = await db.Favorites.FirstOrDefaultAsync(f => f.UserId == userId && f.RecipeId == id);
+        if (fav == null) return; // idempotent
+        db.Favorites.Remove(fav);
+        await _unitOfWork.CommitAsync();
+    }
+
+    private static RecipeDto MapRecipeToDto(Recipe r) => MapRecipeToDto(r, includeIngredients: false);
+
+    private static RecipeDto MapRecipeToDto(Recipe r, bool includeIngredients)
     {
         return new RecipeDto
         {
@@ -240,7 +362,22 @@ public class RecipeService : IRecipeService
             ProteinG = r.ProteinG,
             CarbG = r.CarbG,
             FatG = r.FatG,
-            Instructions = r.Instructions
+            IronMg = r.IronMg,
+            B12Mcg = r.B12Mcg,
+            CalciumMg = r.CalciumMg,
+            ZincMg = r.ZincMg,
+            Instructions = r.Instructions,
+            Ingredients = includeIngredients
+                ? r.RecipeIngredients
+                    .OrderByDescending(ri => ri.QuantityG)
+                    .Select(ri => new RecipeIngredientDto
+                    {
+                        IngredientId = ri.IngredientId,
+                        Name = ri.Ingredient?.Name ?? string.Empty,
+                        QuantityG = ri.QuantityG
+                    })
+                    .ToList()
+                : null
         };
     }
 

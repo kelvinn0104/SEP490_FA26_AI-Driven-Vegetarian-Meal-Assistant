@@ -107,3 +107,41 @@ public static class AiMappers
         return ingredientIds.ToHashSet();
     }
 }
+
+/// <summary>
+/// Tính BMI/BMR/TDEE và mục tiêu dinh dưỡng/ngày từ chỉ số cơ thể, dùng bảng GoalStandard + NutrientStandard trong DB.
+/// Dùng chung cho Hồ sơ sức khỏe và AI Meal Planner.
+/// </summary>
+public static class NutritionTargetsResolver
+{
+    public static async Task<NutritionTargets> ResolveAsync(VeggieAIDbContext db, string gender, DateOnly dateOfBirth,
+        decimal heightCm, decimal weightKg, string activityLevel, string healthGoal, CancellationToken ct)
+    {
+        var age = NutritionCalculator.AgeAt(dateOfBirth, AiMappers.TodayVn());
+        var g = await db.GoalStandards.AsNoTracking().FirstOrDefaultAsync(x => x.HealthGoal == healthGoal, ct);
+        var goalRule = g is null
+            ? new GoalRule(0, 1.0m, 50, 30)
+            : new GoalRule(g.KcalAdjustmentPercent, g.ProteinGPerKg, g.CarbPercent, g.FatPercent);
+
+        var standards = await db.NutrientStandards.AsNoTracking().Where(x => x.Gender == gender).ToListAsync(ct);
+        var s = standards.FirstOrDefault(x => age >= x.AgeFrom && age <= x.AgeTo)
+                ?? standards.OrderBy(x => Math.Abs(x.AgeFrom - age)).FirstOrDefault();
+        var micro = s is null
+            ? new MicroRule(gender == "male" ? 14.4m : 32.4m, 2.4m, 1000, gender == "male" ? 11 : 8)
+            : new MicroRule(s.IronMg, s.B12Mcg, s.CalciumMg, s.ZincMg);
+
+        return NutritionCalculator.Calculate(gender, age, heightCm, weightKg, activityLevel, goalRule, micro);
+    }
+
+    public static NutrientAmountsDto ToAmounts(this NutritionTargets t) =>
+        new(t.DailyKcal, t.ProteinG, t.CarbG, t.FatG, t.IronMg, t.B12Mcg, t.CalciumMg, t.ZincMg);
+
+    /// <summary>Phân loại BMI theo ngưỡng châu Á (WHO 2004).</summary>
+    public static string BmiCategory(decimal bmi) => bmi switch
+    {
+        < 18.5m => "underweight",
+        < 23m => "normal",
+        < 25m => "overweight",
+        _ => "obese",
+    };
+}

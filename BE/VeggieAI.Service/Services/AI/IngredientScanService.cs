@@ -41,6 +41,9 @@ public interface IIngredientScanService
     Task<ScanResultDto> ConfirmAsync(int userId, int scanId, List<int> ingredientIds, CancellationToken ct = default);
     Task<ScanResultDto> GetAsync(int userId, int scanId, CancellationToken ct = default);
     Task<PagedResult<ScanSummaryDto>> GetHistoryAsync(int userId, PageQuery page, CancellationToken ct = default);
+
+    /// <summary>Gợi ý công thức theo danh sách nguyên liệu có sẵn (userId = null → khách, không lọc dị ứng).</summary>
+    Task<IReadOnlyList<RecipeSuggestionDto>> SuggestRecipesAsync(int? userId, IReadOnlyCollection<int> ingredientIds, int take, CancellationToken ct = default);
 }
 
 public class IngredientScanService : IIngredientScanService
@@ -236,6 +239,12 @@ public class IngredientScanService : IIngredientScanService
 
         return new ScanResultDto(scan.Id, scan.ImageUrl, scan.CreatedAt, p.ImageType, p.DishName, p.DishDescription,
             p.EstimatedDishNutrition, p.Items, suggestions, menu, message);
+    }
+
+    public async Task<IReadOnlyList<RecipeSuggestionDto>> SuggestRecipesAsync(int? userId, IReadOnlyCollection<int> ingredientIds, int take, CancellationToken ct = default)
+    {
+        var ids = ingredientIds.Where(id => id > 0).Distinct().ToList();
+        return await SuggestRecipesByIngredientsAsync(ids, userId ?? 0, Math.Clamp(take, 1, 50), ct);
     }
 
     private async Task<List<RecipeSuggestionDto>> SuggestRecipesByIngredientsAsync(List<int> ingredientIds, int userId, int take, CancellationToken ct)

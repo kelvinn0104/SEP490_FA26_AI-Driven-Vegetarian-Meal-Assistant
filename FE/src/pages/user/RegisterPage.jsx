@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useVeggieNutrition } from '../../context/VeggieNutritionContext';
 import { authService, healthProfileService } from '../../api';
+import { buildHealthProfileDto, ageFromDateOfBirth } from '../../utils/healthProfileDto';
 
 export default function RegisterPage({ onNavigate }) {
   const { login } = useAuth();
@@ -51,6 +52,8 @@ export default function RegisterPage({ onNavigate }) {
   // STEP 3: BMI & PHYSICAL METRICS
   const [gender, setGender] = useState('female');
   const [heightCm, setHeightCm] = useState(162);
+  // Ngày sinh thật để BE tính đúng BMR/TDEE theo tuổi (trước đây hard-code 2000-01-01)
+  const [dateOfBirth, setDateOfBirth] = useState(() => `${new Date().getFullYear() - 25}-01-01`);
   const [weightKg, setWeightKg] = useState(52);
   const [activityLevel, setActivityLevel] = useState('moderate');
   const [healthGoal, setHealthGoal] = useState('maintain');
@@ -144,17 +147,18 @@ export default function RegisterPage({ onNavigate }) {
   const estimatedTdee = useMemo(() => {
     const w = Number(weightKg);
     const h = Number(heightCm);
-    // BMR Mifflin-St Jeor formula (age ~ 25)
+    // BMR Mifflin-St Jeor formula (tuổi tính từ ngày sinh)
+    const age = ageFromDateOfBirth(dateOfBirth) || 25;
     let bmr = gender === 'male' 
-      ? 10 * w + 6.25 * h - 5 * 25 + 5
-      : 10 * w + 6.25 * h - 5 * 25 - 161;
+      ? 10 * w + 6.25 * h - 5 * age + 5
+      : 10 * w + 6.25 * h - 5 * age - 161;
     
     const act = activityOptions.find(a => a.id === activityLevel)?.factor || 1.55;
     const tdee = Math.round(bmr * act);
     if (healthGoal === 'loss') return Math.max(1300, tdee - 400);
     if (healthGoal === 'gain') return tdee + 350;
     return tdee;
-  }, [gender, heightCm, weightKg, activityLevel, healthGoal]);
+  }, [gender, heightCm, weightKg, activityLevel, healthGoal, dateOfBirth]);
 
   const toggleAllergy = (name) => {
     setSelectedAllergies(prev => 
@@ -304,6 +308,11 @@ export default function RegisterPage({ onNavigate }) {
       setErrorMessage('Vui lòng nhập cân nặng hợp lệ (từ 30kg đến 200kg).');
       return;
     }
+    const age = ageFromDateOfBirth(dateOfBirth);
+    if (age === null || age < 10 || age > 100) {
+      setErrorMessage('Vui lòng nhập ngày sinh hợp lệ (tuổi từ 10 đến 100).');
+      return;
+    }
 
     setStep(4);
   };
@@ -321,10 +330,12 @@ export default function RegisterPage({ onNavigate }) {
       const finalProfile = {
         name: fullName.trim() || email.split('@')[0],
         gender,
-        dateOfBirth: '2000-01-01',
+        dateOfBirth,
+        age: ageFromDateOfBirth(dateOfBirth) || undefined,
         height: Number(heightCm),
         weight: Number(weightKg),
         activityLevel,
+        activity: activityLevel,
         goal: healthGoal,
         diet: dietType === 'vegan' ? 'Thuần chay (Vegan)' : dietType === 'vegetarian' ? 'Chay trứng sữa (Vegetarian)' : 'Bán chay (Flexitarian)',
         allergies: selectedAllergies,
@@ -342,22 +353,19 @@ export default function RegisterPage({ onNavigate }) {
       } catch {}
 
       if (veggieCtx?.updateProfile) {
-        await veggieCtx.updateProfile(finalProfile);
-      }
-
-      // 3. Gửi hồ sơ lên máy chủ nếu có endpoint
-      try {
-        await healthProfileService.updateHealthProfile({
-          gender,
-          dateOfBirth: '2000-01-01',
-          heightCm: Number(heightCm),
-          weightKg: Number(weightKg),
-          activityLevel,
-          healthGoal,
-          allergyIds: []
-        });
-      } catch (err) {
-        console.warn('Lưu hồ sơ backend (nếu có):', err.message);
+        // Context tự gửi PUT /health-profile (map tên dị ứng → allergyIds) — không gọi trùng lần 2
+        await veggieCtx.updateProfile(finalProfile, { syncAllergies: true });
+      } else {
+        // 3. Dự phòng khi không có context: gửi thẳng lên BE
+        try {
+          let catalog = [];
+          if (selectedAllergies.length > 0) {
+            try { catalog = await healthProfileService.getAllAllergies(); } catch { catalog = []; }
+          }
+          await healthProfileService.updateHealthProfile(buildHealthProfileDto(finalProfile, catalog));
+        } catch (err) {
+          console.warn('Lưu hồ sơ backend (nếu có):', err.message);
+        }
       }
 
       setRegisterSuccess(true);
@@ -625,6 +633,12 @@ export default function RegisterPage({ onNavigate }) {
                 pattern="\d*"
                 maxLength={6}
                 value={otpCode}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData?.getData('text') || '';
+                  const digits = text.replace(/\D/g, '').slice(0, 6);
+                  if (digits) setOtpCode(digits);
+                }}
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                   setOtpCode(val);
@@ -744,6 +758,20 @@ export default function RegisterPage({ onNavigate }) {
                   <span>Nam giới</span>
                 </button>
               </div>
+            </div>
+
+            {/* Ngày sinh (BE dùng để tính tuổi → BMR/TDEE) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-forest block">Ngày sinh</label>
+              <input
+                type="date"
+                value={dateOfBirth}
+                min="1920-01-01"
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-2xl border border-hairline bg-white text-sm text-forest focus:outline-none focus:border-emeraldBotanic"
+                required
+              />
             </div>
 
             {/* Chiều cao & Cân nặng */}

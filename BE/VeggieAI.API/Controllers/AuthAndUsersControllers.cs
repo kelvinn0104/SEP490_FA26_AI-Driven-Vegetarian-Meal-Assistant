@@ -56,6 +56,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
+    [AllowAnonymous]
     public ActionResult<ApiResponse<string>> Logout()
     {
         return Ok(ApiResponse<string>.Ok("Logged out", "Đăng xuất thành công"));
@@ -79,10 +80,35 @@ public class AuthController : ControllerBase
 
         return Ok(ApiResponse<UserDto>.Ok(user));
     }
+
+    /// <summary>Cập nhật tên hiển thị của tài khoản đang đăng nhập.</summary>
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserDto>>> UpdateMe([FromBody] UpdateMeRequest request)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized(ApiResponse<UserDto>.Fail("Không xác định được danh tính."));
+
+        var user = await _authService.UpdateMeAsync(userId, request);
+        return Ok(ApiResponse<UserDto>.Ok(user, "Cập nhật thông tin thành công"));
+    }
+
+    /// <summary>Đổi mật khẩu (yêu cầu mật khẩu hiện tại).</summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized(ApiResponse<bool>.Fail("Không xác định được danh tính."));
+
+        await _authService.ChangePasswordAsync(userId, request);
+        return Ok(ApiResponse<bool>.Ok(true, "Đổi mật khẩu thành công"));
+    }
 }
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Admin)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

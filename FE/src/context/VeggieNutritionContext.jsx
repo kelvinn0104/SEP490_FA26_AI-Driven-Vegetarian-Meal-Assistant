@@ -15,8 +15,10 @@ import {
   nutritionService,
   recipeService,
   getAuthToken,
-  getStoredUser
+  getStoredUser,
+  recipeImageUrl
 } from '../api';
+import { buildHealthProfileDto, ageFromDateOfBirth } from '../utils/healthProfileDto';
 
 const VeggieNutritionContext = createContext(null);
 
@@ -129,7 +131,7 @@ export function VeggieNutritionProvider({ children }) {
               instructions: r.instructions || '',
               matchScore: 95,
               matchReason: 'Công thức từ cơ sở dữ liệu VeggieAI',
-              image: r.imageUrl ? (r.imageUrl.startsWith('http') ? r.imageUrl : `/uploads/${r.imageUrl}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80'
+              image: recipeImageUrl(r.imageUrl, 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=700&q=80')
             };
           });
           setRecipesDb(mapped);
@@ -155,17 +157,23 @@ export function VeggieNutritionProvider({ children }) {
         if (hp) {
           setProfileState(prev => {
             const merged = {
-              ...prev,
+              ...(prev || {}),
               id: hp.id,
-              gender: hp.gender || prev.gender,
-              height: hp.heightCm || prev.height,
-              weight: hp.weightKg || prev.weight,
-              activityLevel: hp.activityLevel || prev.activityLevel,
-              goal: hp.healthGoal || prev.goal,
-              diet: prev.diet || 'Thuần chay (Vegan)',
+              gender: hp.gender || prev?.gender,
+              height: hp.heightCm || prev?.height,
+              weight: hp.weightKg || prev?.weight,
+              activityLevel: hp.activityLevel || prev?.activityLevel,
+              // nutritionEngine đọc `activity` và `age` → giữ đồng bộ với dữ liệu BE
+              activity: hp.activityLevel || prev?.activity,
+              dateOfBirth: hp.dateOfBirth || prev?.dateOfBirth,
+              age: hp.age || ageFromDateOfBirth(hp.dateOfBirth) || prev?.age,
+              goal: hp.healthGoal || prev?.goal,
+              diet: prev?.diet || 'Thuần chay (Vegan)',
               needsUpdate: hp.needsUpdate || false,
               serverTargets: hp.targets || null,
-              allergies: hp.allergies || []
+              // BE trả [{id, name}] → FE hiển thị theo tên; lưu thêm allergyIds để gửi lại đúng ID
+              allergies: (hp.allergies || []).map(a => (a && typeof a === 'object' ? a.name : a)),
+              allergyIds: (hp.allergies || []).map(a => a?.id).filter(id => Number.isFinite(Number(id)))
             };
             try {
               localStorage.setItem('veggie_user_profile', JSON.stringify(merged));
@@ -274,7 +282,8 @@ export function VeggieNutritionProvider({ children }) {
   }, [user]);
 
   // 7. Update Profile helper (Local + Backend sync)
-  const updateProfile = async (updated) => {
+  // opts.syncAllergies = true → luôn gửi danh sách dị ứng (vd. lúc đăng ký)
+  const updateProfile = async (updated, opts = {}) => {
     setProfileState(updated);
     try {
       localStorage.setItem('veggie_user_profile', JSON.stringify(updated));
@@ -282,18 +291,46 @@ export function VeggieNutritionProvider({ children }) {
       console.warn(e);
     }
 
-    if (isBackendConnected && getAuthToken()) {
+    // Chỉ cần có token — không phụ thuộc isBackendConnected (health check có thể chưa xong lúc Render cold start).
+    // Admin/Mod không có hồ sơ sức khỏe cá nhân.
+    if (getAuthToken() && !isAdminOrMod()) {
       try {
-        const dto = {
-          gender: updated.gender || 'female',
-          dateOfBirth: updated.dateOfBirth || '2000-01-01',
-          heightCm: Number(updated.height),
-          weightKg: Number(updated.weight),
-          activityLevel: updated.activityLevel || 'moderate',
-          healthGoal: updated.goal || 'maintain',
-          allergyIds: updated.allergyIds || []
-        };
-        await healthProfileService.updateHealthProfile(dto);
+        // Nếu user vừa sửa danh sách dị ứng (theo tên) thì bỏ allergyIds cũ để map lại từ tên
+        const prevAllergies = JSON.stringify(profile?.allergies || []);
+        const allergiesChanged = !!opts.syncAllergies || JSON.stringify(updated.allergies || []) !== prevAllergies;
+        const source = allergiesChanged ? { ...updated, allergyIds: undefined } : updated;
+
+        let catalog = [];
+        if (allergiesChanged && Array.isArray(updated.allergies) && updated.allergies.length > 0) {
+          try {
+            catalog = await healthProfileService.getAllAllergies();
+          } catch {
+            catalog = [];
+          }
+        }
+        const dto = buildHealthProfileDto(source, catalog);
+        // Không đổi dị ứng → gửi null để BE giữ nguyên (tránh xóa sạch dị ứng mỗi lần lưu hồ sơ)
+        if (!allergiesChanged && !Array.isArray(updated.allergyIds)) dto.allergyIds = null;
+
+        const saved = await healthProfileService.updateHealthProfile(dto);
+        if (saved) {
+          const merged = {
+            ...updated,
+            id: saved.id,
+            dateOfBirth: saved.dateOfBirth || dto.dateOfBirth,
+            age: saved.age || updated.age,
+            activityLevel: saved.activityLevel || dto.activityLevel,
+            activity: saved.activityLevel || dto.activityLevel,
+            serverTargets: saved.targets || updated.serverTargets || null,
+            needsUpdate: !!saved.needsUpdate,
+            allergies: Array.isArray(saved.allergies) ? saved.allergies.map(a => a?.name ?? a) : updated.allergies,
+            allergyIds: Array.isArray(saved.allergies) ? saved.allergies.map(a => a?.id).filter(Boolean) : updated.allergyIds,
+          };
+          setProfileState(merged);
+          try {
+            localStorage.setItem('veggie_user_profile', JSON.stringify(merged));
+          } catch {}
+        }
         showToast('Đã lưu hồ sơ lên máy chủ Backend thành công!');
       } catch (err) {
         console.warn('Backend profile update failed:', err.message);
@@ -337,7 +374,7 @@ export function VeggieNutritionProvider({ children }) {
     updateProfile(updated);
 
     // Call Backend if connected
-    if (isBackendConnected && getAuthToken()) {
+    if (getAuthToken()) {
       try {
         const numId = parseInt(recipeId.toString().replace(/\D/g, ''), 10) || 1;
         if (isSaved) {
@@ -374,7 +411,7 @@ export function VeggieNutritionProvider({ children }) {
     const dayItem = weeklyPlan[dayIdx];
     const itemId = mealType === 'breakfast' ? dayItem?.breakfastItemId : mealType === 'lunch' ? dayItem?.lunchItemId : dayItem?.dinnerItemId;
 
-    if (isBackendConnected && activePlanMeta?.id && itemId && getAuthToken()) {
+    if (activePlanMeta?.id && itemId && getAuthToken()) {
       try {
         const swapRes = await mealPlanService.swapMeal(activePlanMeta.id, itemId, reason);
         if (swapRes && swapRes.plan && swapRes.plan.days) {
@@ -448,7 +485,7 @@ export function VeggieNutritionProvider({ children }) {
     const mealName = mealType === 'breakfast' ? 'Bữa sáng' : mealType === 'lunch' ? 'Bữa trưa' : 'Bữa tối';
 
     // 11.2 Call Backend nutrition log if connected
-    if (isBackendConnected && willBeCompleted && getAuthToken()) {
+    if (willBeCompleted && getAuthToken()) {
       try {
         const planItemId = mealType === 'breakfast' ? dayItem?.breakfastItemId : mealType === 'lunch' ? dayItem?.lunchItemId : dayItem?.dinnerItemId;
         if (planItemId) {
@@ -476,7 +513,7 @@ export function VeggieNutritionProvider({ children }) {
   const generateAiMealPlan = async (options = {}) => {
     setLoadingApi(true);
     try {
-      if (isBackendConnected && getAuthToken()) {
+      if (getAuthToken()) {
         const rawGoal = (options.healthGoal || profile?.goal || 'maintain').toLowerCase();
         const validGoal = rawGoal.includes('loss') || rawGoal.includes('fat') || rawGoal.includes('giảm')
           ? 'loss'
@@ -484,6 +521,7 @@ export function VeggieNutritionProvider({ children }) {
           ? 'gain'
           : 'maintain';
 
+        // Thao tác do user bấm → luôn gọi BE (không chặn bởi cờ health check); lỗi thật sẽ hiện ra qua catch
         const res = await mealPlanService.generatePlan({
           days: options.days || 7,
           note: options.note || 'Thích món Việt, giàu đạm và B12',
@@ -492,6 +530,7 @@ export function VeggieNutritionProvider({ children }) {
         });
 
         if (res && res.plan && res.plan.days) {
+          setIsBackendConnected(true);
           setActivePlanMeta(res.plan);
           const formatRId = (id, fallback) => {
             if (!id) return fallback;

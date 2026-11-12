@@ -23,7 +23,14 @@ public class GeminiOptions
     public string BaseUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta";
     public string Model { get; set; } = "gemini-3.8-flash";
     public string VisionModel { get; set; } = "gemini-3.8-flash";
+    /// <summary>Gemini 2.5: số token suy nghĩ (0 = tắt, -1 = tự động). Chỉ gửi cho model có "2.5" trong tên.</summary>
     public int ThinkingBudget { get; set; } = 0;
+
+    /// <summary>
+    /// Gemini 3+ / alias "*-latest": mức suy nghĩ ("minimal" | "low" | "medium" | "high"). Để trống = không gửi.
+    /// Nếu model không hỗ trợ tham số này, client tự gọi lại không kèm thinkingConfig.
+    /// </summary>
+    public string? ThinkingLevel { get; set; } = "low";
 }
 
 public class OpenAiOptions

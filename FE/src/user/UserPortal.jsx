@@ -405,10 +405,18 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
                     </button>
                   </>
                 ) : !["login", "register", "me"].includes(screen) ? (
-                  <button className="vp-login" onClick={() => go("login")}>
-                    Đăng nhập
-                    <ArrowRight size={16} />
-                  </button>
+                  <>
+                    <button
+                      className="vp-register"
+                      onClick={() => go("register")}
+                    >
+                      Đăng ký
+                    </button>
+                    <button className="vp-login" onClick={() => go("login")}>
+                      Đăng nhập
+                      <ArrowRight size={16} />
+                    </button>
+                  </>
                 ) : null}
               </div>
             </div>

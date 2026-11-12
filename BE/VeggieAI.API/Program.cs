@@ -42,6 +42,7 @@ if (!useInMemory && !string.IsNullOrWhiteSpace(connStr))
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"[PostgreSQL CẢNH BÁO] Không thể kết nối đến PostgreSQL: {ex.Message}");
         Console.WriteLine($"[PostgreSQL CẢNH BÁO] Hệ thống đang tự động kích hoạt InMemory Database dự phòng để API vẫn chạy được.");
+        Console.WriteLine($"[PostgreSQL CẢNH BÁO] Dữ liệu InMemory chỉ là seed tạm và SẼ MẤT sau mỗi lần restart — kiểm tra ConnectionStrings__DefaultConnection trên Render.");
         Console.ResetColor();
     }
 }
@@ -86,6 +87,12 @@ builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISystemLogService, SystemLogService>();
+builder.Services.AddScoped<IHealthProfileService, HealthProfileService>();
+builder.Services.AddScoped<IMealPlanService, MealPlanService>();
+builder.Services.AddScoped<INutritionService, NutritionService>();
+builder.Services.AddScoped<ICommunityService, CommunityService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IVeganShopService, VeganShopService>();
 
 // AI services (Gemini/OpenAI)
 builder.Services.Configure<VeggieAI.Model.DTOs.AiOptions>(
@@ -212,6 +219,16 @@ END $$;");
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowAll");
+
+// Phục vụ ảnh upload (/uploads/...) — cùng thư mục gốc với LocalFileStorage (Storage:LocalRoot).
+// Trước đây không có middleware này nên mọi ảnh upload đều trả 404.
+var uploadsRoot = app.Configuration["Storage:LocalRoot"] ?? Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads");
+Directory.CreateDirectory(uploadsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsRoot),
+    RequestPath = "/uploads"
+});
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>

@@ -1,6 +1,8 @@
 import { useAuth } from "../context/AuthContext";
 import { setStoredUser } from "../api/client";
 import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useResource, Button, Notice, PageHeading } from "./ui";
 import { listOf, userError, amount } from "./data";
 import { request } from "./api";
@@ -432,6 +434,8 @@ export function Account({ user }) {
     currentPassword: "",
     newPassword: "",
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -493,28 +497,52 @@ export function Account({ user }) {
           <h2>Đổi mật khẩu</h2>
           <label>
             Mật khẩu hiện tại
-            <input
-              required
-              type="password"
-              autoComplete="current-password"
-              value={password.currentPassword}
-              onChange={(e) =>
-                setPassword((p) => ({ ...p, currentPassword: e.target.value }))
-              }
-            />
+            <div className="vp-password-wrapper">
+              <input
+                required
+                type={showCurrentPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={password.currentPassword}
+                placeholder="Nhập mật khẩu hiện tại"
+                onChange={(e) =>
+                  setPassword((p) => ({ ...p, currentPassword: e.target.value }))
+                }
+              />
+              <button
+                type="button"
+                className="vp-password-toggle"
+                aria-label={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                title={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                onClick={() => setShowCurrentPassword((v) => !v)}
+              >
+                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </label>
           <label>
             Mật khẩu mới
-            <input
-              required
-              minLength={8}
-              type="password"
-              autoComplete="new-password"
-              value={password.newPassword}
-              onChange={(e) =>
-                setPassword((p) => ({ ...p, newPassword: e.target.value }))
-              }
-            />
+            <div className="vp-password-wrapper">
+              <input
+                required
+                minLength={8}
+                type={showNewPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={password.newPassword}
+                placeholder="Nhập mật khẩu mới"
+                onChange={(e) =>
+                  setPassword((p) => ({ ...p, newPassword: e.target.value }))
+                }
+              />
+              <button
+                type="button"
+                className="vp-password-toggle"
+                aria-label={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                title={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                onClick={() => setShowNewPassword((v) => !v)}
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </label>
           <Button disabled={busy}>Đổi mật khẩu</Button>
         </form>

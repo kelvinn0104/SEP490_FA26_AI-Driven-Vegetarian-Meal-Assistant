@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
@@ -24,6 +25,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> CreateCategory([FromBody] CreateCategoryRequest request)
     {
         var result = await _categoryService.CreateCategoryAsync(request);
@@ -31,6 +33,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> UpdateCategory(int id, [FromBody] UpdateCategoryRequest request)
     {
         var result = await _categoryService.UpdateCategoryAsync(id, request);
@@ -39,6 +42,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteCategory(int id)
     {
         var ok = await _categoryService.DeleteCategoryAsync(id);
@@ -64,9 +68,41 @@ public class RecipesController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] int? categoryId)
     {
+        // Khách/người dùng thường chỉ xem công thức đã duyệt; admin/mod xem được mọi trạng thái
+        if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
         var result = await _recipeService.GetRecipesAsync(search, status, categoryId);
         return Ok(ApiResponse<List<RecipeDto>>.Ok(result));
     }
+
+    /// <summary>Danh sách công thức người dùng đã lưu yêu thích.</summary>
+    [HttpGet("favorites")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<PagedResult<RecipeDto>>>> GetFavorites([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var result = await _recipeService.GetFavoritesAsync(CurrentUserId(), page, pageSize);
+        return Ok(ApiResponse<PagedResult<RecipeDto>>.Ok(result));
+    }
+
+    [HttpPost("{id}/favorite")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> AddFavorite(string id)
+    {
+        await _recipeService.AddFavoriteAsync(CurrentUserId(), id);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã thêm vào yêu thích"));
+    }
+
+    [HttpDelete("{id}/favorite")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> RemoveFavorite(string id)
+    {
+        await _recipeService.RemoveFavoriteAsync(CurrentUserId(), id);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã bỏ khỏi yêu thích"));
+    }
+
+    private int CurrentUserId() =>
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+            ? id
+            : throw AppException.Unauthorized("Bạn cần đăng nhập.");
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RecipeDto>>> GetRecipeById(string id)
@@ -76,25 +112,37 @@ public class RecipesController : ControllerBase
         return Ok(ApiResponse<RecipeDto>.Ok(result));
     }
 
+    /// <summary>
+    /// Tạo công thức. Admin/Moderator → đăng ngay (published, người duyệt = chính họ);
+    /// User → chờ duyệt (pending_verification). Dinh dưỡng được tính từ danh sách nguyên liệu.
+    /// </summary>
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<RecipeDto>>> CreateRecipe([FromBody] CreateRecipeRequest request)
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        int creatorId = int.TryParse(userIdStr, out var id) ? id : 1; // Default to admin/system user
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var creatorId))
+        {
+            return Unauthorized(ApiResponse<RecipeDto>.Fail("Bạn cần đăng nhập."));
+        }
+        var role = User.FindFirstValue(ClaimTypes.Role);
 
-        var result = await _recipeService.CreateRecipeAsync(request, creatorId);
-        return CreatedAtAction(nameof(GetRecipeById), new { id = result.Id }, ApiResponse<RecipeDto>.Ok(result, "Tạo công thức thành công"));
+        var result = await _recipeService.CreateRecipeAsync(request, creatorId, role);
+        var message = result.Status == "published" ? "Tạo công thức thành công" : "Đã gửi công thức, đang chờ kiểm duyệt";
+        return CreatedAtAction(nameof(GetRecipeById), new { id = result.Id }, ApiResponse<RecipeDto>.Ok(result, message));
     }
 
     [HttpPut("{id}/status")]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateRecipeStatus(string id, [FromBody] UpdateRecipeStatusRequest request)
     {
-        var ok = await _recipeService.UpdateRecipeStatusAsync(id, request.Status);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var verifierId);
+        var ok = await _recipeService.UpdateRecipeStatusAsync(id, request.Status, verifierId);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy công thức"));
         return Ok(ApiResponse<bool>.Ok(true, "Cập nhật trạng thái thành công"));
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteRecipe(string id)
     {
         var ok = await _recipeService.DeleteRecipeAsync(id);

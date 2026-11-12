@@ -33,6 +33,8 @@ services:
       Ai__Gemini__ApiKey: ${GEMINI_API_KEY}
       Ai__Gemini__Model: gemini-flash-latest
       Ai__Gemini__VisionModel: gemini-flash-latest
+      Auth__AdminInviteCodes: ${ADMIN_INVITE_CODES:-}
+      Auth__ModeratorInviteCodes: ${MODERATOR_INVITE_CODES:-}
     volumes:
       - uploads:/app/wwwroot/uploads
 

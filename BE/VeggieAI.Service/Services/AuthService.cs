@@ -19,6 +19,8 @@ public interface IAuthService
     Task<AuthResponse> VerifyCodeAsync(VerifyCodeRequest request);
     Task<RegisterPendingResponse> ResendCodeAsync(ResendCodeRequest request);
     Task<UserDto?> GetCurrentUserAsync(int userId);
+    Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request);
+    Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
 }
 
 public class AuthService : IAuthService
@@ -128,12 +130,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Email này đã được sử dụng trên hệ thống.");
         }
 
-        var allowedRole = (request.Role ?? "user").ToLower() switch
-        {
-            "admin" when request.InviteCode == "VEGGIE2026" || request.InviteCode == "VEGGIE_ADMIN_2026" => "admin",
-            "moderator" or "mod" => "moderator",
-            _ => "user"
-        };
+        var allowedRole = ResolveRegisterRole(request.Role, request.InviteCode);
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         User user;
@@ -176,6 +173,30 @@ public class AuthService : IAuthService
         }
 
         return await IssueAndSendOtpAsync(user);
+    }
+
+    /// <summary>
+    /// Vai trò khi tự đăng ký: mặc định "user". Muốn đăng ký admin/moderator phải nhập đúng mã mời
+    /// cấu hình qua biến môi trường Auth__AdminInviteCodes / Auth__ModeratorInviteCodes (nhiều mã cách nhau dấu phẩy).
+    /// Không cấu hình mã → không cho tự đăng ký vai trò đó (admin tạo tài khoản qua /api/Users).
+    /// </summary>
+    private string ResolveRegisterRole(string? requestedRole, string? inviteCode)
+    {
+        var role = (requestedRole ?? AppRoles.User).Trim().ToLowerInvariant();
+        if (role == "mod") role = AppRoles.Moderator;
+        if (role != AppRoles.Admin && role != AppRoles.Moderator) return AppRoles.User;
+
+        var key = role == AppRoles.Admin ? "Auth:AdminInviteCodes" : "Auth:ModeratorInviteCodes";
+        var codes = (_config[key] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var code = inviteCode?.Trim();
+        if (string.IsNullOrEmpty(code) || !codes.Contains(code, StringComparer.Ordinal))
+        {
+            throw AppException.Forbidden(role == AppRoles.Admin
+                ? "Mã mời Admin không hợp lệ."
+                : "Mã mời Moderator không hợp lệ.");
+        }
+        return role;
     }
 
     /// <summary>
@@ -301,6 +322,45 @@ public class AuthService : IAuthService
         return user == null ? null : MapUserToDto(user);
     }
 
+    public async Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
+        var name = (request.DisplayName ?? string.Empty).Trim();
+        if (name.Length < 2) throw new AppException("Tên hiển thị phải có ít nhất 2 ký tự.");
+
+        user.DisplayName = name;
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.CommitAsync();
+
+        var detailed = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
+        return MapUserToDto(detailed ?? user);
+    }
+
+    public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            throw new AppException("Mật khẩu mới phải có ít nhất 8 ký tự.");
+        if (request.NewPassword == request.CurrentPassword)
+            throw new AppException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+
+        bool valid;
+        try
+        {
+            valid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash);
+        }
+        catch
+        {
+            // Tài khoản seed cũ có thể lưu mật khẩu dạng thô (giống logic LoginAsync)
+            valid = request.CurrentPassword == user.PasswordHash;
+        }
+        if (!valid) throw new AppException("Mật khẩu hiện tại không chính xác.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.CommitAsync();
+    }
+
     private string GenerateJwtToken(User user)
     {
         var secret = _config["Jwt:Key"] ?? "VeggieAI_Super_Secret_Key_2026_Enterprise_Edition_Must_Be_Long_Enough!";
@@ -363,7 +423,8 @@ public class AuthService : IAuthService
             RecipesCount = user.CreatedRecipes?.Count ?? 0,
             AiQueriesCount = 12,
             Bio = $"Thành viên {user.Role} hệ thống VeggieAI.",
-            Allergies = allergies
+            Allergies = allergies,
+            HasHealthProfile = user.HealthProfile != null
         };
     }
 }

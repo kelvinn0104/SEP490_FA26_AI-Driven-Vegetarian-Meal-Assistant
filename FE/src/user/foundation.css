@@ -76,7 +76,8 @@
   .vp-header-actions {
     gap: 8px;
   }
-  .vp .vp-login {
+  .vp .vp-login,
+  .vp .vp-register {
     padding-inline: 10px;
   }
 }
@@ -365,6 +366,28 @@
   color: var(--surface);
   border-radius: 999px;
   padding: 10px 18px;
+}
+.vp-register {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--theme-control-border, #ccd6c3);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.vp-register:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--mint);
 }
 .vp-account span {
   max-width: 110px;
@@ -738,7 +761,8 @@
   .vp-desktop-account {
     display: none;
   }
-  .vp-login {
+  .vp-login,
+  .vp-register {
     min-height: 40px;
     padding: 8px 14px;
     font-size: 12px;

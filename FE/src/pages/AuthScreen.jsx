@@ -5,6 +5,9 @@ export const AuthScreen = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Register specific fields
   const [name, setName] = useState('');
@@ -32,14 +35,21 @@ export const AuthScreen = ({ onLogin }) => {
         const normalizedRole = user.role === 'admin' ? 'admin' : 'mod';
         onLogin(normalizedRole, { name: user.name || user.displayName, email: user.email, ...user });
       } else {
-        if (!name || !email || !password) {
+        if (!name || !email || !password || !confirmPassword) {
           setError('Vui lòng điền đầy đủ thông tin');
           setIsLoading(false);
           return;
         }
 
-        if (role === 'admin' && inviteCode !== 'VEGGIE2026' && inviteCode !== 'VEGGIE_ADMIN_2026') {
-          setError('Mã mời Admin không hợp lệ (Gợi ý: VEGGIE2026)');
+        if (password !== confirmPassword) {
+          setError('Mật khẩu xác nhận không khớp');
+          setIsLoading(false);
+          return;
+        }
+
+        // Mã mời được kiểm tra ở Backend (Auth__AdminInviteCodes / Auth__ModeratorInviteCodes)
+        if (!inviteCode.trim()) {
+          setError('Vui lòng nhập mã mời do quản trị viên cung cấp');
           setIsLoading(false);
           return;
         }
@@ -196,10 +206,10 @@ export const AuthScreen = ({ onLogin }) => {
                   </div>
                 </div>
 
-                {role === 'admin' && (
+                {(role === 'admin' || role === 'mod') && (
                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[13px] font-bold text-on-surface">Mã mời Admin (Invite Code)</label>
+                      <label className="text-[13px] font-bold text-on-surface">Mã mời {role === 'admin' ? 'Admin' : 'Moderator'} (Invite Code)</label>
                       <span className="text-[11px] font-bold text-error">BẮT BUỘC</span>
                     </div>
                     <div className="relative">
@@ -241,20 +251,55 @@ export const AuthScreen = ({ onLogin }) => {
                   </a>
                 )}
               </div>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3.5 top-3 text-outline text-[20px]">lock</span>
+              <div className="relative flex items-center">
+                <span className="material-symbols-outlined absolute left-3.5 text-outline text-[20px] pointer-events-none">lock</span>
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-[46px] pl-11 pr-11 rounded-xl bg-surface-container-low border border-surface-container-high/60 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   placeholder="••••••••"
                 />
-                <button type="button" className="absolute right-3.5 top-3 text-outline hover:text-on-surface transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">visibility_off</span>
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3.5 p-1 text-outline hover:text-on-surface transition-colors cursor-pointer flex items-center justify-center"
+                  title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? "visibility" : "visibility_off"}
+                  </span>
                 </button>
               </div>
             </div>
+
+            {!isLogin && (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                <label className="text-[13px] font-bold text-on-surface">Xác nhận mật khẩu</label>
+                <div className="relative flex items-center">
+                  <span className="material-symbols-outlined absolute left-3.5 text-outline text-[20px] pointer-events-none">lock_reset</span>
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full h-[46px] pl-11 pr-11 rounded-xl bg-surface-container-low border border-surface-container-high/60 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    placeholder="••••••••"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3.5 p-1 text-outline hover:text-on-surface transition-colors cursor-pointer flex items-center justify-center"
+                    title={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {showConfirmPassword ? "visibility" : "visibility_off"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {isLogin && (
               <div className="pt-2 pb-2">

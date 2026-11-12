@@ -127,22 +127,26 @@ public class GeminiProvider
             ["maxOutputTokens"] = req.MaxOutputTokens,
         };
         if (req.JsonOutput) genConfig["responseMimeType"] = "application/json";
+        // Trước đây chỉ gửi thinkingConfig khi tên model chứa "2.5" → với "gemini-flash-latest" / Gemini 3
+        // cấu hình bị bỏ qua và model "suy nghĩ" mặc định (chậm thêm nhiều giây).
         if (model.Contains("2.5") && g.ThinkingBudget >= -1)
             genConfig["thinkingConfig"] = new JsonObject { ["thinkingBudget"] = g.ThinkingBudget };
+        else if (!string.IsNullOrWhiteSpace(g.ThinkingLevel))
+            genConfig["thinkingConfig"] = new JsonObject { ["thinkingLevel"] = g.ThinkingLevel.Trim().ToLowerInvariant() };
 
         var body = new JsonObject { ["contents"] = contents, ["generationConfig"] = genConfig };
         if (!string.IsNullOrWhiteSpace(req.SystemPrompt))
             body["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = req.SystemPrompt } } };
 
-        using var msg = new HttpRequestMessage(HttpMethod.Post, $"{g.BaseUrl.TrimEnd('/')}/models/{model}:generateContent")
+        var (status, raw) = await PostAsync(g, model, body, ct);
+        if (status == 400 && genConfig.ContainsKey("thinkingConfig") && raw.Contains("thinking", StringComparison.OrdinalIgnoreCase))
         {
-            Content = JsonContent.Create(body),
-        };
-        msg.Headers.Add("x-goog-api-key", g.ApiKey);
-        using var resp = await _http.SendAsync(msg, ct);
-        var raw = await resp.Content.ReadAsStringAsync(ct);
-        if (!resp.IsSuccessStatusCode)
-            throw new HttpRequestException($"Gemini {(int)resp.StatusCode}: {Trim(raw)}");
+            // Model không hỗ trợ kiểu thinkingConfig này → gọi lại không kèm cấu hình suy nghĩ
+            genConfig.Remove("thinkingConfig");
+            (status, raw) = await PostAsync(g, model, body, ct);
+        }
+        if (status is < 200 or >= 300)
+            throw new HttpRequestException($"Gemini {status}: {Trim(raw)}");
 
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
@@ -154,6 +158,17 @@ public class GeminiProvider
             .Select(p => p.GetProperty("text").GetString()));
         int? tokens = root.TryGetProperty("usageMetadata", out var u) && u.TryGetProperty("totalTokenCount", out var t) ? t.GetInt32() : null;
         return (text, tokens, model);
+    }
+
+    private async Task<(int status, string raw)> PostAsync(GeminiOptions g, string model, JsonObject body, CancellationToken ct)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, $"{g.BaseUrl.TrimEnd('/')}/models/{model}:generateContent")
+        {
+            Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
+        };
+        msg.Headers.Add("x-goog-api-key", g.ApiKey);
+        using var resp = await _http.SendAsync(msg, ct);
+        return ((int)resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
     }
 
     private static string Trim(string s) => s.Length > 500 ? s[..500] : s;

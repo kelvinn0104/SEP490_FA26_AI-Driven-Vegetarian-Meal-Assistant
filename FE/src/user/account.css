@@ -95,6 +95,36 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.vp-password-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.vp-password-wrapper input {
+  width: 100%;
+  padding-right: 44px !important;
+}
+.vp-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease, opacity 0.15s ease;
+  line-height: 1;
+}
+.vp-password-toggle:hover {
+  color: var(--ink);
+}
 .vp-show-password {
   display: inline-flex;
   align-items: center;
@@ -571,6 +601,42 @@
 .vp-auth form > .vp-button {
   background: var(--lime);
   color: var(--ink);
+}
+.vp-otp-boxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 6px 0;
+}
+.vp-otp-box {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 52px;
+  height: 52px;
+  padding: 0 !important;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  caret-color: var(--green);
+}
+.vp-otp-box:focus {
+  border-color: var(--green);
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  background: var(--surface);
+}
+.vp-otp-box:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .vp-otp-field {
   display: block;

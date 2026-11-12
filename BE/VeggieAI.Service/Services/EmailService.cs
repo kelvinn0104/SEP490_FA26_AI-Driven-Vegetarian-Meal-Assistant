@@ -1,6 +1,8 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Mail;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VeggieAI.Model.DTOs;
@@ -32,9 +34,16 @@ public class SmtpEmailService : IEmailService
         _log = log;
     }
 
+    private static readonly HttpClient Http = new();
+
+    private bool UseHttpApi => ProviderName is "brevo" or "resend";
+    private string ProviderName => (_opt.Provider ?? "smtp").Trim().ToLowerInvariant();
+
     public bool IsEnabled =>
-        _opt.Enabled && !string.IsNullOrWhiteSpace(_opt.Host) &&
-        (!string.IsNullOrWhiteSpace(_opt.FromEmail) || !string.IsNullOrWhiteSpace(_opt.Username));
+        _opt.Enabled && (UseHttpApi
+            ? !string.IsNullOrWhiteSpace(_opt.ApiKey) && !string.IsNullOrWhiteSpace(_opt.FromEmail)
+            : !string.IsNullOrWhiteSpace(_opt.Host) &&
+              (!string.IsNullOrWhiteSpace(_opt.FromEmail) || !string.IsNullOrWhiteSpace(_opt.Username)));
 
     public async Task SendAsync(string toEmail, string subject, string htmlBody, string? textBody = null, CancellationToken ct = default)
     {
@@ -44,6 +53,24 @@ public class SmtpEmailService : IEmailService
             return;
         }
 
+        // SmtpClient.Timeout KHÔNG áp dụng cho SendMailAsync → tự đặt timeout bằng CancellationToken
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, _opt.TimeoutSeconds)));
+        try
+        {
+            if (UseHttpApi) await SendViaHttpApiAsync(toEmail, subject, htmlBody, textBody, timeout.Token);
+            else await SendViaSmtpAsync(toEmail, subject, htmlBody, textBody, timeout.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Gửi email quá {_opt.TimeoutSeconds}s (provider: {ProviderName}). " +
+                                       "Nếu chạy trên Render gói free, cổng SMTP có thể bị chặn — dùng Email:Provider = brevo/resend.");
+        }
+        _log.LogInformation("[Email] Đã gửi email '{Subject}' tới {To} qua {Provider}", subject, toEmail, ProviderName);
+    }
+
+    private async Task SendViaSmtpAsync(string toEmail, string subject, string htmlBody, string? textBody, CancellationToken ct)
+    {
         var from = string.IsNullOrWhiteSpace(_opt.FromEmail) ? _opt.Username! : _opt.FromEmail;
 
         using var message = new MailMessage
@@ -77,7 +104,55 @@ public class SmtpEmailService : IEmailService
         }
 
         await client.SendMailAsync(message, ct);
-        _log.LogInformation("[Email] Đã gửi email '{Subject}' tới {To}", subject, toEmail);
+    }
+
+    /// <summary>Gửi qua HTTPS API (Brevo: api.brevo.com, Resend: api.resend.com).</summary>
+    private async Task SendViaHttpApiAsync(string toEmail, string subject, string htmlBody, string? textBody, CancellationToken ct)
+    {
+        HttpRequestMessage req;
+        if (ProviderName == "brevo")
+        {
+            var body = new Dictionary<string, object?>
+            {
+                ["sender"] = new { name = _opt.FromName, email = _opt.FromEmail },
+                ["to"] = new[] { new { email = toEmail } },
+                ["subject"] = subject,
+                ["htmlContent"] = htmlBody,
+            };
+            if (!string.IsNullOrWhiteSpace(textBody)) body["textContent"] = textBody;
+            req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Add("api-key", _opt.ApiKey);
+        }
+        else
+        {
+            var body = new Dictionary<string, object?>
+            {
+                ["from"] = $"{_opt.FromName} <{_opt.FromEmail}>",
+                ["to"] = new[] { toEmail },
+                ["subject"] = subject,
+                ["html"] = htmlBody,
+            };
+            if (!string.IsNullOrWhiteSpace(textBody)) body["text"] = textBody;
+            req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opt.ApiKey);
+        }
+
+        using (req)
+        using (var res = await Http.SendAsync(req, ct))
+        {
+            if (!res.IsSuccessStatusCode)
+            {
+                var detail = await res.Content.ReadAsStringAsync(ct);
+                throw new InvalidOperationException(
+                    $"{ProviderName} trả về {(int)res.StatusCode}: {detail[..Math.Min(detail.Length, 300)]}");
+            }
+        }
     }
 
     public async Task SendOtpAsync(string toEmail, string displayName, string otpCode, int expiryMinutes, CancellationToken ct = default)
