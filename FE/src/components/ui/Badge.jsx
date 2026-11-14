@@ -13,3 +13,5 @@ export default function Badge({ children, type = 'pending' }) {
     </span>
   );
 }
+
+export { Badge };

@@ -581,7 +581,6 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
             {
                 new() { Id = "role-1", Name = "Super Admin", Description = "Quyền quản trị cao nhất, toàn quyền truy cập và thay đổi hệ thống.", IsSystem = true, Theme = "error", Icon = "admin_panel_settings" },
                 new() { Id = "role-2", Name = "Chuyên gia Dinh dưỡng", Description = "Quản lý nguồn gốc thực phẩm và duyệt công thức theo tiêu chuẩn.", IsSystem = true, Theme = "primary", Icon = "local_hospital" },
-                new() { Id = "role-3", Name = "Đại sứ / Creator", Description = "Tài khoản uy tín, đăng tải công thức được ưu tiên hiển thị.", IsSystem = false, Theme = "secondary", Icon = "stars" },
                 new() { Id = "role-4", Name = "Người dùng chuẩn", Description = "Xem công thức, sử dụng tính năng tra cứu AI và lưu bộ sưu tập.", IsSystem = true, Theme = "surface", Icon = "person" }
             };
             await context.Roles.AddRangeAsync(roles);
@@ -599,9 +598,16 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
             {
                 context.RolePermissions.Add(new RolePermission { RoleId = "role-2", PermissionId = pid });
             }
-            // Role 3
-            context.RolePermissions.Add(new RolePermission { RoleId = "role-3", PermissionId = "nutri_read" });
+            await context.SaveChangesAsync();
+        }
 
+        // Dọn role demo "Đại sứ / Creator" (role-3) - hệ thống chỉ có 3 role: admin, moderator, user
+        var legacyRole = await context.Roles.FirstOrDefaultAsync(r => r.Id == "role-3");
+        if (legacyRole != null)
+        {
+            var legacyPerms = await context.RolePermissions.Where(rp => rp.RoleId == "role-3").ToListAsync();
+            context.RolePermissions.RemoveRange(legacyPerms);
+            context.Roles.Remove(legacyRole);
             await context.SaveChangesAsync();
         }
 

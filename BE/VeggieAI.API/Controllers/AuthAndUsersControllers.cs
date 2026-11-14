@@ -25,15 +25,38 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<AuthResponse>.Ok(result, "Đăng nhập thành công"));
     }
 
+    /// <summary>Bước 1: tạo tài khoản "pending", sinh OTP 6 số và gửi qua email. Không trả JWT.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<RegisterPendingResponse>>> Register([FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
-        return Ok(ApiResponse<AuthResponse>.Ok(result, "Đăng ký tài khoản thành công"));
+        var message = result.CodeSent
+            ? $"Mã xác thực 6 số đã được gửi tới email {result.Email}"
+            : $"Mã xác thực đã được gửi tới email {result.Email} trước đó, vui lòng kiểm tra hộp thư";
+        return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, message));
+    }
+
+    /// <summary>Bước 2: kiểm tra OTP → kích hoạt tài khoản (active) → trả JWT để đăng nhập luôn.</summary>
+    [HttpPost("verify-code")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyCode([FromBody] VerifyCodeRequest request)
+    {
+        var result = await _authService.VerifyCodeAsync(request);
+        return Ok(ApiResponse<AuthResponse>.Ok(result, "Xác thực email thành công"));
+    }
+
+    /// <summary>Hủy OTP cũ, sinh mã mới và gửi lại (chỉ cho phép sau 60 giây).</summary>
+    [HttpPost("resend-code")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<RegisterPendingResponse>>> ResendCode([FromBody] ResendCodeRequest request)
+    {
+        var result = await _authService.ResendCodeAsync(request);
+        return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, $"Đã gửi lại mã xác thực tới email {result.Email}"));
     }
 
     [HttpPost("logout")]
+    [AllowAnonymous]
     public ActionResult<ApiResponse<string>> Logout()
     {
         return Ok(ApiResponse<string>.Ok("Logged out", "Đăng xuất thành công"));
@@ -57,10 +80,35 @@ public class AuthController : ControllerBase
 
         return Ok(ApiResponse<UserDto>.Ok(user));
     }
+
+    /// <summary>Cập nhật tên hiển thị của tài khoản đang đăng nhập.</summary>
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserDto>>> UpdateMe([FromBody] UpdateMeRequest request)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized(ApiResponse<UserDto>.Fail("Không xác định được danh tính."));
+
+        var user = await _authService.UpdateMeAsync(userId, request);
+        return Ok(ApiResponse<UserDto>.Ok(user, "Cập nhật thông tin thành công"));
+    }
+
+    /// <summary>Đổi mật khẩu (yêu cầu mật khẩu hiện tại).</summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<bool>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized(ApiResponse<bool>.Fail("Không xác định được danh tính."));
+
+        await _authService.ChangePasswordAsync(userId, request);
+        return Ok(ApiResponse<bool>.Ok(true, "Đổi mật khẩu thành công"));
+    }
 }
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = AppRoles.Admin)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

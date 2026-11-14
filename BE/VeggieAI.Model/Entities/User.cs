@@ -28,7 +28,7 @@ public class User
 
     [Required]
     [MaxLength(20)]
-    public string Status { get; set; } = "active"; // 'active', 'locked'
+    public string Status { get; set; } = "active"; // 'pending' (chờ xác thực email), 'active', 'locked'
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
