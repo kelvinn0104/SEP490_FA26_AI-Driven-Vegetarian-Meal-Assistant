@@ -138,3 +138,12 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 - `GET /api/roles/permissions`: Danh sách tất cả quyền hạn hệ thống
 - `POST /api/roles`: Tạo vai trò mới
 - `PUT /api/roles/{id}`: Cập nhật quyền hạn cho vai trò
+
+### 9. Thư viện Nguyên liệu & Vi chất Dinh dưỡng (`/api/ingredients`)
+- `GET /api/ingredients`: Danh sách nguyên liệu chay (tìm kiếm, lọc dị ứng, sắp xếp theo đạm, sắt, B12, canxi, calo)
+- `GET /api/ingredients/{id}`: Chi tiết thành phần dinh dưỡng nguyên liệu
+- `POST /api/ingredients`: Thêm nguyên liệu chay chuẩn hóa mới (Mod/Admin)
+- `PUT /api/ingredients/{id}`: Cập nhật thành phần vi chất
+- `DELETE /api/ingredients/{id}`: Xóa nguyên liệu
+- `GET /api/ingredients/allergies`: Danh sách nhóm dị ứng thực vật và số nguyên liệu liên quan
+- `GET /api/ingredients/standards`: Bảng nhu cầu khuyến nghị vi chất (RDI) theo giới tính và độ tuổi

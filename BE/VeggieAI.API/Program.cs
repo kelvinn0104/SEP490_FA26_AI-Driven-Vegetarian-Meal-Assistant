@@ -77,6 +77,13 @@ builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISystemLogService, SystemLogService>();
+builder.Services.AddScoped<IIngredientService, IngredientService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IVeganChallengeService, VeganChallengeService>();
+builder.Services.AddScoped<INutritionAnalyticsService, NutritionAnalyticsService>();
+builder.Services.AddScoped<IBroadcastNotificationService, BroadcastNotificationService>();
+builder.Services.AddScoped<IRewardService, RewardService>();
+builder.Services.AddScoped<IVeganProductService, VeganProductService>();
 
 // 4. JWT Authentication & Authorization
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "VeggieAI_Super_Secret_Key_2026_Enterprise_Edition_Must_Be_Long_Enough!";
