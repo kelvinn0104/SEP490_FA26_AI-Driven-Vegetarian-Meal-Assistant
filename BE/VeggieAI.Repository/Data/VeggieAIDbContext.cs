@@ -46,6 +46,12 @@ public class VeggieAIDbContext : DbContext
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<SystemLog> SystemLogs => Set<SystemLog>();
+    public DbSet<VeganChallenge> VeganChallenges => Set<VeganChallenge>();
+    public DbSet<ChallengeCheckin> ChallengeCheckins => Set<ChallengeCheckin>();
+    public DbSet<BroadcastNotification> BroadcastNotifications => Set<BroadcastNotification>();
+    public DbSet<EcoReward> EcoRewards => Set<EcoReward>();
+    public DbSet<RewardClaim> RewardClaims => Set<RewardClaim>();
+    public DbSet<VeganProductScan> VeganProductScans => Set<VeganProductScan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -139,28 +139,37 @@ dotnet run --project VeggieAI.API/VeggieAI.API.csproj
 - `POST /api/roles`: Tạo vai trò mới
 - `PUT /api/roles/{id}`: Cập nhật quyền hạn cho vai trò
 
-### 9. Hồ sơ sức khỏe & dị ứng (`/api/health-profile`, `/api/allergies`) 🔒
+### 9. Thư viện Nguyên liệu & Vi chất Dinh dưỡng (`/api/ingredients`)
+- `GET /api/ingredients`: Danh sách nguyên liệu chay (tìm kiếm, lọc dị ứng, sắp xếp theo đạm, sắt, B12, canxi, calo)
+- `GET /api/ingredients/{id}`: Chi tiết thành phần dinh dưỡng nguyên liệu
+- `POST /api/ingredients`: Thêm nguyên liệu chay chuẩn hóa mới (Mod/Admin)
+- `PUT /api/ingredients/{id}`: Cập nhật thành phần vi chất
+- `DELETE /api/ingredients/{id}`: Xóa nguyên liệu
+- `GET /api/ingredients/allergies`: Danh sách nhóm dị ứng thực vật và số nguyên liệu liên quan
+- `GET /api/ingredients/standards`: Bảng nhu cầu khuyến nghị vi chất (RDI) theo giới tính và độ tuổi
+
+### 10. Hồ sơ sức khỏe & dị ứng (`/api/health-profile`, `/api/allergies`) 🔒
 - `GET /api/health-profile`: Hồ sơ của user đang đăng nhập (404 nếu chưa tạo)
 - `PUT /api/health-profile`: Tạo/cập nhật hồ sơ, tự tính BMI/BMR/TDEE + mục tiêu dinh dưỡng/ngày
 - `POST /api/health-profile/preview`: Tính thử, không lưu (không cần token)
 - `GET|PUT /api/health-profile/allergies`: Dị ứng của user (`{ allergyIds: [1,3] }`)
 - `GET /api/allergies`: Danh mục dị ứng (không cần token)
 
-### 10. Thực đơn đã lưu & đi chợ (`/api/meal-plans`) 🔒
+### 11. Thực đơn đã lưu & đi chợ (`/api/meal-plans`) 🔒
 - `POST /api/meal-plans/ai/generate` (alias `/api/meal-plans/generate`), `POST /api/meal-plans/ai/{planId}/items/{itemId}/swap` (alias `/api/meal-plans/{planId}/items/{itemId}/swap`)
 - `GET /api/meal-plans/current` (204 nếu chưa có thực đơn active), `GET /api/meal-plans?status=&page=&pageSize=`, `GET /api/meal-plans/{id}`
 - `PATCH /api/meal-plans/{id}/status` `{ status: "active" }`, `DELETE /api/meal-plans/{id}`
 - `POST|GET /api/meal-plans/{planId}/shopping-list`, `PATCH /api/meal-plans/{planId}/shopping-list/items/{itemId}` `{ isBought: true }`
 
-### 11. Yêu thích (`/api/recipes`) 🔒
+### 12. Yêu thích (`/api/recipes`) 🔒
 - `GET /api/recipes/favorites?page=&pageSize=`, `POST /api/recipes/{id}/favorite`, `DELETE /api/recipes/{id}/favorite`
 
-### 12. Theo dõi dinh dưỡng (`/api/nutrition`) 🔒
+### 13. Theo dõi dinh dưỡng (`/api/nutrition`) 🔒
 - `POST /api/nutrition/logs` `{ planItemId }` hoặc `{ recipeId, mealType?, servings?, logDate? }`, `DELETE /api/nutrition/logs/{id}`
 - `GET /api/nutrition/daily?date=` (tổng đã ăn, mục tiêu, vận động, cảnh báo thiếu chất — hôm nay chỉ cảnh báo sau 19h VN)
 - `GET /api/nutrition/trend?from=&to=` (mặc định 7 ngày, tối đa 93), `PUT /api/nutrition/activity` `{ activityDate?, kcalBurned, steps }`
 
-### 13. Cộng đồng (`/api/community`)
+### 14. Cộng đồng (`/api/community`)
 - `GET /api/community/posts?keyword=&postType=blog|video&sort=newest|top&page=&pageSize=` (không cần token), `GET /api/community/posts/{id}`
 - 🔒 `GET /api/community/posts/mine`, `POST /api/community/posts` (trạng thái `pending`, duyệt qua `/api/Moderation`), `DELETE /api/community/posts/{id}`
 - 🔒 `POST /api/community/posts/{id}/comments`, `DELETE /api/community/comments/{id}`, `PUT /api/community/posts/{id}/vote` `{ value: 1|-1|0 }`, `POST /api/community/reports`
