@@ -1,7 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { setStoredUser } from "../api/client";
 import { useState, useEffect, useRef } from "react";
-import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useResource, Button, Notice, PageHeading } from "./ui";
 import { listOf, userError, amount } from "./data";

@@ -203,7 +203,12 @@ public class SmtpEmailService : IEmailService
           <p style=""margin:0 0 20px;font-size:14px;line-height:1.6"">
             Chào mừng bạn đến với VeggieAI! Vui lòng nhập mã xác thực dưới đây để kích hoạt tài khoản:
           </p>
-          <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" align=""center"" style=""margin:0 auto 20px""><tr>{digits}</tr></table>
+          <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" align=""center"" style=""margin:0 auto 12px""><tr>{digits}</tr></table>
+          <div style=""text-align:center;margin:0 0 16px"">
+            <span style=""font-family:Consolas,monospace;font-size:16px;font-weight:700;letter-spacing:4px;color:#006948;background:#eef7f2;padding:6px 16px;border-radius:8px;user-select:all;-webkit-user-select:all;display:inline-block"">
+              {code}
+            </span>
+          </div>
           <p style=""margin:0 0 8px;font-size:13px;color:#4b5a53;text-align:center"">
             Mã có hiệu lực trong <b>{expiryMinutes} phút</b>. Không chia sẻ mã này cho bất kỳ ai.
           </p>
