@@ -6,4 +6,3 @@ export * from './BroadcastNotificationScreen.jsx';
 export * from './RewardManagementScreen.jsx';
 export * from './admin/index.js';
 export * from './mod/index.js';
-export * from './user/index.js';
