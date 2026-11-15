@@ -192,6 +192,21 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                         Thử thách lối sống thuần chay
                       </span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onNavigate('product-scanner');
+                        onClose();
+                      }}
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-teal-600 text-[20px]">
+                        document_scanner
+                      </span>
+                      <span className="text-xs font-semibold text-on-surface">
+                        Thẩm định nhãn &amp; quét chay
+                      </span>
+                    </button>
                   </>
                 )}
 
