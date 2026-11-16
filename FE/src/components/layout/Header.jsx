@@ -56,10 +56,17 @@ export const Header = ({
     dashboard: 'VeggieAI Core',
     'user-management': 'Quản lý Người dùng',
     'category-management': 'Quản lý Danh mục & Nguồn Dinh dưỡng',
+    'ingredient-management': 'Thư viện Dinh dưỡng & Vi chất Chay',
     'content-moderation': 'Duyệt bài & Công thức Chay',
+    'recipe-management': 'Quản lý Bài viết & Công thức',
+    'challenge-management': 'Quản lý Thử thách Lối sống Chay',
+    'product-scanner': 'Thẩm định Nhãn Thực phẩm & Quét Thuần Chay',
     'ai-model-monitoring': 'Giám sát Mô hình AI',
     'role-management': 'Phân quyền Hệ thống',
-    'recipe-management': 'Quản lý Bài viết & Công thức',
+    'feedback-management': 'Quản lý Phản hồi & Báo cáo Vi phạm',
+    'nutrition-analytics': 'Báo cáo Dịch tễ & Xu hướng Dinh dưỡng',
+    'broadcast-notification': 'Trung tâm Phát sóng & Mẹo Dinh dưỡng',
+    'reward-management': 'Kho Quà Đổi Thưởng & Điểm Mầm Xanh',
   };
 
   return (
