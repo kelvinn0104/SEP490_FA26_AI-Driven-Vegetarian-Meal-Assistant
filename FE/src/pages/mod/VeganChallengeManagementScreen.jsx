@@ -1,119 +1,18 @@
-import React, { useState, useMemo } from 'react';
-
-const INITIAL_CHALLENGES = [
-  {
-    id: 'chal-1',
-    title: '21 Ngày Khởi Đầu Sống Chay Thuần Khiết',
-    description: 'Thử thách xây dựng thói quen ăn chay lành mạnh, cân bằng dinh dưỡng và thanh lọc cơ thể trong 3 tuần.',
-    durationDays: 21,
-    category: 'beginner',
-    difficulty: 'easy',
-    badgeName: 'Mầm Xanh Kiên Trì',
-    badgeIcon: 'emoji_events',
-    bannerUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
-    status: 'active',
-    participantsCount: 284,
-    pendingCheckinsCount: 3,
-    dailyTasks: [
-      'Ăn 100% bữa ăn thuần thực vật trong ngày',
-      'Đảm bảo 1 nguồn đạm thực vật chính (Đậu phụ, Tempeh, Hạt diêm mạch)',
-      'Chụp ảnh mâm cơm chay đăng lên nhật ký check-in',
-    ],
-    nutritionistNote: 'Nên ngâm kỹ các loại đậu trước khi nấu để giảm phytate và giúp hấp thu sắt tối đa.',
-  },
-  {
-    id: 'chal-2',
-    title: '7 Ngày Xanh Tươi Giải Độc & Bổ Sung Vi Chất',
-    description: 'Tập trung bổ sung rau xanh đậm màu, củ quả giàu vitamin C tự nhiên và sắt hữu cơ.',
-    durationDays: 7,
-    category: 'detox',
-    difficulty: 'medium',
-    badgeName: 'Chiến Binh Diệp Lục',
-    badgeIcon: 'spa',
-    bannerUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
-    status: 'active',
-    participantsCount: 158,
-    pendingCheckinsCount: 2,
-    dailyTasks: [
-      'Uống 1 ly sinh tố rau củ xanh mỗi sáng',
-      'Ăn ít nhất 2 bữa salad nguyên hạt',
-      'Hạn chế đồ chiên xào nhiều dầu mỡ',
-    ],
-    nutritionistNote: 'Uống sinh tố ngay sau khi xay để tránh thất thoát Vitamin C.',
-  },
-  {
-    id: 'chal-3',
-    title: '14 Ngày Tăng Cơ Đạm Thực Vật Thể Thao',
-    description: 'Dành cho hội viên tập gym, yoga và thể thao muốn tối ưu lượng protein từ thực vật.',
-    durationDays: 14,
-    category: 'fitness',
-    difficulty: 'hard',
-    badgeName: 'Sức Mạnh Thực Vật',
-    badgeIcon: 'fitness_center',
-    bannerUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80',
-    status: 'upcoming',
-    participantsCount: 92,
-    pendingCheckinsCount: 0,
-    dailyTasks: [
-      'Bổ sung tối thiểu 1.4g Protein / kg thể trọng mỗi ngày',
-      'Ăn nhẹ trước tập với chuối và hạt chia',
-      'Bổ sung men dinh dưỡng sau buổi tập',
-    ],
-    nutritionistNote: 'Kết hợp ngũ cốc và các loại đậu để có bộ acid amin hoàn chỉnh.',
-  },
-];
-
-const INITIAL_CHECKINS = [
-  {
-    id: 'chk-1',
-    challengeId: 'chal-1',
-    challengeTitle: '21 Ngày Khởi Đầu Sống Chay',
-    dayNumber: 5,
-    mealTitle: 'Cơm gạo lứt đậu gà sốt cà chua và rau cải hấp',
-    mediaUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-    userName: 'Trần Thị Mai',
-    userEmail: 'mai.tran@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-    notes: 'Hôm nay em ăn cơm gạo lứt với đậu gà nấu sốt cà chua nấm đông cô, no lâu và không bị mệt!',
-    status: 'pending',
-    createdAt: '10:30 Hôm nay',
-    nutritionistComment: '',
-  },
-  {
-    id: 'chk-2',
-    challengeId: 'chal-1',
-    challengeTitle: '21 Ngày Khởi Đầu Sống Chay',
-    dayNumber: 12,
-    mealTitle: 'Bún chả nấm đùi gà nướng sốt tương tamari',
-    mediaUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-    userName: 'Nguyễn Văn Hùng',
-    userEmail: 'hung.nguyen@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    notes: 'Nấm ướp đậm vị, kết hợp cùng dưa leo và rau thơm rất hợp vị.',
-    status: 'pending',
-    createdAt: '09:15 Hôm nay',
-    nutritionistComment: '',
-  },
-  {
-    id: 'chk-3',
-    challengeId: 'chal-2',
-    challengeTitle: '7 Ngày Xanh Tươi Giải Độc',
-    dayNumber: 2,
-    mealTitle: 'Salad cải xoăn kale sốt mè rang bơ đậu phộng',
-    mediaUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-    userName: 'Lê Hoàng Anh',
-    userEmail: 'hoanganh.le@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    notes: 'Cải xoăn bóp kỹ với chút muối và dầu olive ăn giòn ngọt không hề đắng.',
-    status: 'approved',
-    createdAt: 'Hôm qua',
-    nutritionistComment: 'Món ăn giàu canxi và chất béo lành mạnh. Điểm danh hợp lệ!',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { challengesApi } from '../../api';
 
 export const VeganChallengeManagementScreen = () => {
-  const [challenges, setChallenges] = useState(INITIAL_CHALLENGES);
-  const [checkins, setCheckins] = useState(INITIAL_CHECKINS);
+  // Main state
+  const [challenges, setChallenges] = useState([]);
+  const [checkins, setCheckins] = useState([]);
+  const [stats, setStats] = useState({
+    totalChallenges: 3,
+    activeChallenges: 2,
+    totalParticipants: 442,
+    pendingCheckins: 5,
+    avgCompletionRate: 78.5,
+  });
+  const [loading, setLoading] = useState(true);
 
   // Tabs & filters
   const [mainTab, setMainTab] = useState('challenges'); // 'challenges' | 'checkins'
@@ -151,44 +50,41 @@ export const VeganChallengeManagementScreen = () => {
   const [reviewDecision, setReviewDecision] = useState('approved');
   const [reviewComment, setReviewComment] = useState('');
 
-  // Dynamic stats
-  const stats = useMemo(() => {
-    const totalChallenges = challenges.length;
-    const activeChallenges = challenges.filter((c) => c.status === 'active').length;
-    const totalParticipants = challenges.reduce((sum, c) => sum + (c.participantsCount || 0), 0);
-    const pendingCheckins = checkins.filter((c) => c.status === 'pending').length;
-    return {
-      totalChallenges,
-      activeChallenges,
-      totalParticipants,
-      pendingCheckins,
-      avgCompletionRate: 78.5,
-    };
-  }, [challenges, checkins]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [challengeList, statData, checkinList] = await Promise.all([
+        challengesApi.getChallenges({
+          status: challengeStatusFilter !== 'all' ? challengeStatusFilter : undefined,
+          category: categoryFilter !== 'all' ? categoryFilter : undefined,
+          difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
+          search: searchQuery || undefined,
+        }),
+        challengesApi.getStats(),
+        challengesApi.getCheckinsQueue({
+          status: checkinStatusFilter !== 'all' ? checkinStatusFilter : undefined,
+          search: searchQuery || undefined,
+        }),
+      ]);
 
-  const filteredChallenges = useMemo(() => {
-    return challenges.filter((c) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = challengeStatusFilter === 'all' || c.status === challengeStatusFilter;
-      const matchesCategory = categoryFilter === 'all' || c.category === categoryFilter;
-      const matchesDifficulty = difficultyFilter === 'all' || c.difficulty === difficultyFilter;
-      return matchesSearch && matchesStatus && matchesCategory && matchesDifficulty;
-    });
-  }, [challenges, searchQuery, challengeStatusFilter, categoryFilter, difficultyFilter]);
+      setChallenges(challengeList || []);
+      if (statData) setStats(statData);
+      setCheckins(checkinList || []);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu thử thách lối sống chay:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredCheckins = useMemo(() => {
-    return checkins.filter((item) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        item.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.mealTitle.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = checkinStatusFilter === 'all' || item.status === checkinStatusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [checkins, searchQuery, checkinStatusFilter]);
+  useEffect(() => {
+    fetchData();
+  }, [mainTab, challengeStatusFilter, categoryFilter, difficultyFilter, checkinStatusFilter]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchData();
+  };
 
   const handleOpenCreate = () => {
     setEditingChallenge(null);
@@ -206,7 +102,7 @@ export const VeganChallengeManagementScreen = () => {
       'Đảm bảo 1 nguồn đạm thực vật chính (Đậu phụ, Tempeh, Hạt diêm mạch)',
       'Chụp ảnh mâm cơm chay đăng lên nhật ký check-in',
     ]);
-    setFormNutritionistNote('Nên ngâm kỹ các loại đậu trước khi nấu để giảm phytate và giúp hấp thu sắt tối đa.');
+    setFormNutritionistNote('Lời khuyên Mod: Nên ngâm kỹ các loại đậu trước khi nấu để giảm phytate và giúp hấp thu sắt tối đa.');
     setIsChallengeModalOpen(true);
   };
 
@@ -236,15 +132,15 @@ export const VeganChallengeManagementScreen = () => {
     setFormTasks(formTasks.filter((_, i) => i !== index));
   };
 
-  const handleSaveChallenge = (e) => {
+  const handleSaveChallenge = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) {
       alert('Vui lòng nhập tên thử thách');
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      setIsSubmitting(true);
       const payload = {
         title: formTitle.trim(),
         description: formDescription.trim(),
@@ -260,29 +156,33 @@ export const VeganChallengeManagementScreen = () => {
       };
 
       if (editingChallenge) {
-        setChallenges((prev) =>
-          prev.map((c) => (c.id === editingChallenge.id ? { ...c, ...payload } : c))
-        );
+        await challengesApi.updateChallenge(editingChallenge.id, payload);
+        alert('Cập nhật thử thách thành công!');
       } else {
-        setChallenges((prev) => [
-          {
-            id: `chal-${Date.now()}`,
-            participantsCount: 0,
-            pendingCheckinsCount: 0,
-            ...payload,
-          },
-          ...prev,
-        ]);
+        await challengesApi.createChallenge(payload);
+        alert('Tạo thử thách mới thành công!');
       }
 
-      setIsSubmitting(false);
       setIsChallengeModalOpen(false);
-    }, 200);
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi lưu thử thách: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteChallenge = (challenge) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xoá chiến dịch thử thách "${challenge.title}"?`)) {
-      setChallenges((prev) => prev.filter((c) => c.id !== challenge.id));
+  const handleDeleteChallenge = async (challenge) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xoá chiến dịch thử thách "${challenge.title}"?`)) {
+      return;
+    }
+
+    try {
+      await challengesApi.deleteChallenge(challenge.id);
+      alert('Đã xoá thử thách thành công');
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi xoá: ${err.message || 'Lỗi server'}`);
     }
   };
 
@@ -292,23 +192,25 @@ export const VeganChallengeManagementScreen = () => {
     setReviewComment('Mâm cơm thuần chay màu sắc đẹp, đa dạng đạm thực vật và chất xơ. Điểm danh hợp lệ!');
   };
 
-  const handleConfirmReview = (e) => {
+  const handleConfirmReview = async (e) => {
     e.preventDefault();
     if (!selectedCheckin) return;
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setCheckins((prev) =>
-        prev.map((c) =>
-          c.id === selectedCheckin.id
-            ? { ...c, status: reviewDecision, nutritionistComment: reviewComment.trim() }
-            : c
-        )
-      );
+    try {
+      setIsSubmitting(true);
+      await challengesApi.reviewCheckin(selectedCheckin.id, {
+        decision: reviewDecision,
+        nutritionistComment: reviewComment.trim(),
+      });
 
-      setIsSubmitting(false);
+      alert(`Đã ${reviewDecision === 'approved' ? 'duyệt' : 'từ chối'} lượt check-in của ${selectedCheckin.userName}!`);
       setSelectedCheckin(null);
-    }, 200);
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi duyệt check-in: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -348,7 +250,7 @@ export const VeganChallengeManagementScreen = () => {
       case 'beginner':
         return <span className="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium">Khởi đầu Chay</span>;
       case 'fitness':
-        return <span className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700 font-medium">Đạm Cao &amp; Thể Thao</span>;
+        return <span className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700 font-medium">Đạm Cao & Thể Thao</span>;
       case 'detox':
         return <span className="text-xs px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-medium">Thanh lọc Xanh</span>;
       case 'sugar_free':
@@ -378,7 +280,7 @@ export const VeganChallengeManagementScreen = () => {
         <div>
           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold text-sm mb-1">
             <span className="material-symbols-outlined text-[18px]">verified</span>
-            Bảng Điều Phối Thử Thách &amp; Trại Thói Quen (Chuyên gia Dinh dưỡng VeggieAI)
+            Bảng Điều Phối Thử Thách & Trại Thói Quen (Chuyên gia Dinh dưỡng VeggieAI)
           </div>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">
             Quản Lý Thử Thách Lối Sống Thuần Chay (Vegan Challenge)
@@ -487,7 +389,7 @@ export const VeganChallengeManagementScreen = () => {
           }`}
         >
           <span className="material-symbols-outlined text-[18px]">sports_score</span>
-          Danh Sách Thử Thách &amp; Trại Lối Sống ({challenges.length})
+          Danh Sách Thử Thách & Trại Lối Sống ({challenges.length})
         </button>
 
         <button
@@ -511,7 +413,7 @@ export const VeganChallengeManagementScreen = () => {
       {/* Filter & Search Bar */}
       <div className="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high/60 shadow-xs flex flex-wrap items-center justify-between gap-4">
         {/* Search Input */}
-        <div className="flex-1 min-w-[260px] relative">
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[260px] relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
             search
           </span>
@@ -526,7 +428,7 @@ export const VeganChallengeManagementScreen = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-sm bg-surface rounded-lg border border-surface-container-high focus:outline-none focus:border-primary transition-all text-on-surface"
           />
-        </div>
+        </form>
 
         {/* Dynamic Filters depending on Tab */}
         {mainTab === 'challenges' ? (
@@ -534,7 +436,7 @@ export const VeganChallengeManagementScreen = () => {
             <select
               value={challengeStatusFilter}
               onChange={(e) => setChallengeStatusFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang diễn ra</option>
@@ -546,19 +448,20 @@ export const VeganChallengeManagementScreen = () => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Tất cả danh mục</option>
               <option value="beginner">Khởi đầu Chay</option>
-              <option value="fitness">Đạm Cao &amp; Thể Thao</option>
+              <option value="fitness">Đạm Cao & Thể Thao</option>
               <option value="detox">Thanh lọc Xanh</option>
               <option value="sugar_free">Giảm Đường Tinh Luyện</option>
+              <option value="habit">Thói Quen Sống Khỏe</option>
             </select>
 
             <select
               value={difficultyFilter}
               onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Mọi độ khó</option>
               <option value="easy">Dễ tiếp cận</option>
@@ -571,7 +474,7 @@ export const VeganChallengeManagementScreen = () => {
             <select
               value={checkinStatusFilter}
               onChange={(e) => setCheckinStatusFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Tất cả trạng thái duyệt</option>
               <option value="pending">Chờ thẩm định (Pending)</option>
@@ -583,8 +486,14 @@ export const VeganChallengeManagementScreen = () => {
       </div>
 
       {/* Main Content Area */}
-      {mainTab === 'challenges' ? (
-        filteredChallenges.length === 0 ? (
+      {loading ? (
+        <div className="py-20 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium">Đang tải dữ liệu thử thách từ cơ sở dữ liệu...</span>
+        </div>
+      ) : mainTab === 'challenges' ? (
+        /* TAB 1: CHALLENGES GRID */
+        challenges.length === 0 ? (
           <div className="py-16 text-center bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-8">
             <span className="material-symbols-outlined text-[48px] text-outline mb-2">
               military_tech
@@ -596,7 +505,7 @@ export const VeganChallengeManagementScreen = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredChallenges.map((challenge) => (
+            {challenges.map((challenge) => (
               <div
                 key={challenge.id}
                 className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden group"
@@ -723,7 +632,7 @@ export const VeganChallengeManagementScreen = () => {
         )
       ) : (
         /* TAB 2: CHECKINS REVIEW QUEUE */
-        filteredCheckins.length === 0 ? (
+        checkins.length === 0 ? (
           <div className="py-16 text-center bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-8">
             <span className="material-symbols-outlined text-[48px] text-emerald-500 mb-2">
               task_alt
@@ -735,7 +644,7 @@ export const VeganChallengeManagementScreen = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredCheckins.map((item) => (
+            {checkins.map((item) => (
               <div
                 key={item.id}
                 className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 shadow-xs p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:border-primary/40 transition-all"
@@ -874,7 +783,7 @@ export const VeganChallengeManagementScreen = () => {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Mục Tiêu &amp; Thông Điệp Chiến Dịch
+                  Mục Tiêu & Thông Điệp Chiến Dịch
                 </label>
                 <textarea
                   rows={3}
@@ -908,12 +817,13 @@ export const VeganChallengeManagementScreen = () => {
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="beginner">Khởi đầu Chay</option>
-                    <option value="fitness">Đạm Cao &amp; Thể Thao</option>
+                    <option value="fitness">Đạm Cao & Thể Thao</option>
                     <option value="detox">Thanh lọc Xanh</option>
                     <option value="sugar_free">Giảm Đường Tinh Luyện</option>
+                    <option value="habit">Thói Quen Sống Khỏe</option>
                   </select>
                 </div>
 
@@ -924,7 +834,7 @@ export const VeganChallengeManagementScreen = () => {
                   <select
                     value={formDifficulty}
                     onChange={(e) => setFormDifficulty(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="easy">Dễ tiếp cận</option>
                     <option value="medium">Trung bình</option>
@@ -967,7 +877,7 @@ export const VeganChallengeManagementScreen = () => {
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="active">Đang diễn ra (Active)</option>
                     <option value="upcoming">Sắp mở (Upcoming)</option>
@@ -1166,7 +1076,7 @@ export const VeganChallengeManagementScreen = () => {
               {/* Comment text */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Nhận Xét &amp; Lời Khuyên Dinh Dưỡng Gửi Hội Viên
+                  Nhận Xét & Lời Khuyên Dinh Dưỡng Gửi Hội Viên
                 </label>
                 <textarea
                   rows={3}

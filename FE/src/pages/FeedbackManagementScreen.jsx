@@ -1,79 +1,18 @@
-import React, { useState, useMemo } from 'react';
-
-const INITIAL_FEEDBACKS = [
-  {
-    id: 'fb-1',
-    feedbackType: 'report',
-    reporterName: 'BS. Lê Minh Hoàng',
-    reporterEmail: 'hoang.le@vinmec.com',
-    reporterAvatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=120&q=80',
-    category: 'nutrition_misinformation',
-    categoryLabel: 'Sai lệch Dinh dưỡng',
-    targetTitle: 'Nước ép cần tây trị dứt điểm thiếu máu không cần bổ sung sắt',
-    content: 'Tác giả bài viết tuyên bố chỉ cần uống 500ml nước ép cần tây mỗi ngày là khỏi thiếu máu. Cần tây chứa rất ít sắt non-heme và không thể thay thế phác đồ điều trị thiếu máu thiếu sắt.',
-    status: 'open',
-    createdAt: '08:15 Hôm nay',
-  },
-  {
-    id: 'fb-2',
-    feedbackType: 'ai_feedback',
-    reporterName: 'Phạm Thị Thùy Linh',
-    reporterEmail: 'thuylinh.pham@gmail.com',
-    reporterAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-    category: 'ai_accuracy',
-    categoryLabel: 'Độ chính xác AI',
-    targetTitle: 'AI Tư vấn thực đơn cho người dị ứng Đậu nành nghiêm trọng',
-    content: 'Tôi đã thiết lập hồ sơ dị ứng đậu nành cấp độ cao nhưng chatbot AI vẫn gợi ý món Súp đậu phụ miso cho bữa tối.',
-    rating: 2,
-    isAccurate: false,
-    status: 'open',
-    createdAt: 'Hôm qua',
-  },
-  {
-    id: 'fb-3',
-    feedbackType: 'report',
-    reporterName: 'Trần Văn Tuấn',
-    reporterEmail: 'tuantran@gmail.com',
-    reporterAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    category: 'spam',
-    categoryLabel: 'Spam & Quảng cáo',
-    targetTitle: 'Bình luận spam link bán thực phẩm chức năng giảm cân siêu tốc',
-    content: 'Tài khoản này liên tục spam đường dẫn mua trà giảm cân không rõ nguồn gốc trong các bài đăng công thức nấu ăn.',
-    status: 'resolved',
-    createdAt: '06/11/2026',
-  },
-  {
-    id: 'fb-4',
-    feedbackType: 'report',
-    reporterName: 'Đặng Ngọc Mai',
-    reporterEmail: 'mai.dang@gmail.com',
-    reporterAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80',
-    category: 'nutrition_misinformation',
-    categoryLabel: 'Sai lệch Dinh dưỡng',
-    targetTitle: 'Ăn chay hoàn toàn không cần quan tâm đến Vitamin B12',
-    content: 'Bài viết khẳng định cơ thể tự sinh được B12 từ vi khuẩn đường ruột nên không cần uống men dinh dưỡng hay viên uống. Điều này đi ngược lại khuyến cáo của WHO.',
-    status: 'open',
-    createdAt: '05/11/2026',
-  },
-  {
-    id: 'fb-5',
-    feedbackType: 'ai_feedback',
-    reporterName: 'Nguyễn Quốc Bảo',
-    reporterEmail: 'baonq@gmail.com',
-    reporterAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-    category: 'ai_accuracy',
-    categoryLabel: 'Độ chính xác AI',
-    targetTitle: 'Gợi ý kế hoạch Macro tăng cơ 70g Protein',
-    content: 'Công thức và bảng phân bổ bữa ăn đạm thực vật từ đậu gà, tempeh và quinoa của AI rất khoa học, dễ nấu và no lâu.',
-    rating: 5,
-    isAccurate: true,
-    status: 'resolved',
-    createdAt: '04/11/2026',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { feedbacksApi } from '../api';
 
 export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
-  const [feedbacks, setFeedbacks] = useState(INITIAL_FEEDBACKS);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [stats, setStats] = useState({
+    totalReports: 0,
+    openReports: 0,
+    resolvedReports: 0,
+    dismissedReports: 0,
+    nutritionMisinformationCount: 0,
+    spamPolicyCount: 0,
+    avgAiSatisfaction: 4.6,
+  });
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [activeTab, setActiveTab] = useState(userRole === 'mod' ? 'nutrition_misinformation' : 'all');
@@ -87,49 +26,39 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
   const [hideTarget, setHideTarget] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dynamic stats
-  const stats = useMemo(() => {
-    const totalReports = feedbacks.length;
-    const openReports = feedbacks.filter((f) => f.status === 'open').length;
-    const resolvedReports = feedbacks.filter((f) => f.status === 'resolved').length;
-    const dismissedReports = feedbacks.filter((f) => f.status === 'dismissed').length;
-    const nutritionMisinformationCount = feedbacks.filter(
-      (f) => f.category === 'nutrition_misinformation' && f.status === 'open'
-    ).length;
-    const spamPolicyCount = feedbacks.filter((f) => f.category === 'spam').length;
-    return {
-      totalReports,
-      openReports,
-      resolvedReports,
-      dismissedReports,
-      nutritionMisinformationCount,
-      spamPolicyCount,
-      avgAiSatisfaction: 4.6,
-    };
-  }, [feedbacks]);
+  const fetchFeedbacksAndStats = async () => {
+    try {
+      setLoading(true);
+      const categoryParam = activeTab === 'all' || activeTab === 'ai_feedback' ? undefined : activeTab;
+      const typeParam = activeTab === 'ai_feedback' ? 'ai_feedback' : undefined;
 
-  const filteredFeedbacks = useMemo(() => {
-    return feedbacks.filter((item) => {
-      // Tab filter
-      if (activeTab === 'nutrition_misinformation' && item.category !== 'nutrition_misinformation') return false;
-      if (activeTab === 'spam' && item.category !== 'spam') return false;
-      if (activeTab === 'ai_feedback' && item.feedbackType !== 'ai_feedback') return false;
+      const [listRes, statsRes] = await Promise.all([
+        feedbacksApi.getFeedbacks({
+          type: typeParam,
+          category: categoryParam,
+          status: statusFilter,
+          search: searchQuery,
+        }),
+        feedbacksApi.getStats(),
+      ]);
 
-      // Status filter
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+      setFeedbacks(listRes || []);
+      if (statsRes) setStats(statsRes);
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách phản hồi & báo cáo:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesReporter = item.reporterName.toLowerCase().includes(q) || item.reporterEmail.toLowerCase().includes(q);
-        const matchesTarget = item.targetTitle.toLowerCase().includes(q);
-        const matchesContent = item.content.toLowerCase().includes(q);
-        if (!matchesReporter && !matchesTarget && !matchesContent) return false;
-      }
+  useEffect(() => {
+    fetchFeedbacksAndStats();
+  }, [activeTab, statusFilter]);
 
-      return true;
-    });
-  }, [feedbacks, activeTab, statusFilter, searchQuery]);
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchFeedbacksAndStats();
+  };
 
   const handleOpenResolve = (item) => {
     setSelectedItem(item);
@@ -142,23 +71,30 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
     setHideTarget(item.category === 'nutrition_misinformation' || item.category === 'spam');
   };
 
-  const handleConfirmResolve = (e) => {
+  const handleConfirmResolve = async (e) => {
     e.preventDefault();
     if (!selectedItem) return;
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setFeedbacks((prev) =>
-        prev.map((f) =>
-          f.id === selectedItem.id && f.feedbackType === selectedItem.feedbackType
-            ? { ...f, status: decision }
-            : f
-        )
+    try {
+      setIsSubmitting(true);
+      await feedbacksApi.resolveFeedback(
+        selectedItem.id,
+        {
+          decision,
+          resolutionNote,
+          hideTargetContent: hideTarget,
+        },
+        selectedItem.feedbackType
       );
 
-      setIsSubmitting(false);
+      alert(`Đã cập nhật trạng thái phản hồi: ${decision === 'resolved' ? 'Đã giải quyết' : 'Đã bỏ qua'}!`);
       setSelectedItem(null);
-    }, 200);
+      await fetchFeedbacksAndStats();
+    } catch (err) {
+      alert(`Lỗi khi xử lý phản hồi: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -276,7 +212,7 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-xl bg-surface-container-lowest border border-surface-container-high/40 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[300px]">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[300px]">
           <div className="relative flex-1 min-w-[200px]">
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[18px]">
               search
@@ -300,16 +236,28 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
             <option value="resolved">Đã giải quyết (Resolved)</option>
             <option value="dismissed">Đã bỏ qua (Dismissed)</option>
           </select>
-        </div>
+
+          <button
+            type="submit"
+            className="px-3.5 py-2 rounded-lg bg-surface-container text-xs font-semibold text-on-surface hover:bg-surface-container-high cursor-pointer"
+          >
+            Tìm kiếm
+          </button>
+        </form>
 
         <span className="text-xs text-outline font-mono">
-          Hiển thị <b>{filteredFeedbacks.length}</b> / {feedbacks.length} phản hồi
+          Hiển thị <b>{feedbacks.length}</b> phản hồi
         </span>
       </div>
 
       {/* Data Table */}
       <div className="rounded-xl bg-surface-container-lowest p-5 shadow-xs border border-surface-container-high/40 overflow-hidden">
-        {filteredFeedbacks.length === 0 ? (
+        {loading ? (
+          <div className="py-12 flex flex-col items-center justify-center text-outline gap-2">
+            <span className="material-symbols-outlined animate-spin text-[32px] text-primary">progress_activity</span>
+            <span className="text-xs font-medium">Đang tải danh sách phản hồi...</span>
+          </div>
+        ) : feedbacks.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-outline gap-2">
             <span className="material-symbols-outlined text-[40px] text-secondary">verified</span>
             <p className="text-sm font-semibold text-on-surface">Không có phản hồi nào cần xử lý</p>
@@ -329,7 +277,7 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container-high/30">
-                {filteredFeedbacks.map((item) => (
+                {feedbacks.map((item) => (
                   <tr key={`${item.feedbackType}-${item.id}`} className="hover:bg-surface-container-low/40 transition-colors">
                     {/* Reporter */}
                     <td className="py-3 px-3">
@@ -455,7 +403,7 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface cursor-pointer"
+                className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -553,7 +501,7 @@ export const FeedbackManagementScreen = ({ userRole = 'admin' }) => {
                 <button
                   type="button"
                   onClick={() => setSelectedItem(null)}
-                  className="px-4 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high"
                 >
                   Hủy
                 </button>

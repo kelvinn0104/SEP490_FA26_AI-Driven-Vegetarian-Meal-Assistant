@@ -1,91 +1,17 @@
-import React, { useState, useMemo } from 'react';
-
-const INITIAL_REWARDS = [
-  {
-    id: 'rw-1',
-    title: 'Voucher Giảm 50.000đ tại Nhà Hàng Chay Veggie Garden',
-    description: 'Áp dụng cho hóa đơn từ 200.000đ tại tất cả chi nhánh thuộc chuỗi Veggie Garden.',
-    pointsRequired: 500,
-    stockQuantity: 45,
-    claimedQuantity: 28,
-    category: 'voucher',
-    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-    status: 'active',
-  },
-  {
-    id: 'rw-2',
-    title: 'Ebook Cẩm Nang 100 Công Thức Món Chay Chuẩn Đa Lượng & Vi Chất',
-    description: 'Tài liệu độc quyền do chuyên gia dinh dưỡng VeggieAI biên soạn với bảng tính macro chi tiết.',
-    pointsRequired: 350,
-    stockQuantity: 999,
-    claimedQuantity: 112,
-    category: 'ebook',
-    imageUrl: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=600&q=80',
-    status: 'active',
-  },
-  {
-    id: 'rw-3',
-    title: 'Hộp Hạt Dinh Dưỡng Hữu Cơ Granola Tự Nhiên (500g)',
-    description: 'Gồm yến mạch, hạt chia, hạnh nhân, hạt điều sấy giòn không đường tinh luyện.',
-    pointsRequired: 1200,
-    stockQuantity: 18,
-    claimedQuantity: 14,
-    category: 'physical',
-    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80',
-    status: 'active',
-  },
-  {
-    id: 'rw-4',
-    title: 'Gói Hạt Giống Rau Cải Xoăn Kale & Cải Bó Xôi Trồng Tại Nhà',
-    description: 'Hạt giống hữu cơ F1 tỷ lệ nảy mầm cao kèm hướng dẫn ủ đất tự nhiên.',
-    pointsRequired: 250,
-    stockQuantity: 60,
-    claimedQuantity: 42,
-    category: 'seed',
-    imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d69104a49?auto=format&fit=crop&w=600&q=80',
-    status: 'active',
-  },
-];
-
-const INITIAL_CLAIMS = [
-  {
-    id: 'clm-1',
-    rewardTitle: 'Voucher Giảm 50.000đ tại Nhà Hàng Chay Veggie Garden',
-    userName: 'Lê Thị Thu Thảo',
-    userEmail: 'thao.le@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-    pointsSpent: 500,
-    claimDate: '10:15 Hôm nay',
-    status: 'pending',
-    notes: 'Em muốn nhận mã điện tử qua email thao.le@gmail.com ạ!',
-  },
-  {
-    id: 'clm-2',
-    rewardTitle: 'Ebook Cẩm Nang 100 Công Thức Món Chay Chuẩn Đa Lượng',
-    userName: 'Hoàng Minh Đức',
-    userEmail: 'duc.hoang@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    pointsSpent: 350,
-    claimDate: 'Hôm qua',
-    status: 'pending',
-    notes: 'Đã hoàn thành thử thách 21 ngày và đổi ebook.',
-  },
-  {
-    id: 'clm-3',
-    rewardTitle: 'Hộp Hạt Dinh Dưỡng Hữu Cơ Granola Tự Nhiên (500g)',
-    userName: 'Nguyễn Bích Phương',
-    userEmail: 'bichphuong@gmail.com',
-    userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    pointsSpent: 1200,
-    claimDate: '05/11/2026',
-    status: 'delivered',
-    notes: 'Địa chỉ giao hàng: Tòa Landmark 81, Bình Thạnh, TP.HCM',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { rewardsApi } from '../api';
 
 export const RewardManagementScreen = () => {
-  const [rewards, setRewards] = useState(INITIAL_REWARDS);
-  const [claims, setClaims] = useState(INITIAL_CLAIMS);
+  const [rewards, setRewards] = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [stats, setStats] = useState({
+    totalRewards: 4,
+    availableRewards: 4,
+    totalClaimsProcessed: 1,
+    pendingClaimsCount: 2,
+    totalKarmaPointsCirculated: 1550,
+  });
+  const [loading, setLoading] = useState(true);
 
   // Tabs
   const [activeTab, setActiveTab] = useState('rewards'); // 'rewards' | 'claims'
@@ -111,48 +37,40 @@ export const RewardManagementScreen = () => {
   const [claimDecision, setClaimDecision] = useState('approved');
   const [claimNotes, setClaimNotes] = useState('');
 
-  // Dynamic stats
-  const stats = useMemo(() => {
-    const totalRewards = rewards.length;
-    const availableRewards = rewards.filter((r) => r.status === 'active' && r.stockQuantity > 0).length;
-    const pendingClaimsCount = claims.filter((c) => c.status === 'pending').length;
-    const totalClaimsProcessed = claims.filter((c) => c.status === 'approved' || c.status === 'delivered').length;
-    const totalKarmaPointsCirculated = claims.reduce((sum, c) => sum + (c.pointsSpent || 0), 0) + 145000;
-    return {
-      totalRewards,
-      availableRewards,
-      pendingClaimsCount,
-      totalClaimsProcessed,
-      totalKarmaPointsCirculated,
-    };
-  }, [rewards, claims]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [rewardList, statData, claimList] = await Promise.all([
+        rewardsApi.getRewards({
+          category: categoryFilter !== 'all' ? categoryFilter : undefined,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          search: searchQuery || undefined,
+        }),
+        rewardsApi.getStats(),
+        rewardsApi.getClaims({
+          status: claimStatusFilter !== 'all' ? claimStatusFilter : undefined,
+          search: searchQuery || undefined,
+        }),
+      ]);
 
-  const filteredRewards = useMemo(() => {
-    return rewards.filter((item) => {
-      if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = item.title.toLowerCase().includes(q);
-        const matchesDesc = item.description.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesDesc) return false;
-      }
-      return true;
-    });
-  }, [rewards, categoryFilter, statusFilter, searchQuery]);
+      setRewards(rewardList || []);
+      if (statData) setStats(statData);
+      setClaims(claimList || []);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu đổi thưởng:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredClaims = useMemo(() => {
-    return claims.filter((claim) => {
-      if (claimStatusFilter !== 'all' && claim.status !== claimStatusFilter) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesUser = claim.userName.toLowerCase().includes(q) || claim.userEmail.toLowerCase().includes(q);
-        const matchesReward = claim.rewardTitle.toLowerCase().includes(q);
-        if (!matchesUser && !matchesReward) return false;
-      }
-      return true;
-    });
-  }, [claims, claimStatusFilter, searchQuery]);
+  useEffect(() => {
+    fetchData();
+  }, [activeTab, categoryFilter, statusFilter, claimStatusFilter]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchData();
+  };
 
   const handleOpenCreateReward = () => {
     setEditingReward(null);
@@ -178,15 +96,15 @@ export const RewardManagementScreen = () => {
     setIsRewardModalOpen(true);
   };
 
-  const handleSaveReward = (e) => {
+  const handleSaveReward = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) {
       alert('Vui lòng nhập tên phần thưởng');
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      setIsSubmitting(true);
       const payload = {
         title: formTitle.trim(),
         description: formDescription.trim(),
@@ -198,54 +116,59 @@ export const RewardManagementScreen = () => {
       };
 
       if (editingReward) {
-        setRewards((prev) =>
-          prev.map((r) => (r.id === editingReward.id ? { ...r, ...payload } : r))
-        );
+        await rewardsApi.updateReward(editingReward.id, payload);
+        alert('Cập nhật phần thưởng thành công!');
       } else {
-        setRewards((prev) => [
-          {
-            id: `rw-${Date.now()}`,
-            claimedQuantity: 0,
-            ...payload,
-          },
-          ...prev,
-        ]);
+        await rewardsApi.createReward(payload);
+        alert('Tạo phần thưởng đổi điểm mới thành công!');
       }
 
-      setIsSubmitting(false);
       setIsRewardModalOpen(false);
-    }, 200);
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi lưu phần thưởng: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteReward = (item) => {
-    if (window.confirm(`Xác nhận xoá phần thưởng "${item.title}"?`)) {
-      setRewards((prev) => prev.filter((r) => r.id !== item.id));
+  const handleDeleteReward = async (item) => {
+    if (!window.confirm(`Xác nhận xoá phần thưởng "${item.title}"?`)) return;
+
+    try {
+      await rewardsApi.deleteReward(item.id);
+      alert('Đã xoá phần thưởng thành công');
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi xoá: ${err.message || 'Lỗi server'}`);
     }
   };
 
   const handleOpenProcessClaim = (claim) => {
     setSelectedClaim(claim);
     setClaimDecision('approved');
-    setClaimNotes('Đã xác thực điểm Mầm Xanh hợp lệ từ thử thách. Mã quà tặng / xác nhận đã gửi đến email hội viên.');
+    setClaimNotes('Đã xác thực điểm Mầm Xanh hợp lệ từ thử thách. Mã quà tặng / xác nhận đã gửi đến hội viên.');
   };
 
-  const handleConfirmProcessClaim = (e) => {
+  const handleConfirmProcessClaim = async (e) => {
     e.preventDefault();
     if (!selectedClaim) return;
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setClaims((prev) =>
-        prev.map((c) =>
-          c.id === selectedClaim.id
-            ? { ...c, status: claimDecision, notes: claimNotes.trim() }
-            : c
-        )
-      );
+    try {
+      setIsSubmitting(true);
+      await rewardsApi.processClaim(selectedClaim.id, {
+        decision: claimDecision,
+        notes: claimNotes.trim(),
+      });
 
-      setIsSubmitting(false);
+      alert(`Đã ${claimDecision === 'approved' ? 'duyệt' : claimDecision === 'delivered' ? 'xác nhận đã giao' : 'từ chối'} yêu cầu đổi quà của ${selectedClaim.userName}!`);
       setSelectedClaim(null);
-    }, 200);
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi xử lý đổi quà: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getCategoryBadge = (cat) => {
@@ -270,10 +193,10 @@ export const RewardManagementScreen = () => {
         <div>
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm mb-1">
             <span className="material-symbols-outlined text-[18px]">redeem</span>
-            Hệ Thống Gamification &amp; Quà Tặng Đổi Điểm Mầm Xanh (Green Karma)
+            Hệ Thống Gamification & Quà Tặng Đổi Điểm Mầm Xanh (Green Karma)
           </div>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">
-            Kho Quà Đổi Thưởng &amp; Điểm Mầm Xanh
+            Kho Quà Đổi Thưởng & Điểm Mầm Xanh
           </h1>
           <p className="text-sm text-on-surface-variant mt-1 max-w-3xl">
             Tuyên dương và khích lệ hội viên kiên trì ăn chay qua hệ thống điểm thưởng Mầm Xanh. Quản lý kho quà voucher nhà hàng chay, ebook cẩm nang dinh dưỡng và duyệt yêu cầu nhận quà.
@@ -319,7 +242,7 @@ export const RewardManagementScreen = () => {
             </div>
             <div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px]">hourglass_top</span>
-              Chờ xác nhận &amp; gửi mã
+              Chờ xác nhận & gửi mã
             </div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
@@ -355,7 +278,7 @@ export const RewardManagementScreen = () => {
             </div>
             <div className="text-xs text-on-surface-variant mt-1 flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px]">eco</span>
-              Tích lũy từ nấu ăn &amp; thử thách
+              Tích lũy từ nấu ăn & thử thách
             </div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
@@ -398,7 +321,7 @@ export const RewardManagementScreen = () => {
 
       {/* Filter and Search Bar */}
       <div className="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high/60 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex-1 min-w-[260px] relative">
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[260px] relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
             search
           </span>
@@ -413,14 +336,14 @@ export const RewardManagementScreen = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-sm bg-surface rounded-lg border border-surface-container-high focus:outline-none focus:border-primary transition-all text-on-surface"
           />
-        </div>
+        </form>
 
         {activeTab === 'rewards' ? (
           <div className="flex flex-wrap items-center gap-3">
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Tất cả phân loại quà</option>
               <option value="voucher">Voucher Nhà Hàng Chay</option>
@@ -432,7 +355,7 @@ export const RewardManagementScreen = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang khả dụng</option>
@@ -445,7 +368,7 @@ export const RewardManagementScreen = () => {
             <select
               value={claimStatusFilter}
               onChange={(e) => setClaimStatusFilter(e.target.value)}
-              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+              className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending">Chờ phê duyệt (Pending)</option>
@@ -458,8 +381,14 @@ export const RewardManagementScreen = () => {
       </div>
 
       {/* Main Content */}
-      {activeTab === 'rewards' ? (
-        filteredRewards.length === 0 ? (
+      {loading ? (
+        <div className="py-20 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium">Đang tải kho quà tặng đổi điểm...</span>
+        </div>
+      ) : activeTab === 'rewards' ? (
+        /* TAB 1: REWARDS GRID */
+        rewards.length === 0 ? (
           <div className="py-16 text-center bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-8">
             <span className="material-symbols-outlined text-[48px] text-outline mb-2">
               redeem
@@ -471,7 +400,7 @@ export const RewardManagementScreen = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {filteredRewards.map((item) => (
+            {rewards.map((item) => (
               <div
                 key={item.id}
                 className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden group"
@@ -538,7 +467,7 @@ export const RewardManagementScreen = () => {
         )
       ) : (
         /* TAB 2: CLAIMS QUEUE */
-        filteredClaims.length === 0 ? (
+        claims.length === 0 ? (
           <div className="py-16 text-center bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-8">
             <span className="material-symbols-outlined text-[48px] text-emerald-500 mb-2">
               check_circle
@@ -550,7 +479,7 @@ export const RewardManagementScreen = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredClaims.map((claim) => (
+            {claims.map((claim) => (
               <div
                 key={claim.id}
                 className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 shadow-xs p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:border-primary/40 transition-all"
@@ -708,7 +637,7 @@ export const RewardManagementScreen = () => {
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="voucher">Voucher Nhà Hàng Chay</option>
                     <option value="ebook">Ebook Dinh Dưỡng</option>
@@ -724,7 +653,7 @@ export const RewardManagementScreen = () => {
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="active">Đang khả dụng (Active)</option>
                     <option value="out_of_stock">Hết hàng (Out of stock)</option>
@@ -820,7 +749,7 @@ export const RewardManagementScreen = () => {
                         : 'border-surface-container-high text-on-surface-variant'
                     }`}
                   >
-                    Đã Giao
+                    Đã Giao Thành Công
                   </button>
 
                   <button
