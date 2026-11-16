@@ -1,168 +1,11 @@
-import React, { useState, useMemo } from 'react';
-
-const INITIAL_INGREDIENTS = [
-  {
-    id: 'ing-1',
-    name: 'Đậu hũ non hữu cơ (Silken Tofu)',
-    dataSource: 'USDA FoodData Central 2025',
-    updatedAt: '08/11/2026',
-    kcalPer100g: 76,
-    proteinPer100g: 8.8,
-    carbPer100g: 1.9,
-    fatPer100g: 4.8,
-    b12Per100g: 0,
-    ironPer100g: 5.4,
-    calciumPer100g: 350,
-    zincPer100g: 1.6,
-    allergies: ['Đậu nành (Soy)'],
-    allergyIds: ['soy'],
-  },
-  {
-    id: 'ing-2',
-    name: 'Men dinh dưỡng tăng cường B12 (Nutritional Yeast)',
-    dataSource: 'Viện Dinh Dưỡng 2025',
-    updatedAt: '07/11/2026',
-    kcalPer100g: 325,
-    proteinPer100g: 50.0,
-    carbPer100g: 36.0,
-    fatPer100g: 5.0,
-    b12Per100g: 44.0,
-    ironPer100g: 6.0,
-    calciumPer100g: 80,
-    zincPer100g: 12.0,
-    allergies: [],
-    allergyIds: [],
-  },
-  {
-    id: 'ing-3',
-    name: 'Hạt diêm mạch trắng (Quinoa)',
-    dataSource: 'USDA FoodData Central 2025',
-    updatedAt: '06/11/2026',
-    kcalPer100g: 120,
-    proteinPer100g: 14.1,
-    carbPer100g: 64.2,
-    fatPer100g: 6.1,
-    b12Per100g: 0,
-    ironPer100g: 4.6,
-    calciumPer100g: 47,
-    zincPer100g: 3.1,
-    allergies: [],
-    allergyIds: [],
-  },
-  {
-    id: 'ing-4',
-    name: 'Tempeh đậu nành lên men truyền thống',
-    dataSource: 'USDA FoodData Central 2025',
-    updatedAt: '05/11/2026',
-    kcalPer100g: 192,
-    proteinPer100g: 20.3,
-    carbPer100g: 7.6,
-    fatPer100g: 10.8,
-    b12Per100g: 0.1,
-    ironPer100g: 2.7,
-    calciumPer100g: 111,
-    zincPer100g: 1.8,
-    allergies: ['Đậu nành (Soy)'],
-    allergyIds: ['soy'],
-  },
-  {
-    id: 'ing-5',
-    name: 'Đậu gà luộc chín (Chickpeas)',
-    dataSource: 'Viện Dinh Dưỡng 2025',
-    updatedAt: '04/11/2026',
-    kcalPer100g: 164,
-    proteinPer100g: 19.0,
-    carbPer100g: 27.4,
-    fatPer100g: 2.6,
-    b12Per100g: 0,
-    ironPer100g: 2.9,
-    calciumPer100g: 49,
-    zincPer100g: 1.5,
-    allergies: [],
-    allergyIds: [],
-  },
-  {
-    id: 'ing-6',
-    name: 'Rau bó xôi hữu cơ tươi (Spinach)',
-    dataSource: 'Viện Dinh Dưỡng 2025',
-    updatedAt: '03/11/2026',
-    kcalPer100g: 23,
-    proteinPer100g: 2.9,
-    carbPer100g: 3.6,
-    fatPer100g: 0.4,
-    b12Per100g: 0,
-    ironPer100g: 2.7,
-    calciumPer100g: 99,
-    zincPer100g: 0.5,
-    allergies: [],
-    allergyIds: [],
-  },
-  {
-    id: 'ing-7',
-    name: 'Hạt chia đen Nam Mỹ (Chia Seeds)',
-    dataSource: 'USDA FoodData Central 2025',
-    updatedAt: '02/11/2026',
-    kcalPer100g: 486,
-    proteinPer100g: 16.5,
-    carbPer100g: 42.1,
-    fatPer100g: 30.7,
-    b12Per100g: 0,
-    ironPer100g: 7.7,
-    calciumPer100g: 631,
-    zincPer100g: 4.6,
-    allergies: ['Hạt cây / Tree Nuts'],
-    allergyIds: ['tree_nuts'],
-  },
-];
-
-const INITIAL_ALLERGIES = [
-  { id: 'soy', name: 'Đậu nành (Soy)', ingredientCount: 2 },
-  { id: 'gluten', name: 'Gluten / Lúa mì', ingredientCount: 1 },
-  { id: 'peanut', name: 'Đậu phộng (Peanuts)', ingredientCount: 0 },
-  { id: 'tree_nuts', name: 'Hạt cây / Quả hạch (Tree Nuts)', ingredientCount: 1 },
-  { id: 'sesame', name: 'Hạt mè (Sesame)', ingredientCount: 0 },
-];
-
-const INITIAL_STANDARDS = [
-  {
-    id: 'std-1',
-    gender: 'male',
-    ageFrom: 19,
-    ageTo: 50,
-    ironMg: 14,
-    b12Mcg: 2.4,
-    calciumMg: 1000,
-    zincMg: 11,
-    note: 'Khuyến nghị tiêu chuẩn cho nam giới ăn thuần chay',
-  },
-  {
-    id: 'std-2',
-    gender: 'female',
-    ageFrom: 19,
-    ageTo: 50,
-    ironMg: 32,
-    b12Mcg: 2.4,
-    calciumMg: 1000,
-    zincMg: 8,
-    note: 'Nhu cầu Sắt gấp 1.8 lần do hấp thu sắt không heme trong chu kỳ sinh sản',
-  },
-  {
-    id: 'std-3',
-    gender: 'female',
-    ageFrom: 51,
-    ageTo: 70,
-    ironMg: 14,
-    b12Mcg: 2.4,
-    calciumMg: 1200,
-    zincMg: 8,
-    note: 'Tăng cường Canxi & Vitamin D nhằm giảm nguy cơ loãng xương',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { ingredientsApi } from '../../api';
 
 export const IngredientManagementScreen = () => {
-  const [ingredients, setIngredients] = useState(INITIAL_INGREDIENTS);
-  const [allergies] = useState(INITIAL_ALLERGIES);
-  const [standards] = useState(INITIAL_STANDARDS);
+  const [ingredients, setIngredients] = useState([]);
+  const [allergies, setAllergies] = useState([]);
+  const [standards, setStandards] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
@@ -188,29 +31,37 @@ export const IngredientManagementScreen = () => {
   const [formZinc, setFormZinc] = useState(1.5);
   const [formAllergyIds, setFormAllergyIds] = useState([]);
 
-  const filteredIngredients = useMemo(() => {
-    return ingredients
-      .filter((item) => {
-        const matchesSearch =
-          !searchQuery.trim() ||
-          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.dataSource.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesAllergy =
-          selectedAllergy === 'all' ||
-          (item.allergyIds && item.allergyIds.includes(selectedAllergy));
-        return matchesSearch && matchesAllergy;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'protein_desc') return b.proteinPer100g - a.proteinPer100g;
-        if (sortBy === 'iron_desc') return b.ironPer100g - a.ironPer100g;
-        if (sortBy === 'b12_desc') return b.b12Per100g - a.b12Per100g;
-        if (sortBy === 'calcium_desc') return b.calciumPer100g - a.calciumPer100g;
-        if (sortBy === 'zinc_desc') return b.zincPer100g - a.zincPer100g;
-        if (sortBy === 'kcal_asc') return a.kcalPer100g - b.kcalPer100g;
-        if (sortBy === 'kcal_desc') return b.kcalPer100g - a.kcalPer100g;
-        return 0;
-      });
-  }, [ingredients, searchQuery, selectedAllergy, sortBy]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [ingList, allList, stdList] = await Promise.all([
+        ingredientsApi.getIngredients({
+          search: searchQuery,
+          allergyId: selectedAllergy,
+          sortBy: sortBy !== 'default' ? sortBy : undefined,
+        }),
+        ingredientsApi.getAllergies(),
+        ingredientsApi.getNutrientStandards(),
+      ]);
+
+      setIngredients(ingList || []);
+      setAllergies(allList || []);
+      setStandards(stdList || []);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu nguyên liệu & dinh dưỡng:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedAllergy, sortBy]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchData();
+  };
 
   const handleOpenAdd = () => {
     setEditingItem(null);
@@ -244,23 +95,18 @@ export const IngredientManagementScreen = () => {
     setIsAddEditOpen(true);
   };
 
-  const handleSaveIngredient = (e) => {
+  const handleSaveIngredient = async (e) => {
     e.preventDefault();
     if (!formName.trim()) {
       alert('Vui lòng nhập tên nguyên liệu.');
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      const selectedAllergyNames = allergies
-        .filter((a) => formAllergyIds.includes(a.id))
-        .map((a) => a.name);
-
+    try {
+      setIsSubmitting(true);
       const payload = {
         name: formName.trim(),
         dataSource: formDataSource.trim(),
-        updatedAt: 'Hôm nay',
         kcalPer100g: Number(formKcal) || 0,
         proteinPer100g: Number(formProtein) || 0,
         carbPer100g: Number(formCarb) || 0,
@@ -270,31 +116,36 @@ export const IngredientManagementScreen = () => {
         calciumPer100g: Number(formCalcium) || 0,
         zincPer100g: Number(formZinc) || 0,
         allergyIds: formAllergyIds,
-        allergies: selectedAllergyNames,
       };
 
       if (editingItem) {
-        setIngredients((prev) =>
-          prev.map((item) => (item.id === editingItem.id ? { ...item, ...payload } : item))
-        );
+        await ingredientsApi.updateIngredient(editingItem.id, payload);
+        alert(`Đã cập nhật nguyên liệu "${payload.name}" thành công!`);
       } else {
-        setIngredients((prev) => [
-          {
-            id: `ing-${Date.now()}`,
-            ...payload,
-          },
-          ...prev,
-        ]);
+        await ingredientsApi.createIngredient(payload);
+        alert(`Đã thêm nguyên liệu "${payload.name}" vào cơ sở dữ liệu!`);
       }
 
-      setIsSubmitting(false);
       setIsAddEditOpen(false);
-    }, 200);
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi lưu nguyên liệu: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = (item) => {
-    if (window.confirm(`Bạn có chắc muốn xóa nguyên liệu "${item.name}" khỏi thư viện dinh dưỡng?`)) {
-      setIngredients((prev) => prev.filter((i) => i.id !== item.id));
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa nguyên liệu "${item.name}" khỏi thư viện dinh dưỡng?`)) {
+      return;
+    }
+
+    try {
+      await ingredientsApi.deleteIngredient(item.id);
+      alert(`Đã xóa nguyên liệu "${item.name}" thành công!`);
+      await fetchData();
+    } catch (err) {
+      alert(`Lỗi khi xóa: ${err.message || 'Lỗi server'}`);
     }
   };
 
@@ -320,7 +171,7 @@ export const IngredientManagementScreen = () => {
             <span>Chuyên môn Dinh dưỡng • Tiêu chuẩn Thực dưỡng Thuần chay</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-on-surface tracking-tight mt-1">
-            Thư viện Dinh dưỡng &amp; Vi chất Chay
+            Thư viện Dinh dưỡng & Vi chất Chay
           </h1>
           <p className="text-xs sm:text-sm text-on-surface-variant font-medium">
             Quản lý thành phần Đạm thực vật, Calo và Bộ 4 vi chất vàng (B12, Sắt, Canxi, Kẽm) cho người ăn chay
@@ -355,7 +206,7 @@ export const IngredientManagementScreen = () => {
           <p className="text-2xl font-bold text-on-surface font-mono mt-1">{totalCount}</p>
           <span className="text-[10px] text-primary font-semibold flex items-center gap-1 mt-1">
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-            Cơ sở dữ liệu USDA &amp; Viện Dinh Dưỡng
+            Cơ sở dữ liệu USDA & Viện Dinh Dưỡng
           </span>
         </div>
 
@@ -380,7 +231,7 @@ export const IngredientManagementScreen = () => {
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-xl bg-surface-container-lowest border border-surface-container-high/40 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[300px]">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[300px]">
           <div className="relative flex-1 min-w-[200px]">
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[18px]">
               search
@@ -414,7 +265,7 @@ export const IngredientManagementScreen = () => {
             onChange={(e) => setSortBy(e.target.value)}
             className="h-9 px-3 rounded-lg bg-surface-container-low text-xs font-semibold text-on-surface border border-surface-container-high/50 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
-            <option value="default">Sắp xếp: Mặc định</option>
+            <option value="default">Sắp xếp: Mới cập nhật</option>
             <option value="protein_desc">Giàu Đạm (Protein) nhất</option>
             <option value="iron_desc">Giàu Sắt (Iron Fe) nhất</option>
             <option value="b12_desc">Giàu Vitamin B12 nhất</option>
@@ -423,16 +274,28 @@ export const IngredientManagementScreen = () => {
             <option value="kcal_asc">Calo thấp nhất</option>
             <option value="kcal_desc">Calo cao nhất</option>
           </select>
-        </div>
+
+          <button
+            type="submit"
+            className="px-3 py-2 rounded-lg bg-surface-container text-xs font-semibold text-on-surface hover:bg-surface-container-high cursor-pointer"
+          >
+            Tìm kiếm
+          </button>
+        </form>
 
         <span className="text-xs text-outline font-mono">
-          Hiển thị <b>{filteredIngredients.length}</b> / {ingredients.length} nguyên liệu
+          Hiển thị <b>{ingredients.length}</b> nguyên liệu
         </span>
       </div>
 
       {/* Main Data Table */}
       <div className="rounded-xl bg-surface-container-lowest p-5 shadow-xs border border-surface-container-high/40 overflow-hidden">
-        {filteredIngredients.length === 0 ? (
+        {loading ? (
+          <div className="py-12 flex flex-col items-center justify-center text-outline gap-2">
+            <span className="material-symbols-outlined animate-spin text-[32px] text-primary">progress_activity</span>
+            <span className="text-xs font-medium">Đang tải thư viện dinh dưỡng...</span>
+          </div>
+        ) : ingredients.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-outline gap-2">
             <span className="material-symbols-outlined text-[40px]">search_off</span>
             <p className="text-sm font-semibold text-on-surface">Không tìm thấy nguyên liệu phù hợp</p>
@@ -453,7 +316,7 @@ export const IngredientManagementScreen = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container-high/30">
-                {filteredIngredients.map((item) => (
+                {ingredients.map((item) => (
                   <tr key={item.id} className="hover:bg-surface-container-low/40 transition-colors">
                     {/* Name & Source */}
                     <td className="py-3 px-3">
@@ -752,7 +615,7 @@ export const IngredientManagementScreen = () => {
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}}
+                          onChange={() => {}} // handled by parent onClick
                           className="rounded text-error focus:ring-error"
                         />
                         <span>{a.name}</span>
@@ -767,7 +630,7 @@ export const IngredientManagementScreen = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddEditOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high"
                 >
                   Hủy
                 </button>
@@ -795,7 +658,7 @@ export const IngredientManagementScreen = () => {
                   <h3 className="font-bold text-base text-on-surface">
                     Bảng Nhu Cầu Khuyến Nghị Vi Chất Chay (RDI Standards)
                   </h3>
-                  <p className="text-xs text-outline">Tham chiếu Viện Dinh Dưỡng &amp; Hiệp Hội Dinh Dưỡng Thực Dưỡng Quốc Tế</p>
+                  <p className="text-xs text-outline">Tham chiếu Viện Dinh Dưỡng &amp; Hiệp Hội Dinh Dưỡng Thực Dưỡng Hoa Kỳ</p>
                 </div>
               </div>
               <button
@@ -872,4 +735,3 @@ export const IngredientManagementScreen = () => {
     </div>
   );
 };
-
