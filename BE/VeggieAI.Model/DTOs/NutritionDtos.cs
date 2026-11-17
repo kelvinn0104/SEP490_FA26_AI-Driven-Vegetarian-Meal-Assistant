@@ -72,7 +72,7 @@ public class UpdateIngredientRequest
     public List<int>? AllergyIds { get; set; }
 }
 
-public class AllergyDto
+public class AllergyAdminDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

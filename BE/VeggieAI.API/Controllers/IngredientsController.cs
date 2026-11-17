@@ -60,10 +60,10 @@ public class IngredientsController : ControllerBase
     }
 
     [HttpGet("allergies")]
-    public async Task<ActionResult<ApiResponse<List<AllergyDto>>>> GetAllergies()
+    public async Task<ActionResult<ApiResponse<List<AllergyAdminDto>>>> GetAllergies()
     {
         var items = await _ingredientService.GetAllergiesAsync();
-        return Ok(ApiResponse<List<AllergyDto>>.Ok(items));
+        return Ok(ApiResponse<List<AllergyAdminDto>>.Ok(items));
     }
 
     [HttpGet("standards")]

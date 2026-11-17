@@ -12,7 +12,7 @@ public interface IIngredientService
     Task<IngredientDto> CreateIngredientAsync(CreateIngredientRequest request, int moderatorId);
     Task<IngredientDto?> UpdateIngredientAsync(int id, UpdateIngredientRequest request, int moderatorId);
     Task<bool> DeleteIngredientAsync(int id);
-    Task<List<AllergyDto>> GetAllergiesAsync();
+    Task<List<AllergyAdminDto>> GetAllergiesAsync();
     Task<List<NutrientStandardDto>> GetNutrientStandardsAsync();
 }
 
@@ -162,7 +162,7 @@ public class IngredientService : IIngredientService
         return true;
     }
 
-    public async Task<List<AllergyDto>> GetAllergiesAsync()
+    public async Task<List<AllergyAdminDto>> GetAllergiesAsync()
     {
         await EnsureSeedAllergiesAsync();
 
@@ -171,7 +171,7 @@ public class IngredientService : IIngredientService
             .OrderBy(a => a.Name)
             .ToListAsync();
 
-        return allergies.Select(a => new AllergyDto
+        return allergies.Select(a => new AllergyAdminDto
         {
             Id = a.Id,
             Name = a.Name,

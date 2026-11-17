@@ -47,7 +47,7 @@ public class FeedbacksController : ControllerBase
     }
 
     [HttpPost("report")]
-    public async Task<ActionResult<ApiResponse<FeedbackReportDto>>> CreateReport([FromBody] CreateReportRequest request)
+    public async Task<ActionResult<ApiResponse<FeedbackReportDto>>> CreateReport([FromBody] CreateFeedbackReportRequest request)
     {
         var userId = GetCurrentUserId();
         var item = await _feedbackService.CreateReportAsync(request, userId);
