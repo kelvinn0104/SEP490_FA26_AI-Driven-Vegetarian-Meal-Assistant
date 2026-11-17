@@ -40,26 +40,3 @@ public class UploadsController : AiApiControllerBase
         return Ok(ApiResponse<UploadResultDto>.Ok(result, "Tải file thành công"));
     }
 }
-
-/// <summary>Tra cứu nguyên liệu trong thư viện.</summary>
-[ApiController]
-[Route("api/ingredients")]
-[AllowAnonymous]
-public class IngredientsController : ControllerBase
-{
-    private readonly IIngredientCatalogService _svc;
-
-    public IngredientsController(IIngredientCatalogService svc)
-    {
-        _svc = svc;
-    }
-
-    /// <summary>?search=dau phu&amp;limit=20 — tìm theo tên, không phân biệt dấu/hoa thường.</summary>
-    [HttpGet]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<IngredientLookupDto>>>> Search(
-        [FromQuery] string? search, [FromQuery] int limit = 20, CancellationToken ct = default)
-    {
-        var result = await _svc.SearchAsync(search, limit, ct);
-        return Ok(ApiResponse<IReadOnlyList<IngredientLookupDto>>.Ok(result));
-    }
-}
