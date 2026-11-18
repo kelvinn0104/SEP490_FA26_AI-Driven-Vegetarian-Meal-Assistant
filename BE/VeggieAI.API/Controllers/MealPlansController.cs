@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VeggieAI.API.Controllers.AI;
@@ -32,7 +33,7 @@ public class MealPlansController : AiApiControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<MealPlanSummaryDto>>>> List(
         [FromQuery] string? status, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListAsync(UserId, status, PageQuery.Of(page, pageSize), ct);
+        var result = await _svc.ListAsync(UserId, status, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<MealPlanSummaryDto>>.Ok(result));
     }
 

@@ -102,7 +102,8 @@ public class CommunityService : ICommunityService
                 CanEdit: c.UserId == vid, CanDelete: c.UserId == vid || viewerIsStaff))
             .ToList();
 
-        var showModeration = (isAuthor || viewerIsStaff) && p.Moderation is not null;
+        // Tác giả chỉ thấy quyết định của người duyệt, không thấy bản sàng lọc tự động (decision = pending)
+        var showModeration = p.Moderation is not null && (viewerIsStaff || (isAuthor && p.Moderation.Decision != "pending"));
         return new PostDetailDto(p.Id, p.PostType, p.Title, p.MediaUrl, p.AuthorName, p.RecipeId, p.Status, p.Score,
             commentDtos.Count, p.MyVote, p.CreatedAt, p.Content, p.VideoSummary, p.RecipeTitle, commentDtos,
             AuthorId: p.UserId,
@@ -120,6 +121,7 @@ public class CommunityService : ICommunityService
             throw new AppException("Bài video bắt buộc có mediaUrl.");
         if (req.PostType == "blog" && string.IsNullOrWhiteSpace(req.Content))
             throw new AppException("Bài blog cần có nội dung.");
+        ValidateMediaUrl(req.MediaUrl);
         await EnsureRecipeAttachableAsync(req.RecipeId, ct);
 
         var post = new Post
@@ -135,6 +137,7 @@ public class CommunityService : ICommunityService
         };
         _db.Posts.Add(post);
         await _db.SaveChangesAsync(ct);
+        await QueueForReviewAsync(post, isResubmit: false, ct);
         return await GetAsync(userId, false, post.Id, ct);
     }
 
@@ -152,6 +155,7 @@ public class CommunityService : ICommunityService
         var mediaUrl = string.IsNullOrWhiteSpace(req.MediaUrl) ? null : req.MediaUrl.Trim();
         if (post.PostType == "video" && mediaUrl is null) throw new AppException("Bài video bắt buộc có mediaUrl.");
         if (post.PostType == "blog" && string.IsNullOrWhiteSpace(req.Content)) throw new AppException("Bài blog cần có nội dung.");
+        ValidateMediaUrl(mediaUrl);
         if (req.RecipeId != post.RecipeId) await EnsureRecipeAttachableAsync(req.RecipeId, ct);
 
         post.Title = title;
@@ -161,6 +165,7 @@ public class CommunityService : ICommunityService
         post.UpdatedAt = DateTime.UtcNow;
         post.Status = "pending"; // nội dung mới → kiểm duyệt lại
         await _db.SaveChangesAsync(ct);
+        await QueueForReviewAsync(post, isResubmit: true, ct);
         return await GetAsync(userId, false, post.Id, ct);
     }
 
@@ -270,14 +275,16 @@ public class CommunityService : ICommunityService
 
     public async Task<ReportDto> ReportAsync(int userId, CreateReportRequest req, CancellationToken ct = default)
     {
-        var exists = req.TargetType switch
+        // Chỉ báo cáo được nội dung đang hiển thị công khai (bài chưa duyệt chỉ tác giả/staff thấy nên không báo cáo được)
+        int? ownerId = req.TargetType switch
         {
-            "post" => await _db.Posts.AnyAsync(p => p.Id == req.TargetId && p.Status != "removed", ct),
-            "comment" => await _db.Comments.AnyAsync(c => c.Id == req.TargetId && c.Status != "removed", ct),
-            "recipe" => await _db.Recipes.AnyAsync(r => r.Id == req.TargetId && r.Status == "published", ct),
-            _ => false,
+            "post" => await _db.Posts.Where(p => p.Id == req.TargetId && p.Status == "published").Select(p => (int?)p.UserId).FirstOrDefaultAsync(ct),
+            "comment" => await _db.Comments.Where(c => c.Id == req.TargetId && c.Status == "visible" && c.Post!.Status == "published").Select(c => (int?)c.UserId).FirstOrDefaultAsync(ct),
+            "recipe" => await _db.Recipes.Where(r => r.Id == req.TargetId && r.Status == "published").Select(r => (int?)r.CreatedBy).FirstOrDefaultAsync(ct),
+            _ => null,
         };
-        if (!exists) throw AppException.NotFound("Nội dung bị báo cáo");
+        if (ownerId is null) throw AppException.NotFound("Nội dung bị báo cáo");
+        if (ownerId == userId) throw new AppException("Bạn không thể báo cáo nội dung của chính mình.", 400, "CANNOT_REPORT_OWN_CONTENT");
 
         if (await _db.Reports.AnyAsync(r => r.ReporterId == userId && r.TargetType == req.TargetType &&
                                             r.TargetId == req.TargetId && r.Status == "open", ct))
@@ -325,6 +332,52 @@ public class CommunityService : ICommunityService
         _db.ModerationLogs.AsNoTracking().Where(l => l.PostId == postId)
             .OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
             .Select(l => l.Decision).FirstOrDefaultAsync(ct);
+
+    /// <summary>mediaUrl chỉ nhận http(s) tuyệt đối hoặc đường dẫn /uploads/... (chặn javascript:, data:, ftp:...).</summary>
+    private static void ValidateMediaUrl(string? mediaUrl)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl)) return;
+        var url = mediaUrl.Trim();
+        var ok = url.StartsWith("/uploads/", StringComparison.Ordinal) ||
+                 (Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) &&
+                  string.IsNullOrEmpty(uri.UserInfo));
+        if (!ok) throw new AppException("mediaUrl phải là liên kết http(s) hợp lệ hoặc file đã tải lên.", 400, "INVALID_MEDIA_URL");
+    }
+
+    /// <summary>
+    /// Ghi kết quả sàng lọc tự động (ModerationLog, decision = pending, ReviewedBy = null) và báo cho admin/moderator có bài chờ duyệt.
+    /// Không bao giờ tự đăng bài (LI-03). Lỗi ở bước này không làm hỏng việc gửi bài.
+    /// </summary>
+    private async Task QueueForReviewAsync(Post post, bool isResubmit, CancellationToken ct)
+    {
+        try
+        {
+            var score = ContentPreScreen.Score(post.Title, post.Content, post.MediaUrl);
+            _db.ModerationLogs.Add(new ModerationLog
+            {
+                PostId = post.Id,
+                ReviewedBy = null,
+                AiLabel = score.Label,
+                AiConfidence = score.Confidence,
+                RiskLevel = score.RiskLevel,
+                Decision = "pending",
+                Reason = score.Note,
+                ReviewedAt = DateTime.UtcNow,
+            });
+
+            var staffIds = await _db.Users
+                .Where(u => (u.Role == AppRoles.Admin || u.Role == AppRoles.Moderator) && u.Status == "active" && u.Id != post.UserId)
+                .Select(u => u.Id).ToListAsync(ct);
+            var verb = isResubmit ? "được sửa và gửi lại" : "mới chờ duyệt";
+            foreach (var id in staffIds)
+                Notifier.Queue(_db, id, NotificationTypes.System, $"Bài viết {verb}: {Notifier.Quote(post.Title)} (rủi ro {score.RiskLevel}).");
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            // Bài đã lưu ở trạng thái pending; moderator vẫn thấy trong hàng đợi.
+        }
+    }
 
     private async Task EnsureRecipeAttachableAsync(int? recipeId, CancellationToken ct)
     {
@@ -394,7 +447,7 @@ public class CommunityService : ICommunityService
                 UpdatedAt: p.UpdatedAt,
                 CanEdit: isAuthor && CanAuthorEdit(p.Status, p.Moderation?.Decision),
                 CanDelete: isAuthor && p.Status != "removed",
-                Moderation: includeModeration && isAuthor && p.Moderation is not null
+                Moderation: includeModeration && isAuthor && p.Moderation is not null && p.Moderation.Decision != "pending"
                     ? new PostModerationDto(p.Moderation.Decision, p.Moderation.Reason, p.Moderation.ReviewedAt)
                     : null);
         }).ToList();

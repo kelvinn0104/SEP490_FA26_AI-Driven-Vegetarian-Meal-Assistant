@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -64,7 +65,7 @@ public class ScansController : AiApiControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<ScanSummaryDto>>>> History([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.GetHistoryAsync(UserId, PageQuery.Of(page, pageSize), ct);
+        var result = await _svc.GetHistoryAsync(UserId, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<ScanSummaryDto>>.Ok(result));
     }
 

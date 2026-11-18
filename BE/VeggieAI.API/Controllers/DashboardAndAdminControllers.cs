@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -73,7 +74,7 @@ public class ModerationController : ControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<StaffReportDto>>>> GetReports(
         [FromQuery] string? status, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _moderationService.GetReportsAsync(status, PageQuery.Of(page, pageSize), ct);
+        var result = await _moderationService.GetReportsAsync(status, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<StaffReportDto>>.Ok(result));
     }
 

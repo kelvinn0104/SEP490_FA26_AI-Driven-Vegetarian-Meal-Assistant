@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,7 +94,7 @@ public class RecipesController : ControllerBase
         if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
         var result = await _recipeService.GetRecipesPagedAsync(
             new RecipeQuery { Search = search, Status = status, CategoryId = categoryId, Sort = sort },
-            PageQuery.Of(page, pageSize));
+            this.Paging(page, pageSize));
         return Ok(ApiResponse<PagedResult<RecipeDto>>.Ok(result));
     }
 

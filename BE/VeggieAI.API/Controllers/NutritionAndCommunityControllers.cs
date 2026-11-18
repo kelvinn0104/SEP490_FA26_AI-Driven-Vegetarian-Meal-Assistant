@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -91,7 +92,7 @@ public class CommunityController : AiApiControllerBase
         [FromQuery] string? keyword, [FromQuery] string? postType, [FromQuery] string? sort,
         [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListAsync(OptionalUserId, keyword, postType, sort, PageQuery.Of(page, pageSize), ct);
+        var result = await _svc.ListAsync(OptionalUserId, keyword, postType, sort, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<PostSummaryDto>>.Ok(result));
     }
 
@@ -101,7 +102,7 @@ public class CommunityController : AiApiControllerBase
     [HttpGet("posts/mine")]
     public async Task<ActionResult<ApiResponse<PagedResult<PostSummaryDto>>>> Mine([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListMineAsync(UserId, PageQuery.Of(page, pageSize), ct);
+        var result = await _svc.ListMineAsync(UserId, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<PostSummaryDto>>.Ok(result));
     }
 
@@ -141,7 +142,7 @@ public class CommunityController : AiApiControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<PostCommentDto>>>> Comments(int id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListCommentsAsync(OptionalUserId, IsStaff, id, PageQuery.Of(page, pageSize), ct);
+        var result = await _svc.ListCommentsAsync(OptionalUserId, IsStaff, id, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<PostCommentDto>>.Ok(result));
     }
 
@@ -187,7 +188,7 @@ public class CommunityController : AiApiControllerBase
     [HttpGet("reports/mine")]
     public async Task<ActionResult<ApiResponse<PagedResult<ReportDto>>>> MyReports([FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.ListMyReportsAsync(UserId, PageQuery.Of(page, pageSize), ct);
+        var result = await _svc.ListMyReportsAsync(UserId, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<ReportDto>>.Ok(result));
     }
 }
