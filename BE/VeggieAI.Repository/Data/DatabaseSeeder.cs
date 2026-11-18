@@ -233,7 +233,26 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
                 new() { Name = "Spinach, raw", KcalPer100g = 23, ProteinPer100g = 2.86m, CarbPer100g = 3.63m, FatPer100g = 0.39m, IronPer100g = 2.71m, B12Per100g = 0m, CalciumPer100g = 99m, ZincPer100g = 0.53m, DataSource = "USDA FoodData Central" },
                 new() { Name = "Lentils, cooked", KcalPer100g = 116, ProteinPer100g = 9.02m, CarbPer100g = 20.1m, FatPer100g = 0.38m, IronPer100g = 3.33m, B12Per100g = 0m, CalciumPer100g = 19m, ZincPer100g = 1.27m, DataSource = "USDA FoodData Central" },
                 new() { Name = "Peanuts, raw", KcalPer100g = 567, ProteinPer100g = 25.8m, CarbPer100g = 16.1m, FatPer100g = 49.2m, IronPer100g = 4.58m, B12Per100g = 0m, CalciumPer100g = 92m, ZincPer100g = 3.27m, DataSource = "USDA FoodData Central" },
-                new() { Name = "Shiitake mushroom, raw", KcalPer100g = 34, ProteinPer100g = 2.24m, CarbPer100g = 6.79m, FatPer100g = 0.49m, IronPer100g = 0.41m, B12Per100g = 0m, CalciumPer100g = 2m, ZincPer100g = 1.03m, DataSource = "USDA FoodData Central" }
+                new() { Name = "Shiitake mushroom, raw", KcalPer100g = 34, ProteinPer100g = 2.24m, CarbPer100g = 6.79m, FatPer100g = 0.49m, IronPer100g = 0.41m, B12Per100g = 0m, CalciumPer100g = 2m, ZincPer100g = 1.03m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Chickpeas, cooked", KcalPer100g = 164m, ProteinPer100g = 8.86m, CarbPer100g = 27.4m, FatPer100g = 2.59m, IronPer100g = 2.89m, B12Per100g = 0m, CalciumPer100g = 49m, ZincPer100g = 1.53m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Tomato", KcalPer100g = 18m, ProteinPer100g = 0.88m, CarbPer100g = 3.89m, FatPer100g = 0.2m, IronPer100g = 0.27m, B12Per100g = 0m, CalciumPer100g = 10m, ZincPer100g = 0.17m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Carrot", KcalPer100g = 41m, ProteinPer100g = 0.93m, CarbPer100g = 9.58m, FatPer100g = 0.24m, IronPer100g = 0.3m, B12Per100g = 0m, CalciumPer100g = 33m, ZincPer100g = 0.24m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Rice noodles (bun/pho), cooked", KcalPer100g = 108m, ProteinPer100g = 1.79m, CarbPer100g = 24m, FatPer100g = 0.2m, IronPer100g = 0.14m, B12Per100g = 0m, CalciumPer100g = 4m, ZincPer100g = 0.25m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Sweet potato, cooked", KcalPer100g = 90m, ProteinPer100g = 2.01m, CarbPer100g = 20.7m, FatPer100g = 0.15m, IronPer100g = 0.69m, B12Per100g = 0m, CalciumPer100g = 38m, ZincPer100g = 0.32m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Pumpkin", KcalPer100g = 26m, ProteinPer100g = 1m, CarbPer100g = 6.5m, FatPer100g = 0.1m, IronPer100g = 0.8m, B12Per100g = 0m, CalciumPer100g = 21m, ZincPer100g = 0.32m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Cashews", KcalPer100g = 553m, ProteinPer100g = 18.2m, CarbPer100g = 30.2m, FatPer100g = 43.8m, IronPer100g = 6.68m, B12Per100g = 0m, CalciumPer100g = 37m, ZincPer100g = 5.78m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Bean sprouts", KcalPer100g = 30m, ProteinPer100g = 3.04m, CarbPer100g = 5.94m, FatPer100g = 0.18m, IronPer100g = 0.91m, B12Per100g = 0m, CalciumPer100g = 13m, ZincPer100g = 0.41m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Oyster mushroom", KcalPer100g = 33m, ProteinPer100g = 3.31m, CarbPer100g = 6.09m, FatPer100g = 0.41m, IronPer100g = 1.33m, B12Per100g = 0m, CalciumPer100g = 3m, ZincPer100g = 0.77m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Orange", KcalPer100g = 47m, ProteinPer100g = 0.94m, CarbPer100g = 11.8m, FatPer100g = 0.12m, IronPer100g = 0.1m, B12Per100g = 0m, CalciumPer100g = 40m, ZincPer100g = 0.07m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Coconut milk", KcalPer100g = 230m, ProteinPer100g = 2.29m, CarbPer100g = 5.54m, FatPer100g = 23.8m, IronPer100g = 1.64m, B12Per100g = 0m, CalciumPer100g = 16m, ZincPer100g = 0.67m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Vegetable oil", KcalPer100g = 884m, ProteinPer100g = 0m, CarbPer100g = 0m, FatPer100g = 100m, IronPer100g = 0.05m, B12Per100g = 0m, CalciumPer100g = 0m, ZincPer100g = 0m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Soy sauce", KcalPer100g = 53m, ProteinPer100g = 8.14m, CarbPer100g = 4.93m, FatPer100g = 0.57m, IronPer100g = 1.45m, B12Per100g = 0m, CalciumPer100g = 33m, ZincPer100g = 0.43m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Mung beans, cooked", KcalPer100g = 105m, ProteinPer100g = 7.02m, CarbPer100g = 19.2m, FatPer100g = 0.38m, IronPer100g = 1.4m, B12Per100g = 0m, CalciumPer100g = 27m, ZincPer100g = 0.84m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Cucumber", KcalPer100g = 15m, ProteinPer100g = 0.65m, CarbPer100g = 3.63m, FatPer100g = 0.11m, IronPer100g = 0.28m, B12Per100g = 0m, CalciumPer100g = 16m, ZincPer100g = 0.2m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Lotus seeds, dried", KcalPer100g = 332m, ProteinPer100g = 15.4m, CarbPer100g = 64.5m, FatPer100g = 1.97m, IronPer100g = 3.53m, B12Per100g = 0m, CalciumPer100g = 163m, ZincPer100g = 1.05m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Cabbage", KcalPer100g = 25m, ProteinPer100g = 1.28m, CarbPer100g = 5.8m, FatPer100g = 0.1m, IronPer100g = 0.47m, B12Per100g = 0m, CalciumPer100g = 40m, ZincPer100g = 0.18m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Mango", KcalPer100g = 60m, ProteinPer100g = 0.82m, CarbPer100g = 15m, FatPer100g = 0.38m, IronPer100g = 0.16m, B12Per100g = 0m, CalciumPer100g = 11m, ZincPer100g = 0.09m, DataSource = "USDA FoodData Central" },
+                new() { Name = "Silken tofu", KcalPer100g = 55m, ProteinPer100g = 4.8m, CarbPer100g = 2.9m, FatPer100g = 2.7m, IronPer100g = 0.83m, B12Per100g = 0m, CalciumPer100g = 31m, ZincPer100g = 0.5m, DataSource = "USDA FoodData Central" }
             };
             await context.Ingredients.AddRangeAsync(ingredients);
             await context.SaveChangesAsync();
@@ -688,5 +707,115 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
             await context.SystemLogs.AddRangeAsync(moreLogs);
             await context.SaveChangesAsync();
         }
+
+        await EnsureDemoRecipeIngredientsAsync(context);
+        await AllergenLinker.EnsureAsync(context);
+    }
+
+    /// <summary>
+    /// Các công thức demo do seeder tạo trước đây không có dòng nguyên liệu → không lập được danh sách đi chợ
+    /// và lọt bộ lọc dị ứng (nay bị loại khỏi thực đơn). Bước này gắn nguyên liệu chính cho đúng các công thức demo đó
+    /// (khớp theo tên, chỉ khi công thức chưa có nguyên liệu nào). Nếu thư viện thiếu bất kỳ nguyên liệu nào trong công thức
+    /// (đặc biệt nguyên liệu gây dị ứng như đậu phộng) thì bỏ qua công thức đó để không gắn thiếu.
+    /// Dinh dưỡng đã nhập tay của công thức được giữ nguyên. Idempotent.
+    /// </summary>
+    private static async Task EnsureDemoRecipeIngredientsAsync(VeggieAIDbContext context)
+    {
+        // Mỗi nguyên liệu: các tên thay thế (lấy tên đầu tiên có trong thư viện) + khối lượng (g) cho cả công thức
+        var map = new Dictionary<string, (string[] Names, decimal Grams)[]>(StringComparer.Ordinal)
+        {
+            ["Cà Ri Bí Đỏ Cốt Dừa Nam Bộ"] = new[]
+            {
+                (new[] { "Pumpkin" }, 300m), (new[] { "Coconut milk" }, 150m),
+                (new[] { "Chickpeas, cooked" }, 150m), (new[] { "Oyster mushroom", "Shiitake mushroom, raw" }, 100m),
+            },
+            ["Canh Rong Biển Đậu Hũ Non Thanh Nhiệt"] = new[]
+            {
+                (new[] { "Silken tofu", "Firm tofu (calcium-set)" }, 300m), (new[] { "Carrot" }, 80m), (new[] { "Cabbage" }, 100m),
+            },
+            ["Gỏi Cuốn Ngũ Sắc Chấm Tương Bơ Đậu Phộng"] = new[]
+            {
+                (new[] { "Rice noodles (bun/pho), cooked" }, 150m), (new[] { "Cabbage" }, 80m), (new[] { "Cucumber" }, 100m),
+                (new[] { "Carrot" }, 60m), (new[] { "Firm tofu (calcium-set)", "Silken tofu" }, 150m), (new[] { "Peanuts, raw" }, 40m),
+            },
+            ["Bánh Xèo Chay Nấm Mối Miền Tây"] = new[]
+            {
+                (new[] { "Coconut milk" }, 100m), (new[] { "Oyster mushroom", "Shiitake mushroom, raw" }, 150m),
+                (new[] { "Bean sprouts" }, 100m), (new[] { "Mung beans, cooked" }, 80m),
+            },
+            ["Gỏi Ngó Sen Nấm Tuyết Sốt Tắc Chua Ngọt"] = new[]
+            {
+                (new[] { "Carrot" }, 80m), (new[] { "Cucumber" }, 100m), (new[] { "Oyster mushroom", "Shiitake mushroom, raw" }, 80m),
+                (new[] { "Orange" }, 30m),
+            },
+            ["Bún Riêu Chay Đậu Hũ Non"] = new[]
+            {
+                (new[] { "Rice noodles (bun/pho), cooked" }, 200m), (new[] { "Silken tofu", "Firm tofu (calcium-set)" }, 200m),
+                (new[] { "Tomato" }, 150m),
+            },
+            ["Salad Xoài Xanh Hạt Điều"] = new[]
+            {
+                (new[] { "Mango" }, 200m), (new[] { "Cashews" }, 40m), (new[] { "Carrot" }, 50m),
+            },
+            ["Nấm Đùi Gà Kho Tiêu Vegan"] = new[]
+            {
+                (new[] { "Oyster mushroom", "Shiitake mushroom, raw" }, 300m), (new[] { "Soy sauce" }, 20m),
+            },
+            ["Cà Ri Chay Khoai Lang Cốt Dừa"] = new[]
+            {
+                (new[] { "Sweet potato, cooked" }, 300m), (new[] { "Coconut milk" }, 150m),
+                (new[] { "Firm tofu (calcium-set)", "Silken tofu" }, 150m),
+            },
+            ["Canh Chua Nam Bộ Bạc Hà Nấm Rơm"] = new[]
+            {
+                (new[] { "Tomato" }, 150m), (new[] { "Oyster mushroom", "Shiitake mushroom, raw" }, 120m), (new[] { "Bean sprouts" }, 80m),
+            },
+            ["Đậu Hũ Tứ Xuyên Thuần Chay Sốt Cay"] = new[]
+            {
+                (new[] { "Firm tofu (calcium-set)", "Silken tofu" }, 300m), (new[] { "Soy sauce" }, 20m), (new[] { "Vegetable oil" }, 15m),
+            },
+            ["Bánh Xèo Chay Giòn Rụm Đậu Xanh Nấm Mối"] = new[]
+            {
+                (new[] { "Coconut milk" }, 100m), (new[] { "Mung beans, cooked" }, 80m),
+                (new[] { "Oyster mushroom", "Shiitake mushroom, raw" }, 120m), (new[] { "Bean sprouts" }, 100m),
+            },
+            ["Chả Giò Chay Khoai Môn Giòn Tan"] = new[]
+            {
+                (new[] { "Sweet potato, cooked" }, 200m), (new[] { "Carrot" }, 80m),
+                (new[] { "Shiitake mushroom, raw", "Oyster mushroom" }, 60m), (new[] { "Vegetable oil" }, 30m),
+            },
+            ["Chè Hạt Sen Long Nhãn Thanh Nhiệt"] = new[]
+            {
+                (new[] { "Lotus seeds, dried" }, 100m),
+            },
+        };
+
+        var titles = map.Keys.ToList();
+        var targets = await context.Recipes
+            .Where(r => titles.Contains(r.Title) && !r.RecipeIngredients.Any())
+            .ToListAsync();
+        if (targets.Count == 0) return;
+
+        var catalog = (await context.Ingredients.Select(i => new { i.Id, i.Name }).ToListAsync())
+            .GroupBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+        var added = false;
+        foreach (var recipe in targets)
+        {
+            var rows = new List<RecipeIngredient>();
+            foreach (var (names, grams) in map[recipe.Title])
+            {
+                var name = names.FirstOrDefault(catalog.ContainsKey);
+                if (name is null) { rows.Clear(); break; } // thiếu nguyên liệu → không gắn nửa vời
+                var id = catalog[name];
+                if (rows.All(r => r.IngredientId != id))
+                    rows.Add(new RecipeIngredient { RecipeId = recipe.Id, IngredientId = id, QuantityG = grams });
+            }
+            if (rows.Count == 0) continue;
+            context.RecipeIngredients.AddRange(rows);
+            added = true;
+        }
+        if (added) await context.SaveChangesAsync();
     }
 }

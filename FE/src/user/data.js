@@ -73,6 +73,14 @@ export function isTestContent(item) {
     [item?.title, item?.mediaUrl].filter(Boolean).join(" "),
   );
 }
+/** Nhãn trạng thái bài viết: phân biệt "bị từ chối" / "cần chỉnh sửa" theo quyết định của người duyệt. */
+export function postStatusLabel(post) {
+  const decision = post?.moderation?.decision;
+  if (post?.status === "removed" && decision === "rejected") return "Bị từ chối";
+  if (post?.status === "pending" && decision === "revision")
+    return "Cần chỉnh sửa";
+  return statusLabel(post?.status);
+}
 export function isUnavailableChat(text) {
   return [
     "Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.",

@@ -117,6 +117,7 @@ public class UserService : IUserService
         if (user == null) return false;
 
         user.Status = "locked";
+        user.TokenVersion++; // JWT đang dùng của tài khoản bị khóa lập tức hết hiệu lực
         _unitOfWork.Users.Update(user);
 
         try
@@ -177,6 +178,7 @@ public class UserService : IUserService
             "moderator" or "chuyên gia dinh dưỡng" => "moderator",
             _ => "user"
         };
+        if (user.Role != oldRole) user.TokenVersion++; // JWT cũ mang role cũ → buộc đăng nhập lại
         _unitOfWork.Users.Update(user);
 
         try

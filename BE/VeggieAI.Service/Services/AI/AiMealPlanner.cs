@@ -20,6 +20,8 @@ public class AiMealPlanner : IAiMealPlanner
 {
     private const decimal MaxDeviation = 0.12m;      // ±12% kcal per day
     private const int MaxAttempts = 2;
+    private const int LlmChunkDays = 7;      // mỗi lần gọi AI tối đa 7 ngày để JSON không vượt giới hạn token
+    private const int MaxParallelChunks = 3;
     private const int MaxCandidatesForLlm = 80;
 
     private readonly VeggieAIDbContext _db;
@@ -36,7 +38,7 @@ public class AiMealPlanner : IAiMealPlanner
     public async Task<GeneratedMealPlanDto> GenerateAsync(int userId, GenerateMealPlanRequest req, CancellationToken ct = default)
     {
         var profile = await _db.HealthProfiles.AsNoTracking().FirstOrDefaultAsync(h => h.UserId == userId, ct)
-                      ?? throw new AppException("Bạn cần tạo hồ sơ sức khỏe trước khi lập thực đơn.", 409);
+                      ?? throw new AppException("Bạn cần tạo hồ sơ sức khỏe trước khi lập thực đơn.", 400);
         var goal = req.HealthGoal ?? profile.HealthGoal;
         var targets = goal == profile.HealthGoal ? profile.Targets() : await TargetsForGoalAsync(profile, goal, ct);
 
@@ -64,42 +66,29 @@ public class AiMealPlanner : IAiMealPlanner
         {
             var llmCandidates = candidates.Take(MaxCandidatesForLlm).ToList();
             var byId = llmCandidates.ToDictionary(c => c.Id);
-            string? feedback = null, lastRaw = null;
-            while (attempts < MaxAttempts)
+
+            // Thực đơn dài được chia thành các lô <= LlmChunkDays ngày, gọi AI song song có giới hạn rồi ghép lại
+            var chunks = dates.Chunk(LlmChunkDays).Select(c => c.ToList()).ToList();
+            using var gate = new SemaphoreSlim(MaxParallelChunks);
+            var results = await Task.WhenAll(chunks.Select(async chunk =>
             {
-                attempts++;
-                try
-                {
-                    var res = await _llm.GenerateAsync(new LlmRequest
-                    {
-                        Task = AiModelTypes.MealPlanner,
-                        UserId = userId,
-                        JsonOutput = true,
-                        Temperature = 0.5,
-                        MaxOutputTokens = 8192,
-                        SystemPrompt = SystemPromptPlanner,
-                        Messages = BuildPlannerMessages(profile, goal, targets, mealTypes, dates, llmCandidates, preferred, req.Note, feedback, lastRaw),
-                    }, ct);
-                    lastRaw = res.Text;
-                    var parsed = LlmJson.Parse<LlmPlan>(res.Text) ?? throw new JsonException("empty");
-                    var (candidatePlan, errors) = Validate(parsed, dates, mealTypes, byId, targets.Kcal);
-                    if (candidatePlan.Count > 0) { plan = candidatePlan; notes = parsed.Notes; aiLabel = $"{res.Provider}/{res.Model}"; }
-                    lastErrors = errors;
-                    if (errors.Count == 0) break;
-                    feedback = string.Join("\n", errors.Take(15));
-                }
-                catch (JsonException ex)
-                {
-                    _log.LogWarning(ex, "Planner JSON parse failed");
-                    lastErrors = new() { "JSON không hợp lệ" };
-                    feedback = "Câu trả lời trước không phải JSON hợp lệ theo schema. Chỉ trả về JSON.";
-                }
-                catch (AppException ex) when (ex.StatusCode >= 500)
-                {
-                    notices.Add("AI lỗi: " + ex.Message);
-                    break;
-                }
+                await gate.WaitAsync(ct);
+                try { return await RunLlmChunkAsync(userId, profile, goal, targets, mealTypes, chunk, llmCandidates, byId, preferred, req.Note, ct); }
+                finally { gate.Release(); }
+            }));
+
+            foreach (var r in results)
+            {
+                attempts = Math.Max(attempts, r.Attempts);
+                notices.AddRange(r.Notices);
+                if (r.Plan is null) continue;
+                plan ??= new Dictionary<DateOnly, List<PlannedMeal>>();
+                foreach (var kv in r.Plan) plan[kv.Key] = kv.Value;
+                notes ??= r.Notes;
+                aiLabel ??= r.Label;
+                lastErrors = lastErrors.Concat(r.Errors).ToList();
             }
+            lastErrors = lastErrors.Where(e => e.Length > 0).ToList();
             if (plan is not null && lastErrors.Count > 0)
                 notices.Add($"AI chưa đạt đủ ràng buộc sau {attempts} lần ({lastErrors.Count} lỗi) — hệ thống đã tự chỉnh khẩu phần/bổ sung món.");
         }
@@ -135,14 +124,64 @@ public class AiMealPlanner : IAiMealPlanner
         return new GeneratedMealPlanDto(detail, generatedBy, notes, attempts, finalWarnings);
     }
 
+    private sealed record ChunkResult(Dictionary<DateOnly, List<PlannedMeal>>? Plan, List<string> Errors, List<string> Notices,
+        string? Notes, string? Label, int Attempts);
+
+    private async Task<ChunkResult> RunLlmChunkAsync(int userId, HealthProfile profile, string goal, NutrientAmountsDto targets,
+        List<string> mealTypes, List<DateOnly> dates, List<Candidate> llmCandidates, Dictionary<int, Candidate> byId,
+        HashSet<int> preferred, string? note, CancellationToken ct)
+    {
+        var attempts = 0;
+        var notices = new List<string>();
+        string? aiLabel = null, notes = null;
+        Dictionary<DateOnly, List<PlannedMeal>>? plan = null;
+        List<string> lastErrors = new();
+        string? feedback = null, lastRaw = null;
+        while (attempts < MaxAttempts)
+        {
+            attempts++;
+            try
+            {
+                var res = await _llm.GenerateAsync(new LlmRequest
+                {
+                    Task = AiModelTypes.MealPlanner,
+                    UserId = userId,
+                    JsonOutput = true,
+                    Temperature = 0.5,
+                    MaxOutputTokens = 8192,
+                    SystemPrompt = SystemPromptPlanner,
+                    Messages = BuildPlannerMessages(profile, goal, targets, mealTypes, dates, llmCandidates, preferred, note, feedback, lastRaw),
+                }, ct);
+                lastRaw = res.Text;
+                var parsed = LlmJson.Parse<LlmPlan>(res.Text) ?? throw new JsonException("empty");
+                var (candidatePlan, errors) = Validate(parsed, dates, mealTypes, byId, targets.Kcal);
+                if (candidatePlan.Count > 0) { plan = candidatePlan; notes = parsed.Notes; aiLabel = $"{res.Provider}/{res.Model}"; }
+                lastErrors = errors;
+                if (errors.Count == 0) break;
+                feedback = string.Join("\n", errors.Take(15));
+            }
+            catch (JsonException ex)
+            {
+                _log.LogWarning(ex, "Planner JSON parse failed");
+                lastErrors = new() { "JSON không hợp lệ" };
+                feedback = "Câu trả lời trước không phải JSON hợp lệ theo schema. Chỉ trả về JSON.";
+            }
+            catch (AppException ex) when (ex.StatusCode >= 500)
+            {
+                notices.Add("AI lỗi: " + ex.Message);
+                break;
+            }
+        }
+        return new ChunkResult(plan, lastErrors, notices, notes, aiLabel, attempts);
+    }
+
     public async Task<GeneratedMealPlanDto> SwapItemAsync(int userId, int planId, int itemId, SwapMealRequest req, CancellationToken ct = default)
     {
         var item = await _db.MealPlanItems.Include(i => i.Recipe).Include(i => i.MealPlan)
             .FirstOrDefaultAsync(i => i.Id == itemId && i.PlanId == planId && i.MealPlan!.UserId == userId, ct)
             ?? throw AppException.NotFound("Món trong thực đơn");
-        var sameDay = await _db.MealPlanItems.Where(i => i.PlanId == planId && i.PlanDate == item.PlanDate).Select(i => i.RecipeId).ToListAsync(ct);
-        var candidates = (await LoadCandidatesAsync(userId, new HashSet<int>(), ct)).Where(c => !sameDay.Contains(c.Id)).ToList();
-        if (candidates.Count == 0) throw new AppException("Không còn công thức phù hợp để đổi.");
+        var sameDay = await _db.MealPlanItems.Where(i => i.PlanId == planId && i.PlanDate == item.PlanDate && i.Id != item.Id)
+            .Select(i => i.RecipeId).ToListAsync(ct);
 
         var kcalTarget = item.Recipe!.KcalPerServing * item.Servings;
         var warnings = new List<string>();
@@ -151,53 +190,80 @@ public class AiMealPlanner : IAiMealPlanner
         Candidate? chosen = null;
         decimal servings = 1;
 
-        if (_llm.IsConfigured)
+        // 1) Người dùng tự chọn món thay thế
+        if (req.RecipeId is int wanted)
         {
-            try
-            {
-                var list = RankForMeal(candidates, item.MealType, kcalTarget).Take(40).ToList();
-                var sb = new StringBuilder();
-                sb.AppendLine($"Người dùng muốn ĐỔI món \"{item.Recipe.Title}\" ({item.MealType}, ~{kcalTarget:0} kcal) trong thực đơn ngày {item.PlanDate:yyyy-MM-dd}.");
-                sb.AppendLine($"Lý do / mong muốn: {(string.IsNullOrWhiteSpace(req.Reason) ? "(không nêu)" : req.Reason)}");
-                sb.AppendLine("Chọn 1 món thay thế trong danh sách (giữ năng lượng xấp xỉ, ưu tiên đáp ứng mong muốn):");
-                AppendCandidates(sb, list, new HashSet<int>());
-                sb.AppendLine("Trả về JSON: {\"recipeId\": number, \"servings\": number (0.5-2.5, bước 0.25), \"reason\": \"giải thích ngắn tiếng Việt\"}");
-                var res = await _llm.GenerateAsync(new LlmRequest
-                {
-                    Task = AiModelTypes.MealPlanner,
-                    UserId = userId,
-                    JsonOutput = true,
-                    Temperature = 0.6,
-                    SystemPrompt = SystemPromptPlanner,
-                    Messages = { LlmMessage.User(sb.ToString()) },
-                }, ct);
-                var pick = LlmJson.Parse<LlmMeal>(res.Text);
-                chosen = list.FirstOrDefault(c => c.Id == pick?.RecipeId);
-                if (chosen is not null)
-                {
-                    servings = ClampServings(pick!.Servings ?? kcalTarget / Math.Max(1, chosen.Kcal));
-                    notes = pick.Reason;
-                    generatedBy = $"ai:{res.Provider}/{res.Model}";
-                }
-                else warnings.Add("AI chọn món không hợp lệ → dùng rule-based.");
-            }
-            catch (AppException ex) { warnings.Add("AI lỗi: " + ex.Message); }
-            catch (JsonException) { warnings.Add("AI trả về sai định dạng → dùng rule-based."); }
+            if (wanted == item.RecipeId) throw new AppException("Món thay thế trùng với món hiện tại.");
+            var all = await LoadCandidatesAsync(userId, new HashSet<int>(), ct);
+            chosen = all.FirstOrDefault(c => c.Id == wanted)
+                     ?? throw new AppException("Món này chưa được xuất bản, thiếu dữ liệu dinh dưỡng/nguyên liệu hoặc chứa chất bạn dị ứng.",
+                         400, "RECIPE_NOT_ELIGIBLE");
+            if (sameDay.Contains(wanted)) warnings.Add("Món này đã có trong cùng ngày.");
+            servings = req.Servings is decimal s0 ? ClampManualServings(s0) : ClampServings(kcalTarget / Math.Max(1, chosen.Kcal));
+            generatedBy = "user";
         }
-
-        if (chosen is null)
+        else
         {
-            chosen = RankForMeal(candidates, item.MealType, kcalTarget).Skip(Random.Shared.Next(0, 3)).FirstOrDefault()
-                     ?? candidates.First();
-            servings = ClampServings(kcalTarget / Math.Max(1, chosen.Kcal));
+            var candidates = (await LoadCandidatesAsync(userId, new HashSet<int>(), ct))
+                .Where(c => c.Id != item.RecipeId && !sameDay.Contains(c.Id)).ToList();
+            if (candidates.Count == 0) throw new AppException("Không còn công thức phù hợp để đổi.");
+
+            if (_llm.IsConfigured)
+            {
+                try
+                {
+                    var list = RankForMeal(candidates, item.MealType, kcalTarget).Take(40).ToList();
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"Người dùng muốn ĐỔI món \"{item.Recipe.Title}\" ({item.MealType}, ~{kcalTarget:0} kcal) trong thực đơn ngày {item.PlanDate:yyyy-MM-dd}.");
+                    sb.AppendLine($"Lý do / mong muốn: {(string.IsNullOrWhiteSpace(req.Reason) ? "(không nêu)" : req.Reason)}");
+                    sb.AppendLine("Chọn 1 món thay thế trong danh sách (giữ năng lượng xấp xỉ, ưu tiên đáp ứng mong muốn):");
+                    AppendCandidates(sb, list, new HashSet<int>());
+                    sb.AppendLine("Trả về JSON: {\"recipeId\": number, \"servings\": number (0.5-2.5, bước 0.25), \"reason\": \"giải thích ngắn tiếng Việt\"}");
+                    var res = await _llm.GenerateAsync(new LlmRequest
+                    {
+                        Task = AiModelTypes.MealPlanner,
+                        UserId = userId,
+                        JsonOutput = true,
+                        Temperature = 0.6,
+                        SystemPrompt = SystemPromptPlanner,
+                        Messages = { LlmMessage.User(sb.ToString()) },
+                    }, ct);
+                    var pick = LlmJson.Parse<LlmMeal>(res.Text);
+                    chosen = list.FirstOrDefault(c => c.Id == pick?.RecipeId);
+                    if (chosen is not null)
+                    {
+                        servings = ClampServings(pick!.Servings ?? kcalTarget / Math.Max(1, chosen.Kcal));
+                        notes = pick.Reason;
+                        generatedBy = $"ai:{res.Provider}/{res.Model}";
+                    }
+                    else warnings.Add("AI chọn món không hợp lệ → dùng rule-based.");
+                }
+                catch (AppException ex) { warnings.Add("AI lỗi: " + ex.Message); }
+                catch (JsonException) { warnings.Add("AI trả về sai định dạng → dùng rule-based."); }
+            }
+
+            if (chosen is null)
+            {
+                chosen = RankForMeal(candidates, item.MealType, kcalTarget).Skip(Random.Shared.Next(0, 3)).FirstOrDefault()
+                         ?? candidates.First();
+                servings = ClampServings(kcalTarget / Math.Max(1, chosen.Kcal));
+            }
+            if (req.Servings is decimal s1) servings = ClampManualServings(s1);
         }
 
         item.RecipeId = chosen.Id;
         item.Servings = servings;
         await _db.SaveChangesAsync(ct);
+
+        // Danh sách đi chợ (nếu đã tạo) phải theo món mới, không giữ nguyên liệu của món cũ
+        await ShoppingListBuilder.RebuildAsync(_db, planId, createIfMissing: false, ct);
+
         var detail = await BuildDetailAsync(_db, userId, planId, ct);
         return new GeneratedMealPlanDto(detail, generatedBy, notes, 1, warnings);
     }
+
+    /// <summary>Khẩu phần người dùng tự nhập: 0.25–5, làm tròn bước 0.25.</summary>
+    public static decimal ClampManualServings(decimal s) => Math.Clamp(Math.Round(s * 4, MidpointRounding.AwayFromZero) / 4, 0.25m, 5m);
 
     public async Task<SuggestedMenuDto?> SuggestDayMenuAsync(int userId, IReadOnlyCollection<int> ingredientIds, string? dishName, CancellationToken ct = default)
     {
@@ -243,6 +309,9 @@ public class AiMealPlanner : IAiMealPlanner
             ?? throw AppException.NotFound("Thực đơn");
         var profile = await db.HealthProfiles.AsNoTracking().FirstOrDefaultAsync(h => h.UserId == userId, ct);
         var targets = profile?.Targets() ?? NutrientAmountsDto.Zero;
+        if (profile != null && !string.Equals(plan.HealthGoal, profile.HealthGoal, StringComparison.OrdinalIgnoreCase))
+            targets = (await NutritionTargetsResolver.ResolveAsync(db, profile.Gender, profile.DateOfBirth, profile.HeightCm,
+                profile.WeightKg, profile.ActivityLevel, plan.HealthGoal, ct)).ToAmounts().Rounded();
         var hasList = await db.ShoppingLists.AnyAsync(s => s.PlanId == planId, ct);
 
         var days = new List<MealPlanDayDto>();
@@ -398,8 +467,7 @@ public class AiMealPlanner : IAiMealPlanner
     {
         var bad = await _db.AllergenIngredientIdsAsync(userId, ct);
         var rows = await _db.Recipes.AsNoTracking()
-            .Where(r => r.Status == "published" && r.KcalPerServing > 0)
-            .Where(r => !r.RecipeIngredients.Any(ri => bad.Contains(ri.IngredientId)))
+            .EligibleForPlan(bad)
             .Select(r => new
             {
                 r.Id,

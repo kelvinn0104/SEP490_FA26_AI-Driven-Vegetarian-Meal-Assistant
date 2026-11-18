@@ -19,6 +19,21 @@ public interface IChatService
 public class ChatService : IChatService
 {
     private const int HistoryMessages = 12;
+
+    public const string Disclaimer =
+        "⚠️ Lưu ý: thông tin trên chỉ mang tính tham khảo về dinh dưỡng, không thay thế chẩn đoán hay điều trị của bác sĩ. " +
+        "Nếu bạn có bệnh lý, đang mang thai/cho con bú hoặc đang dùng thuốc, hãy hỏi bác sĩ hoặc chuyên gia dinh dưỡng.";
+
+    private static readonly string[] MedicalKeywords =
+    {
+        "bệnh", "benh", "thuốc", "thuoc", "tiểu đường", "tieu duong", "huyết áp", "huyet ap", "mỡ máu", "mo mau", "gout",
+        "mang thai", "bà bầu", "ba bau", "cho con bú", "ung thư", "ung thu", "thiếu máu", "thieu mau", "dạ dày", "da day",
+        "đau", "dau bung", "triệu chứng", "trieu chung", "chẩn đoán", "chan doan", "điều trị", "dieu tri", "dị ứng", "di ung",
+        "suy thận", "suy than", "tim mạch", "tim mach", "cholesterol", "đường huyết", "duong huyet", "diabetes", "medication",
+    };
+
+    private static bool IsMedicalTopic(string text) =>
+        MedicalKeywords.Any(k => text.Contains(k, StringComparison.OrdinalIgnoreCase));
     private readonly VeggieAIDbContext _db;
     private readonly ILlmClient _llm;
 
@@ -77,45 +92,57 @@ public class ChatService : IChatService
             .ToListAsync(ct);
         history.Reverse();
 
-        var userMsg = new ChatMessage { SessionId = sessionId, Sender = "user", Content = content.Trim() };
+        var text = content.Trim();
+        if (text.Length == 0) throw new AppException("Nội dung tin nhắn không được để trống.");
+
+        // AI chưa cấu hình → báo lỗi có mã, KHÔNG lưu câu báo lỗi như một câu trả lời của AI
+        if (!_llm.IsConfigured)
+            throw new AppException("Trợ lý AI chưa được cấu hình. Vui lòng liên hệ quản trị viên.", 503, "AI_NOT_CONFIGURED");
+
+        var userMsg = new ChatMessage { SessionId = sessionId, Sender = "user", Content = text };
         _db.ChatMessages.Add(userMsg);
         await _db.SaveChangesAsync(ct);
 
         string answer;
-        if (_llm.IsConfigured)
+        var hits = await ChatKnowledge.RetrieveAsync(_db, userId, text, ct);
+        var citations = ChatKnowledge.ToCitations(hits);
+        var req = new LlmRequest
         {
-            var req = new LlmRequest
-            {
-                Task = AiModelTypes.Chatbot,
-                UserId = userId,
-                Temperature = 0.6,
-                MaxOutputTokens = 2048,
-                SystemPrompt = await BuildSystemPromptAsync(userId, session.PlanId, ct),
-            };
-            req.Messages.AddRange(history.Select(m => m.Sender == "ai" ? LlmMessage.Assistant(m.Content) : LlmMessage.User(m.Content)));
-            req.Messages.Add(LlmMessage.User(userMsg.Content));
+            Task = AiModelTypes.Chatbot,
+            UserId = userId,
+            Temperature = 0.6,
+            MaxOutputTokens = 2048,
+            SystemPrompt = await BuildSystemPromptAsync(userId, session.PlanId, ct) + ChatKnowledge.ToPromptBlock(hits),
+        };
+        req.Messages.AddRange(history.Select(m => m.Sender == "ai" ? LlmMessage.Assistant(m.Content) : LlmMessage.User(m.Content)));
+        req.Messages.Add(LlmMessage.User(userMsg.Content));
 
-            try
-            {
-                answer = (await _llm.GenerateAsync(req, ct)).Text.Trim();
-            }
-            catch (AppException ex) when (ex.StatusCode >= 500)
-            {
-                answer = "Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.";
-            }
-        }
-        else
+        try
         {
-            answer = "Trợ lý AI chưa được cấu hình (thiếu API key). Vui lòng liên hệ quản trị viên.";
+            answer = (await _llm.GenerateAsync(req, ct)).Text.Trim();
+            if (string.IsNullOrWhiteSpace(answer))
+                throw new AppException("AI không trả lời.", 502);
+        }
+        catch (Exception ex) when (ex is AppException { StatusCode: >= 500 } or HttpRequestException or TaskCanceledException)
+        {
+            // Bỏ tin nhắn vừa lưu để lịch sử không có câu hỏi "treo"; FE giữ nội dung trong ô nhập và cho bấm thử lại
+            _db.ChatMessages.Remove(userMsg);
+            await _db.SaveChangesAsync(CancellationToken.None);
+            throw new AppException("Trợ lý AI đang bận, vui lòng thử lại sau ít phút.", 503, "AI_UNAVAILABLE");
         }
 
-        var aiMsg = new ChatMessage { SessionId = sessionId, Sender = "ai", Content = string.IsNullOrWhiteSpace(answer) ? "..." : answer };
+        // SDD 3.19 (LI-01): câu hỏi liên quan y tế → luôn kèm khuyến cáo không thay thế tư vấn y khoa
+        if (IsMedicalTopic(text) && !answer.Contains(Disclaimer, StringComparison.Ordinal))
+            answer += "\n\n" + Disclaimer;
+
+        answer += ChatKnowledge.ToFooter(citations);
+        var aiMsg = new ChatMessage { SessionId = sessionId, Sender = "ai", Content = answer };
         _db.ChatMessages.Add(aiMsg);
         await _db.SaveChangesAsync(ct);
 
         return new ChatReplyDto(
             new ChatMessageDto(userMsg.Id, userMsg.Sender, userMsg.Content, userMsg.CreatedAt),
-            new ChatMessageDto(aiMsg.Id, aiMsg.Sender, aiMsg.Content, aiMsg.CreatedAt));
+            new ChatMessageDto(aiMsg.Id, aiMsg.Sender, aiMsg.Content, aiMsg.CreatedAt), citations);
     }
 
     public async Task DeleteSessionAsync(int userId, int sessionId, CancellationToken ct = default)

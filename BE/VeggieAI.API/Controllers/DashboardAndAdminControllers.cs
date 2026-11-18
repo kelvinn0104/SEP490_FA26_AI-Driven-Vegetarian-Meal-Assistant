@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -68,10 +69,27 @@ public class ModerationController : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true, "Đã gửi yêu cầu chỉnh sửa cho tác giả!"));
     }
 
+    /// <summary>Báo cáo vi phạm từ người dùng. status: open (mặc định) | resolved | dismissed | all.</summary>
+    [HttpGet("reports")]
+    public async Task<ActionResult<ApiResponse<PagedResult<StaffReportDto>>>> GetReports(
+        [FromQuery] string? status, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    {
+        var result = await _moderationService.GetReportsAsync(status, this.Paging(page, pageSize), ct);
+        return Ok(ApiResponse<PagedResult<StaffReportDto>>.Ok(result));
+    }
+
+    /// <summary>Xử lý báo cáo: { status: resolved|dismissed, removeContent?, note? }. Người báo cáo nhận thông báo kết quả.</summary>
+    [HttpPost("reports/{reportId:int}/handle")]
+    public async Task<ActionResult<ApiResponse<StaffReportDto>>> HandleReport(int reportId, [FromBody] HandleReportRequest request, CancellationToken ct)
+    {
+        var result = await _moderationService.HandleReportAsync(reportId, request, GetCurrentUserId(), ct);
+        return Ok(ApiResponse<StaffReportDto>.Ok(result, "Đã xử lý báo cáo"));
+    }
+
     private int GetCurrentUserId()
     {
         var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(idStr, out var id) ? id : 2; // Default to Moderator
+        return int.TryParse(idStr, out var id) ? id : 0;
     }
 }
 
@@ -89,23 +107,37 @@ public class AiController : ControllerBase
     }
 
     /// <summary>Health check công khai — FE gọi khi khởi động để biết BE còn sống (không cần đăng nhập).</summary>
+    /// <summary>
+    /// Kiểm tra sống: trạng thái API, loại DB, AI đã cấu hình chưa, nơi lưu file và thời gian chạy thật của tiến trình.
+    /// (Bỏ các số liệu cố định uptime 99.98% / GPU 58°C trước đây — không phản ánh hệ thống thật.)
+    /// </summary>
     [HttpGet("health")]
     [HttpGet("~/api/health")]
     [AllowAnonymous]
-    public ActionResult<ApiResponse<object>> GetHealth([FromServices] VeggieAI.Repository.Data.VeggieAIDbContext db)
+    public async Task<ActionResult<ApiResponse<object>>> GetHealth(
+        [FromServices] VeggieAI.Repository.Data.VeggieAIDbContext db,
+        [FromServices] VeggieAI.Service.Services.AI.ILlmClient llm,
+        [FromServices] VeggieAI.Service.Services.AI.IFileStorage storage,
+        CancellationToken ct)
     {
         // Cho biết BE đang chạy Postgres thật hay InMemory dự phòng (InMemory = dữ liệu mất sau mỗi lần restart)
         var provider = db.Database.ProviderName ?? "unknown";
         var database = provider.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ? "inmemory" : "postgresql";
+        bool dbOk;
+        try { dbOk = await db.Database.CanConnectAsync(ct); }
+        catch { dbOk = false; }
+
+        var started = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
         return Ok(ApiResponse<object>.Ok(new
         {
-            status = "healthy",
+            status = dbOk ? "healthy" : "degraded",
             database,
-            uptime = "99.98%",
-            cluster = "Cụm HCM-01",
-            memoryUsage = "68%",
-            gpuTemperature = "58°C"
-        }, "Hệ thống AI đang hoạt động tối ưu"));
+            databaseReachable = dbOk,
+            aiConfigured = llm.IsConfigured,
+            durableFileStorage = storage.IsDurable,
+            startedAt = started,
+            uptimeSeconds = (long)(DateTime.UtcNow - started).TotalSeconds,
+        }, dbOk ? "API đang hoạt động" : "API chạy nhưng không kết nối được cơ sở dữ liệu"));
     }
 
     [HttpGet("models")]

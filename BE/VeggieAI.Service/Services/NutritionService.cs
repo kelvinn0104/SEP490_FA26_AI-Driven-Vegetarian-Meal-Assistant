@@ -9,6 +9,7 @@ namespace VeggieAI.Service.Services;
 public interface INutritionService
 {
     Task<MealLogDto> LogMealAsync(int userId, LogMealRequest req, CancellationToken ct = default);
+    Task<MealLogDto> UpdateLogAsync(int userId, int logId, UpdateMealLogRequest req, CancellationToken ct = default);
     Task DeleteLogAsync(int userId, int logId, CancellationToken ct = default);
     Task<DailyNutritionDto> GetDailyAsync(int userId, DateOnly? date, CancellationToken ct = default);
     Task<IReadOnlyList<TrendPointDto>> GetTrendAsync(int userId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
@@ -79,6 +80,28 @@ public class NutritionService : INutritionService
         if (log.LogDate > today) throw new AppException("Không thể ghi nhận bữa ăn cho ngày trong tương lai.");
 
         _db.MealLogs.Add(log);
+        await _db.SaveChangesAsync(ct);
+
+        var saved = await LogsQuery(userId).FirstAsync(l => l.Id == log.Id, ct);
+        return ToDto(saved);
+    }
+
+    public async Task<MealLogDto> UpdateLogAsync(int userId, int logId, UpdateMealLogRequest req, CancellationToken ct = default)
+    {
+        var log = await _db.MealLogs.Include(l => l.Recipe).FirstOrDefaultAsync(l => l.Id == logId && l.UserId == userId, ct)
+                  ?? throw AppException.NotFound("Nhật ký bữa ăn");
+
+        if (req.LogDate is DateOnly d)
+        {
+            if (d > AiMappers.TodayVn()) throw new AppException("Không thể ghi nhận bữa ăn cho ngày trong tương lai.");
+            log.LogDate = d;
+        }
+        if (!string.IsNullOrWhiteSpace(req.MealType)) log.MealType = req.MealType.Trim().ToLowerInvariant();
+        if (req.Servings is decimal s)
+        {
+            log.Servings = s;
+            log.KcalConsumed = Math.Round((log.Recipe?.KcalPerServing ?? 0) * s, 2);
+        }
         await _db.SaveChangesAsync(ct);
 
         var saved = await LogsQuery(userId).FirstAsync(l => l.Id == log.Id, ct);

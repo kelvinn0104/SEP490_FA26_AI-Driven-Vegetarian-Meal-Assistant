@@ -10,7 +10,7 @@ public interface IFeedbackService
     Task<List<FeedbackReportDto>> GetFeedbacksAsync(string? type = null, string? category = null, string? status = null, string? search = null);
     Task<FeedbackOverviewStatsDto> GetFeedbackStatsAsync();
     Task<bool> ResolveFeedbackAsync(int id, ResolveFeedbackRequest request, int handlerId, string feedbackType = "report");
-    Task<FeedbackReportDto> CreateReportAsync(CreateReportRequest request, int reporterId);
+    Task<FeedbackReportDto> CreateReportAsync(CreateFeedbackReportRequest request, int reporterId);
     Task<FeedbackReportDto> SubmitAiFeedbackAsync(CreateAiFeedbackRequest request, int reviewerId);
 }
 
@@ -213,7 +213,7 @@ public class FeedbackService : IFeedbackService
         }
     }
 
-    public async Task<FeedbackReportDto> CreateReportAsync(CreateReportRequest request, int reporterId)
+    public async Task<FeedbackReportDto> CreateReportAsync(CreateFeedbackReportRequest request, int reporterId)
     {
         var report = new Report
         {

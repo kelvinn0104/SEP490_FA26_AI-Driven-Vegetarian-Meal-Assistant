@@ -1,8 +1,43 @@
 using Microsoft.EntityFrameworkCore;
 using VeggieAI.Model.DTOs;
+using VeggieAI.Model.Entities;
 using VeggieAI.Repository.Data;
 
 namespace VeggieAI.Service.Services;
+
+/// <summary>
+/// Loại thông báo — khớp CHECK constraint của bảng Notification.
+/// </summary>
+public static class NotificationTypes
+{
+    public const string ProfileReminder = "profile_reminder";
+    public const string PostReview = "post_review";
+    public const string NutritionAlert = "nutrition_alert";
+    public const string ReportResult = "report_result";
+    public const string System = "system";
+}
+
+/// <summary>
+/// Tạo thông báo cho người dùng. Chỉ thêm vào DbContext — caller tự SaveChanges trong cùng giao dịch
+/// với thao tác gây ra thông báo (duyệt bài, bình luận, xử lý báo cáo...).
+/// </summary>
+public static class Notifier
+{
+    public static void Queue(VeggieAIDbContext db, int userId, string type, string content)
+    {
+        if (userId <= 0 || string.IsNullOrWhiteSpace(content)) return;
+        db.Notifications.Add(new Notification
+        {
+            UserId = userId,
+            Type = type,
+            Content = content.Length > 1000 ? content[..1000] : content,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+    }
+
+    public static string Quote(string title) => $"\"{(title.Length > 80 ? title[..80] + "…" : title)}\"";
+}
 
 public interface INotificationService
 {

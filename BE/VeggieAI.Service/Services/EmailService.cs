@@ -16,7 +16,9 @@ public interface IEmailService
 
     Task SendAsync(string toEmail, string subject, string htmlBody, string? textBody = null, CancellationToken ct = default);
 
-    Task SendOtpAsync(string toEmail, string displayName, string otpCode, int expiryMinutes, CancellationToken ct = default);
+    /// <summary>purpose: register (xác thực email) | reset_password (quên mật khẩu).</summary>
+    Task SendOtpAsync(string toEmail, string displayName, string otpCode, int expiryMinutes, CancellationToken ct = default,
+        string purpose = "register");
 }
 
 /// <summary>
@@ -155,32 +157,46 @@ public class SmtpEmailService : IEmailService
         }
     }
 
-    public async Task SendOtpAsync(string toEmail, string displayName, string otpCode, int expiryMinutes, CancellationToken ct = default)
+    public async Task SendOtpAsync(string toEmail, string displayName, string otpCode, int expiryMinutes, CancellationToken ct = default,
+        string purpose = "register")
     {
+        var isReset = purpose == "reset_password";
         if (!IsEnabled)
         {
             // Chế độ Dev: in OTP ra console để test nhanh, không phụ thuộc hộp thư
             var prev = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("==================================================");
-            Console.WriteLine($"[OTP DEV] Email : {toEmail}");
+            Console.WriteLine($"[OTP DEV] Email : {toEmail} ({purpose})");
             Console.WriteLine($"[OTP DEV] Mã OTP: {otpCode}  (hết hạn sau {expiryMinutes} phút)");
             Console.WriteLine("==================================================");
             Console.ForegroundColor = prev;
             return;
         }
 
-        var subject = $"[VeggieAI] Mã xác thực tài khoản của bạn: {otpCode}";
-        var html = BuildOtpHtml(displayName, otpCode, expiryMinutes);
-        var text = $"Xin chào {displayName},\n\nMã xác thực VeggieAI của bạn là: {otpCode}\n" +
-                   $"Mã có hiệu lực trong {expiryMinutes} phút. Không chia sẻ mã này cho bất kỳ ai.\n\n" +
-                   "Nếu bạn không đăng ký tài khoản VeggieAI, hãy bỏ qua email này.";
+        var subject = isReset
+            ? $"[VeggieAI] Mã đặt lại mật khẩu: {otpCode}"
+            : $"[VeggieAI] Mã xác thực tài khoản của bạn: {otpCode}";
+        var html = BuildOtpHtml(displayName, otpCode, expiryMinutes, isReset);
+        var text = isReset
+            ? $"Xin chào {displayName},\n\nMã đặt lại mật khẩu VeggieAI của bạn là: {otpCode}\n" +
+              $"Mã có hiệu lực trong {expiryMinutes} phút. Không chia sẻ mã này cho bất kỳ ai.\n\n" +
+              "Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này — mật khẩu của bạn vẫn giữ nguyên."
+            : $"Xin chào {displayName},\n\nMã xác thực VeggieAI của bạn là: {otpCode}\n" +
+              $"Mã có hiệu lực trong {expiryMinutes} phút. Không chia sẻ mã này cho bất kỳ ai.\n\n" +
+              "Nếu bạn không đăng ký tài khoản VeggieAI, hãy bỏ qua email này.";
 
         await SendAsync(toEmail, subject, html, text, ct);
     }
 
-    private static string BuildOtpHtml(string displayName, string code, int expiryMinutes)
+    private static string BuildOtpHtml(string displayName, string code, int expiryMinutes, bool isReset = false)
     {
+        var intro = isReset
+            ? "Bạn vừa yêu cầu đặt lại mật khẩu. Vui lòng nhập mã dưới đây để tạo mật khẩu mới:"
+            : "Chào mừng bạn đến với VeggieAI! Vui lòng nhập mã xác thực dưới đây để kích hoạt tài khoản:";
+        var footer = isReset
+            ? "Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này — mật khẩu của bạn vẫn giữ nguyên."
+            : "Nếu bạn không đăng ký tài khoản VeggieAI, hãy bỏ qua email này — tài khoản sẽ không được kích hoạt.";
         var name = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(displayName) ? "bạn" : displayName);
         var digits = string.Concat(code.Select(c =>
             $"<td style=\"width:44px;height:52px;border:1px solid #cfe5da;border-radius:10px;background:#f2faf6;" +
@@ -201,7 +217,7 @@ public class SmtpEmailService : IEmailService
         <tr><td style=""padding:28px"">
           <p style=""margin:0 0 12px;font-size:16px"">Xin chào <b>{name}</b>,</p>
           <p style=""margin:0 0 20px;font-size:14px;line-height:1.6"">
-            Chào mừng bạn đến với VeggieAI! Vui lòng nhập mã xác thực dưới đây để kích hoạt tài khoản:
+            {intro}
           </p>
           <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" align=""center"" style=""margin:0 auto 12px""><tr>{digits}</tr></table>
           <div style=""text-align:center;margin:0 0 16px"">
@@ -214,7 +230,7 @@ public class SmtpEmailService : IEmailService
           </p>
           <hr style=""border:none;border-top:1px solid #e6ece9;margin:24px 0"">
           <p style=""margin:0;font-size:12px;color:#7a8a83;line-height:1.6"">
-            Nếu bạn không đăng ký tài khoản VeggieAI, hãy bỏ qua email này — tài khoản sẽ không được kích hoạt.
+            {footer}
           </p>
         </td></tr>
         <tr><td style=""background:#f2faf6;padding:14px 28px;font-size:11px;color:#7a8a83;text-align:center"">

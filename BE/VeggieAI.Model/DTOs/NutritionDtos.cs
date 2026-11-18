@@ -72,7 +72,7 @@ public class UpdateIngredientRequest
     public List<int>? AllergyIds { get; set; }
 }
 
-public class AllergyDto
+public class AllergyAdminDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -98,6 +98,18 @@ public class LogMealRequest
     public int? PlanItemId { get; set; }
     public int? RecipeId { get; set; }
 
+    [RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
+    public string? MealType { get; set; }
+
+    [Range(0.25, 10.0, ErrorMessage = "servings phải trong khoảng 0.25–10.")]
+    public decimal? Servings { get; set; }
+
+    public DateOnly? LogDate { get; set; }
+}
+
+/// <summary>Sửa bản ghi bữa ăn — chỉ gửi trường cần đổi.</summary>
+public class UpdateMealLogRequest
+{
     [RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
     public string? MealType { get; set; }
 

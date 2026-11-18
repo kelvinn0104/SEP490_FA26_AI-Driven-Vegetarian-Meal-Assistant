@@ -1,3 +1,4 @@
+using VeggieAI.API;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VeggieAI.API.Controllers.AI;
@@ -18,10 +19,12 @@ public class NotificationsController : AiApiControllerBase
         _svc = svc;
     }
 
+    /// <summary>?unreadOnly=false&amp;page=1&amp;pageSize=20. type: post_review | report_result | system | ...</summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PagedResult<NotificationDto>>>> List([FromQuery] bool unreadOnly, [FromQuery] PageQuery page, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<PagedResult<NotificationDto>>>> List(
+        [FromQuery] bool unreadOnly, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var result = await _svc.GetAsync(UserId, unreadOnly, page, ct);
+        var result = await _svc.GetAsync(UserId, unreadOnly, this.Paging(page, pageSize), ct);
         return Ok(ApiResponse<PagedResult<NotificationDto>>.Ok(result));
     }
 

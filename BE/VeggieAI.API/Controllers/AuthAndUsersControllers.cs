@@ -55,11 +55,48 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, $"Đã gửi lại mã xác thực tới email {result.Email}"));
     }
 
+    /// <summary>
+    /// Đăng xuất: thu hồi MỌI phiên của tài khoản (access token cũ trả 401 SESSION_REVOKED, refresh token không dùng được nữa).
+    /// Body tùy chọn { refreshToken } — dùng khi access token đã hết hạn. Luôn trả 200.
+    /// </summary>
     [HttpPost("logout")]
     [AllowAnonymous]
-    public ActionResult<ApiResponse<string>> Logout()
+    public async Task<ActionResult<ApiResponse<string>>> Logout([FromBody] LogoutRequest? request)
     {
+        int? userId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+        await _authService.LogoutAsync(userId, request?.RefreshToken);
         return Ok(ApiResponse<string>.Ok("Logged out", "Đăng xuất thành công"));
+    }
+
+    /// <summary>
+    /// Đổi refresh token lấy cặp { token, refreshToken } mới. Refresh token cũ hết hiệu lực ngay (rotation).
+    /// Lỗi 401 kèm errors[0]: INVALID_REFRESH_TOKEN | REFRESH_TOKEN_EXPIRED | REFRESH_TOKEN_REUSED → FE chuyển về màn đăng nhập.
+    /// </summary>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        var result = await _authService.RefreshAsync(request);
+        return Ok(ApiResponse<AuthResponse>.Ok(result, "Làm mới phiên đăng nhập thành công"));
+    }
+
+    /// <summary>Quên mật khẩu bước 1: gửi mã OTP 6 số tới email. Luôn trả 200 (không tiết lộ email có tồn tại hay không).</summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<ForgotPasswordResponse>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        var result = await _authService.ForgotPasswordAsync(request);
+        return Ok(ApiResponse<ForgotPasswordResponse>.Ok(result,
+            $"Nếu {result.Email} đã đăng ký, mã đặt lại mật khẩu đã được gửi tới hộp thư."));
+    }
+
+    /// <summary>Quên mật khẩu bước 2: { email, otpCode, newPassword }. Thành công → mọi phiên cũ bị thu hồi, người dùng đăng nhập lại.</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<bool>>> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        await _authService.ResetPasswordAsync(request);
+        return Ok(ApiResponse<bool>.Ok(true, "Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới."));
     }
 
     [HttpGet("me")]
@@ -81,7 +118,9 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserDto>.Ok(user));
     }
 
-    /// <summary>Cập nhật tên hiển thị của tài khoản đang đăng nhập.</summary>
+    /// <summary>
+    /// Cập nhật hồ sơ: { displayName?, avatarUrl? } — avatarUrl lấy từ POST /api/uploads (purpose = avatar), "" để bỏ ảnh.
+    /// </summary>
     [HttpPut("me")]
     [Authorize]
     public async Task<ActionResult<ApiResponse<UserDto>>> UpdateMe([FromBody] UpdateMeRequest request)
@@ -93,16 +132,19 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserDto>.Ok(user, "Cập nhật thông tin thành công"));
     }
 
-    /// <summary>Đổi mật khẩu (yêu cầu mật khẩu hiện tại).</summary>
+    /// <summary>
+    /// Đổi mật khẩu (yêu cầu mật khẩu hiện tại). Mọi phiên cũ (kể cả token đang dùng) bị thu hồi;
+    /// response trả cặp { token, refreshToken } MỚI — FE thay token đang lưu bằng token này.
+    /// </summary>
     [HttpPost("change-password")]
     [Authorize]
-    public async Task<ActionResult<ApiResponse<bool>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            return Unauthorized(ApiResponse<bool>.Fail("Không xác định được danh tính."));
+            return Unauthorized(ApiResponse<AuthResponse>.Fail("Không xác định được danh tính."));
 
-        await _authService.ChangePasswordAsync(userId, request);
-        return Ok(ApiResponse<bool>.Ok(true, "Đổi mật khẩu thành công"));
+        var result = await _authService.ChangePasswordAsync(userId, request);
+        return Ok(ApiResponse<AuthResponse>.Ok(result, "Đổi mật khẩu thành công"));
     }
 }
 

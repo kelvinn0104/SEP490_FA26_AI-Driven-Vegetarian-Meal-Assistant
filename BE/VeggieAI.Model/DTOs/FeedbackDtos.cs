@@ -34,7 +34,7 @@ public class ResolveFeedbackRequest
     public bool HideTargetContent { get; set; } = false;
 }
 
-public class CreateReportRequest
+public class CreateFeedbackReportRequest
 {
     [Required]
     public string TargetType { get; set; } = "recipe"; // 'post', 'comment', 'recipe'

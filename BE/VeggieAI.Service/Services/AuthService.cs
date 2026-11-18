@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,7 +22,18 @@ public interface IAuthService
     Task<RegisterPendingResponse> ResendCodeAsync(ResendCodeRequest request);
     Task<UserDto?> GetCurrentUserAsync(int userId);
     Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request);
-    Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
+
+    /// <summary>Đổi mật khẩu → thu hồi mọi phiên cũ và trả cặp token mới cho thiết bị hiện tại.</summary>
+    Task<AuthResponse> ChangePasswordAsync(int userId, ChangePasswordRequest request);
+
+    /// <summary>Đổi refresh token lấy cặp token mới (rotation).</summary>
+    Task<AuthResponse> RefreshAsync(RefreshTokenRequest request);
+
+    /// <summary>Đăng xuất: thu hồi mọi access token + refresh token của tài khoản.</summary>
+    Task LogoutAsync(int? userId, string? refreshToken);
+
+    Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task ResetPasswordAsync(ResetPasswordRequest request);
 }
 
 public class AuthService : IAuthService
@@ -65,19 +78,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Tài khoản của bạn đã bị khóa bởi Quản trị viên.");
         }
 
-        // Verify password
-        bool validPassword = false;
-        try
-        {
-            validPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
-        }
-        catch
-        {
-            // Fallback for seed testing if raw match
-            validPassword = request.Password == "Password123!" || request.Password == user.PasswordHash;
-        }
-
-        if (!validPassword)
+        if (!VerifyPassword(user, request.Password))
         {
             throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
         }
@@ -88,9 +89,6 @@ public class AuthService : IAuthService
             throw new EmailNotVerifiedException(user.Email,
                 "Tài khoản chưa xác thực email. Vui lòng nhập mã OTP đã gửi tới email hoặc bấm \"Gửi lại mã\".");
         }
-
-        var token = GenerateJwtToken(user);
-        var expiresAt = DateTime.UtcNow.AddDays(7);
 
         // System Log
         try
@@ -108,13 +106,7 @@ public class AuthService : IAuthService
         }
         catch { }
 
-        return new AuthResponse
-        {
-            Token = token,
-            RefreshToken = Guid.NewGuid().ToString("N"),
-            ExpiresAt = expiresAt,
-            User = MapUserToDto(user)
-        };
+        return await IssueTokensAsync(user);
     }
 
     /// <summary>
@@ -160,14 +152,14 @@ public class AuthService : IAuthService
             $"Tạo tài khoản {user.Email} vai trò {user.Role} — chờ xác thực email");
 
         // Đăng ký lại khi mã cũ vẫn đang trong thời gian chờ → không gửi thêm, FE tiếp tục bước nhập OTP
-        var cooldown = _otp.GetResendRemainingSeconds(user.Email);
+        var cooldown = await _otp.GetResendRemainingSecondsAsync(user.Email);
         if (existing != null && cooldown > 0)
         {
             return new RegisterPendingResponse
             {
                 Email = user.Email,
                 CodeSent = false,
-                ExpiresInSeconds = _otp.GetCodeRemainingSeconds(user.Email),
+                ExpiresInSeconds = await _otp.GetCodeRemainingSecondsAsync(user.Email),
                 ResendAfterSeconds = cooldown
             };
         }
@@ -219,7 +211,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Tài khoản đã được xác thực trước đó. Vui lòng đăng nhập.");
         }
 
-        var result = _otp.Verify(email, request.OtpCode);
+        var result = await _otp.VerifyAsync(email, request.OtpCode);
         switch (result.Status)
         {
             case OtpVerifyStatus.NotFound:
@@ -239,13 +231,7 @@ public class AuthService : IAuthService
 
         await WriteLogAsync(user, "Xác thực email", $"Tài khoản {user.Email} đã xác thực email bằng OTP và được kích hoạt");
 
-        return new AuthResponse
-        {
-            Token = GenerateJwtToken(user),
-            RefreshToken = Guid.NewGuid().ToString("N"),
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
-            User = MapUserToDto(user)
-        };
+        return await IssueTokensAsync(user);
     }
 
     /// <summary>Hủy OTP cũ, sinh mã mới và gửi lại (chỉ khi đã hết 60s chờ).</summary>
@@ -271,19 +257,7 @@ public class AuthService : IAuthService
 
     private async Task<RegisterPendingResponse> IssueAndSendOtpAsync(User user)
     {
-        // Ném TooManyRequestsException (HTTP 429) nếu chưa hết thời gian chờ
-        var issued = _otp.Issue(user.Email);
-        try
-        {
-            await _email.SendOtpAsync(user.Email, user.DisplayName, issued.Code, _otpOptions.ExpiryMinutes);
-        }
-        catch (Exception ex)
-        {
-            _otp.RollbackIssue(user.Email); // cho phép người dùng bấm gửi lại ngay
-            _log.LogError(ex, "[OTP] Gửi email OTP tới {Email} thất bại", user.Email);
-            throw new InvalidOperationException("Không gửi được email xác thực. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau.");
-        }
-
+        var issued = await SendOtpAsync(user, OtpPurposes.Register);
         return new RegisterPendingResponse
         {
             Email = user.Email,
@@ -293,6 +267,165 @@ public class AuthService : IAuthService
             ExpiresAt = issued.ExpiresAt,
             DevOtp = _otpOptions.ExposeOtpInResponse ? issued.Code : null
         };
+    }
+
+    /// <summary>
+    /// Sinh OTP + gửi email. Email chưa cấu hình mà không ở chế độ dev (Otp:ExposeOtpInResponse) → lỗi 503,
+    /// KHÔNG trả "đã gửi" khi thực tế không gửi được.
+    /// </summary>
+    private async Task<OtpIssueResult> SendOtpAsync(User user, string purpose)
+    {
+        if (!_email.IsEnabled && !_otpOptions.ExposeOtpInResponse)
+        {
+            _log.LogError("[OTP] Email chưa được cấu hình (Email:Enabled=false) nên không gửi được mã cho {Email}", user.Email);
+            throw new AppException("Hệ thống chưa gửi được email lúc này. Vui lòng thử lại sau hoặc liên hệ quản trị viên.",
+                503, "EMAIL_NOT_CONFIGURED");
+        }
+
+        // Ném TooManyRequestsException (HTTP 429) nếu chưa hết thời gian chờ
+        var issued = await _otp.IssueAsync(user.Email, purpose);
+        try
+        {
+            await _email.SendOtpAsync(user.Email, user.DisplayName, issued.Code, _otpOptions.ExpiryMinutes, default, purpose);
+        }
+        catch (Exception ex)
+        {
+            await _otp.RollbackIssueAsync(user.Email, purpose); // cho phép người dùng bấm gửi lại ngay
+            _log.LogError(ex, "[OTP] Gửi email OTP ({Purpose}) tới {Email} thất bại", purpose, user.Email);
+            throw new AppException("Không gửi được email. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau.",
+                502, "EMAIL_SEND_FAILED");
+        }
+        return issued;
+    }
+
+    // ---------------- Refresh / Logout / Quên mật khẩu ----------------
+
+    public async Task<AuthResponse> RefreshAsync(RefreshTokenRequest request)
+    {
+        var db = _unitOfWork.Context;
+        var raw = (request.RefreshToken ?? string.Empty).Trim();
+        if (raw.Length == 0) throw new AppException("Thiếu refresh token.", 401, "INVALID_REFRESH_TOKEN");
+
+        var hash = HashToken(raw);
+        var stored = await db.RefreshTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash);
+        if (stored?.User is null)
+            throw new AppException("Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.", 401, "INVALID_REFRESH_TOKEN");
+
+        var now = DateTime.UtcNow;
+        if (stored.RevokedAt is DateTime revokedAt)
+        {
+            // Token đã đổi rồi mà bị dùng lại sau 60 giây → nghi bị lộ: thu hồi toàn bộ phiên của tài khoản.
+            // (Trong 60 giây đầu coi như FE gọi refresh trùng nhau, chỉ báo token không hợp lệ.)
+            if (stored.ReplacedByHash != null && now - revokedAt > TimeSpan.FromSeconds(60))
+            {
+                await RevokeAllSessionsAsync(stored.User);
+                await _unitOfWork.CommitAsync();
+                _log.LogWarning("[Auth] Refresh token đã thu hồi bị dùng lại — thu hồi mọi phiên của user {UserId}", stored.UserId);
+                throw new AppException("Phiên đăng nhập đã bị thu hồi, vui lòng đăng nhập lại.", 401, "REFRESH_TOKEN_REUSED");
+            }
+            throw new AppException("Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.", 401, "INVALID_REFRESH_TOKEN");
+        }
+        if (stored.ExpiresAt <= now)
+            throw new AppException("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.", 401, "REFRESH_TOKEN_EXPIRED");
+
+        var user = stored.User;
+        if (user.Status == StatusLocked)
+            throw new AppException("Tài khoản của bạn đã bị khóa bởi Quản trị viên.", 403, "ACCOUNT_LOCKED");
+        if (user.Status != StatusActive)
+            throw new AppException("Tài khoản chưa được kích hoạt.", 403, "EMAIL_NOT_VERIFIED");
+
+        var (newRaw, newEntity) = NewRefreshToken(user.Id);
+        stored.RevokedAt = now;
+        stored.ReplacedByHash = newEntity.TokenHash;
+        db.RefreshTokens.Add(newEntity);
+        await _unitOfWork.CommitAsync();
+
+        var detailed = await _unitOfWork.Users.GetUserWithDetailsAsync(user.Id) ?? user;
+        return BuildAuthResponse(detailed, newRaw, newEntity.ExpiresAt);
+    }
+
+    public async Task LogoutAsync(int? userId, string? refreshToken)
+    {
+        var db = _unitOfWork.Context;
+        User? user = null;
+        if (userId is int uid) user = await db.Users.FirstOrDefaultAsync(u => u.Id == uid);
+
+        if (user is null && !string.IsNullOrWhiteSpace(refreshToken))
+        {
+            // Access token đã hết hạn nhưng FE vẫn gửi refresh token → xác định tài khoản qua refresh token
+            var hash = HashToken(refreshToken.Trim());
+            var stored = await db.RefreshTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash);
+            user = stored?.User;
+        }
+        if (user is null) return; // không có phiên nào để thu hồi → coi như đã đăng xuất
+
+        await RevokeAllSessionsAsync(user);
+        await _unitOfWork.CommitAsync();
+        await WriteLogAsync(user, "Đăng xuất", $"Tài khoản {user.Email} đăng xuất, thu hồi mọi phiên đăng nhập");
+    }
+
+    public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var response = new ForgotPasswordResponse
+        {
+            Email = email,
+            ExpiresInSeconds = _otpOptions.ExpiryMinutes * 60,
+            ResendAfterSeconds = _otpOptions.ResendCooldownSeconds,
+        };
+
+        var user = await _unitOfWork.Users.GetByEmailAsync(email);
+        // Email không tồn tại / bị khóa → vẫn trả 200 giống hệt để không lộ tài khoản nào đã đăng ký
+        if (user == null || user.Status == StatusLocked) return response;
+
+        var issued = await SendOtpAsync(user, OtpPurposes.ResetPassword);
+        response.ExpiresInSeconds = issued.ExpiresInSeconds;
+        response.ResendAfterSeconds = issued.ResendAfterSeconds;
+        response.DevOtp = _otpOptions.ExposeOtpInResponse ? issued.Code : null;
+        await WriteLogAsync(user, "Quên mật khẩu", $"Gửi mã đặt lại mật khẩu tới {user.Email}");
+        return response;
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            throw new AppException("Mật khẩu mới phải có ít nhất 8 ký tự.");
+
+        var user = await _unitOfWork.Users.GetByEmailAsync(email);
+        if (user == null || user.Status == StatusLocked)
+            throw new AppException("Mã OTP không chính xác hoặc đã hết hạn.", 400, "OTP_INVALID");
+
+        var result = await _otp.VerifyAsync(email, request.OtpCode, OtpPurposes.ResetPassword);
+        switch (result.Status)
+        {
+            case OtpVerifyStatus.NotFound:
+                throw new AppException("Không có mã đặt lại mật khẩu nào đang chờ. Vui lòng yêu cầu mã mới.", 400, "OTP_NOT_FOUND");
+            case OtpVerifyStatus.Expired:
+                throw new AppException("Mã OTP đã hết hạn, vui lòng lấy mã mới.", 400, "OTP_EXPIRED");
+            case OtpVerifyStatus.TooManyAttempts:
+                throw new AppException($"Bạn đã nhập sai quá {_otpOptions.MaxAttempts} lần. Mã OTP đã bị hủy, vui lòng lấy mã mới.",
+                    400, "OTP_TOO_MANY_ATTEMPTS");
+            case OtpVerifyStatus.Invalid:
+                throw new AppException($"Mã OTP không chính xác. Bạn còn {result.RemainingAttempts} lần thử.", 400, "OTP_INVALID");
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        if (user.Status == StatusPending) user.Status = StatusActive; // đã chứng minh sở hữu email
+        await RevokeAllSessionsAsync(user);
+        await _unitOfWork.CommitAsync();
+        await WriteLogAsync(user, "Đặt lại mật khẩu", $"Tài khoản {user.Email} đặt lại mật khẩu bằng OTP");
+    }
+
+    /// <summary>Tăng TokenVersion (vô hiệu mọi JWT đang dùng) và thu hồi mọi refresh token còn hiệu lực. Caller tự commit.</summary>
+    private async Task RevokeAllSessionsAsync(User user)
+    {
+        user.TokenVersion++;
+        var now = DateTime.UtcNow;
+        var active = await _unitOfWork.Context.RefreshTokens
+            .Where(t => t.UserId == user.Id && t.RevokedAt == null)
+            .ToListAsync();
+        foreach (var t in active) t.RevokedAt = now;
     }
 
     private async Task WriteLogAsync(User user, string action, string details)
@@ -319,24 +452,46 @@ public class AuthService : IAuthService
     public async Task<UserDto?> GetCurrentUserAsync(int userId)
     {
         var user = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
-        return user == null ? null : MapUserToDto(user);
+        if (user == null) return null;
+        var dto = MapUserToDto(user);
+        dto.AiQueriesCount = await CountAiQueriesAsync(userId);
+        return dto;
     }
 
     public async Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request)
     {
         var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
-        var name = (request.DisplayName ?? string.Empty).Trim();
-        if (name.Length < 2) throw new AppException("Tên hiển thị phải có ít nhất 2 ký tự.");
 
-        user.DisplayName = name;
+        if (request.DisplayName is not null)
+        {
+            var name = request.DisplayName.Trim();
+            if (name.Length < 2) throw new AppException("Tên hiển thị phải có ít nhất 2 ký tự.");
+            user.DisplayName = name;
+        }
+        if (request.AvatarUrl is not null)
+        {
+            var url = request.AvatarUrl.Trim();
+            if (url.Length == 0) user.AvatarUrl = null;
+            else if (url.StartsWith("/uploads/", StringComparison.Ordinal) ||
+                     (Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps))
+                user.AvatarUrl = url;
+            else
+                throw new AppException("avatarUrl phải là URL https hoặc đường dẫn /uploads/ trả về từ POST /api/uploads.");
+        }
+
         _unitOfWork.Users.Update(user);
         await _unitOfWork.CommitAsync();
 
         var detailed = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
-        return MapUserToDto(detailed ?? user);
+        var dto = MapUserToDto(detailed ?? user);
+        dto.AiQueriesCount = await CountAiQueriesAsync(userId);
+        return dto;
     }
 
-    public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
+    private Task<int> CountAiQueriesAsync(int userId) =>
+        _unitOfWork.Context.ChatMessages.CountAsync(m => m.Sender == "user" && m.Session != null && m.Session.UserId == userId);
+
+    public async Task<AuthResponse> ChangePasswordAsync(int userId, ChangePasswordRequest request)
     {
         var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
         if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
@@ -344,24 +499,96 @@ public class AuthService : IAuthService
         if (request.NewPassword == request.CurrentPassword)
             throw new AppException("Mật khẩu mới phải khác mật khẩu hiện tại.");
 
-        bool valid;
-        try
-        {
-            valid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash);
-        }
-        catch
-        {
-            // Tài khoản seed cũ có thể lưu mật khẩu dạng thô (giống logic LoginAsync)
-            valid = request.CurrentPassword == user.PasswordHash;
-        }
-        if (!valid) throw new AppException("Mật khẩu hiện tại không chính xác.");
+        if (!VerifyPassword(user, request.CurrentPassword)) throw new AppException("Mật khẩu hiện tại không chính xác.");
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        await RevokeAllSessionsAsync(user); // đăng xuất mọi thiết bị khác
         _unitOfWork.Users.Update(user);
         await _unitOfWork.CommitAsync();
+        await WriteLogAsync(user, "Đổi mật khẩu", $"Tài khoản {user.Email} đổi mật khẩu, thu hồi các phiên cũ");
+
+        var detailed = await _unitOfWork.Users.GetUserWithDetailsAsync(userId) ?? user;
+        return await IssueTokensAsync(detailed);
     }
 
-    private string GenerateJwtToken(User user)
+    /// <summary>
+    /// Kiểm tra mật khẩu bằng BCrypt. Tài khoản seed cũ lưu mật khẩu dạng thô: chỉ chấp nhận khi khớp đúng chuỗi đó
+    /// và lập tức băm lại bằng BCrypt. (Bỏ fallback "Password123!" cũ — trước đây đăng nhập được MỌI tài khoản có hash không hợp lệ.)
+    /// </summary>
+    private bool VerifyPassword(User user, string password)
+    {
+        if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(user.PasswordHash)) return false;
+        if (user.PasswordHash.StartsWith("$2", StringComparison.Ordinal))
+        {
+            try { return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash); }
+            catch (BCrypt.Net.SaltParseException) { return false; }
+        }
+
+        var legacyMatch = CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(password), Encoding.UTF8.GetBytes(user.PasswordHash));
+        if (legacyMatch)
+        {
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            _log.LogInformation("[Auth] Đã băm lại mật khẩu dạng thô của user {UserId} sang BCrypt", user.Id);
+        }
+        return legacyMatch;
+    }
+
+    // ---------------- Token ----------------
+
+    private int AccessTokenDays => Math.Clamp(int.TryParse(_config["Jwt:ExpiryDays"], out var d) ? d : 7, 1, 30);
+    private int RefreshTokenDays => Math.Clamp(int.TryParse(_config["Jwt:RefreshTokenDays"], out var d) ? d : 30, 1, 180);
+
+    /// <summary>Phát access token + refresh token mới (lưu hash refresh token vào DB).</summary>
+    private async Task<AuthResponse> IssueTokensAsync(User user)
+    {
+        var (raw, entity) = NewRefreshToken(user.Id);
+        _unitOfWork.Context.RefreshTokens.Add(entity);
+
+        // Dọn refresh token đã hết hạn/thu hồi quá 30 ngày của user này
+        var cutoff = DateTime.UtcNow.AddDays(-30);
+        var stale = await _unitOfWork.Context.RefreshTokens
+            .Where(t => t.UserId == user.Id && (t.ExpiresAt < cutoff || (t.RevokedAt != null && t.RevokedAt < cutoff)))
+            .ToListAsync();
+        _unitOfWork.Context.RefreshTokens.RemoveRange(stale);
+
+        await _unitOfWork.CommitAsync();
+        return BuildAuthResponse(user, raw, entity.ExpiresAt);
+    }
+
+    private AuthResponse BuildAuthResponse(User user, string refreshToken, DateTime refreshExpiresAt)
+    {
+        var expiresAt = DateTime.UtcNow.AddDays(AccessTokenDays);
+        return new AuthResponse
+        {
+            Token = GenerateJwtToken(user, expiresAt),
+            RefreshToken = refreshToken,
+            ExpiresAt = expiresAt,
+            RefreshTokenExpiresAt = refreshExpiresAt,
+            User = MapUserToDto(user)
+        };
+    }
+
+    private (string Raw, RefreshToken Entity) NewRefreshToken(int userId)
+    {
+        var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        return (raw, new RefreshToken
+        {
+            UserId = userId,
+            TokenHash = HashToken(raw),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenDays),
+        });
+    }
+
+    private static string HashToken(string raw) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
+
+    /// <summary>Tên claim chứa User.TokenVersion — Program.cs đối chiếu ở mỗi request.</summary>
+    public const string TokenVersionClaim = "tv";
+
+    private string GenerateJwtToken(User user, DateTime expiresAt)
     {
         var secret = _config["Jwt:Key"] ?? "VeggieAI_Super_Secret_Key_2026_Enterprise_Edition_Must_Be_Long_Enough!";
         var issuer = _config["Jwt:Issuer"] ?? "VeggieAI";
@@ -376,14 +603,16 @@ public class AuthService : IAuthService
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Name, user.DisplayName),
             new(ClaimTypes.Role, user.Role),
-            new("status", user.Status)
+            new("status", user.Status),
+            new(TokenVersionClaim, user.TokenVersion.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
 
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: expiresAt,
             signingCredentials: creds
         );
 
@@ -415,13 +644,16 @@ public class AuthService : IAuthService
             Id = $"USR-{user.Id:D4}",
             Name = user.DisplayName,
             Email = user.Email,
-            Avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(user.DisplayName)}&background=006948&color=ffffff&bold=true",
+            Avatar = string.IsNullOrWhiteSpace(user.AvatarUrl)
+                ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(user.DisplayName)}&background=006948&color=ffffff&bold=true"
+                : user.AvatarUrl,
+            HasCustomAvatar = !string.IsNullOrWhiteSpace(user.AvatarUrl),
             DietType = diet,
             Role = user.Role,
             Status = user.Status,
             JoinedDate = user.CreatedAt.ToString("yyyy-MM-dd"),
             RecipesCount = user.CreatedRecipes?.Count ?? 0,
-            AiQueriesCount = 12,
+            AiQueriesCount = 0, // GetCurrentUserAsync điền số thật
             Bio = $"Thành viên {user.Role} hệ thống VeggieAI.",
             Allergies = allergies,
             HasHealthProfile = user.HealthProfile != null
