@@ -22,7 +22,7 @@ public class AiMealPlanner : IAiMealPlanner
     private const int MaxAttempts = 2;
     private const int LlmChunkDays = 7;      // mỗi lần gọi AI tối đa 7 ngày để JSON không vượt giới hạn token
     private const int MaxParallelChunks = 3;
-    private const int MaxCandidatesForLlm = 80;
+    private const int MaxCandidatesForLlm = 60;
 
     private readonly VeggieAIDbContext _db;
     private readonly ILlmClient _llm;
@@ -148,7 +148,7 @@ public class AiMealPlanner : IAiMealPlanner
                     UserId = userId,
                     JsonOutput = true,
                     Temperature = 0.5,
-                    MaxOutputTokens = 8192,
+                    MaxOutputTokens = 4096,
                     SystemPrompt = SystemPromptPlanner,
                     Messages = BuildPlannerMessages(profile, goal, targets, mealTypes, dates, llmCandidates, preferred, note, feedback, lastRaw),
                 }, ct);

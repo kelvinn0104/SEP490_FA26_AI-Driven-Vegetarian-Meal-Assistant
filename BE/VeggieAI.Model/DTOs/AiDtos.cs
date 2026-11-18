@@ -26,6 +26,12 @@ public class GeminiOptions
     /// <summary>Gemini 2.5: số token suy nghĩ (0 = tắt, -1 = tự động). Chỉ gửi cho model có "2.5" trong tên.</summary>
     public int ThinkingBudget { get; set; } = 0;
 
+    /// <summary>Model dự phòng, thử lần lượt khi model chính báo quá tải (429/503), hết giờ hoặc không tồn tại (404).</summary>
+    public List<string> FallbackModels { get; set; } = new() { "gemini-3.5-flash-lite", "gemini-2.5-flash-lite" };
+
+    /// <summary>Thời gian chờ tối đa cho MỖI lần gọi một model (giây) trước khi chuyển model dự phòng.</summary>
+    public int AttemptTimeoutSeconds { get; set; } = 40;
+
     /// <summary>
     /// Gemini 3+ / alias "*-latest": mức suy nghĩ ("minimal" | "low" | "medium" | "high"). Để trống = không gửi.
     /// Nếu model không hỗ trợ tham số này, client tự gọi lại không kèm thinkingConfig.

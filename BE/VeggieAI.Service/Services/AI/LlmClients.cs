@@ -25,6 +25,36 @@ public interface ILlmClient
 /// </summary>
 public class LlmClient : ILlmClient
 {
+    /// <summary>Ngắt mạch đơn giản: 3 lần lỗi hạ tầng liên tiếp → mở 60 giây (chỉ lỗi quá tải/timeout, không tính lỗi 400).</summary>
+    internal static class Breaker
+    {
+        private const int Threshold = 3;
+        private static readonly TimeSpan OpenFor = TimeSpan.FromSeconds(60);
+        private static readonly object Gate = new();
+        private static int _fails;
+        private static DateTime _openUntil = DateTime.MinValue;
+
+        public static bool IsOpen(out int retryInSeconds)
+        {
+            lock (Gate)
+            {
+                var left = _openUntil - DateTime.UtcNow;
+                retryInSeconds = left > TimeSpan.Zero ? (int)Math.Ceiling(left.TotalSeconds) : 0;
+                return left > TimeSpan.Zero;
+            }
+        }
+
+        public static void Success() { lock (Gate) { _fails = 0; _openUntil = DateTime.MinValue; } }
+
+        public static void Failure()
+        {
+            lock (Gate)
+            {
+                if (++_fails >= Threshold) { _openUntil = DateTime.UtcNow + OpenFor; _fails = 0; }
+            }
+        }
+    }
+
     private readonly AiOptions _opt;
     private readonly GeminiProvider _gemini;
     private readonly OpenAiProvider _openai;
@@ -46,6 +76,10 @@ public class LlmClient : ILlmClient
         if (!IsConfigured)
             throw new AppException($"Chưa cấu hình API key cho AI provider '{_opt.Provider}' (appsettings: Ai:{_opt.Provider}:ApiKey).", 503);
 
+        // Ngắt mạch: Gemini lỗi liên tiếp → tạm không gọi, để caller dùng thuật toán dự phòng ngay thay vì chờ timeout
+        if (Breaker.IsOpen(out var retryIn))
+            throw new AppException($"Trợ lý AI đang tạm quá tải, thử lại sau khoảng {retryIn} giây.", 503, "AI_CIRCUIT_OPEN");
+
         var sw = Stopwatch.StartNew();
         try
         {
@@ -53,6 +87,7 @@ public class LlmClient : ILlmClient
                 ? await _openai.CallAsync(request, ct)
                 : await _gemini.CallAsync(request, ct);
             sw.Stop();
+            Breaker.Success();
             var res = new LlmResponse(text, _opt.Provider, model, tokens, (int)sw.ElapsedMilliseconds);
             await LogAsync(request, res.LatencyMs, tokens, true, null);
             return res;
@@ -60,6 +95,7 @@ public class LlmClient : ILlmClient
         catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
             sw.Stop();
+            if (ex is HttpRequestException or TaskCanceledException) Breaker.Failure();
             _log.LogWarning(ex, "LLM call failed ({Task})", request.Task);
             await LogAsync(request, (int)sw.ElapsedMilliseconds, null, false, ex.Message);
             if (ex is AppException) throw;
@@ -103,11 +139,31 @@ public class GeminiProvider
         _http.Timeout = TimeSpan.FromSeconds(_opt.TimeoutSeconds);
     }
 
+    /// <summary>Lỗi tạm thời của một model (quá tải/timeout/không tìm thấy) → chuyển sang model dự phòng.</summary>
+    private sealed class TransientLlmException : Exception
+    {
+        public TransientLlmException(string message) : base(message) { }
+    }
+
     public async Task<(string text, int? tokens, string model)> CallAsync(LlmRequest req, CancellationToken ct)
     {
         var g = _opt.Gemini;
-        var model = req.Images.Count > 0 ? g.VisionModel : g.Model;
+        var primary = req.Images.Count > 0 ? g.VisionModel : g.Model;
+        var models = new List<string> { primary };
+        models.AddRange(g.FallbackModels.Where(m => !string.IsNullOrWhiteSpace(m) && !m.Equals(primary, StringComparison.OrdinalIgnoreCase)));
 
+        TransientLlmException? last = null;
+        for (var i = 0; i < models.Count; i++)
+        {
+            try { return await CallModelAsync(req, g, models[i], retryOnOverload: i == 0, ct); }
+            catch (TransientLlmException ex) { last = ex; }
+        }
+        throw new HttpRequestException($"Tất cả model Gemini đều không khả dụng ({string.Join(" → ", models)}). Lỗi cuối: {last?.Message}");
+    }
+
+    private async Task<(string text, int? tokens, string model)> CallModelAsync(LlmRequest req, GeminiOptions g, string model,
+        bool retryOnOverload, CancellationToken ct)
+    {
         var contents = new JsonArray();
         for (var i = 0; i < req.Messages.Count; i++)
         {
@@ -128,30 +184,42 @@ public class GeminiProvider
             ["maxOutputTokens"] = req.MaxOutputTokens,
         };
         if (req.JsonOutput) genConfig["responseMimeType"] = "application/json";
-        // Trước đây chỉ gửi thinkingConfig khi tên model chứa "2.5" → với "gemini-flash-latest" / Gemini 3
-        // cấu hình bị bỏ qua và model "suy nghĩ" mặc định (chậm thêm nhiều giây).
+        // Gemini 2.5: thinkingBudget; Gemini 3+/"*-latest": thinkingLevel. Model không hỗ trợ → gọi lại không kèm cấu hình suy nghĩ.
         if (model.Contains("2.5") && g.ThinkingBudget >= -1)
             genConfig["thinkingConfig"] = new JsonObject { ["thinkingBudget"] = g.ThinkingBudget };
-        else if (!string.IsNullOrWhiteSpace(g.ThinkingLevel))
+        else if (!string.IsNullOrWhiteSpace(g.ThinkingLevel) && !model.Contains("lite", StringComparison.OrdinalIgnoreCase))
             genConfig["thinkingConfig"] = new JsonObject { ["thinkingLevel"] = g.ThinkingLevel.Trim().ToLowerInvariant() };
 
         var body = new JsonObject { ["contents"] = contents, ["generationConfig"] = genConfig };
         if (!string.IsNullOrWhiteSpace(req.SystemPrompt))
             body["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = req.SystemPrompt } } };
 
-        var (status, raw) = await PostAsync(g, model, body, ct);
-        // 429/503 (quá tải tạm thời): thử lại 1 lần sau một khoảng ngắn
-        if (status is 429 or 503)
+        async Task<(int status, string raw)> PostTimedAsync()
         {
-            await Task.Delay(TimeSpan.FromSeconds(2), ct);
-            (status, raw) = await PostAsync(g, model, body, ct);
+            // Mỗi lần gọi có timeout riêng (ngắn hơn HttpClient.Timeout) để model treo thì chuyển model dự phòng sớm
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, g.AttemptTimeoutSeconds)));
+            try { return await PostAsync(g, model, body, cts.Token); }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new TransientLlmException($"{model}: quá thời gian chờ {g.AttemptTimeoutSeconds}s");
+            }
+            catch (HttpRequestException ex) { throw new TransientLlmException($"{model}: {ex.Message}"); }
+        }
+
+        var (status, raw) = await PostTimedAsync();
+        if (status is 429 or 503 && retryOnOverload)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1.5), ct);
+            (status, raw) = await PostTimedAsync();
         }
         if (status == 400 && genConfig.ContainsKey("thinkingConfig") && raw.Contains("thinking", StringComparison.OrdinalIgnoreCase))
         {
-            // Model không hỗ trợ kiểu thinkingConfig này → gọi lại không kèm cấu hình suy nghĩ
             genConfig.Remove("thinkingConfig");
-            (status, raw) = await PostAsync(g, model, body, ct);
+            (status, raw) = await PostTimedAsync();
         }
+        if (status is 429 or 404 or 408 or >= 500)
+            throw new TransientLlmException($"{model}: HTTP {status} {Trim(raw)}");
         if (status is < 200 or >= 300)
             throw new HttpRequestException($"Gemini {status}: {Trim(raw)}");
 
