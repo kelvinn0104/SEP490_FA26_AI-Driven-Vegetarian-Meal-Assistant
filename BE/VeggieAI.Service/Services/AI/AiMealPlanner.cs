@@ -80,7 +80,7 @@ public class AiMealPlanner : IAiMealPlanner
             foreach (var r in results)
             {
                 attempts = Math.Max(attempts, r.Attempts);
-                notices.AddRange(r.Notices);
+                foreach (var n in r.Notices) if (!notices.Contains(n)) notices.Add(n);
                 if (r.Plan is null) continue;
                 plan ??= new Dictionary<DateOnly, List<PlannedMeal>>();
                 foreach (var kv in r.Plan) plan[kv.Key] = kv.Value;
@@ -168,7 +168,7 @@ public class AiMealPlanner : IAiMealPlanner
             }
             catch (AppException ex) when (ex.StatusCode >= 500)
             {
-                notices.Add("AI lỗi: " + ex.Message);
+                notices.Add("AI tạm thời quá tải hoặc không phản hồi — hệ thống đã dùng thuật toán dự phòng cho phần này.");
                 break;
             }
         }

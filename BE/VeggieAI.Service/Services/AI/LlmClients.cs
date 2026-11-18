@@ -63,7 +63,8 @@ public class LlmClient : ILlmClient
             _log.LogWarning(ex, "LLM call failed ({Task})", request.Task);
             await LogAsync(request, (int)sw.ElapsedMilliseconds, null, false, ex.Message);
             if (ex is AppException) throw;
-            throw new AppException("Dịch vụ AI đang gặp sự cố, vui lòng thử lại sau. Chi tiết: " + ex.Message, 502);
+            // Chi tiết lỗi nhà cung cấp chỉ ghi log/AiModelLog, không trả cho người dùng
+            throw new AppException("Dịch vụ AI đang quá tải hoặc không phản hồi, vui lòng thử lại sau.", 502);
         }
     }
 
@@ -139,6 +140,12 @@ public class GeminiProvider
             body["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = req.SystemPrompt } } };
 
         var (status, raw) = await PostAsync(g, model, body, ct);
+        // 429/503 (quá tải tạm thời): thử lại 1 lần sau một khoảng ngắn
+        if (status is 429 or 503)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            (status, raw) = await PostAsync(g, model, body, ct);
+        }
         if (status == 400 && genConfig.ContainsKey("thinkingConfig") && raw.Contains("thinking", StringComparison.OrdinalIgnoreCase))
         {
             // Model không hỗ trợ kiểu thinkingConfig này → gọi lại không kèm cấu hình suy nghĩ
