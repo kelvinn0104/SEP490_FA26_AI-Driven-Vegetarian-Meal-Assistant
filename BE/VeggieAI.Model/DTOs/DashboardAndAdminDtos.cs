@@ -47,7 +47,8 @@ public class HandleReportRequest
 }
 
 public record StaffReportDto(int Id, string TargetType, int TargetId, string? TargetPreview, string Category, string? Reason,
-    string Status, string ReporterName, DateTime CreatedAt, DateTime? HandledAt);
+    string Status, string ReporterName, DateTime CreatedAt, DateTime? HandledAt,
+    int ReportCount = 1, double TrustScore = 0, string Priority = "low", int ReporterAgeDays = 0);
 
 // AI
 public class AiModelDto

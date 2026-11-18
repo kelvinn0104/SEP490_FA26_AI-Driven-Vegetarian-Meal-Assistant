@@ -278,7 +278,7 @@ public class CommunityService : ICommunityService
         // Chỉ báo cáo được nội dung đang hiển thị công khai (bài chưa duyệt chỉ tác giả/staff thấy nên không báo cáo được)
         int? ownerId = req.TargetType switch
         {
-            "post" => await _db.Posts.Where(p => p.Id == req.TargetId && p.Status == "published").Select(p => (int?)p.UserId).FirstOrDefaultAsync(ct),
+            "post" => await _db.Posts.Where(p => p.Id == req.TargetId && (p.Status == "published" || p.Status == "flagged")).Select(p => (int?)p.UserId).FirstOrDefaultAsync(ct),
             "comment" => await _db.Comments.Where(c => c.Id == req.TargetId && c.Status == "visible" && c.Post!.Status == "published").Select(c => (int?)c.UserId).FirstOrDefaultAsync(ct),
             "recipe" => await _db.Recipes.Where(r => r.Id == req.TargetId && r.Status == "published").Select(r => (int?)r.CreatedBy).FirstOrDefaultAsync(ct),
             _ => null,
@@ -302,8 +302,61 @@ public class CommunityService : ICommunityService
         };
         _db.Reports.Add(report);
         await _db.SaveChangesAsync(ct);
+        await EscalateIfNeededAsync(report, ownerId.Value, ct);
         return new ReportDto(report.Id, report.TargetType, report.TargetId, report.Category, report.Reason, report.Status, report.CreatedAt,
             null, await TargetPreviewAsync(report.TargetType, report.TargetId, ct));
+    }
+
+    /// <summary>
+    /// Điểm báo cáo (số người báo cáo × độ uy tín theo tuổi tài khoản) đạt ngưỡng → tự ẩn tạm thời (post: flagged, comment: hidden)
+    /// và báo moderator; chưa đạt ngưỡng → chỉ báo moderator khi mức ưu tiên cao/trung bình.
+    /// </summary>
+    private async Task EscalateIfNeededAsync(Report report, int ownerId, CancellationToken ct)
+    {
+        try
+        {
+            var sc = await ReportScoring.ScoreAsync(_db, report.TargetType, report.TargetId, ct);
+            var flagged = false;
+            if (sc.Score >= ReportScoring.AutoFlagThreshold)
+            {
+                switch (report.TargetType)
+                {
+                    case "post":
+                        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == report.TargetId && p.Status == "published", ct);
+                        if (post != null)
+                        {
+                            post.Status = "flagged"; flagged = true;
+                            Notifier.Queue(_db, post.UserId, NotificationTypes.PostReview,
+                                $"Bài viết {Notifier.Quote(post.Title)} bị ẩn tạm thời vì nhận nhiều báo cáo, đang chờ moderator xem xét.");
+                        }
+                        break;
+                    case "comment":
+                        var cm = await _db.Comments.FirstOrDefaultAsync(c => c.Id == report.TargetId && c.Status == "visible", ct);
+                        if (cm != null)
+                        {
+                            cm.Status = "hidden"; flagged = true;
+                            Notifier.Queue(_db, cm.UserId, NotificationTypes.PostReview,
+                                "Một bình luận của bạn bị ẩn tạm thời vì nhận nhiều báo cáo, đang chờ moderator xem xét.");
+                        }
+                        break;
+                }
+            }
+            if (flagged || sc.Priority != "low")
+            {
+                var staffIds = await _db.Users
+                    .Where(u => (u.Role == AppRoles.Admin || u.Role == AppRoles.Moderator) && u.Status == "active" && u.Id != ownerId)
+                    .Select(u => u.Id).ToListAsync(ct);
+                var msg = flagged
+                    ? $"Nội dung ({report.TargetType} #{report.TargetId}) đã bị tự động ẩn: {sc.ReportCount} báo cáo, điểm uy tín {sc.Score}."
+                    : $"Nội dung ({report.TargetType} #{report.TargetId}) có {sc.ReportCount} báo cáo, điểm uy tín {sc.Score} (ưu tiên {sc.Priority}).";
+                foreach (var id in staffIds) Notifier.Queue(_db, id, NotificationTypes.System, msg);
+            }
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            // Báo cáo đã lưu; moderator vẫn thấy trong hàng đợi.
+        }
     }
 
     public async Task<PagedResult<ReportDto>> ListMyReportsAsync(int userId, PageQuery page, CancellationToken ct = default)

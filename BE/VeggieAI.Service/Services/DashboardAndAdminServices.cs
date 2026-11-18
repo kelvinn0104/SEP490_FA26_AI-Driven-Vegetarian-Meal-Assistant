@@ -130,19 +130,38 @@ public class ModerationService : IModerationService
         if (s != "all") q = q.Where(r => r.Status == s);
 
         var total = await q.CountAsync(ct);
-        var rows = await q.OrderByDescending(r => r.CreatedAt)
-            .Skip(page.Skip).Take(page.PageSize)
-            .Select(r => new
-            {
-                r.Id, r.TargetType, r.TargetId, r.Category, r.Reason, r.Status, r.CreatedAt, r.HandledAt,
-                ReporterName = r.Reporter != null ? r.Reporter.DisplayName : ""
-            })
+        var all = await q.Select(r => new
+        {
+            r.Id, r.TargetType, r.TargetId, r.Category, r.Reason, r.Status, r.CreatedAt, r.HandledAt, r.ReporterId,
+            ReporterName = r.Reporter != null ? r.Reporter.DisplayName : "",
+            ReporterCreatedAt = r.Reporter != null ? r.Reporter.CreatedAt : DateTime.UtcNow,
+        }).ToListAsync(ct);
+
+        // Điểm theo nội dung: tổng trọng số (tuổi tài khoản) của các người báo cáo khác nhau có báo cáo đang mở
+        var openByTarget = await db.Reports.AsNoTracking().Where(r => r.Status == "open")
+            .Select(r => new { r.TargetType, r.TargetId, r.ReporterId, Created = r.Reporter != null ? r.Reporter.CreatedAt : DateTime.UtcNow })
             .ToListAsync(ct);
+        var scores = openByTarget.GroupBy(r => (r.TargetType, r.TargetId)).ToDictionary(g => g.Key, g =>
+        {
+            var d = g.GroupBy(x => x.ReporterId).Select(x => x.First()).ToList();
+            return (Count: d.Count, Score: Math.Round(d.Sum(x => ReportScoring.ReporterWeight(x.Created)), 2));
+        });
+
+        var ordered = all.Select(r =>
+        {
+            scores.TryGetValue((r.TargetType, r.TargetId), out var sc);
+            return (r, sc);
+        });
+        ordered = s == "open"
+            ? ordered.OrderByDescending(x => x.sc.Score).ThenByDescending(x => x.r.CreatedAt)
+            : ordered.OrderByDescending(x => x.r.CreatedAt);
 
         var items = new List<StaffReportDto>();
-        foreach (var r in rows)
+        foreach (var (r, sc) in ordered.Skip(page.Skip).Take(page.PageSize))
             items.Add(new StaffReportDto(r.Id, r.TargetType, r.TargetId, await TargetPreviewAsync(r.TargetType, r.TargetId, ct),
-                r.Category, r.Reason, r.Status, r.ReporterName, r.CreatedAt, r.HandledAt));
+                r.Category, r.Reason, r.Status, r.ReporterName, r.CreatedAt, r.HandledAt,
+                sc.Count == 0 ? 1 : sc.Count, sc.Score, ReportScoring.Priority(sc.Score),
+                (int)(DateTime.UtcNow - r.ReporterCreatedAt).TotalDays));
 
         return new PagedResult<StaffReportDto> { Items = items, TotalCount = total, Page = page.Page, PageSize = page.PageSize };
     }
@@ -198,6 +217,32 @@ public class ModerationService : IModerationService
         report.Status = status;
         report.HandledBy = handlerId > 0 ? handlerId : null;
         report.HandledAt = DateTime.UtcNow;
+
+        var siblings = await db.Reports.Where(r => r.Id != report.Id && r.Status == "open"
+            && r.TargetType == report.TargetType && r.TargetId == report.TargetId).ToListAsync(ct);
+        if (status == "resolved" && request.RemoveContent)
+        {
+            // Nội dung đã gỡ → đóng luôn các báo cáo còn mở của cùng nội dung
+            foreach (var sib in siblings)
+            {
+                sib.Status = "resolved"; sib.HandledBy = report.HandledBy; sib.HandledAt = report.HandledAt;
+                Notifier.Queue(db, sib.ReporterId, NotificationTypes.ReportResult, $"Báo cáo #{sib.Id} của bạn đã được xử lý. Cảm ơn bạn đã giúp cộng đồng VeggieAI an toàn hơn.");
+            }
+        }
+        else if (status == "dismissed" && siblings.Count == 0)
+        {
+            // Không còn báo cáo nào mở: khôi phục nội dung đã bị tự động ẩn
+            if (report.TargetType == "post")
+            {
+                var fp = await db.Posts.FirstOrDefaultAsync(p => p.Id == report.TargetId && p.Status == "flagged", ct);
+                if (fp != null) fp.Status = "published";
+            }
+            else if (report.TargetType == "comment")
+            {
+                var fc = await db.Comments.FirstOrDefaultAsync(c => c.Id == report.TargetId && c.Status == "hidden", ct);
+                if (fc != null) fc.Status = "visible";
+            }
+        }
 
         var note = string.IsNullOrWhiteSpace(request.Note) ? "" : $" Ghi chú: {request.Note.Trim()}";
         Notifier.Queue(db, report.ReporterId, NotificationTypes.ReportResult, status == "resolved"
