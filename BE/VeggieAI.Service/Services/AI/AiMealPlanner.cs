@@ -22,7 +22,7 @@ public class AiMealPlanner : IAiMealPlanner
     private const int MaxAttempts = 2;
     private const int LlmChunkDays = 7;      // mỗi lần gọi AI tối đa 7 ngày để JSON không vượt giới hạn token
     private const int MaxParallelChunks = 3;
-    private const int MaxCandidatesForLlm = 80;
+    private const int MaxCandidatesForLlm = 60;
 
     private readonly VeggieAIDbContext _db;
     private readonly ILlmClient _llm;
@@ -80,7 +80,7 @@ public class AiMealPlanner : IAiMealPlanner
             foreach (var r in results)
             {
                 attempts = Math.Max(attempts, r.Attempts);
-                notices.AddRange(r.Notices);
+                foreach (var n in r.Notices) if (!notices.Contains(n)) notices.Add(n);
                 if (r.Plan is null) continue;
                 plan ??= new Dictionary<DateOnly, List<PlannedMeal>>();
                 foreach (var kv in r.Plan) plan[kv.Key] = kv.Value;
@@ -148,7 +148,7 @@ public class AiMealPlanner : IAiMealPlanner
                     UserId = userId,
                     JsonOutput = true,
                     Temperature = 0.5,
-                    MaxOutputTokens = 8192,
+                    MaxOutputTokens = 4096,
                     SystemPrompt = SystemPromptPlanner,
                     Messages = BuildPlannerMessages(profile, goal, targets, mealTypes, dates, llmCandidates, preferred, note, feedback, lastRaw),
                 }, ct);
@@ -168,7 +168,7 @@ public class AiMealPlanner : IAiMealPlanner
             }
             catch (AppException ex) when (ex.StatusCode >= 500)
             {
-                notices.Add("AI lỗi: " + ex.Message);
+                notices.Add("AI tạm thời quá tải hoặc không phản hồi — hệ thống đã dùng thuật toán dự phòng cho phần này.");
                 break;
             }
         }
