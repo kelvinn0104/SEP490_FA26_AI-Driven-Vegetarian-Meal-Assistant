@@ -27,7 +27,7 @@ public class GeminiOptions
     public int ThinkingBudget { get; set; } = 0;
 
     /// <summary>Model dự phòng, thử lần lượt khi model chính báo quá tải (429/503), hết giờ hoặc không tồn tại (404).</summary>
-    public List<string> FallbackModels { get; set; } = new() { "gemini-3.5-flash-lite", "gemini-2.5-flash-lite" };
+    public List<string> FallbackModels { get; set; } = new() { "gemini-3.5-flash-lite", "gemini-3.1-flash-lite" };
 
     /// <summary>Thời gian chờ tối đa cho MỖI lần gọi một model (giây) trước khi chuyển model dự phòng.</summary>
     public int AttemptTimeoutSeconds { get; set; } = 40;

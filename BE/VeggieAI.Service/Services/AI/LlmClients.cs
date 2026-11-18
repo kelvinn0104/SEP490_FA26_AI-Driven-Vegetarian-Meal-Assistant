@@ -159,12 +159,78 @@ public class GeminiProvider
         public LlmUnavailableException(string summary, string message) : base(message) { Summary = summary; }
     }
 
+    // ---- Tự dò model khả dụng của API key (ListModels) để chọn dự phòng đúng, tránh 404 do tên model không tồn tại ----
+    private static readonly SemaphoreSlim ModelsGate = new(1, 1);
+    private static (DateTime At, HashSet<string>? Names)? _modelsCache;
+
+    private static readonly System.Text.RegularExpressions.Regex ExcludedModel = new(
+        "preview|exp|image|tts|audio|live|embedding|thinking|vision|robotics|computer|customtools|8b|gemma|aqa|learnlm",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private async Task<HashSet<string>?> AvailableModelsAsync(GeminiOptions g, CancellationToken ct)
+    {
+        bool Fresh() => _modelsCache is { } c && DateTime.UtcNow - c.At < (c.Names is null ? TimeSpan.FromMinutes(2) : TimeSpan.FromMinutes(30));
+        if (Fresh()) return _modelsCache!.Value.Names;
+        await ModelsGate.WaitAsync(ct);
+        try
+        {
+            if (Fresh()) return _modelsCache!.Value.Names;
+            try
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(TimeSpan.FromSeconds(8));
+                using var msg = new HttpRequestMessage(HttpMethod.Get, $"{g.BaseUrl.TrimEnd('/')}/models?pageSize=200");
+                msg.Headers.Add("x-goog-api-key", g.ApiKey);
+                using var resp = await _http.SendAsync(msg, cts.Token);
+                if (!resp.IsSuccessStatusCode) { _modelsCache = (DateTime.UtcNow, null); return null; }
+                using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cts.Token));
+                var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (doc.RootElement.TryGetProperty("models", out var arr))
+                    foreach (var m in arr.EnumerateArray())
+                    {
+                        var ok = m.TryGetProperty("supportedGenerationMethods", out var sm)
+                                 && sm.EnumerateArray().Any(x => x.GetString() == "generateContent");
+                        if (ok && m.TryGetProperty("name", out var n) && n.GetString() is { } name)
+                            names.Add(name.StartsWith("models/") ? name[7..] : name);
+                    }
+                _modelsCache = (DateTime.UtcNow, names.Count > 0 ? names : null);
+                return _modelsCache.Value.Names;
+            }
+            catch (Exception) when (!ct.IsCancellationRequested)
+            {
+                _modelsCache = (DateTime.UtcNow, null);
+                return null;
+            }
+        }
+        finally { ModelsGate.Release(); }
+    }
+
+    /// <summary>Model chính + dự phòng cấu hình (chỉ giữ tên có thật) + tự thêm các model Flash/Flash-Lite ổn định khác, tối đa 4 model.</summary>
+    private async Task<List<string>> BuildModelChainAsync(GeminiOptions g, string primary, CancellationToken ct)
+    {
+        var available = await AvailableModelsAsync(g, ct);
+        var chain = new List<string> { primary };
+        void Add(string m) { if (!string.IsNullOrWhiteSpace(m) && !chain.Contains(m, StringComparer.OrdinalIgnoreCase)) chain.Add(m); }
+
+        foreach (var m in g.FallbackModels)
+            if (available is null || available.Contains(m)) Add(m);
+        if (available is not null)
+        {
+            foreach (var m in available
+                         .Where(n => n.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase) && n.Contains("flash", StringComparison.OrdinalIgnoreCase) && !ExcludedModel.IsMatch(n))
+                         .OrderBy(n => n.Contains("lite", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                         .ThenBy(n => n.Contains("latest", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                         .ThenByDescending(n => n, StringComparer.OrdinalIgnoreCase))
+                Add(m);
+        }
+        return chain.Take(4).ToList();
+    }
+
     public async Task<(string text, int? tokens, string model)> CallAsync(LlmRequest req, CancellationToken ct)
     {
         var g = _opt.Gemini;
         var primary = req.Images.Count > 0 ? g.VisionModel : g.Model;
-        var models = new List<string> { primary };
-        models.AddRange(g.FallbackModels.Where(m => !string.IsNullOrWhiteSpace(m) && !m.Equals(primary, StringComparison.OrdinalIgnoreCase)));
+        var models = await BuildModelChainAsync(g, primary, ct);
 
         var codes = new List<string>();
         string? lastMsg = null;

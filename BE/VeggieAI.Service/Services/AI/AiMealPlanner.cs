@@ -21,7 +21,7 @@ public class AiMealPlanner : IAiMealPlanner
     private const decimal MaxDeviation = 0.12m;      // ±12% kcal per day
     private const int MaxAttempts = 2;
     private const int LlmChunkDays = 7;      // mỗi lần gọi AI tối đa 7 ngày để JSON không vượt giới hạn token
-    private const int MaxParallelChunks = 3;
+    private const int MaxParallelChunks = 2;
     private const int MaxCandidatesForLlm = 60;
 
     private readonly VeggieAIDbContext _db;
@@ -70,17 +70,31 @@ public class AiMealPlanner : IAiMealPlanner
             // Thực đơn dài được chia thành các lô <= LlmChunkDays ngày, gọi AI song song có giới hạn rồi ghép lại
             var chunks = dates.Chunk(LlmChunkDays).Select(c => c.ToList()).ToList();
             using var gate = new SemaphoreSlim(MaxParallelChunks);
+            var aiDown = false; // một lô đã thử hết mọi model mà vẫn lỗi → các lô chưa chạy bỏ qua AI để khỏi dồn thêm lượt gọi
             var results = await Task.WhenAll(chunks.Select(async chunk =>
             {
                 await gate.WaitAsync(ct);
-                try { return await RunLlmChunkAsync(userId, profile, goal, targets, mealTypes, chunk, llmCandidates, byId, preferred, req.Note, ct); }
+                try
+                {
+                    if (Volatile.Read(ref aiDown))
+                        return new ChunkResult(null, new(), new(), null, null, 0);
+                    var r = await RunLlmChunkAsync(userId, profile, goal, targets, mealTypes, chunk, llmCandidates, byId, preferred, req.Note, ct);
+                    if (r.Notices.Count > 0) Volatile.Write(ref aiDown, true);
+                    return r;
+                }
                 finally { gate.Release(); }
             }));
+
+            var failedChunks = results.Count(r => r.Notices.Count > 0 || (r.Attempts == 0));
+            var firstFailure = results.SelectMany(r => r.Notices).FirstOrDefault();
+            if (firstFailure is not null)
+                notices.Add(chunks.Count > 1
+                    ? $"{firstFailure} [{failedChunks}/{chunks.Count} lô không có AI]"
+                    : firstFailure);
 
             foreach (var r in results)
             {
                 attempts = Math.Max(attempts, r.Attempts);
-                foreach (var n in r.Notices) if (!notices.Contains(n)) notices.Add(n);
                 if (r.Plan is null) continue;
                 plan ??= new Dictionary<DateOnly, List<PlannedMeal>>();
                 foreach (var kv in r.Plan) plan[kv.Key] = kv.Value;
@@ -168,7 +182,7 @@ public class AiMealPlanner : IAiMealPlanner
             }
             catch (AppException ex) when (ex.StatusCode >= 500)
             {
-                notices.Add($"{ex.Message} Hệ thống đã dùng thuật toán dự phòng cho phần này.");
+                notices.Add($"{ex.Message} Hệ thống đã dùng thuật toán dự phòng.");
                 break;
             }
         }
