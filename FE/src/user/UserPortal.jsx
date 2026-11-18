@@ -44,6 +44,9 @@ const Account = lazy(() =>
 const Community = lazy(() =>
   import("./Community").then((module) => ({ default: module.Community })),
 );
+const EditPost = lazy(() =>
+  import("./PostComposer").then((module) => ({ default: module.EditPost })),
+);
 const CreatePost = lazy(() =>
   import("./PostComposer").then((module) => ({ default: module.CreatePost })),
 );
@@ -273,6 +276,18 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   else if (screen === "user-profile")
     content = <Profile flash={flash} go={go} />;
   else if (screen === "user-settings") content = <Account user={user} />;
+  else if (
+    screen === "create-post" &&
+    new URLSearchParams(window.location.search).get("id")
+  )
+    content = (
+      <EditPost
+        key={`${user?.id || user?.email}:${window.location.search}`}
+        id={new URLSearchParams(window.location.search).get("id")}
+        go={go}
+        user={user}
+      />
+    );
   else if (["create-post", "create-video"].includes(screen))
     content = (
       <CreatePost

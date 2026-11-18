@@ -10,7 +10,7 @@ import {
   ArrowUp,
 } from "lucide-react";
 import { useResource, Button, State, PageControls, Notice } from "./ui";
-import { listOf, isTestContent, statusLabel, userError } from "./data";
+import { listOf, isTestContent, postStatusLabel, userError } from "./data";
 import { request } from "./api";
 import { PostMeta, PostMedia, CommunityDialog } from "./PostParts";
 
@@ -68,7 +68,10 @@ export function Community({ mine, go, user, flash, videos = false }) {
     },
     [mine, page, keyword, type, sort, user?.id],
   );
-  const items = listOf(resource.data).filter((post) => !isTestContent(post));
+  // Bài của chính mình luôn hiện (kể cả tiêu đề có chữ "test"); chỉ lọc nội dung mẫu ở trang khám phá.
+  const items = listOf(resource.data).filter(
+    (post) => mine || !isTestContent(post),
+  );
   const remove = async () => {
     if (busy) return;
     setBusy(true);
@@ -247,10 +250,18 @@ export function Community({ mine, go, user, flash, videos = false }) {
                           className="vp-post-status"
                           data-status={post.status}
                         >
-                          {statusLabel(post.status)}
+                          {postStatusLabel(post)}
                         </span>
                       )}
                     </div>
+                    {mine &&
+                      ["rejected", "revision"].includes(post.moderation?.decision) &&
+                      post.moderation?.note && (
+                      <p className="vp-post-moderation">
+                        <strong>Ghi chú từ người duyệt:</strong>{" "}
+                        {post.moderation.note}
+                      </p>
+                    )}
                     {post.postType === "blog" && post.mediaUrl && (
                       <a
                         className="vp-post-preview"
@@ -298,6 +309,15 @@ export function Community({ mine, go, user, flash, videos = false }) {
                         </a>
                       </div>
                       <div className="vp-post-card-actions">
+                        {mine && post.canEdit && (
+                          <button
+                            className="vp-icon"
+                            aria-label={`Sửa bài ${post.title}`}
+                            onClick={() => go("create-post", post.id)}
+                          >
+                            <PenLine size={17} />
+                          </button>
+                        )}
                         {mine && (
                           <button
                             className="vp-icon"

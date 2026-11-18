@@ -12,15 +12,45 @@ import {
   List,
   Link,
 } from "lucide-react";
-import { useResource, Button, Notice, PageHeading } from "./ui";
+import { useResource, Button, Notice, PageHeading, State } from "./ui";
 import { request } from "./api";
 import { listOf, isTestContent, statusLabel, userError } from "./data";
 import { validatePost, recipeNumber } from "./postData";
 import { PostMedia, PostBody, CommunityDialog } from "./PostParts";
 
-export function CreatePost({ go, user, video = false }) {
+export function EditPost({ id, go, user }) {
+  const resource = useResource(
+    async (signal) => {
+      if (!/^[1-9]\d*$/.test(id || ""))
+        throw new Error("Liên kết bài viết không hợp lệ.");
+      return request(`/community/posts/${id}`, undefined, undefined, signal);
+    },
+    [id],
+  );
+  return (
+    <State resource={resource}>
+      {resource.data &&
+        (resource.data.canEdit ? (
+          <CreatePost go={go} user={user} editPost={resource.data} />
+        ) : (
+          <Notice error>Bạn không thể sửa bài viết này.</Notice>
+        ))}
+    </State>
+  );
+}
+
+export function CreatePost({ go, user, video = false, editPost = null }) {
+  const editing = !!editPost;
   const draftKey = `veggie:community-draft:v1:${user.id ?? user.email}`;
   const [draft, setDraft] = useState(() => {
+    if (editPost)
+      return {
+        postType: editPost.postType,
+        title: editPost.title || "",
+        content: editPost.content || "",
+        mediaUrl: editPost.mediaUrl || "",
+        recipeId: editPost.recipeId ? String(editPost.recipeId) : "",
+      };
     const blank = {
       postType: video ? "video" : "blog",
       title: "",
@@ -69,7 +99,7 @@ export function CreatePost({ go, user, video = false }) {
     draft.recipeId
   );
   useEffect(() => {
-    if (result) return;
+    if (result || editing) return;
     try {
       if (dirty) sessionStorage.setItem(draftKey, JSON.stringify(draft));
       else sessionStorage.removeItem(draftKey);
@@ -79,7 +109,7 @@ export function CreatePost({ go, user, video = false }) {
     }
   }, [draft, draftKey, dirty, result]);
   useEffect(() => {
-    if (!dirty || result || draftStored) return;
+    if (!dirty || result || draftStored || editing) return;
     const warn = (e) => {
       e.preventDefault();
       e.returnValue = "";
@@ -128,13 +158,18 @@ export function CreatePost({ go, user, video = false }) {
     setBusy(true);
     setError("");
     try {
-      const response = await request("/community/posts", {
-        postType: draft.postType,
+      const payload = {
         title: draft.title.trim(),
         content: draft.content.trim() || null,
         mediaUrl: draft.mediaUrl.trim() || null,
         recipeId: draft.recipeId ? recipeNumber(draft.recipeId) : null,
-      });
+      };
+      const response = editing
+        ? await request(`/community/posts/${editPost.id}`, payload, "PUT")
+        : await request("/community/posts", {
+            postType: draft.postType,
+            ...payload,
+          });
       if (!response?.id)
         throw new Error(
           "Chưa xác nhận được bài đã gửi. Kiểm tra Bài của tôi trước khi gửi lại.",
@@ -159,7 +194,7 @@ export function CreatePost({ go, user, video = false }) {
           <Check size={30} />
         </span>
         <span className="vp-eyebrow">{statusLabel(result.status)}</span>
-        <h1>Đã gửi bài viết</h1>
+        <h1>{editing ? "Đã cập nhật bài viết" : "Đã gửi bài viết"}</h1>
         <p>
           “{result.title}”
           {result.status === "published"
@@ -182,12 +217,23 @@ export function CreatePost({ go, user, video = false }) {
       <button
         className="vp-back"
         disabled={busy}
-        onClick={() => go("community")}
+        onClick={() =>
+          editing ? go("post-detail", editPost.id) : go("community")
+        }
       >
         <ArrowLeft size={18} />
-        Cộng đồng
+        {editing ? "Quay lại bài viết" : "Cộng đồng"}
       </button>
-      <PageHeading eyebrow="Cộng đồng" title="Viết bài" />
+      <PageHeading
+        eyebrow="Cộng đồng"
+        title={editing ? "Sửa bài viết" : "Viết bài"}
+      />
+      {editing && (
+        <Notice>
+          Sau khi lưu, bài sẽ được gửi kiểm duyệt lại trước khi hiển thị công
+          khai.
+        </Notice>
+      )}
       <form onSubmit={submit} noValidate>
         <div className="vp-composer-toolbar">
           <div
@@ -197,7 +243,7 @@ export function CreatePost({ go, user, video = false }) {
           >
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || editing}
               aria-pressed={draft.postType === "blog"}
               onClick={() => update("postType", "blog")}
             >
@@ -206,7 +252,7 @@ export function CreatePost({ go, user, video = false }) {
             </button>
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || editing}
               aria-pressed={draft.postType === "video"}
               onClick={() => update("postType", "video")}
             >
@@ -398,11 +444,11 @@ export function CreatePost({ go, user, video = false }) {
                 : !draft.mediaUrl.trim())
             }
           >
-            {busy ? "Đang gửi…" : "Gửi bài viết"}
+            {busy ? "Đang gửi…" : editing ? "Lưu và gửi duyệt lại" : "Gửi bài viết"}
             <ArrowRight size={17} />
           </Button>
         </div>
-        {dirty && (
+        {dirty && !editing && (
           <button
             type="button"
             className="vp-text-button vp-discard-draft"

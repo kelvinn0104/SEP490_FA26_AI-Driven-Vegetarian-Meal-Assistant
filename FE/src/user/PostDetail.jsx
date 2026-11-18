@@ -9,10 +9,11 @@ import {
   Send,
   CookingPot,
   ArrowRight,
+  PenLine,
 } from "lucide-react";
 import { Button, State, Notice, useResource } from "./ui";
 import { request } from "./api";
-import { isTestContent, statusLabel, userError } from "./data";
+import { isTestContent, postStatusLabel, userError } from "./data";
 import { postDate } from "./postData";
 import { PostMeta, PostMedia, PostBody, CommunityDialog } from "./PostParts";
 
@@ -81,7 +82,8 @@ export function PostDetail({ id, go, user, flash }) {
           undefined,
           signal,
         );
-        if (!post?.id || isTestContent(post))
+        // FE lưu id người dùng dạng "USR-0003" nên không so sánh được với authorId số: dùng cờ canEdit do BE trả (chỉ tác giả).
+        if (!post?.id || (!post.canEdit && isTestContent(post)))
           throw new Error("Bài viết này chưa sẵn sàng.");
         return post;
       } catch (error) {
@@ -103,6 +105,7 @@ export function PostDetail({ id, go, user, flash }) {
   const [showLink, setShowLink] = useState(false);
   const lock = useRef(false);
   const published = post?.status === "published";
+  const ownPost = !!post?.canEdit;
   useEffect(() => {
     if (resource.data && window.location.hash === "#post-comments")
       document.getElementById("post-comments")?.scrollIntoView();
@@ -176,7 +179,7 @@ export function PostDetail({ id, go, user, flash }) {
                   </span>
                   {!published && (
                     <span className="vp-post-status" data-status={post.status}>
-                      {statusLabel(post.status)}
+                      {postStatusLabel(post)}
                     </span>
                   )}
                 </div>
@@ -186,8 +189,18 @@ export function PostDetail({ id, go, user, flash }) {
               <PostMedia key={post.mediaUrl} post={post} />
               {!published && (
                 <Notice>
-                  Bài chưa hiển thị công khai. Bình chọn và bình luận mở khi bài
-                  được duyệt.
+                  {post.moderation?.decision === "rejected"
+                    ? "Bài không được duyệt và chưa hiển thị công khai."
+                    : post.moderation?.decision === "revision"
+                      ? "Người duyệt đề nghị chỉnh sửa trước khi đăng."
+                      : "Bài chưa hiển thị công khai. Bình chọn và bình luận mở khi bài được duyệt."}
+                  {post.moderation?.note && (
+                    <>
+                      {" "}
+                      <strong>Ghi chú:</strong> {post.moderation.note}
+                    </>
+                  )}
+                  {post.canEdit && " Bạn có thể sửa và gửi duyệt lại."}
                 </Notice>
               )}
               <PostBody content={post.content} />
@@ -261,7 +274,16 @@ export function PostDetail({ id, go, user, flash }) {
                   <Link size={17} />
                   Sao chép liên kết
                 </button>
-                {published && (
+                {post.canEdit && (
+                  <button
+                    className="vp-text-button"
+                    onClick={() => go("create-post", post.id)}
+                  >
+                    <PenLine size={16} />
+                    Sửa bài
+                  </button>
+                )}
+                {published && !ownPost && (
                   <button
                     className="vp-text-button"
                     disabled={!!busy}
@@ -332,9 +354,7 @@ export function PostDetail({ id, go, user, flash }) {
               <div className="vp-comment-list">
                 {post.comments?.length ? (
                   post.comments.map((entry) => {
-                    const own =
-                      user?.id != null &&
-                      String(user.id) === String(entry.userId);
+                    const own = !!entry.canEdit;
                     return (
                       <article key={entry.id} className="vp-comment">
                         <div className="vp-comment-heading">

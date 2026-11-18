@@ -1056,3 +1056,13 @@
     font-size: 12px;
   }
 }
+
+.vp .vp-post-moderation {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid currentColor;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
