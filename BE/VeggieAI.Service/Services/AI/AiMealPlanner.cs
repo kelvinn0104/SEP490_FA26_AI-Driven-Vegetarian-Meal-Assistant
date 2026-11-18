@@ -168,7 +168,7 @@ public class AiMealPlanner : IAiMealPlanner
             }
             catch (AppException ex) when (ex.StatusCode >= 500)
             {
-                notices.Add("AI tạm thời quá tải hoặc không phản hồi — hệ thống đã dùng thuật toán dự phòng cho phần này.");
+                notices.Add($"{ex.Message} Hệ thống đã dùng thuật toán dự phòng cho phần này.");
                 break;
             }
         }
