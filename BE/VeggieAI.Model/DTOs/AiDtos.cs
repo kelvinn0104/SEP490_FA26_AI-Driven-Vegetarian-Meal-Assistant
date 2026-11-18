@@ -148,7 +148,8 @@ public class SendChatMessageRequest
 
 public record ChatSessionDto(int Id, int? PlanId, DateTime CreatedAt, string? LastMessage, int MessageCount);
 public record ChatMessageDto(int Id, string Sender, string Content, DateTime CreatedAt);
-public record ChatReplyDto(ChatMessageDto UserMessage, ChatMessageDto AiMessage);
+public record ChatCitationDto(int Index, string Type, int Id, string Title);
+public record ChatReplyDto(ChatMessageDto UserMessage, ChatMessageDto AiMessage, IReadOnlyList<ChatCitationDto>? Citations = null);
 
 // ---------------- Nutrient amounts (shared with ProfileDtos) ----------------
 

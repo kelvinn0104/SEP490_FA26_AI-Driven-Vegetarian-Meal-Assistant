@@ -104,13 +104,15 @@ public class ChatService : IChatService
         await _db.SaveChangesAsync(ct);
 
         string answer;
+        var hits = await ChatKnowledge.RetrieveAsync(_db, userId, text, ct);
+        var citations = ChatKnowledge.ToCitations(hits);
         var req = new LlmRequest
         {
             Task = AiModelTypes.Chatbot,
             UserId = userId,
             Temperature = 0.6,
             MaxOutputTokens = 2048,
-            SystemPrompt = await BuildSystemPromptAsync(userId, session.PlanId, ct),
+            SystemPrompt = await BuildSystemPromptAsync(userId, session.PlanId, ct) + ChatKnowledge.ToPromptBlock(hits),
         };
         req.Messages.AddRange(history.Select(m => m.Sender == "ai" ? LlmMessage.Assistant(m.Content) : LlmMessage.User(m.Content)));
         req.Messages.Add(LlmMessage.User(userMsg.Content));
@@ -133,13 +135,14 @@ public class ChatService : IChatService
         if (IsMedicalTopic(text) && !answer.Contains(Disclaimer, StringComparison.Ordinal))
             answer += "\n\n" + Disclaimer;
 
+        answer += ChatKnowledge.ToFooter(citations);
         var aiMsg = new ChatMessage { SessionId = sessionId, Sender = "ai", Content = answer };
         _db.ChatMessages.Add(aiMsg);
         await _db.SaveChangesAsync(ct);
 
         return new ChatReplyDto(
             new ChatMessageDto(userMsg.Id, userMsg.Sender, userMsg.Content, userMsg.CreatedAt),
-            new ChatMessageDto(aiMsg.Id, aiMsg.Sender, aiMsg.Content, aiMsg.CreatedAt));
+            new ChatMessageDto(aiMsg.Id, aiMsg.Sender, aiMsg.Content, aiMsg.CreatedAt), citations);
     }
 
     public async Task DeleteSessionAsync(int userId, int sessionId, CancellationToken ct = default)
