@@ -100,7 +100,13 @@ public class LlmClient : ILlmClient
             await LogAsync(request, (int)sw.ElapsedMilliseconds, null, false, ex.Message);
             if (ex is AppException) throw;
             // Chi tiết lỗi nhà cung cấp chỉ ghi log/AiModelLog, không trả cho người dùng
-            throw new AppException("Dịch vụ AI đang quá tải hoặc không phản hồi, vui lòng thử lại sau.", 502);
+            throw new AppException(ex switch
+            {
+                GeminiProvider.LlmUnavailableException u => $"Dịch vụ AI đang quá tải hoặc không phản hồi ({u.Summary}).",
+                HttpRequestException h when System.Text.RegularExpressions.Regex.Match(h.Message, @"Gemini (\d{3})") is { Success: true } m
+                    => $"Gemini từ chối yêu cầu (HTTP {m.Groups[1].Value}) — kiểm tra API key/quyền/cấu hình model.",
+                _ => "Dịch vụ AI đang quá tải hoặc không phản hồi, vui lòng thử lại sau.",
+            }, 502);
         }
     }
 
@@ -142,7 +148,15 @@ public class GeminiProvider
     /// <summary>Lỗi tạm thời của một model (quá tải/timeout/không tìm thấy) → chuyển sang model dự phòng.</summary>
     private sealed class TransientLlmException : Exception
     {
-        public TransientLlmException(string message) : base(message) { }
+        public string Code { get; }
+        public TransientLlmException(string code, string message) : base(message) { Code = code; }
+    }
+
+    /// <summary>Mọi model đều lỗi tạm thời. Summary chỉ gồm tên model + mã lỗi (an toàn để hiển thị).</summary>
+    internal sealed class LlmUnavailableException : HttpRequestException
+    {
+        public string Summary { get; }
+        public LlmUnavailableException(string summary, string message) : base(message) { Summary = summary; }
     }
 
     public async Task<(string text, int? tokens, string model)> CallAsync(LlmRequest req, CancellationToken ct)
@@ -152,13 +166,14 @@ public class GeminiProvider
         var models = new List<string> { primary };
         models.AddRange(g.FallbackModels.Where(m => !string.IsNullOrWhiteSpace(m) && !m.Equals(primary, StringComparison.OrdinalIgnoreCase)));
 
-        TransientLlmException? last = null;
+        var codes = new List<string>();
+        string? lastMsg = null;
         for (var i = 0; i < models.Count; i++)
         {
             try { return await CallModelAsync(req, g, models[i], retryOnOverload: i == 0, ct); }
-            catch (TransientLlmException ex) { last = ex; }
+            catch (TransientLlmException ex) { codes.Add($"{models[i]}: {ex.Code}"); lastMsg = ex.Message; }
         }
-        throw new HttpRequestException($"Tất cả model Gemini đều không khả dụng ({string.Join(" → ", models)}). Lỗi cuối: {last?.Message}");
+        throw new LlmUnavailableException(string.Join("; ", codes), $"Tất cả model Gemini đều không khả dụng ({string.Join("; ", codes)}). Lỗi cuối: {lastMsg}");
     }
 
     private async Task<(string text, int? tokens, string model)> CallModelAsync(LlmRequest req, GeminiOptions g, string model,
@@ -202,13 +217,13 @@ public class GeminiProvider
             try { return await PostAsync(g, model, body, cts.Token); }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
-                throw new TransientLlmException($"{model}: quá thời gian chờ {g.AttemptTimeoutSeconds}s");
+                throw new TransientLlmException("hết thời gian chờ", $"{model}: quá thời gian chờ {g.AttemptTimeoutSeconds}s");
             }
-            catch (HttpRequestException ex) { throw new TransientLlmException($"{model}: {ex.Message}"); }
+            catch (HttpRequestException ex) { throw new TransientLlmException("lỗi kết nối", $"{model}: {ex.Message}"); }
         }
 
         var (status, raw) = await PostTimedAsync();
-        if (status is 429 or 503 && retryOnOverload)
+        if (status == 503 && retryOnOverload)
         {
             await Task.Delay(TimeSpan.FromSeconds(1.5), ct);
             (status, raw) = await PostTimedAsync();
@@ -219,7 +234,7 @@ public class GeminiProvider
             (status, raw) = await PostTimedAsync();
         }
         if (status is 429 or 404 or 408 or >= 500)
-            throw new TransientLlmException($"{model}: HTTP {status} {Trim(raw)}");
+            throw new TransientLlmException(status.ToString(), $"{model}: HTTP {status} {Trim(raw)}");
         if (status is < 200 or >= 300)
             throw new HttpRequestException($"Gemini {status}: {Trim(raw)}");
 
