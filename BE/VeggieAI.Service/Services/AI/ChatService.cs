@@ -19,6 +19,21 @@ public interface IChatService
 public class ChatService : IChatService
 {
     private const int HistoryMessages = 12;
+
+    public const string Disclaimer =
+        "⚠️ Lưu ý: thông tin trên chỉ mang tính tham khảo về dinh dưỡng, không thay thế chẩn đoán hay điều trị của bác sĩ. " +
+        "Nếu bạn có bệnh lý, đang mang thai/cho con bú hoặc đang dùng thuốc, hãy hỏi bác sĩ hoặc chuyên gia dinh dưỡng.";
+
+    private static readonly string[] MedicalKeywords =
+    {
+        "bệnh", "benh", "thuốc", "thuoc", "tiểu đường", "tieu duong", "huyết áp", "huyet ap", "mỡ máu", "mo mau", "gout",
+        "mang thai", "bà bầu", "ba bau", "cho con bú", "ung thư", "ung thu", "thiếu máu", "thieu mau", "dạ dày", "da day",
+        "đau", "dau bung", "triệu chứng", "trieu chung", "chẩn đoán", "chan doan", "điều trị", "dieu tri", "dị ứng", "di ung",
+        "suy thận", "suy than", "tim mạch", "tim mach", "cholesterol", "đường huyết", "duong huyet", "diabetes", "medication",
+    };
+
+    private static bool IsMedicalTopic(string text) =>
+        MedicalKeywords.Any(k => text.Contains(k, StringComparison.OrdinalIgnoreCase));
     private readonly VeggieAIDbContext _db;
     private readonly ILlmClient _llm;
 
@@ -113,6 +128,10 @@ public class ChatService : IChatService
             await _db.SaveChangesAsync(CancellationToken.None);
             throw new AppException("Trợ lý AI đang bận, vui lòng thử lại sau ít phút.", 503, "AI_UNAVAILABLE");
         }
+
+        // SDD 3.19 (LI-01): câu hỏi liên quan y tế → luôn kèm khuyến cáo không thay thế tư vấn y khoa
+        if (IsMedicalTopic(text) && !answer.Contains(Disclaimer, StringComparison.Ordinal))
+            answer += "\n\n" + Disclaimer;
 
         var aiMsg = new ChatMessage { SessionId = sessionId, Sender = "ai", Content = answer };
         _db.ChatMessages.Add(aiMsg);

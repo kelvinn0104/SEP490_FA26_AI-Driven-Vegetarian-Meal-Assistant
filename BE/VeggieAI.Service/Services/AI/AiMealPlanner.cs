@@ -36,7 +36,7 @@ public class AiMealPlanner : IAiMealPlanner
     public async Task<GeneratedMealPlanDto> GenerateAsync(int userId, GenerateMealPlanRequest req, CancellationToken ct = default)
     {
         var profile = await _db.HealthProfiles.AsNoTracking().FirstOrDefaultAsync(h => h.UserId == userId, ct)
-                      ?? throw new AppException("Bạn cần tạo hồ sơ sức khỏe trước khi lập thực đơn.", 409);
+                      ?? throw new AppException("Bạn cần tạo hồ sơ sức khỏe trước khi lập thực đơn.", 400);
         var goal = req.HealthGoal ?? profile.HealthGoal;
         var targets = goal == profile.HealthGoal ? profile.Targets() : await TargetsForGoalAsync(profile, goal, ct);
 
@@ -269,6 +269,9 @@ public class AiMealPlanner : IAiMealPlanner
             ?? throw AppException.NotFound("Thực đơn");
         var profile = await db.HealthProfiles.AsNoTracking().FirstOrDefaultAsync(h => h.UserId == userId, ct);
         var targets = profile?.Targets() ?? NutrientAmountsDto.Zero;
+        if (profile != null && !string.Equals(plan.HealthGoal, profile.HealthGoal, StringComparison.OrdinalIgnoreCase))
+            targets = (await NutritionTargetsResolver.ResolveAsync(db, profile.Gender, profile.DateOfBirth, profile.HeightCm,
+                profile.WeightKg, profile.ActivityLevel, plan.HealthGoal, ct)).ToAmounts().Rounded();
         var hasList = await db.ShoppingLists.AnyAsync(s => s.PlanId == planId, ct);
 
         var days = new List<MealPlanDayDto>();

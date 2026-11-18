@@ -85,6 +85,15 @@ public class MealPlanService : IMealPlanService
 
         var plan = await OwnPlanAsync(userId, planId, ct);
         plan.Status = s;
+        if (s == "active")
+        {
+            // SDD 3.15: kích hoạt thực đơn mới thì hủy các thực đơn active khác trùng khoảng ngày
+            var overlapping = await _db.MealPlans
+                .Where(p => p.UserId == userId && p.Id != plan.Id && p.Status == "active"
+                            && p.StartDate <= plan.EndDate && p.EndDate >= plan.StartDate)
+                .ToListAsync(ct);
+            foreach (var o in overlapping) o.Status = "cancelled";
+        }
         await _db.SaveChangesAsync(ct);
         return await AiMealPlanner.BuildDetailAsync(_db, userId, planId, ct);
     }

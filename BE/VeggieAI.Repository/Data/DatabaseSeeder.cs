@@ -709,6 +709,7 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
         }
 
         await EnsureDemoRecipeIngredientsAsync(context);
+        await AllergenLinker.EnsureAsync(context);
     }
 
     /// <summary>
