@@ -20,6 +20,8 @@ public class AiMealPlanner : IAiMealPlanner
 {
     private const decimal MaxDeviation = 0.12m;      // ±12% kcal per day
     private const int MaxAttempts = 2;
+    private const int LlmChunkDays = 7;      // mỗi lần gọi AI tối đa 7 ngày để JSON không vượt giới hạn token
+    private const int MaxParallelChunks = 3;
     private const int MaxCandidatesForLlm = 80;
 
     private readonly VeggieAIDbContext _db;
@@ -64,42 +66,29 @@ public class AiMealPlanner : IAiMealPlanner
         {
             var llmCandidates = candidates.Take(MaxCandidatesForLlm).ToList();
             var byId = llmCandidates.ToDictionary(c => c.Id);
-            string? feedback = null, lastRaw = null;
-            while (attempts < MaxAttempts)
+
+            // Thực đơn dài được chia thành các lô <= LlmChunkDays ngày, gọi AI song song có giới hạn rồi ghép lại
+            var chunks = dates.Chunk(LlmChunkDays).Select(c => c.ToList()).ToList();
+            using var gate = new SemaphoreSlim(MaxParallelChunks);
+            var results = await Task.WhenAll(chunks.Select(async chunk =>
             {
-                attempts++;
-                try
-                {
-                    var res = await _llm.GenerateAsync(new LlmRequest
-                    {
-                        Task = AiModelTypes.MealPlanner,
-                        UserId = userId,
-                        JsonOutput = true,
-                        Temperature = 0.5,
-                        MaxOutputTokens = 8192,
-                        SystemPrompt = SystemPromptPlanner,
-                        Messages = BuildPlannerMessages(profile, goal, targets, mealTypes, dates, llmCandidates, preferred, req.Note, feedback, lastRaw),
-                    }, ct);
-                    lastRaw = res.Text;
-                    var parsed = LlmJson.Parse<LlmPlan>(res.Text) ?? throw new JsonException("empty");
-                    var (candidatePlan, errors) = Validate(parsed, dates, mealTypes, byId, targets.Kcal);
-                    if (candidatePlan.Count > 0) { plan = candidatePlan; notes = parsed.Notes; aiLabel = $"{res.Provider}/{res.Model}"; }
-                    lastErrors = errors;
-                    if (errors.Count == 0) break;
-                    feedback = string.Join("\n", errors.Take(15));
-                }
-                catch (JsonException ex)
-                {
-                    _log.LogWarning(ex, "Planner JSON parse failed");
-                    lastErrors = new() { "JSON không hợp lệ" };
-                    feedback = "Câu trả lời trước không phải JSON hợp lệ theo schema. Chỉ trả về JSON.";
-                }
-                catch (AppException ex) when (ex.StatusCode >= 500)
-                {
-                    notices.Add("AI lỗi: " + ex.Message);
-                    break;
-                }
+                await gate.WaitAsync(ct);
+                try { return await RunLlmChunkAsync(userId, profile, goal, targets, mealTypes, chunk, llmCandidates, byId, preferred, req.Note, ct); }
+                finally { gate.Release(); }
+            }));
+
+            foreach (var r in results)
+            {
+                attempts = Math.Max(attempts, r.Attempts);
+                notices.AddRange(r.Notices);
+                if (r.Plan is null) continue;
+                plan ??= new Dictionary<DateOnly, List<PlannedMeal>>();
+                foreach (var kv in r.Plan) plan[kv.Key] = kv.Value;
+                notes ??= r.Notes;
+                aiLabel ??= r.Label;
+                lastErrors = lastErrors.Concat(r.Errors).ToList();
             }
+            lastErrors = lastErrors.Where(e => e.Length > 0).ToList();
             if (plan is not null && lastErrors.Count > 0)
                 notices.Add($"AI chưa đạt đủ ràng buộc sau {attempts} lần ({lastErrors.Count} lỗi) — hệ thống đã tự chỉnh khẩu phần/bổ sung món.");
         }
@@ -133,6 +122,57 @@ public class AiMealPlanner : IAiMealPlanner
 
         var detail = await BuildDetailAsync(_db, userId, entity.Id, ct);
         return new GeneratedMealPlanDto(detail, generatedBy, notes, attempts, finalWarnings);
+    }
+
+    private sealed record ChunkResult(Dictionary<DateOnly, List<PlannedMeal>>? Plan, List<string> Errors, List<string> Notices,
+        string? Notes, string? Label, int Attempts);
+
+    private async Task<ChunkResult> RunLlmChunkAsync(int userId, HealthProfile profile, string goal, NutrientAmountsDto targets,
+        List<string> mealTypes, List<DateOnly> dates, List<Candidate> llmCandidates, Dictionary<int, Candidate> byId,
+        HashSet<int> preferred, string? note, CancellationToken ct)
+    {
+        var attempts = 0;
+        var notices = new List<string>();
+        string? aiLabel = null, notes = null;
+        Dictionary<DateOnly, List<PlannedMeal>>? plan = null;
+        List<string> lastErrors = new();
+        string? feedback = null, lastRaw = null;
+        while (attempts < MaxAttempts)
+        {
+            attempts++;
+            try
+            {
+                var res = await _llm.GenerateAsync(new LlmRequest
+                {
+                    Task = AiModelTypes.MealPlanner,
+                    UserId = userId,
+                    JsonOutput = true,
+                    Temperature = 0.5,
+                    MaxOutputTokens = 8192,
+                    SystemPrompt = SystemPromptPlanner,
+                    Messages = BuildPlannerMessages(profile, goal, targets, mealTypes, dates, llmCandidates, preferred, note, feedback, lastRaw),
+                }, ct);
+                lastRaw = res.Text;
+                var parsed = LlmJson.Parse<LlmPlan>(res.Text) ?? throw new JsonException("empty");
+                var (candidatePlan, errors) = Validate(parsed, dates, mealTypes, byId, targets.Kcal);
+                if (candidatePlan.Count > 0) { plan = candidatePlan; notes = parsed.Notes; aiLabel = $"{res.Provider}/{res.Model}"; }
+                lastErrors = errors;
+                if (errors.Count == 0) break;
+                feedback = string.Join("\n", errors.Take(15));
+            }
+            catch (JsonException ex)
+            {
+                _log.LogWarning(ex, "Planner JSON parse failed");
+                lastErrors = new() { "JSON không hợp lệ" };
+                feedback = "Câu trả lời trước không phải JSON hợp lệ theo schema. Chỉ trả về JSON.";
+            }
+            catch (AppException ex) when (ex.StatusCode >= 500)
+            {
+                notices.Add("AI lỗi: " + ex.Message);
+                break;
+            }
+        }
+        return new ChunkResult(plan, lastErrors, notices, notes, aiLabel, attempts);
     }
 
     public async Task<GeneratedMealPlanDto> SwapItemAsync(int userId, int planId, int itemId, SwapMealRequest req, CancellationToken ct = default)

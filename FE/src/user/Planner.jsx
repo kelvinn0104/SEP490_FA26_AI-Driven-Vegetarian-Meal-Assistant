@@ -532,7 +532,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   <input
                     type="number"
                     min="1"
-                    max="14"
+                    max="60"
                     required
                     value={days}
                     onChange={(e) => setDays(e.target.value)}
@@ -544,7 +544,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 role="group"
                 aria-label="Chọn nhanh số ngày"
               >
-                {[3, 7, 14].map((value) => (
+                {[3, 7, 14, 30].map((value) => (
                   <button
                     type="button"
                     key={value}

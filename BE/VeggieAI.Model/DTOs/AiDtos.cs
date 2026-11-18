@@ -173,7 +173,7 @@ public record RecipeSuggestionDto(int RecipeId, string Title, string? ImageUrl, 
 public class GenerateMealPlanRequest
 {
     public DateOnly? StartDate { get; set; }
-    [Range(1, 14)] public int Days { get; set; } = 7;
+    [Range(1, 60)] public int Days { get; set; } = 7;
     public List<string>? MealTypes { get; set; }
     public List<int>? PreferredIngredientIds { get; set; }
     public int? ScanId { get; set; }
