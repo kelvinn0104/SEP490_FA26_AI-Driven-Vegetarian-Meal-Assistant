@@ -161,8 +161,14 @@ export function Card({ recipe, open }) {
           </button>
         </h3>
         <p>
-          {amount(recipe.kcalPerServing)} kcal <span>·</span>{" "}
-          {amount(recipe.proteinG)} g đạm <small>/ khẩu phần</small>
+          {amount(recipe.kcalPerServing)} kcal
+          {recipe.proteinG != null && (
+            <>
+              {" "}
+              <span>·</span> {amount(recipe.proteinG)} g đạm
+            </>
+          )}{" "}
+          <small>/ khẩu phần</small>
         </p>
         <button
           className="vp-recipe-open"

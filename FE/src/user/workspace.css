@@ -710,6 +710,22 @@
 .vp-scan-waiting p {
   font-size: 13px;
 }
+.vp-scan-dish {
+  margin: 16px 0 4px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--theme-tint, #f2f5e9);
+}
+.vp-scan-dish h3 {
+  font-family: var(--font-editorial);
+  font-size: 22px;
+  margin: 4px 0 6px;
+}
+.vp-scan-dish p {
+  font-size: 13px;
+  margin: 4px 0 0;
+}
 .vp-detected-items {
   display: flex;
   flex-wrap: wrap;

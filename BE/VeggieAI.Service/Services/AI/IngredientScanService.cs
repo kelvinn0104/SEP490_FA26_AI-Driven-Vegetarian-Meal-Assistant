@@ -228,6 +228,7 @@ public class IngredientScanService : IIngredientScanService
                 Confidence = Math.Clamp(it.Confidence ?? 0.5, 0, 1),
                 Freshness = it.Freshness is "fresh" or "use_soon" or "spoiled" ? it.Freshness : "unknown",
                 EstimatedQuantityG = it.EstimatedQuantityG,
+                IsVegetarian = it.IsVegetarian,
             });
         }
         return payload;
@@ -239,6 +240,13 @@ public class IngredientScanService : IIngredientScanService
             .Select(i => i.IngredientId!.Value).Distinct().ToList();
 
         var suggestions = await SuggestRecipesByIngredientsAsync(usable, userId, 10, ct);
+
+        var bad = await _db.AllergenIngredientIdsAsync(userId, ct);
+        var allergic = p.Items.Where(i => i.IngredientId != null && bad.Contains(i.IngredientId.Value))
+            .Select(i => i.NameVi ?? i.Name).Distinct().ToList();
+        if (allergic.Count > 0)
+            message = (message is null ? "" : message + " ") +
+                      $"Lưu ý dị ứng: {string.Join(", ", allergic)} thuộc nhóm bạn đã khai báo. Các món gợi ý đã loại bỏ món chứa chúng.";
 
         var spoiled = p.Items.Where(i => i.Freshness == "spoiled").Select(i => i.NameVi ?? i.Name).ToList();
         if (spoiled.Count > 0)

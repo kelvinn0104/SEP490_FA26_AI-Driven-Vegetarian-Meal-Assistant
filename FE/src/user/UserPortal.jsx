@@ -65,6 +65,9 @@ const Nutrition = lazy(() =>
 const Notifications = lazy(() =>
   import("./Activity").then((module) => ({ default: module.Notifications })),
 );
+const Vision = lazy(() =>
+  import("./Vision").then((module) => ({ default: module.Vision })),
+);
 const titles = {
   home: "Khám phá món chay",
   discover: "Khám phá món chay",
@@ -78,6 +81,7 @@ const titles = {
   "create-plan": "Tạo thực đơn",
   "meal-history": "Lịch sử thực đơn",
   chatbot: "Trò chuyện",
+  scan: "Quét nguyên liệu",
   community: "Cộng đồng",
   "post-detail": "Bài viết cộng đồng",
   "user-collection": "Món đã lưu",
@@ -95,6 +99,7 @@ const protectedScreens = [
   "create-mealplan",
   "meal-history",
   "chatbot",
+  "scan",
   "user-collection",
   "user-profile",
   "user-settings",
@@ -112,6 +117,10 @@ const guestCopy = {
   chatbot: [
     "Bạn muốn hỏi gì về bữa chay?",
     "Đăng nhập để hỏi trợ lý và xem lại những cuộc trò chuyện của bạn.",
+  ],
+  scan: [
+    "Có gì trong bếp, nấu món đó.",
+    "Đăng nhập để quét ảnh nguyên liệu và nhận gợi ý món phù hợp với dị ứng của bạn.",
   ],
   "user-collection": [
     "Giữ lại món bạn muốn nấu.",
@@ -273,6 +282,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
       />
     );
   else if (screen === "chatbot") content = <Chat />;
+  else if (screen === "scan") content = <Vision open={open} flash={flash} />;
   else if (screen === "user-profile")
     content = <Profile flash={flash} go={go} />;
   else if (screen === "user-settings") content = <Account user={user} />;
