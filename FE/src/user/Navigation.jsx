@@ -15,6 +15,7 @@ import {
   Users,
   Check,
   ArrowRight,
+  ScanLine,
 } from "lucide-react";
 import { Button } from "./ui";
 import { m } from "motion/react";
@@ -26,7 +27,7 @@ const tabs = [
   ["me", "Cá nhân", UserRound],
 ];
 export function activeTab(screen) {
-  if (["home", "blog", "article-detail", "discover"].includes(screen))
+  if (["home", "blog", "article-detail", "discover", "scan"].includes(screen))
     return "home";
   if (
     [
@@ -89,6 +90,7 @@ const groups = [
   [
     "Khám phá thêm",
     [
+      ["scan", "Quét nguyên liệu", ScanLine],
       ["chatbot", "Hỏi trợ lý", MessageCircle],
       ["community", "Cộng đồng", Users],
     ],

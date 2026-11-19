@@ -35,6 +35,7 @@ const userScreens = [
   "create-mealplan",
   "meal-history",
   "chatbot",
+  "scan",
   "community",
   "post-detail",
   "blog",

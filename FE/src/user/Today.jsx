@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   MessageCircle,
+  ScanLine,
   CalendarDays,
   Check,
   HeartPulse,
@@ -251,6 +252,12 @@ export function Today({ user, go, open, flash }) {
       )}
       <section className="vp-today-tools" aria-label="Công cụ bếp">
         {[
+          [
+            "scan",
+            "Quét nguyên liệu",
+            "Chụp ảnh, nhận gợi ý món từ đồ có sẵn",
+            ScanLine,
+          ],
           [
             "chatbot",
             "Hỏi trợ lý bếp",

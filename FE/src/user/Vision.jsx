@@ -173,7 +173,28 @@ export function Vision({ open, flash }) {
           ) : (
             <>
               {result.message && <p>{result.message}</p>}
-              {!result.detectedItems?.length && (
+              {result.dishName && (
+                <div className="vp-scan-dish">
+                  <span className="vp-eyebrow">
+                    {result.imageType === "mixed"
+                      ? "Món ăn và nguyên liệu"
+                      : "Món ăn nhận diện được"}
+                  </span>
+                  <h3>{result.dishName}</h3>
+                  {result.dishDescription && <p>{result.dishDescription}</p>}
+                  {result.estimatedDishNutrition?.kcal > 0 && (
+                    <p>
+                      Ước tính một phần:{" "}
+                      {Math.round(result.estimatedDishNutrition.kcal)} kcal ·{" "}
+                      {Math.round(result.estimatedDishNutrition.proteinG || 0)}{" "}
+                      g đạm · {Math.round(result.estimatedDishNutrition.carbG || 0)}{" "}
+                      g tinh bột · {Math.round(result.estimatedDishNutrition.fatG || 0)}{" "}
+                      g béo. Chỉ là ước tính từ ảnh.
+                    </p>
+                  )}
+                </div>
+              )}
+              {!result.detectedItems?.length && !result.dishName && (
                 <Notice>
                   Chưa nhận diện được nguyên liệu. Thử ảnh rõ và đủ sáng hơn.
                 </Notice>
@@ -196,7 +217,11 @@ export function Vision({ open, flash }) {
                     />
                     {item.nameVi || item.name}
                     {item.ingredientId == null && (
-                      <small>Chưa có trong danh mục</small>
+                      <small>
+                        {item.isVegetarian === false
+                          ? "Không phải đồ chay"
+                          : "Chưa có trong danh mục"}
+                      </small>
                     )}
                   </label>
                 ))}

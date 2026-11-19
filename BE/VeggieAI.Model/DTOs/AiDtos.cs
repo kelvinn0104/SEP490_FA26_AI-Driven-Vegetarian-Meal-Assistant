@@ -120,6 +120,8 @@ public class DetectedItemDto
     public double Confidence { get; set; }
     public string Freshness { get; set; } = "unknown";
     public decimal? EstimatedQuantityG { get; set; }
+    /// <summary>false khi AI thấy thịt/cá/trứng/hải sản; null = không rõ.</summary>
+    public bool? IsVegetarian { get; set; }
 }
 
 public record ScanResultDto(

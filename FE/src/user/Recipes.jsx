@@ -63,6 +63,10 @@ export function Discover({ open, go, library = false }) {
                 ? `${filtered.length} công thức`
                 : "Thư viện món chay"}
             </small>
+            <button className="vp-text-button" onClick={() => go("scan")}>
+              Quét nguyên liệu
+              <ArrowRight size={17} />
+            </button>
             <button className="vp-text-button" onClick={() => go("planner")}>
               Lên thực đơn
               <ArrowRight size={17} />
