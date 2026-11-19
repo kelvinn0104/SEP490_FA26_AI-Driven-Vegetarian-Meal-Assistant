@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Send, History, Plus, Copy, Check } from "lucide-react";
+import { ArrowRight, Send, History, Plus, Copy, Check, Camera, X } from "lucide-react";
 import { AiActivity } from "./AiActivity";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useResource, Button, Notice, PageHeading, Dialog } from "./ui";
-import { listOf, userError, isUnavailableChat } from "./data";
+import { useResource, Button, Notice, PageHeading, Dialog, Card } from "./ui";
+import { listOf, userError, isUnavailableChat, validatePhoto } from "./data";
 import { request } from "./api";
 function historyPreview(message) {
   if (!message || isUnavailableChat(message))
@@ -78,6 +78,34 @@ function Answer({ content }) {
   );
 }
 
+function ScanBubble({ scan, photo, open }) {
+  const items = scan?.detectedItems || [];
+  const recipes = (scan?.suggestedRecipes || []).slice(0, 4);
+  return (
+    <div className="vp-chat-scan">
+      {photo && <img src={photo} alt="Ảnh bạn đã gửi" />}
+      {scan?.dishName && <p><strong>{scan.dishName}</strong></p>}
+      {items.length > 0 && (
+        <ul className="vp-chat-scan-items" aria-label="Nguyên liệu nhận diện được">
+          {items.map((it, i) => (
+            <li key={i} data-unknown={it.ingredientId == null ? "" : undefined}>
+              {it.nameVi || it.name}
+            </li>
+          ))}
+        </ul>
+      )}
+      {scan?.message && <p>{scan.message}</p>}
+      {recipes.length > 0 && open && (
+        <div className="vp-grid compact">
+          {recipes.map((r) => (
+            <Card key={r.recipeId} recipe={{ ...r, id: r.recipeId }} open={open} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChatHistory({ sessions, session, busy, select }) {
   return (
     <>
@@ -108,7 +136,7 @@ function ChatHistory({ sessions, session, busy, select }) {
     </>
   );
 }
-export function Chat() {
+export function Chat({ open }) {
   const sessions = useResource(
     (signal) => request("/chat/sessions", undefined, undefined, signal),
     [],
@@ -119,6 +147,8 @@ export function Chat() {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState("");
   const end = useRef();
   const composer = useRef(null);
   const lock = useRef(false);
@@ -157,6 +187,23 @@ export function Chat() {
         : "smooth",
     });
   }, [messages, busy]);
+  useEffect(() => {
+    if (!photo) {
+      setPhotoUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(photo);
+    setPhotoUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
+  const choosePhoto = (e) => {
+    const next = e.target.files?.[0];
+    e.target.value = "";
+    if (!next) return;
+    const message = validatePhoto(next);
+    setError(message);
+    if (!message) setPhoto(next);
+  };
   const select = async (id) => {
     if (lock.current) return;
     lock.current = true;
@@ -185,12 +232,33 @@ export function Chat() {
   };
   const send = async (e) => {
     e.preventDefault();
-    if (!text.trim() || lock.current) return;
+    if ((!text.trim() && !photo) || lock.current) return;
     lock.current = true;
     setBusy("send");
     setError("");
-    const content = text.trim();
+    let content = text.trim();
+    let scan = null;
+    const sentPhoto = photoUrl;
     try {
+      if (photo) {
+        const form = new FormData();
+        form.append("Image", photo);
+        scan = await request("/scans", form);
+        if (!scan?.scanId || !Array.isArray(scan.detectedItems))
+          throw new Error("Chưa nhận diện được ảnh. Vui lòng thử lại.");
+        const names = scan.detectedItems
+          .map((i) => i.nameVi || i.name)
+          .filter(Boolean);
+        if (!names.length && !scan.dishName)
+          throw new Error(
+            scan.message ||
+              "Chưa nhận diện được nguyên liệu. Thử ảnh rõ và đủ sáng hơn.",
+          );
+        const seen = scan.dishName
+          ? `Món trong ảnh: ${scan.dishName}${names.length ? `; nguyên liệu: ${names.join(", ")}` : ""}`
+          : `Nguyên liệu trong ảnh: ${names.join(", ")}`;
+        content = `${content || "Tôi vừa chụp ảnh, hãy gợi ý món chay phù hợp."}\n\n[${seen}]`;
+      }
       let id = session;
       if (!id) {
         const data = await request("/chat/sessions", {});
@@ -207,18 +275,21 @@ export function Chat() {
       if (isUnavailableChat(reply.aiMessage.content)) {
         setMessages((previous) => [
           ...previous,
-          reply.userMessage || { sender: "user", content },
+          { ...(reply.userMessage || { sender: "user", content }), scan, photo: sentPhoto },
         ]);
+        setPhoto(null);
+        setText("");
         setError("Trợ lý đang bận. Bạn có thể thử gửi lại sau.");
         sessions.reload();
         return;
       }
       setMessages((previous) => [
         ...previous,
-        reply.userMessage || { sender: "user", content },
+        { ...(reply.userMessage || { sender: "user", content }), scan, photo: sentPhoto },
         reply.aiMessage,
       ]);
       setText("");
+      setPhoto(null);
       sessions.reload();
     } catch (err) {
       setError(userError(err));
@@ -313,7 +384,14 @@ export function Chat() {
                   <strong>{m.sender === "user" ? "Bạn" : "Trợ lý"}</strong>
                   <div className="vp-prose">
                     {m.sender === "user" ? (
-                      <p className="vp-chat-user-text">{m.content}</p>
+                      <>
+                        <p className="vp-chat-user-text">
+                          {m.scan ? m.content.replace(/\n\n\[[^\]]*\]$/, "") : m.content}
+                        </p>
+                        {m.scan && (
+                          <ScanBubble scan={m.scan} photo={m.photo} open={open} />
+                        )}
+                      </>
                     ) : (
                       <Answer content={m.content} />
                     )}
@@ -365,14 +443,42 @@ export function Chat() {
                 ))}
               </div>
             )}
+          {photoUrl && (
+            <div className="vp-chat-attach">
+              <img src={photoUrl} alt="Ảnh sẽ gửi" />
+              <button
+                type="button"
+                className="vp-icon"
+                aria-label="Bỏ ảnh"
+                disabled={busy === "send"}
+                onClick={() => setPhoto(null)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
           <form className="vp-chat-form" onSubmit={send}>
+            <label
+              className="vp-icon vp-chat-photo"
+              aria-label="Đính kèm ảnh nguyên liệu"
+              title="Đính kèm ảnh nguyên liệu"
+            >
+              <Camera size={20} />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                disabled={!!busy}
+                onChange={choosePhoto}
+              />
+            </label>
             <textarea
               ref={composer}
               aria-label="Tin nhắn"
               placeholder={
                 messages.length
                   ? "Hỏi tiếp về món này…"
-                  : "Bạn có nguyên liệu gì, muốn nấu món nào?"
+                  : "Bạn có nguyên liệu gì, muốn nấu món nào? Có thể đính kèm ảnh."
               }
               onKeyDown={(e) => {
                 if (
@@ -389,12 +495,12 @@ export function Chat() {
               }}
               maxLength={2000}
               rows={1}
-              required
+              required={!photo}
               readOnly={busy === "send"}
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
-            <Button disabled={busy || !text.trim()} aria-label="Gửi tin nhắn">
+            <Button disabled={busy || (!text.trim() && !photo)} aria-label="Gửi tin nhắn">
               <Send size={19} />
             </Button>
           </form>

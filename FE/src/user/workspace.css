@@ -2438,3 +2438,13 @@
   position: static;
   margin-top: 0;
 }
+
+.vp-chat-photo { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; cursor: pointer; border-radius: 12px; }
+.vp-chat-attach { position: relative; display: inline-flex; margin-top: 8px; }
+.vp-chat-attach img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; }
+.vp-chat-attach button { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 1px solid var(--theme-control-border, #b1bea6); }
+.vp-chat-scan { margin-top: 8px; display: grid; gap: 8px; }
+.vp-chat-scan img { max-width: 220px; max-height: 160px; object-fit: cover; border-radius: 12px; }
+.vp-chat-scan-items { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.vp-chat-scan-items li { padding: 3px 10px; border-radius: 999px; background: var(--mint, #e3efd9); font-size: 13px; }
+.vp-chat-scan-items li[data-unknown] { background: transparent; border: 1px dashed var(--theme-control-border, #b1bea6); }

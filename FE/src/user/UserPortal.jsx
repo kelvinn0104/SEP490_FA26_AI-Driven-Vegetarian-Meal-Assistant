@@ -281,7 +281,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
         create={["create-plan", "create-mealplan"].includes(screen)}
       />
     );
-  else if (screen === "chatbot") content = <Chat />;
+  else if (screen === "chatbot") content = <Chat open={open} />;
   else if (screen === "scan") content = <Vision open={open} flash={flash} />;
   else if (screen === "user-profile")
     content = <Profile flash={flash} go={go} />;
