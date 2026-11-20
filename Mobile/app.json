@@ -29,7 +29,8 @@
           "photosPermission": "VeggieAI cần quyền truy cập thư viện ảnh để bạn tải ảnh tủ lạnh hoặc món ăn.",
           "cameraPermission": "VeggieAI cần quyền máy ảnh để bạn chụp ảnh nguyên liệu trong tủ lạnh."
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }
