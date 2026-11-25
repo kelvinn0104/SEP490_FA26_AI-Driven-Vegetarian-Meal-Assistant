@@ -17,7 +17,7 @@ async (page) => {
   return reply([],200);
  });
  await page.goto(base+'/register');await page.setViewportSize({width:390,height:844});
- await page.getByLabel('Tên hiển thị').fill('Người dùng test');await page.getByLabel('Email',{exact:true}).fill(user.email);await page.getByLabel('Mật khẩu',{exact:true}).fill('test123');await page.getByLabel('Tên hiển thị').fill('  ');
+ await page.getByLabel('Tên hiển thị').fill('Người dùng test');await page.getByLabel('Email',{exact:true}).fill(user.email);await page.getByLabel('Mật khẩu',{exact:true}).fill('test123'); await page.getByLabel('Xác nhận mật khẩu',{exact:true}).fill('test123');await page.getByLabel('Tên hiển thị').fill('  ');
  await page.getByRole('button',{name:'Tạo tài khoản',exact:true}).click();
  await page.getByRole('alert').filter({hasText:'Tên hiển thị cần ít nhất'}).waitFor();
  check(!registerBody,'Whitespace name reached backend');

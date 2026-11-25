@@ -102,12 +102,11 @@ export function Community({ mine, go, user, flash, videos = false }) {
         className={`vp-editorial-banner vp-community-banner ${mine ? "is-mine" : ""}`}
       >
         <div>
-          <span className="vp-eyebrow">Chuyện từ căn bếp</span>
           <h1>{mine ? "Bài viết của tôi" : "Cộng đồng"}</h1>
           <p>
             {mine
               ? "Xem bài đã gửi và trạng thái kiểm duyệt."
-              : "Xem mọi người nấu gì và chia sẻ món bạn vừa thử."}
+              : "Món mới, mẹo nấu và chuyện bếp từ mọi người."}
           </p>
           <Button onClick={() => go("create-post")}>
             <PenLine size={18} />

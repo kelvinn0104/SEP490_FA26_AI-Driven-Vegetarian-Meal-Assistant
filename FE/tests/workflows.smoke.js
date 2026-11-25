@@ -43,7 +43,7 @@ async (page) => {
   return route.fulfill({status:404,contentType:'application/json',body:'{}'});
  });
  await page.goto(base+'/register');
- await page.getByLabel('Tên hiển thị').fill('Test'); await page.getByLabel('Email',{exact:true}).fill(user.email); await page.getByLabel('Mật khẩu',{exact:true}).fill('TestPassword!123'); await page.getByRole('button',{name:'Tạo tài khoản',exact:true}).click();
+ await page.getByLabel('Tên hiển thị').fill('Test'); await page.getByLabel('Email',{exact:true}).fill(user.email); await page.getByLabel('Mật khẩu',{exact:true}).fill('TestPassword!123'); await page.getByLabel('Xác nhận mật khẩu',{exact:true}).fill('TestPassword!123'); await page.getByRole('button',{name:'Tạo tài khoản',exact:true}).click();
  await page.getByLabel('Mã xác thực').fill('123456'); await page.getByRole('button',{name:'Xác thực & tiếp tục'}).click();
  await page.getByRole('heading',{name:'Chào bạn đến với VeggieAI.',exact:true}).waitFor();
  await page.goto(base+'/planner'); await page.getByRole('button',{name:'Tạo thực đơn mới',exact:true}).click(); await page.getByLabel('Số ngày',{exact:true}).fill('2'); await page.getByRole('button',{name:'Tạo thực đơn',exact:true}).click(); await finish('generate'); await page.getByRole('button',{name:'Cơm đậu hũ',exact:true}).waitFor();
@@ -73,7 +73,8 @@ async (page) => {
  await page.goto(base+'/vision');
  await page.waitForURL(base+'/discover');
  await page.locator('.vp-main').waitFor();
- check(await page.getByRole('button',{name:/quét ảnh|quét nguyên liệu/i}).count()===0,'Scan shortcut is still visible');
+ await page.getByRole('button',{name:'Quét nguyên liệu',exact:true}).click();
+ await page.waitForURL(base+'/scan');
  await page.goto(base+'/chatbot');
  const input = page.getByRole('textbox',{name:'Tin nhắn'});
  await input.fill('Món chay với đậu hũ?');
