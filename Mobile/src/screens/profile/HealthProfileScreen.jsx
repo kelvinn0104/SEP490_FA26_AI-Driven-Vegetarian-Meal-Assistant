@@ -1,231 +1,139 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { theme } from '../../styles/theme';
+import React, { useState } from 'react';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { HeartPulse, Square, SquareCheck } from 'lucide-react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { healthProfileService } from '../../api/services/healthProfileService';
-import { Header } from '../../components/ui/Header';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/ui/Button';
-import { HeartPulse, Scale, Ruler, Sparkles } from 'lucide-react-native';
+import { Page, Title, Field, Chip, Notice, QueryState, ui } from '../../components/ui/Kit';
+import { c } from '../../styles/theme';
+import { fold, listOf, number, today, validDate } from '../../styles/content.mjs';
+
+const activity = [['sedentary', 'Ít vận động'], ['light', 'Nhẹ'], ['moderate', 'Vừa phải'], ['active', 'Nhiều'], ['very_active', 'Rất nhiều']];
+const goals = [['maintain', 'Duy trì'], ['loss', 'Giảm cân'], ['gain', 'Tăng cân']];
+const allergenLabels = { peanut: 'Đậu phộng (lạc)', soy: 'Đậu nành', 'tree nuts': 'Các loại hạt cây', sesame: 'Mè (vừng)', mushroom: 'Nấm', gluten: 'Gluten' };
+const allergyLabel = allergy => allergy.nameVi || allergenLabels[allergy.name?.trim().toLowerCase()] || allergy.name;
 
 export function HealthProfileScreen({ navigation }) {
-  const [profile, setProfile] = useState({
-    heightCm: '',
-    weightKg: '',
-    age: '',
-    gender: 'Nam',
-    activityLevel: 'Vừa phải',
-    goal: 'Duy trì vóc dáng',
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    healthProfileService.getProfile()
-      .then((data) => {
-        if (data) {
-          setProfile({
-            heightCm: String(data.heightCm || data.height || ''),
-            weightKg: String(data.weightKg || data.weight || ''),
-            age: String(data.age || ''),
-            gender: data.gender || 'Nam',
-            activityLevel: data.activityLevel || 'Vừa phải',
-            goal: data.goal || 'Duy trì vóc dáng',
-          });
-        }
-      })
-      .catch((err) => console.warn('Lỗi lấy profile:', err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await healthProfileService.updateProfile({
-        heightCm: parseFloat(profile.heightCm) || 0,
-        weightKg: parseFloat(profile.weightKg) || 0,
-        age: parseInt(profile.age) || 25,
-        gender: profile.gender,
-        activityLevel: profile.activityLevel,
-        goal: profile.goal,
-      });
-      Alert.alert('Thành công', 'Đã cập nhật hồ sơ sức khỏe & chỉ số dinh dưỡng!');
-    } catch (err) {
-      Alert.alert('Lỗi lưu', err.message || 'Không thể cập nhật hồ sơ.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
-
-  // Tính BMI nhanh
-  const h = parseFloat(profile.heightCm) / 100;
-  const w = parseFloat(profile.weightKg);
-  const bmi = (h > 0 && w > 0) ? (w / (h * h)).toFixed(1) : null;
-
-  return (
-    <View style={styles.container}>
-      <Header title="Hồ Sơ Sức Khỏe" onBack={() => navigation.goBack()} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* BMI Card */}
-        {bmi && (
-          <View style={styles.bmiCard}>
-            <View>
-              <Text style={styles.bmiLabel}>Chỉ số BMI của bạn</Text>
-              <Text style={styles.bmiVal}>{bmi}</Text>
-            </View>
-            <View style={styles.bmiStatusBox}>
-              <Text style={styles.bmiStatusText}>
-                {bmi < 18.5 ? 'Gầy' : bmi < 24.9 ? 'Chuẩn cân đối' : 'Thừa cân'}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Input fields */}
-        <View style={styles.formSection}>
-          <Text style={styles.fieldLabel}>Chiều cao (cm)</Text>
-          <View style={styles.inputWrap}>
-            <Ruler size={18} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.input}
-              value={profile.heightCm}
-              onChangeText={(val) => setProfile((p) => ({ ...p, heightCm: val }))}
-              keyboardType="numeric"
-              placeholder="170"
-            />
-          </View>
-
-          <Text style={styles.fieldLabel}>Cân nặng (kg)</Text>
-          <View style={styles.inputWrap}>
-            <Scale size={18} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.input}
-              value={profile.weightKg}
-              onChangeText={(val) => setProfile((p) => ({ ...p, weightKg: val }))}
-              keyboardType="numeric"
-              placeholder="65"
-            />
-          </View>
-
-          <Text style={styles.fieldLabel}>Tuổi</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              value={profile.age}
-              onChangeText={(val) => setProfile((p) => ({ ...p, age: val }))}
-              keyboardType="numeric"
-              placeholder="22"
-            />
-          </View>
-
-          <Text style={styles.fieldLabel}>Mục tiêu dinh dưỡng</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              value={profile.goal}
-              onChangeText={(val) => setProfile((p) => ({ ...p, goal: val }))}
-              placeholder="Giảm mỡ, tăng cơ hoặc duy trì"
-            />
-          </View>
-
-          <Button
-            title="Lưu Hồ Sơ Sức Khỏe"
-            onPress={handleSave}
-            loading={saving}
-            style={{ marginTop: 16 }}
-          />
-        </View>
-      </ScrollView>
-    </View>
-  );
+  const profile = useQuery({ queryKey: ['profile'], queryFn: ({ signal }) => healthProfileService.getProfile(signal) });
+  const allergies = useQuery({ queryKey: ['allergies'], queryFn: ({ signal }) => healthProfileService.getAllergens(signal) });
+  return <Page title="Hồ sơ sức khỏe" back={navigation.goBack} keyboard>
+    <Title title="Hồ sơ sức khỏe" detail="Chỉ số và dị ứng được dùng khi lập thực đơn." />
+    <QueryState query={profile}>
+      <ProfileForm profile={profile.data} allergies={allergies} navigation={navigation} />
+    </QueryState>
+  </Page>;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-    padding: theme.spacing.md,
-    paddingBottom: 40,
-  },
-  bmiCard: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.sm,
-  },
-  bmiLabel: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
-  },
-  bmiVal: {
-    color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '900',
-  },
-  bmiStatusBox: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
-  },
-  bmiStatusText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  formSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    ...theme.shadows.sm,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    height: 46,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+function ProfileForm({ profile, allergies, navigation }) {
+  const [form, setForm] = useState(() => ({
+    gender: profile?.gender || '', dateOfBirth: profile?.dateOfBirth || '',
+    heightCm: profile?.heightCm == null ? '' : String(profile.heightCm), weightKg: profile?.weightKg == null ? '' : String(profile.weightKg),
+    activityLevel: profile?.activityLevel || '', healthGoal: profile?.healthGoal || '',
+    allergyIds: (profile?.allergies || []).map(item => item.id),
+  }));
+  const [none, setNone] = useState(!!profile && !profile.allergies?.length);
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [saved, setSaved] = useState(null);
+  const client = useQueryClient();
+  const updateUser = useAuthStore(state => state.updateUser);
+  const change = (key, value) => setForm(previous => ({ ...previous, [key]: value }));
+  const measurement = value => Number(value.trim().replace(',', '.'));
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (allergies.isError || allergies.isPending) throw new Error('Chưa tải được danh mục dị ứng.');
+      if (!form.activityLevel || !form.healthGoal) throw new Error('Chọn mức vận động và mục tiêu.');
+      if (!form.allergyIds.length && !none) throw new Error('Chọn dị ứng hoặc xác nhận không có dị ứng đã biết.');
+      return healthProfileService.updateProfile({ ...form, heightCm: measurement(form.heightCm), weightKg: measurement(form.weightKg) });
+    },
+    onSuccess: data => {
+      if (!data?.id) throw new Error('Chưa xác nhận được hồ sơ đã lưu.');
+      client.setQueryData(['profile'], data);
+      client.invalidateQueries({ queryKey: ['diary'] });
+      updateUser({ hasHealthProfile: true });
+      setSaved(data);
+    },
+  });
+  const next = () => {
+    const current = today();
+    const dob = form.dateOfBirth;
+    const age = Number(current.slice(0, 4)) - Number(dob.slice(0, 4)) - (current.slice(5) < dob.slice(5) ? 1 : 0);
+    if (!form.gender || !validDate(dob) || age < 10 || age > 120) {
+      setError('Chọn giới tính và nhập ngày sinh hợp lệ. Độ tuổi hỗ trợ từ 10 đến 120.');
+      return;
+    }
+    const height = measurement(form.heightCm);
+    const weight = measurement(form.weightKg);
+    if (!(height >= 50 && height <= 250 && weight >= 20 && weight <= 300)) {
+      setError('Chiều cao từ 50–250 cm và cân nặng từ 20–300 kg.');
+      return;
+    }
+    setError('');
+    setStep(2);
+  };
+  const toggle = id => {
+    setNone(false);
+    change('allergyIds', form.allergyIds.includes(id) ? form.allergyIds.filter(item => item !== id) : [...form.allergyIds, id]);
+  };
+  const options = (field, values) => <View style={ui.row}>
+    {values.map(([key, label]) => <Chip key={key} label={label} selected={form[field] === key} disabled={mutation.isPending} onPress={() => change(field, key)} />)}
+  </View>;
+  const metrics = saved || profile;
+
+  return <>
+    {metrics && <View style={[ui.card, s.summary]}>
+      <View style={ui.between}><Text style={[ui.h2, ui.fill]}>{saved ? 'Hồ sơ đã lưu' : 'Chỉ số đã lưu'}</Text><HeartPulse size={23} color={c.primary} /></View>
+      <View style={ui.row}>{[['BMI', metrics.bmi, ''], ['Nhu cầu', metrics.tdee, 'kcal'], ['Mục tiêu đạm', metrics.targets?.proteinG, 'g']].map(([label, value, unit]) =>
+        <View style={[ui.fill, s.metric]} key={label}><Text style={ui.small}>{label}</Text><Text style={ui.label}>{number(value, unit)}</Text></View>)}</View>
+    </View>}
+    {saved ? <Button title="Quay lại" onPress={navigation.goBack} /> : <>
+      {!!profile?.needsUpdate && <Notice>Hồ sơ đã lâu chưa cập nhật. Kiểm tra lại các chỉ số.</Notice>}
+      <Notice error>{error || mutation.error?.message}</Notice>
+      <View style={ui.card}>
+        <Text style={ui.eyebrow}>Bước {step} / 2</Text>
+        <Text accessibilityRole="header" style={ui.h2}>{step === 1 ? 'Chỉ số cơ thể' : 'Nhu cầu và dị ứng'}</Text>
+        {step === 1 ? <>
+          <Text style={ui.label}>Giới tính</Text>
+          {options('gender', [['female', 'Nữ'], ['male', 'Nam']])}
+          <Field label="Ngày sinh (năm-tháng-ngày)" placeholder="2000-09-25" maxLength={10}
+            value={form.dateOfBirth} onChangeText={value => change('dateOfBirth', value)} />
+          <Field label="Chiều cao (cm)" inputMode="decimal" value={form.heightCm} onChangeText={value => change('heightCm', value)} />
+          <Field label="Cân nặng (kg)" inputMode="decimal" value={form.weightKg} onChangeText={value => change('weightKg', value)} />
+          <Button title="Tiếp tục" onPress={next} />
+        </> : <>
+          <Text style={ui.label}>Vận động</Text>
+          {options('activityLevel', activity)}
+          <Text style={ui.label}>Mục tiêu</Text>
+          {options('healthGoal', goals)}
+          <Text style={ui.h2}>Dị ứng thực phẩm</Text>
+          <Text style={ui.body}>{form.allergyIds.length ? 'Đã chọn ' + form.allergyIds.length + ' nhóm' : none ? 'Không có dị ứng đã biết' : 'Chưa xác nhận'}</Text>
+          <QueryState query={allergies}>
+            {listOf(allergies.data).length > 7 && <Field label="Tìm nhóm dị ứng" value={search} onChangeText={setSearch} />}
+            {listOf(allergies.data).filter(item => fold(allergyLabel(item)).includes(fold(search))).map(item => (
+              <AllergyItem key={item.id} title={allergyLabel(item)} checked={form.allergyIds.includes(item.id)} disabled={mutation.isPending} onPress={() => toggle(item.id)} />
+            ))}
+            <AllergyItem title="Không có dị ứng thực phẩm đã biết" checked={none} disabled={mutation.isPending}
+              onPress={() => { setNone(!none); if (!none) change('allergyIds', []); }} />
+          </QueryState>
+          <Button title="Lưu hồ sơ" loading={mutation.isPending} disabled={allergies.isPending || allergies.isError} onPress={() => mutation.mutate()} />
+          <Button title="Quay lại chỉ số" variant="outline" disabled={mutation.isPending} onPress={() => { mutation.reset(); setStep(1); }} />
+        </>}
+      </View>
+    </>}
+  </>;
+}
+
+function AllergyItem({ title, checked, disabled, onPress }) {
+  const Icon = checked ? SquareCheck : Square;
+  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked, disabled }} disabled={disabled} onPress={onPress} style={s.allergy}>
+    <Icon size={21} color={c.primary} /><Text style={[ui.label, ui.fill]}>{title}</Text>
+  </Pressable>;
+}
+
+const s = StyleSheet.create({
+  summary: { backgroundColor: c.primaryLight },
+  metric: { minWidth: 72 },
+  allergy: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.line },
 });

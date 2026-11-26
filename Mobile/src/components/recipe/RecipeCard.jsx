@@ -1,104 +1,38 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../../styles/theme';
-import { recipeImageUrl } from '../../api/client';
-import { Clock, Flame, Dumbbell } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ArrowUpRight, CookingPot } from 'lucide-react-native';
+import { imgUrl } from '../../api/client';
+import { c } from '../../styles/theme';
+import { categoryName, number } from '../../styles/content.mjs';
+import { ui } from '../ui/Kit';
 
-export function RecipeCard({ recipe, onPress }) {
-  if (!recipe) return null;
-
-  const imageSrc = recipeImageUrl(recipe.imageUrl || recipe.image);
-  const calories = recipe.calories || recipe.kcal || 0;
-  const cookTime = recipe.cookingTimeMinutes || recipe.cookTimeMinutes || recipe.cookTime || 20;
-  const protein = recipe.protein || recipe.proteinGrams || 0;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => onPress && onPress(recipe)}
-      style={styles.card}
-    >
-      <Image source={{ uri: imageSrc }} style={styles.image} resizeMode="cover" />
-      
-      <View style={styles.content}>
-        {recipe.categoryName && (
-          <Text style={styles.category}>{recipe.categoryName.toUpperCase()}</Text>
-        )}
-        <Text style={styles.title} numberOfLines={2}>{recipe.title || recipe.name}</Text>
-        
-        <View style={styles.metrics}>
-          <View style={styles.badge}>
-            <Flame size={13} color={theme.colors.calories} />
-            <Text style={styles.badgeText}>{calories} kcal</Text>
-          </View>
-
-          <View style={styles.badge}>
-            <Clock size={13} color={theme.colors.textSecondary} />
-            <Text style={styles.badgeText}>{cookTime}p</Text>
-          </View>
-
-          {protein > 0 && (
-            <View style={styles.badge}>
-              <Dumbbell size={13} color={theme.colors.protein} />
-              <Text style={styles.badgeText}>{protein}g protein</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+export function FoodImage({ uri, style, size = 26 }) {
+  const [failed, setFailed] = useState(null);
+  const source = imgUrl(uri);
+  return source && failed !== source
+    ? <Image source={{ uri: source }} style={[s.photo, style]} resizeMode="cover" onError={() => setFailed(source)} />
+    : <View style={[s.photo, style, s.placeholder]}><CookingPot size={size} color={c.muted} strokeWidth={1.5} /></View>;
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.md,
-    overflow: 'hidden',
-    ...theme.shadows.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-  },
-  image: {
-    width: '100%',
-    height: 160,
-    backgroundColor: theme.colors.borderLight,
-  },
-  content: {
-    padding: theme.spacing.md,
-  },
-  category: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.primary,
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    lineHeight: 22,
-    marginBottom: theme.spacing.sm,
-  },
-  metrics: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
-    gap: 4,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
+export function RecipeCard({ recipe, onPress, reason }) {
+  if (!recipe?.title) return null;
+  return <Pressable accessibilityRole="button" accessibilityLabel={'Xem công thức ' + recipe.title}
+    style={({ pressed }) => [s.card, pressed && { opacity: 0.74 }]} onPress={() => onPress(recipe)}>
+    <FoodImage uri={recipe.imageUrl} style={s.thumb} />
+    <View style={ui.fill}>
+      {!!recipe.category && <Text style={ui.small} numberOfLines={1}>{categoryName(recipe.category)}</Text>}
+      <Text style={ui.label} numberOfLines={2}>{recipe.title}</Text>
+      {!!reason && <Text style={ui.small}>{reason}</Text>}
+      {recipe.kcalPerServing != null && <Text style={ui.small}>{number(recipe.kcalPerServing, 'kcal')} / phần</Text>}
+    </View>
+    <ArrowUpRight size={17} color={c.primary} />
+  </Pressable>;
+}
+
+const s = StyleSheet.create({
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 86, borderRadius: 16, padding: 9,
+    borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  photo: { backgroundColor: c.primaryLight },
+  thumb: { width: 64, height: 64, borderRadius: 10 },
+  placeholder: { alignItems: 'center', justifyContent: 'center' },
 });

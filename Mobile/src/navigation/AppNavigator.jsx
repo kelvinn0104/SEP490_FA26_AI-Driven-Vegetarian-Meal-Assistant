@@ -1,135 +1,83 @@
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { View } from 'react-native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { theme } from '../styles/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Compass, CalendarDays, ScanLine, Users, UserRound } from 'lucide-react-native';
+import { c } from '../styles/theme';
 import { useAuthStore } from '../store/useAuthStore';
-
-// Icons
-import {
-  Home,
-  CalendarDays,
-  ScanLine,
-  Users,
-  UserRound,
-} from 'lucide-react-native';
-
-// Screens
+import { Frame, Pending } from '../components/ui/Kit';
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { RecipeDetailScreen } from '../screens/home/RecipeDetailScreen';
 import { VisionScanScreen } from '../screens/ai/VisionScanScreen';
 import { ChatbotScreen } from '../screens/ai/ChatbotScreen';
 import { PlannerScreen } from '../screens/planner/PlannerScreen';
 import { CommunityScreen } from '../screens/community/CommunityScreen';
+import { PostDetailScreen } from '../screens/community/PostDetailScreen';
 import { CreatePostScreen } from '../screens/community/CreatePostScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { HealthProfileScreen } from '../screens/profile/HealthProfileScreen';
 import { SavedRecipesScreen } from '../screens/profile/SavedRecipesScreen';
+import { NutritionScreen } from '../screens/profile/NutritionScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { OtpScreen } from '../screens/auth/OtpScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: c.background, card: c.surface, text: c.ink, border: c.line, primary: c.primary } };
+const tabs = [
+  ['HomeTab', 'Khám phá', Compass, HomeScreen],
+  ['PlannerTab', 'Thực đơn', CalendarDays, PlannerScreen],
+  ['VisionTab', 'Quét ảnh', ScanLine, VisionScanScreen],
+  ['CommunityTab', 'Cộng đồng', Users, CommunityScreen],
+  ['ProfileTab', 'Cá nhân', UserRound, ProfileScreen],
+];
 
 function MainTabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.borderLight,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Khám phá',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="PlannerTab"
-        component={PlannerScreen}
-        options={{
-          tabBarLabel: 'Thực đơn',
-          tabBarIcon: ({ color, size }) => <CalendarDays color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="VisionTab"
-        component={VisionScanScreen}
-        options={{
-          tabBarLabel: 'Quét tủ lạnh',
-          tabBarIcon: ({ color, size }) => <ScanLine color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="CommunityTab"
-        component={CommunityScreen}
-        options={{
-          tabBarLabel: 'Cộng đồng',
-          tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Cá nhân',
-          tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} />,
-        }}
-      />
-    </Tab.Navigator>
-  );
+  const { bottom } = useSafeAreaInsets();
+  return <Tab.Navigator backBehavior="history" screenOptions={{
+    headerShown: false,
+    tabBarHideOnKeyboard: true,
+    tabBarActiveTintColor: c.ink,
+    tabBarInactiveTintColor: c.muted,
+    tabBarStyle: { height: 64 + bottom, paddingTop: 4, paddingBottom: 5 + bottom, backgroundColor: c.surface, borderTopColor: c.line },
+    tabBarItemStyle: { minHeight: 48 },
+    tabBarLabelStyle: { fontWeight: '600', fontSize: 11 },
+  }}>
+    {tabs.map(([name, label, Icon, Screen]) => <Tab.Screen key={name} name={name} component={Screen} options={{
+      tabBarLabel: label,
+      tabBarAccessibilityLabel: label,
+      tabBarIcon: ({ color, focused }) => <View style={{
+        minWidth: 46, minHeight: 28, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+        backgroundColor: focused ? c.lime : 'transparent',
+      }}><Icon color={color} size={20} strokeWidth={focused ? 2 : 1.7} /></View>,
+    }} />)}
+  </Tab.Navigator>;
 }
 
 export function AppNavigator() {
-  const { token, isLoading } = useAuthStore();
+  const signedIn = useAuthStore(state => !!state.token);
+  const loading = useAuthStore(state => state.isLoading);
+  if (loading) return <Frame><View style={{ flex: 1, justifyContent: 'center' }}><Pending label="Đang mở VeggieAI…" /></View></Frame>;
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
-
-  return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {token ? (
-          // Đã đăng nhập (Role User)
-          <>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-            <Stack.Screen name="Chatbot" component={ChatbotScreen} />
-            <Stack.Screen name="CreatePost" component={CreatePostScreen} />
-            <Stack.Screen name="HealthProfile" component={HealthProfileScreen} />
-            <Stack.Screen name="SavedRecipes" component={SavedRecipesScreen} />
-          </>
-        ) : (
-          // Chưa đăng nhập (Auth Stack)
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="OtpVerify" component={OtpScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+  return <NavigationContainer theme={navTheme}>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+      <Stack.Screen name="Chatbot" component={ChatbotScreen} />
+      {signedIn ? <>
+        <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+        <Stack.Screen name="HealthProfile" component={HealthProfileScreen} />
+        <Stack.Screen name="SavedRecipes" component={SavedRecipesScreen} />
+        <Stack.Screen name="Nutrition" component={NutritionScreen} />
+      </> : <>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="OtpVerify" component={OtpScreen} />
+      </>}
+    </Stack.Navigator>
+  </NavigationContainer>;
 }

@@ -1,73 +1,28 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { theme } from '../../styles/theme';
+import { Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { c } from '../../styles/theme';
 
-export function Button({
-  title,
-  onPress,
-  variant = 'primary', // 'primary' | 'secondary' | 'outline' | 'danger'
-  loading = false,
-  disabled = false,
-  icon: Icon,
-  style,
-  textStyle,
-}) {
-  const isOutline = variant === 'outline';
-  const isDanger = variant === 'danger';
-
-  let bg = theme.colors.primary;
-  let textColor = '#ffffff';
-
-  if (variant === 'secondary') {
-    bg = theme.colors.primaryLight;
-    textColor = theme.colors.primaryDark;
-  } else if (isOutline) {
-    bg = 'transparent';
-    textColor = theme.colors.primary;
-  } else if (isDanger) {
-    bg = theme.colors.error;
-    textColor = '#ffffff';
-  }
-
+export function Button({ title, onPress, variant = 'primary', loading = false, disabled = false, icon: Icon, style }) {
+  const primary = variant === 'primary';
+  const ink = primary ? c.surface : c.ink;
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={onPress}
-      disabled={disabled || loading}
-      style={[
-        styles.button,
-        { backgroundColor: bg },
-        isOutline && { borderWidth: 1.5, borderColor: theme.colors.primary },
-        (disabled || loading) && styles.disabled,
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator color={textColor} size="small" />
-      ) : (
-        <>
-          {Icon && <Icon size={18} color={textColor} style={{ marginRight: 8 }} />}
-          <Text style={[styles.text, { color: textColor }, textStyle]}>{title}</Text>
-        </>
-      )}
-    </TouchableOpacity>
+    <Pressable accessibilityRole="button" accessibilityLabel={title}
+      accessibilityState={{ busy: loading, disabled: disabled || loading }}
+      disabled={disabled || loading} onPress={onPress}
+      style={({ pressed }) => [s.button, { backgroundColor: primary ? c.primary : c.primaryLight },
+        variant === 'outline' && s.outline, (pressed || disabled) && s.dim, style]}>
+      {loading ? <ActivityIndicator color={ink} /> : <>
+        {Icon && <Icon size={18} color={ink} />}
+        <Text style={[s.label, { color: ink }]}>{title}</Text>
+      </>}
+    </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    height: 48,
-    borderRadius: theme.borderRadius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
-  },
-  text: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  disabled: {
-    opacity: 0.6,
-  },
+const s = StyleSheet.create({
+  button: { minHeight: 48, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 13, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 8 },
+  label: { fontSize: 14, fontWeight: '700', textAlign: 'center', flexShrink: 1 },
+  outline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.line },
+  dim: { opacity: 0.64 },
 });

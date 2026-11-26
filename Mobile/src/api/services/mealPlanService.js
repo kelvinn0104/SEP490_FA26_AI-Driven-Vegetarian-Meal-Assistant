@@ -1,57 +1,21 @@
-import { apiRequest, unwrap } from '../client';
+import { apiRequest, writeJson } from '../client';
 
 export const mealPlanService = {
-  getCurrentPlan: async () => {
-    try {
-      const raw = await apiRequest('/meal-plans/current');
-      return unwrap(raw);
-    } catch (err) {
-      if (err.status === 204 || err.status === 404) return null;
-      throw err;
+  getCurrentPlan: signal => apiRequest('/meal-plans/current', { signal }),
+  getPlan: (id, signal) => apiRequest('/meal-plans/' + id, { signal }),
+  generatePlan: params => writeJson('/meal-plans/ai/generate', params, 'POST', { timeout: 300000 }),
+  getHistory: (page, signal, status = '') => apiRequest('/meal-plans?page=' + page + '&pageSize=12' + (status ? '&status=' + status : ''), { signal }),
+  activate: id => writeJson('/meal-plans/' + id + '/status', { status: 'active' }, 'PATCH'),
+  swap: (id, itemId) => writeJson('/meal-plans/ai/' + id + '/items/' + itemId + '/swap', {}, 'POST', { timeout: 120000 }),
+  daily: (date, signal) => apiRequest('/nutrition/daily?date=' + date, { signal }),
+  log: planItemId => writeJson('/nutrition/logs', { planItemId }),
+  shopping: async id => {
+    const path = '/meal-plans/' + id + '/shopping-list';
+    try { return await apiRequest(path); }
+    catch (error) {
+      if (error.status !== 404) throw error;
+      return writeJson(path, {});
     }
   },
-
-  generatePlan: async (params = {}) => {
-    try {
-      const raw = await apiRequest('/meal-plans/ai/generate', {
-        method: 'POST',
-        body: JSON.stringify(params),
-        timeout: 180000,
-      });
-      return unwrap(raw);
-    } catch (err) {
-      if (err.status === 404) {
-        const fallbackRaw = await apiRequest('/meal-plans/generate', {
-          method: 'POST',
-          body: JSON.stringify(params),
-          timeout: 180000,
-        });
-        return unwrap(fallbackRaw);
-      }
-      throw err;
-    }
-  },
-
-  getHistory: async (page = 1, pageSize = 10) => {
-    try {
-      const raw = await apiRequest(`/meal-plans/history?page=${page}&pageSize=${pageSize}`);
-      return unwrap(raw) || [];
-    } catch {
-      return [];
-    }
-  },
-
-  markItemCompleted: async (planId, itemId, completed = true) => {
-    try {
-      const raw = await apiRequest(`/meal-plans/${planId}/items/${itemId}/complete`, {
-        method: 'POST',
-        body: JSON.stringify({ completed }),
-      });
-      return unwrap(raw);
-    } catch {
-      return null;
-    }
-  },
+  buy: (id, itemId, isBought) => writeJson('/meal-plans/' + id + '/shopping-list/items/' + itemId, { isBought }, 'PATCH'),
 };
-
-export default mealPlanService;

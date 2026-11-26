@@ -1,144 +1,54 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
-import { theme } from '../../styles/theme';
+import React, { useEffect, useState } from 'react';
+import { Text } from 'react-native';
+import { useMutation } from '@tanstack/react-query';
+import { AuthLayout } from './AuthLayout';
+import { Field, Notice, ui } from '../../components/ui/Kit';
+import { Button } from '../../components/ui/Button';
 import { authService } from '../../api/services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Button } from '../../components/ui/Button';
-import { Header } from '../../components/ui/Header';
-import { KeyRound } from 'lucide-react-native';
+
+const deadline = seconds => typeof seconds === 'number' ? Date.now() + seconds * 1000 : null;
+const secondsLeft = (due, now) => due == null ? null : Math.max(0, Math.ceil((due - now) / 1000));
 
 export function OtpScreen({ route, navigation }) {
-  const { email } = route.params || {};
-  const [otpCode, setOtpCode] = useState('');
-  const [loading, setLoading] = useState(false);
-  const loginSuccess = useAuthStore((state) => state.loginSuccess);
-
-  const handleVerify = async () => {
-    if (!otpCode || otpCode.trim().length < 4) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ mã OTP 6 số.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await authService.verifyCode({
-        email,
-        otpCode: otpCode.trim(),
-      });
-
-      const token = res?.accessToken || res?.token;
-      const user = res?.user;
-
-      if (!token || !user) {
-        throw new Error('Dữ liệu xác thực không hợp lệ.');
-      }
-
-      await loginSuccess(token, user);
-      Alert.alert('Chào mừng!', 'Xác thực tài khoản thành công.');
-    } catch (err) {
-      Alert.alert('Xác thực thất bại', err.message || 'Mã OTP không đúng hoặc đã hết hạn.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Header title="Xác Thực OTP" onBack={() => navigation.goBack()} />
-
-      <View style={styles.content}>
-        <View style={styles.iconBox}>
-          <KeyRound size={32} color={theme.colors.primary} />
-        </View>
-
-        <Text style={styles.title}>Nhập Mã Xác Thực</Text>
-        <Text style={styles.subTitle}>
-          Mã OTP 6 số đã được gửi đến email: {'\n'}
-          <Text style={{ fontWeight: '700', color: theme.colors.textPrimary }}>{email}</Text>
-        </Text>
-
-        <View style={styles.otpInputBox}>
-          <TextInput
-            placeholder="000000"
-            placeholderTextColor={theme.colors.textMuted}
-            style={styles.otpInput}
-            value={otpCode}
-            onChangeText={setOtpCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            textAlign="center"
-          />
-        </View>
-
-        <Button
-          title="Xác Nhận & Đăng Nhập"
-          onPress={handleVerify}
-          loading={loading}
-          style={{ width: '100%', marginTop: 12 }}
-        />
-      </View>
-    </KeyboardAvoidingView>
-  );
+  const { email, alreadySent } = route.params;
+  const pending = useAuthStore(state => state.pendingVerification);
+  const remember = useAuthStore(state => state.rememberVerification);
+  const [otp, setOtp] = useState('');
+  const [now, setNow] = useState(Date.now());
+  const [retryAt, setRetryAt] = useState(null);
+  const [info, setInfo] = useState(alreadySent ? 'Dùng mã gần nhất đã gửi đến email.' : '');
+  const login = useAuthStore(state => state.loginSuccess);
+  const saved = pending?.email === email ? pending : null;
+  const expiresIn = secondsLeft(saved?.expiresAt, now);
+  const cooldown = secondsLeft(Math.max(retryAt || 0, saved?.resendAt || 0), now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const verify = useMutation({ mutationFn: async () => login(await authService.verifyCode(email, otp)) });
+  const resend = useMutation({
+    mutationFn: () => authService.resend(email),
+    onSuccess: result => {
+      setOtp('');
+      remember(email, result ?? {});
+      setRetryAt(null);
+      setNow(Date.now());
+      setInfo(result?.codeSent === false ? 'Dùng mã gần nhất đã gửi đến email.' : 'Đã gửi mã mới. Kiểm tra cả thư rác.');
+    },
+    onError: error => {
+      if (error.retryAfterSeconds) setRetryAt(deadline(error.retryAfterSeconds));
+    },
+  });
+  const busy = verify.isPending || resend.isPending;
+  return <AuthLayout navigation={navigation} title="Xác thực email" detail={'Nhập mã 6 số gửi đến ' + email} step="Bước 2 / 2" error={verify.error?.message || resend.error?.message}>
+    <Field label="Mã xác thực" inputMode="numeric" autoComplete="one-time-code" textContentType="oneTimeCode"
+      value={otp} onChangeText={value => setOtp(value.replace(/\D/g, '').slice(0, 6))}
+      style={{ fontSize: 25, letterSpacing: 9, textAlign: 'center', fontVariant: ['tabular-nums'] }} />
+    <Text style={ui.small}>{expiresIn === 0 ? 'Mã hết hạn. Hãy gửi lại.' : expiresIn != null ? 'Mã còn hiệu lực ' + expiresIn + ' giây' : 'Dùng mã gần nhất trong hộp thư.'}</Text>
+    <Notice>{info}</Notice>
+    <Button title="Xác thực và tiếp tục" loading={verify.isPending} disabled={busy || otp.length !== 6 || expiresIn === 0} onPress={() => { resend.reset(); verify.mutate(); }} />
+    <Button title={cooldown ? 'Gửi lại sau ' + cooldown + ' giây' : 'Gửi lại mã'} variant="outline"
+      loading={resend.isPending} disabled={busy || cooldown > 0} onPress={() => { verify.reset(); resend.mutate(); }} />
+  </AuthLayout>;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-  },
-  subTitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  otpInputBox: {
-    width: '100%',
-    height: 60,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-    marginBottom: 16,
-    justifyContent: 'center',
-  },
-  otpInput: {
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: 10,
-    color: theme.colors.primary,
-  },
-});

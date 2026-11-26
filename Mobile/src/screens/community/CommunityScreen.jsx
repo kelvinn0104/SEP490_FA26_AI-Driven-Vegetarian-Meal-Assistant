@@ -1,253 +1,81 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { theme } from '../../styles/theme';
+import { Image, Pressable, ScrollView, Text, View, StyleSheet, RefreshControl } from 'react-native';
+import { ArrowUpRight, MessageCircle, PenLine, Users } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/useAuthStore';
 import { communityService } from '../../api/services/communityService';
-import { imgUrl } from '../../api/client';
-import { Heart, MessageSquare, Plus, Share2, User } from 'lucide-react-native';
+import { Button } from '../../components/ui/Button';
+import { Page, Title, Field, Chip, QueryState, Empty, ui } from '../../components/ui/Kit';
+import { c } from '../../styles/theme';
+import { listOf, isDemo } from '../../styles/content.mjs';
 
-export function CommunityScreen({ navigation }) {
-  const queryClient = useQueryClient();
-
-  const {
-    data: posts,
-    isLoading,
-    isRefetching,
-    refetch,
-  } = useQuery({
-    queryKey: ['communityPosts'],
-    queryFn: () => communityService.getPosts(1, 20),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const likeMutation = useMutation({
-    mutationFn: (postId) => communityService.likePost(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['communityPosts'] });
-    },
-  });
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Cộng Đồng Thuần Chay</Text>
-          <Text style={styles.headerSub}>Chia sẻ món ăn và cảm hứng sống xanh</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => navigation.navigate('CreatePost')}
-        >
-          <Plus size={18} color="#ffffff" style={{ marginRight: 4 }} />
-          <Text style={styles.createBtnText}>Đăng bài</Text>
-        </TouchableOpacity>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Đang tải bảng tin cộng đồng...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={posts || []}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary} />
-          }
-          renderItem={({ item }) => {
-            const author = item.authorName || item.user?.displayName || 'Thành viên Veggie';
-            const imageUrl = item.imageUrl || (item.images && item.images[0]);
-
-            return (
-              <View style={styles.postCard}>
-                {/* Author Info */}
-                <View style={styles.authorRow}>
-                  <View style={styles.avatar}>
-                    <User size={18} color="#ffffff" />
-                  </View>
-                  <View>
-                    <Text style={styles.authorName}>{author}</Text>
-                    <Text style={styles.postTime}>{item.createdAt || 'Gần đây'}</Text>
-                  </View>
-                </View>
-
-                {/* Content */}
-                {item.title ? <Text style={styles.postTitle}>{item.title}</Text> : null}
-                <Text style={styles.postContent}>{item.content}</Text>
-
-                {/* Image */}
-                {imageUrl && (
-                  <Image source={{ uri: imgUrl(imageUrl) }} style={styles.postImage} resizeMode="cover" />
-                )}
-
-                {/* Actions */}
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => likeMutation.mutate(item.id)}
-                  >
-                    <Heart
-                      size={18}
-                      color={item.isLiked ? theme.colors.error : theme.colors.textSecondary}
-                      fill={item.isLiked ? theme.colors.error : 'transparent'}
-                    />
-                    <Text style={styles.actionText}>{item.likeCount || 0}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.actionBtn}>
-                    <MessageSquare size={18} color={theme.colors.textSecondary} />
-                    <Text style={styles.actionText}>{item.commentCount || 0}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          }}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={{ color: theme.colors.textMuted, fontSize: 14 }}>
-                Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ nhé!
-              </Text>
-            </View>
-          }
-        />
-      )}
-    </View>
-  );
+export function postStatus(post) {
+  if (post.moderation?.decision === 'revision' && post.status !== 'published') return 'Cần chỉnh sửa';
+  return ({ pending: 'Chờ duyệt', published: 'Đã đăng', removed: 'Đã gỡ', flagged: 'Đang xem xét' })[post.status] || post.status;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  createBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: theme.borderRadius.full,
-  },
-  createBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  listContent: {
-    padding: theme.spacing.md,
-    paddingBottom: 30,
-  },
-  postCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.sm,
-  },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  authorName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  postTime: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
-  postTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  postContent: {
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: 10,
-    backgroundColor: theme.colors.borderLight,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    paddingTop: 10,
-    gap: 20,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
+export function CommunityScreen({ navigation }) {
+  const signedIn = useAuthStore(state => !!state.token);
+  const [mine, setMine] = useState(false);
+  const [postType, setType] = useState('');
+  const [sort, setSort] = useState('newest');
+  const [search, setSearch] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [page, setPage] = useState(1);
+  const query = useQuery({
+    queryKey: ['posts', mine, page, keyword, postType, sort],
+    queryFn: ({ signal }) => communityService.getPosts({ mine, page, keyword, postType, sort }, signal),
+  });
+  const posts = listOf(query.data).filter(post => mine || !isDemo(post));
+  return <Page title="Cộng đồng" tab refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.primary]} />}>
+    <View style={s.masthead}>
+      <Image source={require('../../../assets/editorial-table.webp')} style={s.image} />
+      <View style={s.copy}>
+        <Title title="Chuyện bếp" detail="Món mới, mẹo nấu và chuyện bếp từ mọi người." />
+        <Button title="Viết bài" icon={PenLine} onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login')} />
+      </View>
+    </View>
+    {signedIn && <View style={ui.row}>
+      <Chip label="Bảng tin" selected={!mine} onPress={() => { setMine(false); setPage(1); }} />
+      <Chip label="Bài của tôi" selected={mine} onPress={() => { setMine(true); setPage(1); }} />
+    </View>}
+    {!mine && <View style={ui.group}>
+      <Field label="Tìm bài viết" value={search} onChangeText={setSearch} onSubmitEditing={() => { setKeyword(search.trim()); setPage(1); }} returnKeyType="search" maxLength={200} />
+      <View style={ui.row}>
+        <Button title="Tìm" variant="secondary" onPress={() => { setKeyword(search.trim()); setPage(1); }} />
+        {keyword && <Button title="Xóa tìm kiếm" variant="outline" onPress={() => { setSearch(''); setKeyword(''); setPage(1); }} />}
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        {[['', 'Tất cả'], ['blog', 'Bài viết'], ['video', 'Video']].map(([value, label]) => <Chip key={value} label={label} selected={postType === value}
+          onPress={() => { setType(value); setPage(1); }} />)}
+        <Chip label={sort === 'top' ? 'Nổi bật' : 'Mới nhất'} selected={sort === 'top'} onPress={() => { setSort(sort === 'top' ? 'newest' : 'top'); setPage(1); }} />
+      </ScrollView>
+    </View>}
+    <QueryState query={query}>
+      {!posts.length && <Empty icon={Users} title={mine ? 'Bạn chưa có bài viết' : 'Chưa có bài phù hợp'} />}
+      {posts.map(post => <Pressable key={post.id} style={({ pressed }) => [ui.card, pressed && { backgroundColor: c.primaryLight }]}
+        accessibilityRole="button" accessibilityLabel={'Đọc ' + post.title} onPress={() => navigation.navigate('PostDetail', { postId: post.id })}>
+        <View style={ui.between}><Text style={[ui.small, ui.fill]}>{post.authorName} · {post.postType === 'video' ? 'Video' : 'Bài viết'}</Text>
+          {mine && <Text style={ui.small}>{postStatus(post)}</Text>}</View>
+        <Text style={s.postTitle}>{post.title}</Text>
+        {!!post.excerpt && <Text style={ui.body} numberOfLines={3}>{post.excerpt}</Text>}
+        {!!post.moderation?.note && mine && <Text style={ui.small}>{post.moderation.note}</Text>}
+        <View style={ui.between}>
+          <View style={ui.row}><MessageCircle size={15} color={c.muted} /><Text style={ui.small}>{post.commentCount} bình luận · {post.score} điểm</Text></View>
+          <ArrowUpRight size={18} color={c.primary} />
+        </View>
+      </Pressable>)}
+      {(page > 1 || page < (query.data?.totalPages || 1)) && <View style={ui.row}>
+        <Button title="Trang trước" variant="outline" disabled={page <= 1} onPress={() => setPage(page - 1)} />
+        <Button title="Trang sau" variant="outline" disabled={page >= (query.data?.totalPages || 1)} onPress={() => setPage(page + 1)} />
+      </View>}
+    </QueryState>
+  </Page>;
+}
+
+const s = StyleSheet.create({
+  masthead: { borderRadius: 23, overflow: 'hidden', backgroundColor: c.stone },
+  image: { height: 120, width: '100%' },
+  copy: { padding: 18, gap: 12 },
+  postTitle: { fontFamily: 'serif', fontSize: 23, color: c.ink, fontWeight: '500' },
 });

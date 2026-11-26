@@ -1,182 +1,88 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { useQueryClient } from '@tanstack/react-query';
-import { theme } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { communityService } from '../../api/services/communityService';
-import { Header } from '../../components/ui/Header';
+import { recipeService } from '../../api/services/recipeService';
+import { Page, Title, Field, Chip, QueryState, Empty, Notice, RowLink, ui } from '../../components/ui/Kit';
 import { Button } from '../../components/ui/Button';
-import { Camera, Image as ImageIcon, X } from 'lucide-react-native';
+import { Readable } from '../../components/ui/Readable';
+import { PostMedia } from './PostMedia';
+import { listOf, isDemo, fold } from '../../styles/content.mjs';
 
-export function CreatePostScreen({ navigation }) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [images, setImages] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-  const queryClient = useQueryClient();
-
-  const pickImage = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-    if (!res.canceled && res.assets) {
-      setImages((prev) => [...prev, ...res.assets.map((a) => a.uri)]);
-    }
-  };
-
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async () => {
-    if (!content.trim()) {
-      Alert.alert('Thông báo', 'Vui lòng nhập nội dung bài viết.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await communityService.createPost({
-        title: title.trim(),
-        content: content.trim(),
-        imageUris: images,
-      });
-      queryClient.invalidateQueries({ queryKey: ['communityPosts'] });
-      Alert.alert('Thành công', 'Bài viết đã được gửi duyệt/đăng thành công!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } catch (err) {
-      Alert.alert('Lỗi đăng bài', err.message || 'Không thể đăng bài lúc này.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <Header
-        title="Tạo Bài Viết Mới"
-        onBack={() => navigation.goBack()}
-        rightAction={
-          <Button
-            title="Đăng"
-            onPress={handleSubmit}
-            loading={submitting}
-            style={{ height: 36, paddingHorizontal: 16 }}
-          />
-        }
-      />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <TextInput
-          placeholder="Tiêu đề bài viết (tùy chọn)..."
-          placeholderTextColor={theme.colors.textMuted}
-          style={styles.titleInput}
-          value={title}
-          onChangeText={setTitle}
-        />
-
-        <TextInput
-          placeholder="Hôm nay bạn nấu món gì? Chia sẻ công thức hoặc trải nghiệm sống xanh của bạn nhé..."
-          placeholderTextColor={theme.colors.textMuted}
-          style={styles.contentInput}
-          multiline
-          textAlignVertical="top"
-          value={content}
-          onChangeText={setContent}
-        />
-
-        {/* Danh sách ảnh đã chọn */}
-        {images.length > 0 && (
-          <ScrollView horizontal style={styles.imageScroll} showsHorizontalScrollIndicator={false}>
-            {images.map((uri, idx) => (
-              <View key={idx} style={styles.imgPreviewWrapper}>
-                <Image source={{ uri }} style={styles.imgPreview} />
-                <TouchableOpacity style={styles.removeBtn} onPress={() => removeImage(idx)}>
-                  <X size={14} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Nút thêm ảnh */}
-        <TouchableOpacity style={styles.addMediaBtn} onPress={pickImage}>
-          <ImageIcon size={20} color={theme.colors.primary} />
-          <Text style={styles.addMediaText}>Thêm hình ảnh vào bài viết</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
+export function CreatePostScreen({ navigation, route }) {
+  const id = route.params?.postId;
+  const existing = useQuery({ queryKey: ['post', id], queryFn: ({ signal }) => communityService.getPostById(id, signal), enabled: !!id });
+  return <Page title={id ? 'Sửa bài' : 'Viết bài'} back={navigation.goBack} keyboard>
+    {id ? <QueryState query={existing}>
+      {existing.data?.canEdit ? <Composer key={id} post={existing.data} navigation={navigation} /> : <Empty title="Bạn không có quyền sửa bài này" />}
+    </QueryState> : <Composer navigation={navigation} />}
+  </Page>;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
-  content: {
-    padding: theme.spacing.md,
-  },
-  titleInput: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    paddingVertical: 10,
-    marginBottom: 10,
-  },
-  contentInput: {
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    minHeight: 180,
-    lineHeight: 22,
-  },
-  imageScroll: {
-    marginVertical: 12,
-  },
-  imgPreviewWrapper: {
-    position: 'relative',
-    marginRight: 10,
-  },
-  imgPreview: {
-    width: 90,
-    height: 90,
-    borderRadius: theme.borderRadius.md,
-  },
-  removeBtn: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addMediaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    gap: 8,
-  },
-  addMediaText: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-});
+function Composer({ post, navigation }) {
+  const client = useQueryClient();
+  const [postType, setType] = useState(post?.postType || 'blog');
+  const [title, setTitle] = useState(post?.title || '');
+  const [content, setContent] = useState(post?.content || '');
+  const [media, setMedia] = useState(post?.mediaUrl || '');
+  const [recipe, setRecipe] = useState(post?.recipeId ? { id: post.recipeId, title: post.recipeTitle } : null);
+  const [picking, setPicking] = useState(false);
+  const [filter, setFilter] = useState('');
+  const [preview, setPreview] = useState(false);
+  const recipes = useQuery({ queryKey: ['recipes'], queryFn: ({ signal }) => recipeService.getRecipes(signal), enabled: picking });
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (!title.trim() || (postType === 'blog' && !content.trim())) throw new Error('Nhập tiêu đề và nội dung bài.');
+      const url = media.trim();
+      if ((postType === 'video' || url) && !/^https:\/\/[^\s/@]+(?:[/?#][^\s]*)?$/i.test(url)) throw new Error('Nhập liên kết HTTPS hợp lệ.');
+      const body = { title: title.trim(), content: content.trim() || null, mediaUrl: url || null, recipeId: recipe?.id ?? null };
+      return post ? communityService.updatePost(post.id, body) : communityService.createPost({ ...body, postType });
+    },
+    onSuccess: data => {
+      if (!data?.id) throw new Error('Chưa xác nhận được bài viết đã gửi. Kiểm tra Bài của tôi.');
+      client.setQueryData(['post', data.id], data);
+      client.invalidateQueries({ queryKey: ['posts'] });
+      navigation.replace('PostDetail', { postId: data.id });
+    },
+  });
+
+  return <>
+    <Title title={post ? 'Cập nhật bài viết' : 'Chia sẻ từ bếp'} detail="Bài gửi sẽ chờ duyệt trước khi xuất hiện trên bảng tin." />
+    <Notice error>{mutation.error?.message}</Notice>
+    {!post && <View style={ui.row}>
+      <Chip label="Bài viết" selected={postType === 'blog'} disabled={mutation.isPending} onPress={() => setType('blog')} />
+      <Chip label="Video" selected={postType === 'video'} disabled={mutation.isPending} onPress={() => setType('video')} />
+    </View>}
+    <View style={ui.card}>
+      {preview ? <>
+        <Text style={ui.h2}>{title.trim() || 'Chưa có tiêu đề'}</Text>
+        {!!content.trim() && <Readable content={content} />}
+        {!!media.trim() && <PostMedia key={media} value={media} video={postType === 'video'} />}
+      </> : <>
+        <Field label="Tiêu đề" maxLength={200} value={title} onChangeText={setTitle} editable={!mutation.isPending} />
+        <Field label="Nội dung" multiline maxLength={20000} value={content} onChangeText={setContent} editable={!mutation.isPending} />
+        <Field label={postType === 'video' ? 'Liên kết video' : 'Liên kết ảnh (tùy chọn)'} autoCapitalize="none" keyboardType="url"
+          placeholder="https://" maxLength={500} value={media} onChangeText={setMedia} editable={!mutation.isPending} />
+      </>}
+      {!!recipe && <Text style={ui.small}>Công thức: {recipe.title || 'Đã đính kèm'}</Text>}
+      {!preview && <View style={ui.row}>
+        <Button title={picking ? 'Đóng danh sách' : 'Gắn công thức'} variant="outline" disabled={mutation.isPending} onPress={() => setPicking(!picking)} />
+        {!!recipe && <Button title="Bỏ công thức" variant="outline" disabled={mutation.isPending} onPress={() => setRecipe(null)} />}
+      </View>}
+      {!preview && picking && <>
+        <Field label="Tìm công thức đính kèm" value={filter} onChangeText={setFilter} />
+        <QueryState query={recipes}>
+          {listOf(recipes.data).filter(r => r.status === 'published' && !isDemo(r) && fold(r.title).includes(fold(filter))).slice(0, 6).map(r =>
+            <RowLink label={r.title} key={r.id} onPress={() => {
+              const id = Number(String(r.id).replace(/^r/i, ''));
+              if (Number.isInteger(id) && id > 0 && id <= 2147483647) {
+                setRecipe({ id, title: r.title }); setPicking(false);
+              }
+            }} />)}
+        </QueryState>
+      </>}
+      <Button title={preview ? 'Quay lại chỉnh sửa' : 'Xem trước'} variant="secondary" disabled={mutation.isPending} onPress={() => setPreview(!preview)} />
+      <Button title="Gửi duyệt" loading={mutation.isPending} disabled={!title.trim() || (postType === 'blog' ? !content.trim() : !media.trim())} onPress={() => mutation.mutate()} />
+    </View>
+  </>;
+}
