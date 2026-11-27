@@ -10,6 +10,7 @@ test("community media accepts safe sources and embeds only known YouTube hosts",
   assert.equal(postMedia("https://www.youtube.com/watch?v=abcdefghijk").kind, "youtube");
   assert.equal(postMedia("https://youtube.com.evil.example/watch?v=abcdefghijk").kind, "link");
   assert.equal(postMedia("https://media.example/clip.MP4?token=public").kind, "video");
+  assert.equal(postMedia("https://media.example/clip.mp4#t=3").src, "https://media.example/clip.mp4#t=3");
   assert.equal(postMedia("https://example.com/watch/9").kind, "link");
 });
 

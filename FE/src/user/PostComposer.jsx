@@ -116,7 +116,9 @@ export function CreatePost({ go, user, video = false, editPost = null }) {
       }
       const response = await request(editPost ? `/community/posts/${editPost.id}` : "/community/posts", {
         postType, content: content || null, mediaUrl,
-        title: editPost && editPost.content?.trim().split("\n")[0]?.slice(0, 200) !== editPost.title ? editPost.title : null,
+        title: editPost && editPost.content?.trim().split("\n")[0]?.slice(0, 200) !== editPost.title
+          ? editPost.title
+          : content.split("\n")[0].slice(0, 200) || (postType === "video" ? "Video chia sẻ" : "Ảnh chia sẻ"),
         recipeId: recipeNumber(draft.recipeId),
       }, editPost ? "PUT" : "POST");
       if (!response?.id) throw new Error("Kiểm tra Bài của tôi trước khi gửi lại.");

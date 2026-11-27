@@ -4,6 +4,20 @@ import ReactMarkdown from "react-markdown";
 import { postDate, postMedia, mediaLink } from "./postData";
 import { Dialog } from "./ui";
 import { imgUrl } from "../api/client";
+import { request } from "./api";
+
+export async function updatePostLike(post, liked) {
+  if (post.likeCount == null) {
+    const score = await request(`/community/posts/${post.id}/vote`, { value: liked ? 1 : 0 }, "PUT");
+    if (!Number.isInteger(score)) throw new Error("Chưa xác nhận được lượt phản hồi.");
+    return { liked, score };
+  }
+
+  const reaction = await request(`/community/posts/${post.id}/like`, { liked }, "PUT");
+  if (typeof reaction?.liked !== "boolean" || !Number.isInteger(reaction.likeCount))
+    throw new Error("Chưa xác nhận được lượt thích.");
+  return reaction;
+}
 
 export function PostMeta({ post }) {
   const author = post.authorName || "Thành viên";
@@ -87,7 +101,7 @@ export function PostMedia({ post }) {
   if (media.kind === "video")
     return (
       <div className="vp-post-video">
-        <video src={`${media.src}#t=0.001`} controls playsInline preload="metadata"
+        <video src={media.src} controls playsInline preload="metadata"
           onError={() => setFailed(true)} aria-label={post.title || "Video đính kèm"} />
       </div>
     );

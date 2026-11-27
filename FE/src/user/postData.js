@@ -48,8 +48,10 @@ export function postMedia(value, base) {
       kind: "youtube",
       src: `https://www.youtube-nocookie.com/embed/${id}`,
     };
-  if (/\.(mp4|webm|ogv|mov)$/i.test(url.pathname))
+  if (/\.(mp4|webm|ogv|mov)$/i.test(url.pathname)) {
+    if (!url.hash) url.hash = "t=0.001";
     return { kind: "video", src: url.href };
+  }
   return { kind: "link", src: url.href };
 }
 

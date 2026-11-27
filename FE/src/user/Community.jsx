@@ -3,7 +3,7 @@ import { CookingPot, Heart, Image, MessageCircle, PenLine, Search, Trash2 } from
 import { useResource, Button, State, PageControls, Notice } from "./ui";
 import { listOf, isTestContent, postStatusLabel, userError } from "./data";
 import { request } from "./api";
-import { PostMeta, PostMedia, CommunityDialog } from "./PostParts";
+import { PostMeta, PostMedia, CommunityDialog, updatePostLike } from "./PostParts";
 
 function FeedPost({ post, user, mine, go, remove }) {
   const [reaction, setReaction] = useState(null);
@@ -11,9 +11,11 @@ function FeedPost({ post, user, mine, go, remove }) {
   const [error, setError] = useState("");
   const lock = useRef(false);
   const liked = reaction?.liked ?? post.myVote === 1;
-  const count = reaction?.likeCount ?? post.likeCount;
+  const likes = reaction?.likeCount ?? post.likeCount;
+  const count = likes ?? reaction?.score ?? post.score;
   const titleIsExcerpt = post.excerpt && (post.excerpt.startsWith(post.title) || post.title.startsWith(post.excerpt.replace(/…$/, "")));
   const open = (event, comments = false) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     go("post-detail", post.id);
     if (comments) window.history.replaceState({}, "", `${location.pathname}${location.search}#post-comments`);
@@ -25,9 +27,7 @@ function FeedPost({ post, user, mine, go, remove }) {
     setSaving(true);
     setError("");
     try {
-      const result = await request(`/community/posts/${post.id}/like`, { liked: !liked }, "PUT");
-      if (typeof result?.liked !== "boolean" || !Number.isInteger(result?.likeCount)) throw new Error("Chưa xác nhận được lượt thích.");
-      setReaction(result);
+      setReaction(await updatePostLike(post, !liked));
     } catch (cause) {
       setError(userError(cause));
     } finally {
@@ -53,7 +53,9 @@ function FeedPost({ post, user, mine, go, remove }) {
     </a>}
     <div className="vp-thread-actions">
       {post.status === "published" && <>
-        <button type="button" aria-pressed={liked} aria-label={liked ? "Bỏ thích" : "Thích"} disabled={saving} onClick={toggleLike}>
+        <button type="button" aria-pressed={liked}
+          aria-label={`${liked ? "Bỏ thích" : "Thích"}${count == null ? "" : `, ${count} ${likes == null ? "điểm hữu ích" : "lượt thích"}`}`}
+          disabled={saving} onClick={toggleLike}>
           <Heart size={20} fill={liked ? "currentColor" : "none"} />{count ?? ""}
         </button>
         <a href={`/post-detail?id=${post.id}#post-comments`} aria-label={`Bình luận (${post.commentCount ?? 0})`} onClick={(event) => open(event, true)}>

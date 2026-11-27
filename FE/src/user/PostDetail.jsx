@@ -14,7 +14,7 @@ import { Button, State, Notice, useResource } from "./ui";
 import { request } from "./api";
 import { isTestContent, postStatusLabel, userError } from "./data";
 import { postDate } from "./postData";
-import { PostMeta, PostMedia, PostBody, CommunityDialog } from "./PostParts";
+import { PostMeta, PostMedia, PostBody, CommunityDialog, updatePostLike } from "./PostParts";
 
 const reportCategories = [
   ["spam", "Spam hoặc quảng cáo"],
@@ -129,10 +129,8 @@ export function PostDetail({ id, go, user, flash }) {
   const toggleLike = () => {
     if (!user) return go("login");
     mutate("vote", async () => {
-      const reaction = await request(`/community/posts/${id}/like`, { liked: post.myVote !== 1 }, "PUT");
-      if (typeof reaction?.liked !== "boolean" || !Number.isInteger(reaction.likeCount))
-        throw new Error("Chưa xác nhận được lượt thích.");
-      setChanged({ ...post, likeCount: reaction.likeCount, myVote: reaction.liked ? 1 : 0 });
+      const { liked, ...count } = await updatePostLike(post, post.myVote !== 1);
+      setChanged({ ...post, ...count, myVote: liked ? 1 : 0 });
     });
   };
   const addComment = (e) => {
@@ -232,7 +230,7 @@ export function PostDetail({ id, go, user, flash }) {
                       onClick={toggleLike}
                     >
                       <Heart size={20} fill={post.myVote === 1 ? "currentColor" : "none"} />
-                      {post.likeCount ?? ""}
+                      {post.likeCount ?? post.score ?? ""}
                     </button>
                   </div>
                 )}
