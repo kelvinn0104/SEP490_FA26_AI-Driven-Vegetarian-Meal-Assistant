@@ -76,8 +76,8 @@ public class RecipesController : ControllerBase
         [FromQuery] string? sort)
     {
         // Khách/người dùng thường chỉ xem công thức đã duyệt; admin/mod xem được mọi trạng thái
-        if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
-        var result = await _recipeService.GetRecipesAsync(search, status, categoryId, sort);
+        var publicOnly = !AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role));
+        var result = await _recipeService.GetRecipesAsync(search, status, categoryId, sort, publicOnly);
         return Ok(ApiResponse<List<RecipeDto>>.Ok(result));
     }
 
@@ -91,10 +91,10 @@ public class RecipesController : ControllerBase
         [FromQuery] int? page,
         [FromQuery] int? pageSize)
     {
-        if (!AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role))) status = "published";
+        var publicOnly = !AppRoles.IsStaff(User.FindFirstValue(ClaimTypes.Role));
         var result = await _recipeService.GetRecipesPagedAsync(
             new RecipeQuery { Search = search, Status = status, CategoryId = categoryId, Sort = sort },
-            this.Paging(page, pageSize));
+            this.Paging(page, pageSize), publicOnly);
         return Ok(ApiResponse<PagedResult<RecipeDto>>.Ok(result));
     }
 

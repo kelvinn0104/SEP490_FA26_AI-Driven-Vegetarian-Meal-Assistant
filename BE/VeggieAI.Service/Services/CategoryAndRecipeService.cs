@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
 using VeggieAI.Repository.Repositories;
+using VeggieAI.Service.Services.AI;
 
 namespace VeggieAI.Service.Services;
 
@@ -124,8 +125,8 @@ public class CategoryService : ICategoryService
 
 public interface IRecipeService
 {
-    Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null, string? sort = null);
-    Task<PagedResult<RecipeDto>> GetRecipesPagedAsync(RecipeQuery query, PageQuery page);
+    Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null, string? sort = null, bool publicOnly = false);
+    Task<PagedResult<RecipeDto>> GetRecipesPagedAsync(RecipeQuery query, PageQuery page, bool publicOnly = false);
 
     /// <summary>
     /// Chi tiết công thức. Công thức chưa published chỉ tác giả hoặc staff xem được (người khác nhận null → 404).
@@ -149,13 +150,33 @@ public class RecipeService : IRecipeService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null, string? sort = null)
+    public async Task<List<RecipeDto>> GetRecipesAsync(string? search = null, string? status = null, int? categoryId = null, string? sort = null, bool publicOnly = false)
     {
+        if (publicOnly)
+        {
+            var query = new RecipeQuery { Search = search, Status = status, CategoryId = categoryId, Sort = sort };
+            var rows = await ApplySort(BuildQuery(query, publicOnly), sort).ToListAsync();
+            return rows.Select(MapRecipeToDto).ToList();
+        }
         var recipes = await _unitOfWork.Recipes.GetRecipesWithCategoryAsync(search, status, categoryId);
         return ApplySort(recipes.AsQueryable(), sort).Select(MapRecipeToDto).ToList();
     }
 
-    public async Task<PagedResult<RecipeDto>> GetRecipesPagedAsync(RecipeQuery query, PageQuery page)
+    public async Task<PagedResult<RecipeDto>> GetRecipesPagedAsync(RecipeQuery query, PageQuery page, bool publicOnly = false)
+    {
+        var q = BuildQuery(query, publicOnly);
+        var total = await q.CountAsync();
+        var rows = await ApplySort(q, query.Sort).Skip(page.Skip).Take(page.PageSize).ToListAsync();
+        return new PagedResult<RecipeDto>
+        {
+            Items = rows.Select(MapRecipeToDto).ToList(),
+            TotalCount = total,
+            Page = page.Page,
+            PageSize = page.PageSize
+        };
+    }
+
+    private IQueryable<Recipe> BuildQuery(RecipeQuery query, bool publicOnly)
     {
         var q = _unitOfWork.Context.Recipes.AsNoTracking()
             .Include(r => r.Category)
@@ -167,20 +188,14 @@ public class RecipeService : IRecipeService
             var s = query.Search.Trim().ToLower();
             q = q.Where(r => r.Title.ToLower().Contains(s) || (r.Creator != null && r.Creator.DisplayName.ToLower().Contains(s)));
         }
-        if (!string.IsNullOrWhiteSpace(query.Status) && query.Status != "all")
+        if (publicOnly)
+            q = q.FromApprovedCatalog();
+        else if (!string.IsNullOrWhiteSpace(query.Status) && query.Status != "all")
             q = q.Where(r => r.Status == query.Status);
         if (query.CategoryId is > 0)
             q = q.Where(r => r.CategoryId == query.CategoryId.Value);
 
-        var total = await q.CountAsync();
-        var rows = await ApplySort(q, query.Sort).Skip(page.Skip).Take(page.PageSize).ToListAsync();
-        return new PagedResult<RecipeDto>
-        {
-            Items = rows.Select(MapRecipeToDto).ToList(),
-            TotalCount = total,
-            Page = page.Page,
-            PageSize = page.PageSize
-        };
+        return q;
     }
 
     private static IQueryable<Recipe> ApplySort(IQueryable<Recipe> q, string? sort) =>
@@ -202,7 +217,8 @@ public class RecipeService : IRecipeService
         if (r == null) return null;
 
         // Công thức nháp / chờ duyệt / đã ẩn: chỉ tác giả hoặc admin/moderator được xem
-        if (r.Status != "published" && !viewerIsStaff && r.CreatedBy != viewerId) return null;
+        if (!viewerIsStaff && (r.Status == "published" || r.CreatedBy != viewerId) &&
+            !await _unitOfWork.Context.Recipes.FromApprovedCatalog().AnyAsync(x => x.Id == intId)) return null;
 
         if (r.Status == "published")
         {
@@ -257,7 +273,8 @@ public class RecipeService : IRecipeService
         // user thường bắt buộc nhập nguyên liệu, staff được lưu nháp (draft) rồi bổ sung sau.
         if (items.Count == 0 && !isStaff)
             throw new InvalidOperationException("Công thức cần ít nhất 1 nguyên liệu.");
-        var publishNow = isStaff && items.Count > 0;
+        var publishNow = isStaff && !string.IsNullOrWhiteSpace(request.Instructions) &&
+            Math.Round(items.Sum(it => ingredients[it.IngredientId].KcalPer100g * it.QuantityG / 100m / servings), 2) > 0;
 
         var recipe = new Recipe
         {
@@ -365,6 +382,8 @@ public class RecipeService : IRecipeService
     /// <summary>Chỉ cho publish công thức đã có nguyên liệu và dinh dưỡng (để bộ lọc dị ứng và tính kcal hoạt động đúng).</summary>
     private async Task EnsurePublishableAsync(Recipe recipe)
     {
+        if (string.IsNullOrWhiteSpace(recipe.Instructions) || recipe.Servings < 1)
+            throw new AppException("Bổ sung hướng dẫn và khẩu phần trước khi xuất bản.", 400, "RECIPE_MISSING_INSTRUCTIONS");
         var hasIngredients = await _unitOfWork.Context.RecipeIngredients.AnyAsync(ri => ri.RecipeId == recipe.Id);
         if (!hasIngredients)
             throw new AppException("Công thức chưa có nguyên liệu nên chưa thể xuất bản.", 400, "RECIPE_MISSING_INGREDIENTS");
@@ -380,9 +399,9 @@ public class RecipeService : IRecipeService
         pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
         var db = _unitOfWork.Context;
 
-        // Chỉ trả món còn published: món đã ẩn/gỡ không lộ hướng dẫn nấu cho người dùng thường
+        var approved = db.Recipes.FromApprovedCatalog();
         var baseQuery = db.Favorites.AsNoTracking()
-            .Where(f => f.UserId == userId && f.Recipe != null && f.Recipe.Status == "published");
+            .Where(f => f.UserId == userId && approved.Any(r => r.Id == f.RecipeId));
         var total = await baseQuery.CountAsync();
         var ids = await baseQuery
             .OrderByDescending(f => f.CreatedAt)
@@ -390,7 +409,7 @@ public class RecipeService : IRecipeService
             .Select(f => f.RecipeId)
             .ToListAsync();
 
-        var recipes = await db.Recipes.AsNoTracking()
+        var recipes = await approved.AsNoTracking()
             .Include(r => r.Category)
             .Include(r => r.Creator)
             .Where(r => ids.Contains(r.Id))
@@ -417,7 +436,7 @@ public class RecipeService : IRecipeService
     {
         var id = ParseRecipeId(recipeId);
         var db = _unitOfWork.Context;
-        if (!await db.Recipes.AnyAsync(r => r.Id == id && r.Status == "published"))
+        if (!await db.Recipes.FromApprovedCatalog().AnyAsync(r => r.Id == id))
             throw AppException.NotFound("Công thức");
         if (await db.Favorites.AnyAsync(f => f.UserId == userId && f.RecipeId == id)) return; // idempotent
 
@@ -467,6 +486,7 @@ public class RecipeService : IRecipeService
                     {
                         IngredientId = ri.IngredientId,
                         Name = ri.Ingredient?.Name ?? string.Empty,
+                        DataSource = ri.Ingredient?.DataSource,
                         QuantityG = ri.QuantityG
                     })
                     .ToList()

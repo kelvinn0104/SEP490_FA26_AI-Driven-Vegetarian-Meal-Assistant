@@ -276,8 +276,7 @@ public class IngredientScanService : IIngredientScanService
         var bad = await _db.AllergenIngredientIdsAsync(userId, ct);
 
         var candidates = await _db.Recipes.AsNoTracking()
-            .Where(r => r.Status == "published")
-            .Where(r => !r.RecipeIngredients.Any(ri => bad.Contains(ri.IngredientId)))
+            .EligibleForPlan(bad)
             .Where(r => r.RecipeIngredients.Any(ri => have.Contains(ri.IngredientId)))
             .Select(r => new
             {
@@ -287,7 +286,6 @@ public class IngredientScanService : IIngredientScanService
                 r.KcalPerServing,
                 Ingredients = r.RecipeIngredients.Select(ri => new { ri.IngredientId, ri.Ingredient!.Name }).ToList(),
             })
-            .Take(100)
             .ToListAsync(ct);
 
         var scored = candidates.Select(c =>

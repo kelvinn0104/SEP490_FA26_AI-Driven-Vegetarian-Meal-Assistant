@@ -67,14 +67,6 @@ public class ModerationService : IModerationService
         if (decision is not ("approved" or "rejected" or "revision"))
             throw new AppException("Quyết định không hợp lệ. Cho phép: approved, rejected, revision.");
 
-        // Duyệt bài kèm công thức → công thức cũng được publish, nên phải đủ nguyên liệu/dinh dưỡng
-        if (decision == "approved" && post.Recipe != null && post.Recipe.Status != "published")
-        {
-            var db = _unitOfWork.Context;
-            if (!await db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == post.Recipe.Id) || post.Recipe.KcalPerServing <= 0)
-                throw new AppException("Công thức đính kèm chưa có nguyên liệu/dinh dưỡng nên chưa thể duyệt.", 400, "RECIPE_MISSING_INGREDIENTS");
-        }
-
         post.Status = decision switch
         {
             "approved" => "published",
@@ -85,7 +77,7 @@ public class ModerationService : IModerationService
         var reason = string.IsNullOrWhiteSpace(request.Reason)
             ? decision switch
             {
-                "approved" => "Nội dung đạt chuẩn thuần chay và dinh dưỡng.",
+                "approved" => "Bài viết phù hợp với tiêu chuẩn cộng đồng.",
                 "revision" => "Bài viết cần chỉnh sửa thêm trước khi xuất bản.",
                 _ => "Nội dung vi phạm tiêu chuẩn cộng đồng."
             }
@@ -101,14 +93,6 @@ public class ModerationService : IModerationService
             ReviewedAt = DateTime.UtcNow
         };
         await _unitOfWork.Moderation.AddModerationLogAsync(log);
-
-        if (post.Recipe != null)
-        {
-            post.Recipe.Status = decision == "approved" ? "published" : "hidden";
-            post.Recipe.VerifiedBy = reviewerId;
-            post.Recipe.VerifiedAt = DateTime.UtcNow;
-            _unitOfWork.Recipes.Update(post.Recipe);
-        }
 
         var title = Notifier.Quote(post.Title);
         Notifier.Queue(_unitOfWork.Context, post.UserId, NotificationTypes.PostReview, decision switch

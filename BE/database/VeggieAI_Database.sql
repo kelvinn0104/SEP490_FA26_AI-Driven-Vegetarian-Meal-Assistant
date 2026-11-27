@@ -502,7 +502,7 @@ BEGIN
     ) s
     WHERE r."Id" = p_recipe_id;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path TO pg_catalog, veggieai, pg_temp;
 
 -- When ingredients of a recipe change
 CREATE OR REPLACE FUNCTION trg_recipe_ingredient_changed()
@@ -518,7 +518,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path TO pg_catalog, veggieai, pg_temp;
 
 CREATE TRIGGER "TR_RecipeIngredient_Recalc"
 AFTER INSERT OR UPDATE OR DELETE ON "RecipeIngredient"
@@ -537,7 +537,7 @@ BEGIN
     END LOOP;
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path TO pg_catalog, veggieai, pg_temp;
 
 CREATE TRIGGER "TR_Ingredient_Recalc"
 AFTER UPDATE OF "KcalPer100g", "ProteinPer100g", "CarbPer100g", "FatPer100g",
@@ -552,7 +552,7 @@ BEGIN
     PERFORM fn_recalc_recipe_nutrition(NEW."Id");
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path TO pg_catalog, veggieai, pg_temp;
 
 CREATE TRIGGER "TR_Recipe_Servings_Recalc"
 AFTER UPDATE OF "Servings" ON "Recipe"

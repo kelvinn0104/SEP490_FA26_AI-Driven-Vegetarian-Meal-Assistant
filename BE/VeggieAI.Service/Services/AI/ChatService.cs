@@ -1,4 +1,4 @@
-using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
@@ -95,41 +95,12 @@ public class ChatService : IChatService
         var text = content.Trim();
         if (text.Length == 0) throw new AppException("Nội dung tin nhắn không được để trống.");
 
-        // AI chưa cấu hình → báo lỗi có mã, KHÔNG lưu câu báo lỗi như một câu trả lời của AI
-        if (!_llm.IsConfigured)
-            throw new AppException("Trợ lý AI chưa được cấu hình. Vui lòng liên hệ quản trị viên.", 503, "AI_NOT_CONFIGURED");
-
+        var hits = await ChatKnowledge.RetrieveAsync(_db, userId, text, session.PlanId, ct);
+        var selected = await SelectSourcesAsync(userId, text, history, hits, ct);
+        var answer = await RenderVerifiedAnswerAsync(selected, userId, ct);
+        var citations = ChatKnowledge.ToCitations(selected);
         var userMsg = new ChatMessage { SessionId = sessionId, Sender = "user", Content = text };
         _db.ChatMessages.Add(userMsg);
-        await _db.SaveChangesAsync(ct);
-
-        string answer;
-        var hits = await ChatKnowledge.RetrieveAsync(_db, userId, text, ct);
-        var citations = ChatKnowledge.ToCitations(hits);
-        var req = new LlmRequest
-        {
-            Task = AiModelTypes.Chatbot,
-            UserId = userId,
-            Temperature = 0.6,
-            MaxOutputTokens = 2048,
-            SystemPrompt = await BuildSystemPromptAsync(userId, session.PlanId, ct) + ChatKnowledge.ToPromptBlock(hits),
-        };
-        req.Messages.AddRange(history.Select(m => m.Sender == "ai" ? LlmMessage.Assistant(m.Content) : LlmMessage.User(m.Content)));
-        req.Messages.Add(LlmMessage.User(userMsg.Content));
-
-        try
-        {
-            answer = (await _llm.GenerateAsync(req, ct)).Text.Trim();
-            if (string.IsNullOrWhiteSpace(answer))
-                throw new AppException("AI không trả lời.", 502);
-        }
-        catch (Exception ex) when (ex is AppException { StatusCode: >= 500 } or HttpRequestException or TaskCanceledException)
-        {
-            // Bỏ tin nhắn vừa lưu để lịch sử không có câu hỏi "treo"; FE giữ nội dung trong ô nhập và cho bấm thử lại
-            _db.ChatMessages.Remove(userMsg);
-            await _db.SaveChangesAsync(CancellationToken.None);
-            throw new AppException("Trợ lý AI đang bận, vui lòng thử lại sau ít phút.", 503, "AI_UNAVAILABLE");
-        }
 
         // SDD 3.19 (LI-01): câu hỏi liên quan y tế → luôn kèm khuyến cáo không thay thế tư vấn y khoa
         if (IsMedicalTopic(text) && !answer.Contains(Disclaimer, StringComparison.Ordinal))
@@ -156,54 +127,95 @@ public class ChatService : IChatService
         await _db.ChatSessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId, ct)
         ?? throw AppException.NotFound("Phiên chat");
 
-    private async Task<string> BuildSystemPromptAsync(int userId, int? planId, CancellationToken ct)
+    private async Task<List<KnowledgeHit>> SelectSourcesAsync(int userId, string text,
+        IReadOnlyList<ChatMessage> history, List<KnowledgeHit> hits, CancellationToken ct)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("Bạn là VeggieAI — trợ lý dinh dưỡng cho người ăn chay tại Việt Nam. Trả lời tiếng Việt, ngắn gọn, thân thiện, có căn cứ khoa học.");
-        sb.AppendLine("Không chẩn đoán bệnh hay kê đơn thuốc; với vấn đề sức khỏe nghiêm trọng, khuyên người dùng gặp bác sĩ/chuyên gia dinh dưỡng.");
-        sb.AppendLine("Chỉ gợi ý món chay (không thịt, cá, hải sản). Chú ý vi chất người ăn chay dễ thiếu: B12, sắt, canxi, kẽm, omega-3, protein.");
-
-        var p = await _db.HealthProfiles.AsNoTracking().FirstOrDefaultAsync(h => h.UserId == userId, ct);
-        if (p is not null)
+        if (hits.Count == 0) return [];
+        var folded = ChatKnowledge.Fold(text);
+        var exact = hits.Where(hit => folded.Contains(ChatKnowledge.Fold(hit.Title), StringComparison.Ordinal)).ToList();
+        if (exact.Any(hit => hit.Type == "recipe"))
+            return exact.Where(hit => hit.Type == "recipe").Take(3).ToList();
+        var namedRecipe = !folded.Contains("goi y") && (folded.Contains("cach nau") || folded.Contains("cach lam") ||
+            folded.Contains("cong thuc") || (folded.StartsWith("nau ") && folded.Contains("nhu the nao")));
+        if (namedRecipe)
+            hits = hits.Where(hit => hit.Type == "recipe" && ChatKnowledge.MatchesNamedRecipe(text, hit.Title)).ToList();
+        if (namedRecipe && hits.Count == 0) return [];
+        if (_llm.IsConfigured)
         {
-            sb.AppendLine($"Hồ sơ người dùng: {p.Gender}, {NutritionCalculator.AgeAt(p.DateOfBirth, AiMappers.TodayVn())} tuổi, " +
-                          $"{p.HeightCm} cm, {p.WeightKg} kg, BMI {p.Bmi}, vận động {p.ActivityLevel}, mục tiêu {p.HealthGoal}; " +
-                          $"nhu cầu/ngày {p.DailyKcalTarget:0} kcal, protein {p.ProteinTargetG:0} g, sắt {p.IronTargetMg} mg, B12 {p.B12TargetMcg} mcg.");
-        }
-
-        var allergies = await _db.UserAllergies
-            .Where(ua => ua.UserId == userId)
-            .Select(ua => ua.Allergy!.Name)
-            .ToListAsync(ct);
-        if (allergies.Count > 0)
-        {
-            sb.AppendLine($"Dị ứng (TUYỆT ĐỐI tránh): {string.Join(", ", allergies)}.");
-        }
-
-        var today = AiMappers.TodayVn();
-        var eaten = await _db.MealLogs.AsNoTracking()
-            .Where(l => l.UserId == userId && l.LogDate == today)
-            .Select(l => new { l.Recipe!.Title, l.KcalConsumed })
-            .ToListAsync(ct);
-        if (eaten.Count > 0)
-        {
-            sb.AppendLine($"Hôm nay đã ăn: {string.Join("; ", eaten.Select(e => $"{e.Title} ({e.KcalConsumed:0} kcal)"))}.");
-        }
-
-        if (planId is not null)
-        {
-            var items = await _db.MealPlanItems.AsNoTracking()
-                .Where(i => i.PlanId == planId)
-                .OrderBy(i => i.PlanDate)
-                .Select(i => new { i.Id, i.PlanDate, i.MealType, i.Recipe!.Title, i.Servings, Kcal = i.Recipe.KcalPerServing * i.Servings })
-                .ToListAsync(ct);
-            sb.AppendLine("Người dùng đang hỏi về thực đơn sau (itemId | ngày | bữa | món | khẩu phần | kcal):");
-            foreach (var i in items)
+            var request = new LlmRequest
             {
-                sb.AppendLine($"{i.Id} | {i.PlanDate:dd/MM} | {i.MealType} | {i.Title} | {i.Servings} | {i.Kcal:0}");
+                Task = AiModelTypes.Chatbot,
+                UserId = userId,
+                Temperature = 0.1,
+                MaxOutputTokens = 300,
+                JsonOutput = true,
+                SystemPrompt = """
+                    Chọn tối đa 3 mục trong danh sách VeggieAI để trả lời câu hỏi, chỉ trả JSON {"sources":[1,2]}.
+                    Các số là chỉ mục của danh sách. Với yêu cầu công thức hoặc cách nấu một món cụ thể,
+                    chỉ chọn đúng món đó, trả {"sources":[]} nếu tên món không khớp.
+                    Với gợi ý mở, chọn công thức phù hợp nhất với nguyên liệu hoặc tiêu chí được hỏi.
+                    Với câu hỏi về dinh dưỡng nguyên liệu, chỉ chọn dữ liệu nguyên liệu phù hợp.
+                    Không chọn mục chỉ trùng vài từ nhưng sai món. Không viết câu trả lời, không thêm mục ngoài danh sách.
+                    """ + "\n" + ChatKnowledge.ToPromptBlock(hits),
+            };
+            request.Messages.AddRange(history.TakeLast(4).Select(m => m.Sender == "ai" ? LlmMessage.Assistant(m.Content) : LlmMessage.User(m.Content)));
+            request.Messages.Add(LlmMessage.User(text));
+            try
+            {
+                var raw = (await _llm.GenerateAsync(request, ct)).Text;
+                var first = raw.IndexOf('{');
+                var last = raw.LastIndexOf('}');
+                if (first >= 0 && last >= first)
+                {
+                    using var json = JsonDocument.Parse(raw[first..(last + 1)]);
+                    if (json.RootElement.TryGetProperty("sources", out var sources) && sources.ValueKind == JsonValueKind.Array)
+                        return sources.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number && x.TryGetInt32(out _))
+                            .Select(x => x.GetInt32()).Where(index => index >= 1 && index <= hits.Count).Distinct().Take(3)
+                            .Select(index => hits[index - 1]).ToList();
+                }
             }
-            sb.AppendLine("Nếu người dùng muốn đổi món, giải thích lý do và nhắc họ dùng nút \"Đổi món\" (API POST /api/meal-plans/{planId}/items/{itemId}/swap).");
+            catch (Exception ex) when (!ct.IsCancellationRequested &&
+                ex is AppException or HttpRequestException or TaskCanceledException or JsonException)
+            {
+                // Khi AI bận, chỉ trả nguồn khớp đầy đủ tên.
+            }
         }
-        return sb.ToString();
+
+        return (namedRecipe ? hits : exact).Take(3).ToList();
+    }
+
+    private async Task<string> RenderVerifiedAnswerAsync(List<KnowledgeHit> selected, int userId, CancellationToken ct)
+    {
+        var ids = selected.Where(x => x.Type == "recipe").Select(x => x.Id).ToList();
+        var allergens = await _db.AllergenIngredientIdsAsync(userId, ct);
+        var recipes = await _db.Recipes.AsNoTracking().EligibleForPlan(allergens).Where(r => ids.Contains(r.Id))
+            .Select(r => new
+            {
+                r.Id, r.Title, r.Servings, r.KcalPerServing, r.ProteinG, r.Instructions,
+                Ingredients = r.RecipeIngredients.OrderByDescending(i => i.QuantityG)
+                    .Select(i => new { i.Ingredient!.Name, i.QuantityG }).ToList(),
+            }).ToDictionaryAsync(r => r.Id, ct);
+        selected.RemoveAll(hit => hit.Type == "recipe" && !recipes.ContainsKey(hit.Id));
+        if (selected.Count == 0)
+            return "Chưa tìm thấy công thức phù hợp trong kho đã duyệt. Bạn có thể thử tên món khác hoặc nêu nguyên liệu đang có.";
+
+        var paragraphs = new List<string>();
+        foreach (var hit in selected)
+        {
+            if (hit.Type != "recipe")
+            {
+                paragraphs.Add(hit.Snippet);
+                continue;
+            }
+            var recipe = recipes[hit.Id];
+            var paragraph = $"**{recipe.Title}** · {recipe.KcalPerServing:0.#} kcal · {recipe.ProteinG:0.#} g đạm mỗi phần";
+            if (recipes.Count == 1)
+            {
+                var ingredients = string.Join(", ", recipe.Ingredients.Select(i => $"{i.Name} ({i.QuantityG:0.#} g)"));
+                paragraph += $"\n\n**Nguyên liệu cho {recipe.Servings} phần:** {ingredients}\n\n{recipe.Instructions}";
+            }
+            paragraphs.Add(paragraph);
+        }
+        return string.Join("\n\n", paragraphs);
     }
 }

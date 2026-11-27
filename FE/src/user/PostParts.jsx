@@ -3,6 +3,7 @@ import { Play, ExternalLink } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { postDate, postMedia, mediaLink } from "./postData";
 import { Dialog } from "./ui";
+import { imgUrl } from "../api/client";
 
 export function PostMeta({ post }) {
   const author = post.authorName || "Thành viên";
@@ -51,7 +52,7 @@ export function PostBody({ content }) {
 export function PostMedia({ post }) {
   const [started, setStarted] = useState(false);
   const [failed, setFailed] = useState(false);
-  const media = postMedia(post.mediaUrl);
+  const media = postMedia(post.mediaUrl, imgUrl("/"));
   if (!media)
     return post.postType === "video" ? (
       <p className="vp-media-error">Chưa có liên kết video hợp lệ.</p>
@@ -63,7 +64,7 @@ export function PostMedia({ post }) {
       <img
         className="vp-post-cover"
         src={media.src}
-        alt={post.title}
+        alt={post.title || "Ảnh đính kèm bài viết"}
         onError={() => setFailed(true)}
         loading="lazy"
         referrerPolicy="no-referrer"
@@ -83,6 +84,13 @@ export function PostMedia({ post }) {
         </a>
       </div>
     );
+  if (media.kind === "video")
+    return (
+      <div className="vp-post-video">
+        <video src={`${media.src}#t=0.001`} controls playsInline preload="metadata"
+          onError={() => setFailed(true)} aria-label={post.title || "Video đính kèm"} />
+      </div>
+    );
   if (!started)
     return (
       <button
@@ -94,31 +102,18 @@ export function PostMedia({ post }) {
           <Play size={28} />
         </span>
         Xem video
-        <small>
-          {media.kind === "youtube" ? "Phát từ YouTube" : "Phát video đính kèm"}
-        </small>
+        <small>Phát từ YouTube</small>
       </button>
     );
   return (
     <div className="vp-post-video">
-      {media.kind === "youtube" ? (
-        <iframe
-          src={media.src}
-          title={post.title || "Video bài viết"}
-          allow="encrypted-media; picture-in-picture; fullscreen"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
-      ) : (
-        <video
-          src={media.src}
-          controls
-          playsInline
-          preload="metadata"
-          onError={() => setFailed(true)}
-          aria-label={post.title}
-        />
-      )}
+      <iframe
+        src={media.src}
+        title={post.title || "Video bài viết"}
+        allow="encrypted-media; picture-in-picture; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
     </div>
   );
 }

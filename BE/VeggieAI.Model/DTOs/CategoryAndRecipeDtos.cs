@@ -81,6 +81,7 @@ public class RecipeIngredientDto
 {
     public int IngredientId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? DataSource { get; set; }
     /// <summary>Khối lượng cho cả công thức (ứng với Servings khẩu phần).</summary>
     public decimal QuantityG { get; set; }
 }

@@ -121,7 +121,9 @@ export function RecipeDetail({ id, go, user, flash }) {
                   <ul className="vp-ingredient-list">
                     {recipe.ingredients.map((item, i) => (
                       <li key={i}>
-                        {item.name || item.ingredientName}
+                        {/^https:\/\/fdc\.nal\.usda\.gov\/food-details\/\d+\/nutrients$/.test(item.dataSource || "")
+                          ? <a href={item.dataSource} target="_blank" rel="noreferrer" title="Nguồn USDA FoodData Central">{item.name}</a>
+                          : item.name || item.ingredientName}
                         <span>
                           {amount(item.quantityG ?? item.quantity, factor)}{" "}
                           {item.unit || "g"}

@@ -177,6 +177,13 @@ public class CommunityController : AiApiControllerBase
         return Ok(ApiResponse<int>.Ok(score));
     }
 
+    [HttpPut("posts/{id:int}/like")]
+    public async Task<ActionResult<ApiResponse<PostLikeDto>>> Like(int id, [FromBody] PostLikeRequest req, CancellationToken ct)
+    {
+        var result = await _svc.LikeAsync(UserId, id, req.Liked, ct);
+        return Ok(ApiResponse<PostLikeDto>.Ok(result));
+    }
+
     [HttpPost("reports")]
     public async Task<ActionResult<ApiResponse<ReportDto>>> Report([FromBody] CreateReportRequest req, CancellationToken ct)
     {
