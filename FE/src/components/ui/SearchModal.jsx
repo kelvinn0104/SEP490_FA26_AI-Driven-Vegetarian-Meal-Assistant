@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { usersApi, categoriesApi, moderationApi } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 
-export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' }) => {
+export const SearchModal = ({ isOpen, onClose, onNavigate }) => {
+  const { isSuperAdmin, hasPermission } = useAuth();
+  const canReadUsers = isSuperAdmin || hasPermission('usr_read');
+
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -21,34 +24,29 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Load real data when modal opens
   useEffect(() => {
     if (!isOpen) return;
 
     const loadRealData = async () => {
-      try {
-        const [usersRes, catsRes, modRes] = await Promise.allSettled([
-          usersApi.getUsers(),
-          categoriesApi.getCategories(),
-          moderationApi.getPending(),
-        ]);
+      const [usersRes, catsRes, modRes] = await Promise.allSettled([
+        canReadUsers ? usersApi.getUsers() : Promise.resolve([]),
+        categoriesApi.getCategories(),
+        moderationApi.getPending(),
+      ]);
 
-        if (usersRes.status === 'fulfilled' && usersRes.value) {
-          setUsers(usersRes.value);
-        }
-        if (catsRes.status === 'fulfilled' && catsRes.value) {
-          setCategories(catsRes.value);
-        }
-        if (modRes.status === 'fulfilled' && modRes.value) {
-          setModeration(modRes.value);
-        }
-      } catch (err) {
-        console.error('Failed to load search data:', err);
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
+        setUsers(usersRes.value);
+      }
+      if (catsRes.status === 'fulfilled' && Array.isArray(catsRes.value)) {
+        setCategories(catsRes.value);
+      }
+      if (modRes.status === 'fulfilled' && Array.isArray(modRes.value)) {
+        setModeration(modRes.value);
       }
     };
 
     loadRealData();
-  }, [isOpen]);
+  }, [isOpen, canReadUsers]);
 
   if (!isOpen) return null;
 
@@ -57,7 +55,7 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
   const filteredUsers = q
     ? users.filter(
         (u) =>
-          (u.name || u.displayName || '').toLowerCase().includes(q) ||
+          (u.name || '').toLowerCase().includes(q) ||
           (u.email || '').toLowerCase().includes(q)
       )
     : [];
@@ -74,21 +72,13 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
     ? moderation.filter(
         (m) =>
           (m.title || '').toLowerCase().includes(q) ||
-          (m.content || m.contentPreview || '').toLowerCase().includes(q)
+          (m.content || '').toLowerCase().includes(q)
       )
     : [];
 
-  const modalContent = (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[9999] flex items-start justify-center pt-20 px-4 bg-forestDark/70 backdrop-blur-sm"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, margin: 0 }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high overflow-hidden animate-fade-up"
-      >
-        {/* Search Input */}
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-xs">
+      <div className="w-full max-w-2xl bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center px-4 py-3.5 border-b border-surface-container-high/60 gap-3">
           <span className="material-symbols-outlined text-outline text-[22px]">search</span>
           <input
@@ -96,7 +86,7 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm kiếm danh mục, người dùng, bài chờ kiểm duyệt trong database..."
+            placeholder="Tìm kiếm danh mục, tài khoản, bài chờ kiểm duyệt..."
             className="w-full bg-transparent text-sm sm:text-base text-on-surface placeholder:text-outline focus:outline-none"
           />
           <button
@@ -108,15 +98,13 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
           </button>
         </div>
 
-        {/* Quick Links / Search Results */}
         <div className="max-h-[60vh] overflow-y-auto p-3 space-y-4">
-          {/* Quick Actions */}
           {!q && (
             <div>
               <p className="text-[11px] font-bold text-outline uppercase tracking-wider px-3 mb-1">
                 Điều hướng nhanh
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -125,92 +113,49 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                   }}
                   className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    grid_view
-                  </span>
-                  <span className="text-xs font-semibold text-on-surface">Tổng quan hệ thống</span>
+                  <span className="material-symbols-outlined text-primary text-[20px]">grid_view</span>
+                  <span className="text-xs font-semibold text-on-surface">Bảng điều khiển tổng quan</span>
                 </button>
-                {userRole === 'mod' && (
+
+                {isSuperAdmin && (
                   <>
                     <button
                       type="button"
                       onClick={() => {
-                        onNavigate('content-moderation');
+                        onNavigate('mod-management');
                         onClose();
                       }}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-error text-[20px]">
-                        verified_user
-                      </span>
-                      <span className="text-xs font-semibold text-on-surface">
-                        Kiểm duyệt tồn đọng ({moderation.length})
-                      </span>
+                      <span className="material-symbols-outlined text-primary text-[20px]">badge</span>
+                      <span className="text-xs font-semibold text-on-surface">Quản lý Điều phối viên (Mod)</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        onNavigate('category-management');
+                        onNavigate('system-settings');
                         onClose();
                       }}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-secondary text-[20px]">
-                        category
-                      </span>
-                      <span className="text-xs font-semibold text-on-surface">
-                        Danh mục dinh dưỡng ({categories.length})
-                      </span>
+                      <span className="material-symbols-outlined text-secondary text-[20px]">tune</span>
+                      <span className="text-xs font-semibold text-on-surface">System Settings</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        onNavigate('ingredient-management');
+                        onNavigate('system-logs');
                         onClose();
                       }}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-secondary text-[20px]">
-                        science
-                      </span>
-                      <span className="text-xs font-semibold text-on-surface">
-                        Thư viện Vi chất &amp; Đạm
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onNavigate('challenge-management');
-                        onClose();
-                      }}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-primary text-[20px]">
-                        military_tech
-                      </span>
-                      <span className="text-xs font-semibold text-on-surface">
-                        Thử thách lối sống thuần chay
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onNavigate('product-scanner');
-                        onClose();
-                      }}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-teal-600 text-[20px]">
-                        document_scanner
-                      </span>
-                      <span className="text-xs font-semibold text-on-surface">
-                        Thẩm định nhãn &amp; quét chay
-                      </span>
+                      <span className="material-symbols-outlined text-tertiary text-[20px]">receipt_long</span>
+                      <span className="text-xs font-semibold text-on-surface">System Audit Logs</span>
                     </button>
                   </>
                 )}
 
-                {userRole === 'admin' && (
+                {canReadUsers && (
                   <button
                     type="button"
                     onClick={() => {
@@ -219,11 +164,9 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                     }}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-tertiary text-[20px]">
-                      group
-                    </span>
+                    <span className="material-symbols-outlined text-tertiary text-[20px]">group</span>
                     <span className="text-xs font-semibold text-on-surface">
-                      Quản lý người dùng ({users.length})
+                      Quản lý tài khoản ({users.length})
                     </span>
                   </button>
                 )}
@@ -231,72 +174,35 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                 <button
                   type="button"
                   onClick={() => {
-                    onNavigate('feedback-management');
+                    onNavigate('content-moderation');
                     onClose();
                   }}
                   className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-rose-600 text-[20px]">
-                    rate_review
-                  </span>
+                  <span className="material-symbols-outlined text-error text-[20px]">fact_check</span>
                   <span className="text-xs font-semibold text-on-surface">
-                    Phản hồi &amp; Báo cáo vi phạm
+                    Kiểm duyệt nội dung ({moderation.length})
                   </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
-                    onNavigate('nutrition-analytics');
+                    onNavigate('category-management');
                     onClose();
                   }}
                   className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-emerald-600 text-[20px]">
-                    insights
-                  </span>
+                  <span className="material-symbols-outlined text-secondary text-[20px]">category</span>
                   <span className="text-xs font-semibold text-on-surface">
-                    Báo cáo dịch tễ dinh dưỡng
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('broadcast-notification');
-                    onClose();
-                  }}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-sky-600 text-[20px]">
-                    campaign
-                  </span>
-                  <span className="text-xs font-semibold text-on-surface">
-                    Phát sóng thông báo &amp; mẹo
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('reward-management');
-                    onClose();
-                  }}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-container-low text-left transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    redeem
-                  </span>
-                  <span className="text-xs font-semibold text-on-surface">
-                    Kho quà đổi điểm mầm xanh
+                    Danh mục dinh dưỡng ({categories.length})
                   </span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Results: Categories (MOD only) */}
-          {userRole === 'mod' && filteredCategories.length > 0 && (
+          {filteredCategories.length > 0 && (
             <div>
               <p className="text-[11px] font-bold text-outline uppercase tracking-wider px-3 mb-1">
                 Danh mục món chay ({filteredCategories.length})
@@ -321,7 +227,7 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                       </div>
                     </div>
                     <span className="text-xs font-mono text-primary font-medium shrink-0">
-                      {cat.recipeCount ?? cat.recipesCount ?? 0} món
+                      {cat.recipeCount ?? 0} món
                     </span>
                   </div>
                 ))}
@@ -329,40 +235,31 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
             </div>
           )}
 
-          {/* Results: Users (Admin only) */}
-          {userRole === 'admin' && filteredUsers.length > 0 && (
+          {canReadUsers && filteredUsers.length > 0 && (
             <div>
               <p className="text-[11px] font-bold text-outline uppercase tracking-wider px-3 mb-1">
-                Người dùng ({filteredUsers.length})
+                Tài khoản ({filteredUsers.length})
               </p>
               <div className="space-y-1">
                 {filteredUsers.slice(0, 5).map((user) => (
                   <div
                     key={user.id}
                     onClick={() => {
-                      onNavigate('user-management');
+                      onNavigate(user.role === 'Mod' && isSuperAdmin ? 'mod-management' : 'user-management');
                       onClose();
                     }}
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-surface-container-low cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={user.name || user.displayName}
-                          className="w-7 h-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center text-xs font-bold text-primary">
-                          {(user.name || user.displayName || 'U')[0]}
-                        </div>
-                      )}
+                      <div className="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center text-xs font-bold text-primary">
+                        {(user.name || 'U')[0]}
+                      </div>
                       <div>
-                        <p className="text-xs font-bold text-on-surface">{user.name || user.displayName}</p>
+                        <p className="text-xs font-bold text-on-surface">{user.name}</p>
                         <p className="text-[11px] text-outline">{user.email}</p>
                       </div>
                     </div>
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-surface-container font-medium text-on-surface">
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-surface-container font-mono font-bold text-on-surface">
                       {user.role}
                     </span>
                   </div>
@@ -371,11 +268,10 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
             </div>
           )}
 
-          {/* Results: Moderation */}
           {filteredModeration.length > 0 && (
             <div>
               <p className="text-[11px] font-bold text-outline uppercase tracking-wider px-3 mb-1">
-                Mục kiểm duyệt ({filteredModeration.length})
+                Mục chờ kiểm duyệt ({filteredModeration.length})
               </p>
               <div className="space-y-1">
                 {filteredModeration.slice(0, 5).map((item) => (
@@ -393,11 +289,11 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
                       </span>
                       <div>
                         <p className="text-xs font-bold text-on-surface">{item.title}</p>
-                        <p className="text-[11px] text-outline line-clamp-1">{item.content || item.contentPreview}</p>
+                        <p className="text-[11px] text-outline line-clamp-1">{item.content}</p>
                       </div>
                     </div>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-bold shrink-0">
-                      Cần duyệt
+                      Chờ duyệt
                     </span>
                   </div>
                 ))}
@@ -417,6 +313,4 @@ export const SearchModal = ({ isOpen, onClose, onNavigate, userRole = 'admin' })
       </div>
     </div>
   );
-
-  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
