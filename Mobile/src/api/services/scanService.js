@@ -3,7 +3,7 @@ import { apiRequest, writeJson } from '../client';
 export const scanService = {
   uploadScan: asset => {
     const formData = new FormData();
-    formData.append('Image', {
+    formData.append('Image', asset.file || {
       uri: asset.uri,
       name: asset.fileName || 'nguyen-lieu.jpg',
       type: asset.mimeType || 'image/jpeg',

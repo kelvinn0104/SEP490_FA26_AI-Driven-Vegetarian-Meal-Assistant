@@ -31,7 +31,7 @@ export function ProfileScreen({ navigation }) {
     </>}
     <View style={ui.card}>
       <Text style={ui.eyebrow}>Trợ giúp vào bếp</Text>
-      <RowLink icon={MessageCircle} label="Hỏi trợ lý" onPress={() => navigation.navigate('Chatbot')} />
+      <RowLink icon={MessageCircle} label="Hỏi trợ lý" onPress={() => navigation.navigate('ChatTab')} />
     </View>
     {user && <Button title="Đăng xuất" variant="outline" icon={LogOut} onPress={() => Alert.alert('Đăng xuất?', 'Bạn vẫn có thể duyệt công thức và cộng đồng.', [
       { text: 'Hủy', style: 'cancel' }, { text: 'Đăng xuất', style: 'destructive', onPress: () => logout().catch(() => {}) },

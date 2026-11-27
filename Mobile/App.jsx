@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useAuthStore } from './src/store/useAuthStore';
 import { AppNavigator } from './src/navigation/AppNavigator';
 
@@ -25,9 +26,11 @@ export default function App() {
   useEffect(() => () => client.clear(), [client]);
 
   return <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-    <QueryClientProvider client={client}>
-      <StatusBar style="dark" />
-      <AppNavigator key={token ? 'user' : 'guest'} />
-    </QueryClientProvider>
+    <KeyboardProvider enabled={Platform.OS !== 'web'}>
+      <QueryClientProvider client={client}>
+        <StatusBar style="dark" />
+        <AppNavigator key={token ? 'user' : 'guest'} />
+      </QueryClientProvider>
+    </KeyboardProvider>
   </SafeAreaProvider>;
 }

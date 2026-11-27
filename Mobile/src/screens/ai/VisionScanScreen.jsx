@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, Check, GalleryHorizontal, History, ScanLine, Square, SquareCheck } from 'lucide-react-native';
-import { useAuthStore } from '../../store/useAuthStore';
+import { CalendarDays, Camera, Check, GalleryHorizontal, History, MessageCircle, ScanLine, Square, SquareCheck } from 'lucide-react-native';
 import { scanService } from '../../api/services/scanService';
 import { imgUrl } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import { IconButton } from '../../components/ui/Header';
-import { Page, Title, GuestGate, Notice, Pending, Empty, QueryState, RowLink, ui } from '../../components/ui/Kit';
+import { Page, Title, Notice, Pending, Empty, QueryState, RowLink, ui } from '../../components/ui/Kit';
 import { RecipeCard } from '../../components/recipe/RecipeCard';
 import { c } from '../../styles/theme';
 import { allowedIngredient, isDemo, listOf, mealNames, number } from '../../styles/content.mjs';
@@ -21,15 +20,6 @@ function photoError(photo) {
 }
 
 export function VisionScanScreen({ navigation }) {
-  const signedIn = useAuthStore(state => !!state.token);
-  if (!signedIn) return <Page title="Quét ảnh" tab>
-    <GuestGate navigation={navigation} icon={ScanLine} title="Quét nguyên liệu"
-      detail="Đăng nhập để chụp hoặc chọn ảnh và nhận gợi ý món từ nguyên liệu có sẵn." />
-  </Page>;
-  return <Vision navigation={navigation} />;
-}
-
-function Vision({ navigation }) {
   const client = useQueryClient();
   const [photo, setPhoto] = useState(null);
   const [result, setResult] = useState(null);
@@ -95,8 +85,12 @@ function Vision({ navigation }) {
   const recipes = (result?.suggestedRecipes || []).filter(recipe => recipe.recipeId && !isDemo(recipe));
   const menu = (result?.suggestedMenu?.meals || []).filter(meal => meal.recipeId && !isDemo({ title: meal.recipeTitle }));
   const photoUri = photo?.uri || imgUrl(result?.imageUrl);
+  const toTab = (screen, params) => {
+    navigation.popTo('MainTabs', { screen, params });
+  };
 
-  return <Page title="Quét ảnh" tab action={<IconButton label={historyOpen ? 'Về quét ảnh' : 'Lịch sử quét'} icon={History} disabled={busy}
+  return <Page title="Quét nguyên liệu" back={historyOpen ? () => setHistoryOpen(false) : navigation.goBack}
+    action={<IconButton label={historyOpen ? 'Về quét ảnh' : 'Lịch sử quét'} icon={History} disabled={busy}
     onPress={() => { action.reset(); setError(''); setHistoryOpen(!historyOpen); }} />}>
     <Title title={historyOpen ? 'Lượt quét gần đây' : 'Từ nguyên liệu đến món ăn'}
       detail={historyOpen ? undefined : 'Chụp rõ từng nguyên liệu, rồi kiểm tra lại trước khi chọn món.'} />
@@ -174,9 +168,16 @@ function Vision({ navigation }) {
               onPress={() => navigation.navigate('RecipeDetail', { recipeId: meal.recipeId })} />)}
           </View>}
           {!recipes.length && !menu.length && <Empty title="Chưa có món gợi ý" icon={ScanLine} />}
-          {confirmed && <Button title="Tạo thực đơn từ nguyên liệu" onPress={() => navigation.navigate('PlannerTab', {
-            scanId: result.scanId, scanRequestedAt: Date.now(),
-          })} />}
+          {confirmed && <View style={ui.group}>
+            <Button title="Hỏi trợ lý về nguyên liệu" icon={MessageCircle} onPress={() => {
+              const ingredients = result.detectedItems.filter(allowedIngredient)
+                .map(item => (item.nameVi || item.name)?.trim()).filter(Boolean);
+              toTab('ChatTab', { scanAttachment: { id: result.scanId, ingredients } });
+            }} />
+            <Button title="Tạo thực đơn từ nguyên liệu" icon={CalendarDays} variant="outline" onPress={() => toTab('PlannerTab', {
+              scanId: result.scanId, createRequestedAt: Date.now(),
+            })} />
+          </View>}
         </>}
       </>}
     </>}

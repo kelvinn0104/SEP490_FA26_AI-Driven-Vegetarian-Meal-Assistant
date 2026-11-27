@@ -1,10 +1,10 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Compass, CalendarDays, ScanLine, Users, UserRound } from 'lucide-react-native';
+import { Compass, CalendarDays, MessageCircle, Users, UserRound } from 'lucide-react-native';
 import { c } from '../styles/theme';
 import { useAuthStore } from '../store/useAuthStore';
 import { Frame, Pending } from '../components/ui/Kit';
@@ -30,13 +30,14 @@ const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background
 const tabs = [
   ['HomeTab', 'Khám phá', Compass, HomeScreen],
   ['PlannerTab', 'Thực đơn', CalendarDays, PlannerScreen],
-  ['VisionTab', 'Quét ảnh', ScanLine, VisionScanScreen],
+  ['ChatTab', 'Trợ lý', MessageCircle, ChatbotScreen],
   ['CommunityTab', 'Cộng đồng', Users, CommunityScreen],
   ['ProfileTab', 'Cá nhân', UserRound, ProfileScreen],
 ];
 
 function MainTabs() {
   const { bottom } = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   return <Tab.Navigator backBehavior="history" screenOptions={{
     headerShown: false,
     tabBarHideOnKeyboard: true,
@@ -44,15 +45,19 @@ function MainTabs() {
     tabBarInactiveTintColor: c.muted,
     tabBarStyle: { height: 64 + bottom, paddingTop: 4, paddingBottom: 5 + bottom, backgroundColor: c.surface, borderTopColor: c.line },
     tabBarItemStyle: { minHeight: 48 },
-    tabBarLabelStyle: { fontWeight: '600', fontSize: 11 },
+    tabBarLabelStyle: { fontWeight: '600', fontSize: width < 360 ? 10 : 11, marginHorizontal: 0 },
   }}>
     {tabs.map(([name, label, Icon, Screen]) => <Tab.Screen key={name} name={name} component={Screen} options={{
       tabBarLabel: label,
       tabBarAccessibilityLabel: label,
-      tabBarIcon: ({ color, focused }) => <View style={{
-        minWidth: 46, minHeight: 28, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
-        backgroundColor: focused ? c.lime : 'transparent',
-      }}><Icon color={color} size={20} strokeWidth={focused ? 2 : 1.7} /></View>,
+      tabBarIcon: ({ color, focused }) => {
+        const assistant = name === 'ChatTab';
+        return <View style={{
+          minWidth: assistant ? 48 : 44, minHeight: assistant ? 32 : 27, borderRadius: 16,
+          alignItems: 'center', justifyContent: 'center',
+          backgroundColor: assistant ? c.primary : focused ? c.lime : 'transparent',
+        }}><Icon color={assistant ? c.surface : color} size={20} strokeWidth={focused ? 2 : 1.7} /></View>;
+      },
     }} />)}
   </Tab.Navigator>;
 }
@@ -67,8 +72,8 @@ export function AppNavigator() {
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
       <Stack.Screen name="PostDetail" component={PostDetailScreen} />
-      <Stack.Screen name="Chatbot" component={ChatbotScreen} />
       {signedIn ? <>
+        <Stack.Screen name="VisionScan" component={VisionScanScreen} />
         <Stack.Screen name="CreatePost" component={CreatePostScreen} />
         <Stack.Screen name="HealthProfile" component={HealthProfileScreen} />
         <Stack.Screen name="SavedRecipes" component={SavedRecipesScreen} />

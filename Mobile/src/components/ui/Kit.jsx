@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, ScrollView, ActivityIndicator, Platform, Pressable, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, Leaf } from 'lucide-react-native';
 import { c } from '../../styles/theme';
@@ -10,15 +11,24 @@ export function Frame({ title, back, action, keyboard, tab, children }) {
   return (
     <SafeAreaView edges={tab ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']} style={ui.frame}>
       {title && <Header title={title} onBack={back} rightAction={action} />}
-      {keyboard && Platform.OS === 'ios' ? <KeyboardAvoidingView behavior="padding" style={ui.fill}>{children}</KeyboardAvoidingView> : children}
+      {keyboard && Platform.OS !== 'web'
+        ? <KeyboardAvoidingView automaticOffset behavior="padding" style={ui.fill}>{children}</KeyboardAvoidingView>
+        : children}
     </SafeAreaView>
   );
 }
 
 export function Page({ title, back, action, tab, keyboard, children, ...props }) {
-  return <Frame {...{ title, back, action, tab, keyboard }}>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={ui.content} {...props}>{children}</ScrollView>
+  const Scroll = keyboard ? FormScroll : ScrollView;
+  return <Frame {...{ title, back, action, tab }}>
+    <Scroll keyboardShouldPersistTaps="handled" contentContainerStyle={ui.content} {...props}>{children}</Scroll>
   </Frame>;
+}
+
+export function FormScroll({ ref, ...props }) {
+  if (Platform.OS === 'web') return <ScrollView ref={ref} {...props} />;
+  return <KeyboardAwareScrollView ref={ref} bottomOffset={18} disableScrollOnKeyboardHide
+    keyboardDismissMode="on-drag" {...props} />;
 }
 
 export function Title({ title, detail, eyebrow }) {
@@ -71,11 +81,14 @@ export function QueryState({ query, children }) {
   </>;
 }
 
-export function Field({ label, style, ...props }) {
+export function Field({ label, style, onFocus, onBlur, ...props }) {
+  const [focused, setFocused] = useState(false);
   return <View style={ui.group}>
     <Text style={ui.label}>{label}</Text>
     <TextInput accessibilityLabel={label} placeholderTextColor={c.muted}
-      selectionColor={c.primary} style={[ui.input, props.multiline && ui.multiline, style]} {...props} />
+      onFocus={event => { setFocused(true); onFocus?.(event); }}
+      onBlur={event => { setFocused(false); onBlur?.(event); }}
+      selectionColor={c.primary} style={[ui.input, props.multiline && ui.multiline, focused && ui.focused, style]} {...props} />
   </View>;
 }
 
@@ -99,7 +112,7 @@ export const ui = StyleSheet.create({
   frame: { flex: 1, backgroundColor: c.background },
   fill: { flex: 1, minWidth: 0 },
   content: { width: '100%', maxWidth: 660, alignSelf: 'center', padding: 18, paddingBottom: 28, gap: 16 },
-  hero: { fontFamily: 'serif', fontSize: 39, color: c.ink, fontWeight: '500', letterSpacing: -0.8 },
+  hero: { fontFamily: 'serif', fontSize: 34, color: c.ink, fontWeight: '500', letterSpacing: -0.7 },
   h2: { fontSize: 20, fontWeight: '700', color: c.ink },
   label: { fontSize: 14, fontWeight: '600', color: c.ink },
   eyebrow: { fontSize: 11, letterSpacing: 1.4, fontWeight: '700', color: c.muted, textTransform: 'uppercase' },
@@ -115,6 +128,7 @@ export const ui = StyleSheet.create({
   empty: { alignItems: 'center', padding: 24, gap: 12 },
   input: { minHeight: 50, borderRadius: 12, borderWidth: 1, borderColor: c.line,
     paddingHorizontal: 13, paddingVertical: 10, backgroundColor: c.surface, color: c.ink, fontSize: 16 },
+  focused: { borderColor: c.primary },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
   chip: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14,
     borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },

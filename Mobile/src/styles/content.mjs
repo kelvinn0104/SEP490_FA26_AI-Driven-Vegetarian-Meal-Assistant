@@ -53,3 +53,16 @@ export function allowedIngredient(item) {
 export function chatUnavailable(content) {
   return !content?.trim() || ['...', 'Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.', 'Trợ lý AI chưa được cấu hình (thiếu API key). Vui lòng liên hệ quản trị viên.'].includes(content.trim());
 }
+
+export function chatContent(question, attachment) {
+  const text = question.trim();
+  const names = [...new Set(attachment?.ingredients || [])].join(', ');
+  return names && text ? text + '\n\nNguyên liệu đã xác nhận từ ảnh: ' + names : text;
+}
+
+export function addDays(date, days) {
+  if (!validDate(date)) return '';
+  const next = new Date(date + 'T12:00:00Z');
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
+}

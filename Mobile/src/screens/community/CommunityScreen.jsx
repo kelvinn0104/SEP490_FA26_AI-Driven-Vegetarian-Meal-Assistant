@@ -27,7 +27,7 @@ export function CommunityScreen({ navigation }) {
     queryFn: ({ signal }) => communityService.getPosts({ mine, page, keyword, postType, sort }, signal),
   });
   const posts = listOf(query.data).filter(post => mine || !isDemo(post));
-  return <Page title="Cộng đồng" tab refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.primary]} />}>
+  return <Page title="Cộng đồng" tab keyboard refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.primary]} />}>
     <View style={s.masthead}>
       <View style={s.copy}>
         <Title title="Chuyện bếp" />

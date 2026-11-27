@@ -16,7 +16,7 @@ export function IconButton({ label, icon: Icon, onPress, disabled }) {
 export function Header({ title, onBack, rightAction }) {
   return (
     <View style={s.header}>
-      {onBack ? <IconButton label="Quay lại" icon={ArrowLeft} onPress={onBack} /> : <Leaf size={22} color={c.primary} />}
+      {onBack ? <IconButton label="Quay lại" icon={ArrowLeft} onPress={onBack} /> : title === 'VeggieAI' && <Leaf size={22} color={c.primary} />}
       <Text accessibilityRole="header" style={s.title}>{title}</Text>
       {rightAction}
     </View>

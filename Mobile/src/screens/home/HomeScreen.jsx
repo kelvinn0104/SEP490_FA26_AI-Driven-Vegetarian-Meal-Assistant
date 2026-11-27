@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, Image, RefreshControl, ScrollView } from 'react-native';
-import { MessageCircle } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Frame, Title, Field, Chip, QueryState, Empty, Notice, ui } from '../../components/ui/Kit';
-import { IconButton } from '../../components/ui/Header';
+import { Frame, FormScroll, Title, Field, Chip, QueryState, Empty, Notice, ui } from '../../components/ui/Kit';
 import { Button } from '../../components/ui/Button';
 import { RecipeCard } from '../../components/recipe/RecipeCard';
 import { recipeService } from '../../api/services/recipeService';
@@ -20,8 +18,9 @@ export function HomeScreen({ navigation }) {
   const categories = useMemo(() => [...new Set(recipes.map(recipe => recipe.category).filter(Boolean))], [recipes]);
   const term = fold(search);
   const results = recipes.filter(recipe => (!category || recipe.category === category) && fold(recipe.title).includes(term));
-  return <Frame title="VeggieAI" tab action={<IconButton label="Hỏi trợ lý" icon={MessageCircle} onPress={() => navigation.navigate('Chatbot')} />}>
+  return <Frame title="VeggieAI" tab>
     <FlatList keyboardShouldPersistTaps="handled" contentContainerStyle={[ui.content, { gap: 8 }]}
+      renderScrollComponent={props => <FormScroll {...props} />}
       data={results} keyExtractor={item => String(item.id)} ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.primary]} />}
       renderItem={({ item }) => <RecipeCard recipe={item} onPress={recipe => navigation.navigate('RecipeDetail', { recipeId: recipe.id })} />}

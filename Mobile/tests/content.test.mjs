@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allowedIngredient, chatUnavailable, fold, listOf, loggedMealIds, number, today, validDate } from '../src/styles/content.mjs';
+import { addDays, allowedIngredient, chatContent, chatUnavailable, fold, listOf, loggedMealIds, number, today, validDate } from '../src/styles/content.mjs';
 
 test('dữ liệu thiếu không được hiển thị như giá trị 0', () => {
   assert.equal(number(null, 'g'), '—');
@@ -38,4 +38,16 @@ test('câu trả lời hệ thống bận không được coi là một phản h
   assert.equal(chatUnavailable('Xin lỗi, trợ lý AI đang bận. Bạn vui lòng thử lại sau ít phút.'), true);
   assert.equal(chatUnavailable('   '), true);
   assert.equal(chatUnavailable('Có thể nấu đậu hũ kho.'), false);
+});
+test('thực đơn bảy ngày tính cả ngày bắt đầu và qua đúng tháng', () => {
+  assert.equal(addDays('2026-11-27', 6), '2026-12-03');
+  assert.equal(addDays('2028-02-28', 1), '2028-02-29');
+  assert.equal(addDays('2026-02-30', 6), '');
+});
+
+test('chat chỉ gửi nguyên liệu đã xác nhận bằng văn bản', () => {
+  const scan = { ingredients: ['đậu hũ', 'nấm', 'đậu hũ'], photoUri: 'private' };
+  assert.equal(chatContent('  Nấu món gì?  ', scan), 'Nấu món gì?\n\nNguyên liệu đã xác nhận từ ảnh: đậu hũ, nấm');
+  assert.equal(chatContent('  ', scan), '');
+  assert.equal(chatContent('Nấu món gì?', undefined), 'Nấu món gì?');
 });
