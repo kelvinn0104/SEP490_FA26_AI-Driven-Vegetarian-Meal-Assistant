@@ -1,13 +1,34 @@
 import React, { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
-import { ArrowDown, ArrowUp, BookOpen } from 'lucide-react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ArrowUpRight,
+  BookOpen,
+  Flag,
+  Heart,
+  MessageCircle,
+  PenLine,
+  Send,
+  Trash2,
+} from 'lucide-react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { communityService as api } from '../../api/services/communityService';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Page, Title, QueryState, Field, Notice, Empty, Chip, RowLink, ui } from '../../components/ui/Kit';
+import {
+  Avatar,
+  Chip,
+  Empty,
+  Field,
+  Notice,
+  Page,
+  QueryState,
+  SectionHeader,
+  ui,
+} from '../../components/ui/Kit';
 import { Button } from '../../components/ui/Button';
+import { IconButton } from '../../components/ui/Header';
 import { Readable } from '../../components/ui/Readable';
-import { listOf, isDemo } from '../../styles/content.mjs';
+import { c, font, r } from '../../styles/theme';
+import { formatPostDate, isDemo, listOf } from '../../styles/content.mjs';
 import { PostMedia } from './PostMedia';
 import { postStatus } from './CommunityScreen';
 
@@ -21,91 +42,425 @@ export function PostDetailScreen({ route, navigation }) {
   const [category, setCategory] = useState('other');
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
-  const query = useQuery({ queryKey: ['post', id], queryFn: ({ signal }) => api.getPostById(id, signal), enabled: !!id });
+
+  const query = useQuery({
+    queryKey: ['post', id],
+    queryFn: ({ signal }) => api.getPostById(id, signal),
+    enabled: !!id,
+  });
+
   const post = query.data;
   const published = post?.status === 'published';
+
   const comments = useQuery({
-    queryKey: ['comments', id, page], queryFn: ({ signal }) => api.getComments(id, page, signal), enabled: published,
+    queryKey: ['comments', id, page],
+    queryFn: ({ signal }) => api.getComments(id, page, signal),
+    enabled: published,
   });
+
   const action = useMutation({
-    mutationFn: ({ type, value }) => {
-      if (type === 'vote') return api.vote(id, value);
+    mutationFn: ({ type }) => {
+      if (type === 'like') return api.setLike(post, post.myVote !== 1);
       if (type === 'comment') return api.addComment(id, comment.trim());
       if (type === 'delete') return api.deletePost(id);
       return api.report({ targetId: id, targetType: 'post', category, reason: reason.trim() || null });
     },
-    onSuccess: async (result, { type, value }) => {
-      if (type === 'vote') client.setQueryData(['post', id], data => ({ ...data, score: result, myVote: value }));
+    onSuccess: async (result, { type }) => {
+      if (type === 'like') {
+        client.setQueryData(['post', id], data => ({ ...data, ...result }));
+      }
       if (type === 'comment') {
         setComment('');
-        await Promise.all([client.invalidateQueries({ queryKey: ['comments', id] }), client.invalidateQueries({ queryKey: ['post', id] })]);
-        setFeedback('Đã gửi bình luận.');
+        await Promise.all([
+          client.invalidateQueries({ queryKey: ['comments', id] }),
+          client.invalidateQueries({ queryKey: ['post', id] }),
+        ]);
+        setFeedback('Đã gửi bình luận của bạn.');
       }
       if (type === 'report') {
-        setReport(false); setReason(''); setFeedback('Đã gửi báo cáo.');
+        setReport(false);
+        setReason('');
+        setFeedback('Đã ghi nhận báo cáo để kiểm duyệt.');
       }
       client.invalidateQueries({ queryKey: ['posts'] });
       if (type === 'delete') navigation.popToTop();
     },
   });
+
   const run = (type, extra = {}) => {
     if (!signedIn) return navigation.navigate('Login');
-    if (!action.isPending) { setFeedback(''); action.mutate({ type, ...extra }); }
+    if (!action.isPending) {
+      setFeedback('');
+      action.mutate({ type, ...extra });
+    }
   };
-  const back = () => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('MainTabs', { screen: 'CommunityTab' });
 
-  return <Page title="Đọc bài" back={back} keyboard>
-    {!id ? <Empty title="Thiếu mã bài viết" /> : <QueryState query={query}>
-      {!post || (!post.canEdit && isDemo(post)) ? <Empty title="Bài viết chưa khả dụng" /> : <>
-        <Title eyebrow={post.postType === 'video' ? 'Video cộng đồng' : 'Từ cộng đồng'} title={post.title} detail={post.authorName} />
-        {!published && <Notice>{postStatus(post)}{post.moderation?.note ? '\n' + post.moderation.note : ''}</Notice>}
-        <PostMedia key={post.mediaUrl} value={post.mediaUrl} video={post.postType === 'video'} />
-        {!!(post.content || post.videoSummary) && <View style={ui.card}><Readable content={post.content || post.videoSummary} /></View>}
-        {!!post.recipeId && <RowLink label={post.recipeTitle || 'Xem công thức đính kèm'} icon={BookOpen} onPress={() => navigation.navigate('RecipeDetail', { recipeId: post.recipeId })} />}
-        <Notice error>{action.error?.message}</Notice>
-        <Notice>{feedback}</Notice>
-        {(post.canEdit || post.canDelete) && <View style={ui.row}>
-          {post.canEdit && <Button title="Sửa bài" variant="secondary" disabled={action.isPending} onPress={() => navigation.navigate('CreatePost', { postId: id })} />}
-          {post.canDelete && <Button title="Xóa bài" variant="outline" disabled={action.isPending} onPress={() => Alert.alert('Xóa bài viết?', 'Bài và bình luận của bài sẽ bị xóa.', [
-            { text: 'Hủy', style: 'cancel' }, { text: 'Xóa bài', style: 'destructive', onPress: () => run('delete') },
-          ])} />}
-        </View>}
-        {published && <>
+  const back = () =>
+    navigation.canGoBack() ? navigation.goBack() : navigation.navigate('MainTabs', { screen: 'CommunityTab' });
+
+  const commentItems = listOf(comments.data);
+  const totalComments = Math.max(Number(post?.commentCount) || 0, commentItems.length);
+  const validPost = post && (post.canEdit || !isDemo(post));
+
+  return (
+    <Page
+      title="Bài viết"
+      back={back}
+      keyboard
+      action={
+        validPost ? (
           <View style={ui.row}>
-            <Button title={post.myVote === 1 ? 'Đã đánh giá hữu ích' : 'Hữu ích'} icon={ArrowUp} variant="secondary" disabled={action.isPending}
-              onPress={() => run('vote', { value: post.myVote === 1 ? 0 : 1 })} />
-            <Button title={post.myVote === -1 ? 'Bỏ đánh giá' : 'Chưa hữu ích'} icon={ArrowDown} variant="outline" disabled={action.isPending}
-              onPress={() => run('vote', { value: post.myVote === -1 ? 0 : -1 })} />
-            <Text style={ui.small}>{post.score} điểm</Text>
+            {post.canEdit ? (
+              <IconButton
+                label="Chỉnh sửa bài viết"
+                icon={PenLine}
+                tone="plain"
+                disabled={action.isPending}
+                onPress={() => navigation.navigate('CreatePost', { postId: id })}
+              />
+            ) : null}
+            {post.canDelete ? (
+              <IconButton
+                label="Xóa bài viết"
+                icon={Trash2}
+                tone="plain"
+                disabled={action.isPending}
+                onPress={() =>
+                  Alert.alert('Xóa bài viết?', 'Bài viết và toàn bộ bình luận sẽ bị xóa vĩnh viễn.', [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Xóa bài', style: 'destructive', onPress: () => run('delete') },
+                  ])
+                }
+              />
+            ) : null}
+            {published && !post.canEdit ? (
+              <IconButton
+                label={report ? 'Đóng báo cáo' : 'Báo cáo bài viết'}
+                icon={Flag}
+                tone={report ? 'soft' : 'plain'}
+                disabled={action.isPending}
+                onPress={() => (signedIn ? setReport(!report) : navigation.navigate('Login'))}
+              />
+            ) : null}
           </View>
-          {!post.canEdit && <Button title={report ? 'Đóng báo cáo' : 'Báo cáo bài'} variant="outline" disabled={action.isPending} onPress={() => signedIn ? setReport(!report) : navigation.navigate('Login')} />}
-          {report && <View style={ui.card}>
-            <Text style={ui.h2}>Lý do báo cáo</Text>
-            <View style={ui.row}>{[['spam', 'Spam'], ['offensive', 'Xúc phạm'], ['inappropriate', 'Không phù hợp'], ['nutrition_misinformation', 'Sai lệch dinh dưỡng'], ['other', 'Khác']].map(([key, label]) =>
-              <Chip key={key} label={label} selected={category === key} onPress={() => setCategory(key)} />)}</View>
-            <Field label="Ghi chú (tùy chọn)" multiline maxLength={1000} value={reason} onChangeText={setReason} />
-            <Button title="Gửi báo cáo" loading={action.isPending} onPress={() => run('report')} />
-          </View>}
-          <View style={ui.card}>
-            <Text style={ui.h2}>Bình luận · {post.commentCount ?? listOf(comments.data).length}</Text>
-            {signedIn ? <>
-              <Field label="Viết bình luận" multiline maxLength={2000} value={comment} onChangeText={setComment} editable={!action.isPending} />
-              <Button title="Gửi bình luận" disabled={!comment.trim() || action.isPending} onPress={() => run('comment')} />
-            </> : <Button title="Đăng nhập để bình luận" variant="outline" onPress={() => navigation.navigate('Login')} />}
-            <QueryState query={comments}>
-              {!listOf(comments.data).length && <Text style={ui.small}>Chưa có bình luận.</Text>}
-              {listOf(comments.data).map(entry => <View key={entry.id} style={ui.group}>
-                <Text style={ui.label}>{entry.authorName}</Text>
-                <Text style={ui.body}>{entry.content}</Text>
-              </View>)}
-              {(page > 1 || page < (comments.data?.totalPages || 1)) && <View style={ui.row}>
-                <Button title="Trước" variant="outline" disabled={page === 1} onPress={() => setPage(page - 1)} />
-                <Button title="Sau" variant="outline" disabled={page >= (comments.data?.totalPages || 1)} onPress={() => setPage(page + 1)} />
-              </View>}
-            </QueryState>
-          </View>
-        </>}
-      </>}
-    </QueryState>}
-  </Page>;
+        ) : null
+      }
+    >
+      {!id ? (
+        <Empty title="Thiếu mã bài viết" />
+      ) : (
+        <QueryState query={query} skeletonCount={2}>
+          {!validPost ? (
+            <Empty title="Bài viết chưa khả dụng" detail="Bài viết có thể đang chờ duyệt hoặc đã được gỡ." />
+          ) : (
+            <>
+              <View style={{ gap: 8 }}>
+                <View style={s.authorRow}>
+                  <Avatar name={post.authorName} size={36} tone="terracotta" />
+                  <View style={ui.fill}>
+                    <Text style={ui.label}>{post.authorName || 'Thành viên VeggieAI'}</Text>
+                    <Text style={ui.small}>{formatPostDate(post.createdAt)}</Text>
+                  </View>
+                </View>
+                {post.content?.trim().split('\n')[0]?.slice(0, 200) !== post.title ? (
+                  <Text accessibilityRole="header" style={ui.h2}>{post.title}</Text>
+                ) : null}
+              </View>
+
+              {!published ? (
+                <Notice warning>
+                  {postStatus(post)}
+                  {post.moderation?.note ? '\n' + post.moderation.note : ''}
+                </Notice>
+              ) : null}
+
+              {post.content || post.videoSummary ? (
+                <View style={s.articleBody}>
+                  <Readable content={post.content || post.videoSummary} />
+                </View>
+              ) : null}
+
+              <PostMedia key={post.mediaUrl} value={post.mediaUrl} video={post.postType === 'video'} />
+
+              {post.recipeId && post.recipeTitle ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => navigation.navigate('RecipeDetail', { recipeId: post.recipeId })}
+                  style={({ pressed }) => [s.recipeAttach, pressed && { opacity: 0.82 }]}
+                >
+                  <BookOpen size={19} color={c.terracotta} strokeWidth={1.9} />
+                  <View style={ui.fill}>
+                    <Text style={s.recipeAttachTitle} numberOfLines={2}>
+                      {post.recipeTitle}
+                    </Text>
+                  </View>
+                  <ArrowUpRight size={18} color={c.terracotta} />
+                </Pressable>
+              ) : null}
+
+              <Notice error>{action.error?.message}</Notice>
+              <Notice success>{feedback}</Notice>
+
+              {published && (
+                <>
+                  <View style={s.voteBar}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${post.myVote === 1 ? 'Bỏ thích' : 'Thích'}, ${post.likeCount ?? post.score ?? 0} ${post.likeCount == null ? 'điểm hữu ích' : 'lượt thích'}`}
+                      accessibilityState={{ selected: post.myVote === 1 }}
+                      disabled={action.isPending}
+                      onPress={() => run('like')}
+                      style={[s.votePill, post.myVote === 1 && s.votePillActive]}
+                    >
+                      <Heart size={18} color={c.terracotta} fill={post.myVote === 1 ? c.terracotta : 'none'} />
+                      <Text style={s.voteText}>{post.likeCount ?? post.score ?? 0}</Text>
+                    </Pressable>
+
+                    <View style={[ui.row, { marginLeft: 'auto' }]}>
+                      <MessageCircle size={15} color={c.muted} />
+                      <Text style={ui.small}>{totalComments} bình luận</Text>
+                    </View>
+                  </View>
+
+                  {report ? (
+                    <View style={[ui.card, { borderColor: c.errorBorder }]}>
+                      <SectionHeader
+                        title="Báo cáo bài viết"
+                        actionLabel="Đóng"
+                        onAction={() => setReport(false)}
+                      />
+                      <View style={ui.row}>
+                        {[
+                          ['spam', 'Spam'],
+                          ['offensive', 'Xúc phạm'],
+                          ['inappropriate', 'Không phù hợp'],
+                          ['nutrition_misinformation', 'Sai lệch dinh dưỡng'],
+                          ['other', 'Khác'],
+                        ].map(([key, label]) => (
+                          <Chip
+                            key={key}
+                            label={label}
+                            selected={category === key}
+                            onPress={() => setCategory(key)}
+                          />
+                        ))}
+                      </View>
+                      <Field
+                        label="Mô tả thêm (tùy chọn)"
+                        multiline
+                        maxLength={1000}
+                        value={reason}
+                        onChangeText={setReason}
+                      />
+                      <Button
+                        title="Gửi báo cáo"
+                        variant="danger"
+                        loading={action.isPending && action.variables?.type === 'report'}
+                        onPress={() => run('report')}
+                      />
+                    </View>
+                  ) : null}
+
+                  {/* Flat Comments Section on Paper */}
+                  <View style={ui.flatSection}>
+                    <SectionHeader title="Thảo luận" count={`${totalComments}`} />
+
+                    {signedIn ? (
+                      <View style={s.commentComposer}>
+                        <TextInput
+                          accessibilityLabel="Viết bình luận"
+                          placeholder="Chia sẻ cảm nhận hoặc mẹo nấu của bạn…"
+                          placeholderTextColor={c.subtle}
+                          multiline
+                          maxLength={2000}
+                          value={comment}
+                          onChangeText={setComment}
+                          editable={!action.isPending}
+                          selectionColor={c.terracotta}
+                          style={s.commentInput}
+                        />
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Gửi bình luận"
+                          disabled={!comment.trim() || action.isPending}
+                          onPress={() => run('comment')}
+                          style={[
+                            s.commentSend,
+                            (!comment.trim() || action.isPending) && { opacity: 0.38 },
+                          ]}
+                        >
+                          <Send size={16} color="#FFFEFA" strokeWidth={2} />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Button
+                        title="Đăng nhập để tham gia thảo luận"
+                        variant="outline"
+                        onPress={() => navigation.navigate('Login')}
+                      />
+                    )}
+
+                    <QueryState query={comments}>
+                      {!commentItems.length ? (
+                        <Text style={[ui.small, { paddingVertical: 6 }]}>
+                          Chưa có bình luận nào. Hãy mở lời đầu tiên.
+                        </Text>
+                      ) : (
+                        <View style={{ gap: 12, paddingTop: 4 }}>
+                          {commentItems.map((entry, idx) => (
+                            <View
+                              key={entry.id}
+                              style={[s.commentItem, idx === commentItems.length - 1 && { borderBottomWidth: 0 }]}
+                            >
+                              <Avatar name={entry.authorName} size={30} tone="paper" />
+                              <View style={[ui.fill, { gap: 3 }]}>
+                                <View style={ui.between}>
+                                  <Text style={ui.label}>{entry.authorName}</Text>
+                                  <Text style={ui.small}>{formatPostDate(entry.createdAt)}</Text>
+                                </View>
+                                <Text style={s.commentBody}>{entry.content}</Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      {(page > 1 || page < (comments.data?.totalPages || 1)) && (
+                        <View style={ui.between}>
+                          <Button
+                            title="Trước"
+                            variant="outline"
+                            size="sm"
+                            disabled={page === 1}
+                            onPress={() => setPage(page - 1)}
+                          />
+                          <Text style={ui.small}>
+                            Trang {page} / {comments.data?.totalPages || 1}
+                          </Text>
+                          <Button
+                            title="Sau"
+                            variant="outline"
+                            size="sm"
+                            disabled={page >= (comments.data?.totalPages || 1)}
+                            onPress={() => setPage(page + 1)}
+                          />
+                        </View>
+                      )}
+                    </QueryState>
+                  </View>
+                </>
+              )}
+            </>
+          )}
+        </QueryState>
+      )}
+    </Page>
+  );
 }
+
+const s = StyleSheet.create({
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 4,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.line,
+  },
+  articleBody: {
+    paddingVertical: 4,
+  },
+  recipeAttach: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: r.md,
+    borderLeftWidth: 3,
+    borderLeftColor: c.terracotta,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.line,
+  },
+  recipeAttachTitle: {
+    fontFamily: font.serifBold,
+    fontSize: 16,
+    color: c.ink,
+    includeFontPadding: false,
+  },
+  voteBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 6,
+  },
+  votePill: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 13,
+    borderRadius: r.pill,
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    backgroundColor: c.surface,
+  },
+  votePillActive: {
+    backgroundColor: c.terracottaSoft,
+    borderColor: c.terracottaSoft,
+  },
+  voteText: {
+    fontFamily: font.medium,
+    fontSize: 13,
+    color: c.ink,
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+  },
+  commentComposer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    padding: 7,
+    paddingLeft: 13,
+    borderRadius: r.lg,
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    backgroundColor: c.surfaceElevated,
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 38,
+    maxHeight: 110,
+    fontFamily: font.regular,
+    fontSize: 14.5,
+    color: c.ink,
+    paddingVertical: 6,
+    includeFontPadding: false,
+    outlineStyle: 'none',
+  },
+  commentSend: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: c.terracotta,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: c.line,
+  },
+  commentBody: {
+    fontFamily: font.regular,
+    fontSize: 14.5,
+    lineHeight: 21,
+    color: c.inkSoft,
+    includeFontPadding: false,
+  },
+});

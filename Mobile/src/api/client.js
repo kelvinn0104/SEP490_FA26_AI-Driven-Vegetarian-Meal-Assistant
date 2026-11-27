@@ -1,4 +1,13 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+
+const storage = Platform.OS === 'web'
+  ? {
+      getItemAsync: async key => globalThis.sessionStorage?.getItem(key) ?? null,
+      setItemAsync: async (key, value) => { globalThis.sessionStorage?.setItem(key, value); },
+      deleteItemAsync: async key => { globalThis.sessionStorage?.removeItem(key); },
+    }
+  : SecureStore;
 
 export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://veggieai-api.onrender.com/api').replace(/\/$/, '');
 const SESSION_KEY = 'veggie_mobile_session';
@@ -12,16 +21,16 @@ export function setSessionExpiredHandler(handler) {
 }
 
 export async function restoreSession() {
-  const saved = await SecureStore.getItemAsync(SESSION_KEY);
+  const saved = await storage.getItemAsync(SESSION_KEY);
   session = saved ? JSON.parse(saved) : null;
   if (!session) {
     // Migrate the original mobile app's stored session.
     const [token, userJson] = await Promise.all([
-      SecureStore.getItemAsync('veggie_token'), SecureStore.getItemAsync('veggie_user'),
+      storage.getItemAsync('veggie_token'), storage.getItemAsync('veggie_user'),
     ]);
     if (token && userJson) {
       await saveSession({ token, user: JSON.parse(userJson) });
-      await Promise.all(['veggie_token', 'veggie_user'].map(key => SecureStore.deleteItemAsync(key)));
+      await Promise.all(['veggie_token', 'veggie_user'].map(key => storage.deleteItemAsync(key)));
     }
   }
   return session;
@@ -31,11 +40,11 @@ export function saveSession(next) {
   if (!next) session = null;
   const pending = writes.then(async () => {
     if (next) {
-      await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(next));
+      await storage.setItemAsync(SESSION_KEY, JSON.stringify(next));
       session = next;
     } else {
       session = null;
-      await Promise.all([SESSION_KEY, 'veggie_token', 'veggie_user'].map(key => SecureStore.deleteItemAsync(key)));
+      await Promise.all([SESSION_KEY, 'veggie_token', 'veggie_user'].map(key => storage.deleteItemAsync(key)));
     }
   });
   writes = pending.catch(() => {});
@@ -43,13 +52,13 @@ export function saveSession(next) {
 }
 
 export async function restoreVerification() {
-  const saved = await SecureStore.getItemAsync(VERIFICATION_KEY);
+  const saved = await storage.getItemAsync(VERIFICATION_KEY);
   return saved ? JSON.parse(saved) : null;
 }
 
 export function saveVerification(pending) {
-  return pending ? SecureStore.setItemAsync(VERIFICATION_KEY, JSON.stringify(pending))
-    : SecureStore.deleteItemAsync(VERIFICATION_KEY);
+  return pending ? storage.setItemAsync(VERIFICATION_KEY, JSON.stringify(pending))
+    : storage.deleteItemAsync(VERIFICATION_KEY);
 }
 
 export function unwrap(value) {
