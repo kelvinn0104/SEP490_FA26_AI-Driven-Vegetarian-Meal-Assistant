@@ -11,6 +11,7 @@
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": ["android.permission.SYSTEM_ALERT_WINDOW"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#D9EC98"

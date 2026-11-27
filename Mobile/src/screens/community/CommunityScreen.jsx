@@ -29,11 +29,11 @@ export function CommunityScreen({ navigation }) {
   const posts = listOf(query.data).filter(post => mine || !isDemo(post));
   return <Page title="Cộng đồng" tab refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.primary]} />}>
     <View style={s.masthead}>
-      <Image source={require('../../../assets/editorial-table.webp')} style={s.image} />
       <View style={s.copy}>
-        <Title title="Chuyện bếp" detail="Món mới, mẹo nấu và chuyện bếp từ mọi người." />
+        <Title title="Chuyện bếp" />
         <Button title="Viết bài" icon={PenLine} onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login')} />
       </View>
+      <Image source={require('../../../assets/editorial-table.webp')} style={s.image} />
     </View>
     {signedIn && <View style={ui.row}>
       <Chip label="Bảng tin" selected={!mine} onPress={() => { setMine(false); setPage(1); }} />
@@ -43,7 +43,7 @@ export function CommunityScreen({ navigation }) {
       <Field label="Tìm bài viết" value={search} onChangeText={setSearch} onSubmitEditing={() => { setKeyword(search.trim()); setPage(1); }} returnKeyType="search" maxLength={200} />
       <View style={ui.row}>
         <Button title="Tìm" variant="secondary" onPress={() => { setKeyword(search.trim()); setPage(1); }} />
-        {keyword && <Button title="Xóa tìm kiếm" variant="outline" onPress={() => { setSearch(''); setKeyword(''); setPage(1); }} />}
+        {!!keyword && <Button title="Xóa tìm kiếm" variant="outline" onPress={() => { setSearch(''); setKeyword(''); setPage(1); }} />}
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {[['', 'Tất cả'], ['blog', 'Bài viết'], ['video', 'Video']].map(([value, label]) => <Chip key={value} label={label} selected={postType === value}
@@ -74,8 +74,8 @@ export function CommunityScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  masthead: { borderRadius: 23, overflow: 'hidden', backgroundColor: c.stone },
-  image: { height: 120, width: '100%' },
-  copy: { padding: 18, gap: 12 },
+  masthead: { flexDirection: 'row', borderRadius: 20, overflow: 'hidden', backgroundColor: c.stone },
+  image: { width: '36%', height: '100%' },
+  copy: { flex: 1, alignItems: 'flex-start', padding: 16, gap: 12 },
   postTitle: { fontFamily: 'serif', fontSize: 23, color: c.ink, fontWeight: '500' },
 });

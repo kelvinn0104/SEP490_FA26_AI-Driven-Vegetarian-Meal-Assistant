@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AppState, Platform } from 'react-native';
 import { useAuthStore } from './src/store/useAuthStore';
 import { AppNavigator } from './src/navigation/AppNavigator';
 
@@ -16,6 +17,11 @@ export default function App() {
   }), [token]);
 
   useEffect(() => { initAuth(); }, [initAuth]);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const subscription = AppState.addEventListener('change', state => focusManager.setFocused(state === 'active'));
+    return () => subscription.remove();
+  }, []);
   useEffect(() => () => client.clear(), [client]);
 
   return <SafeAreaProvider initialMetrics={initialWindowMetrics}>

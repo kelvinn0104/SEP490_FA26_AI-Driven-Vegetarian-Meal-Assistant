@@ -83,7 +83,7 @@ export async function apiRequest(endpoint, options = {}) {
       signal: controller.signal,
     });
     if (response.status === 204) return null;
-    if (response.status === 401 && sentSession && session === sentSession) {
+    if (response.status === 401 && sentSession?.token && session?.token === sentSession.token) {
       onExpired();
     }
     const data = response.headers.get('content-type')?.includes('json') ? await response.json() : null;

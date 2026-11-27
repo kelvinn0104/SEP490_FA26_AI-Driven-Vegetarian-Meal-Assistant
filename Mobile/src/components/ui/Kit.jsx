@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, Leaf } from 'lucide-react-native';
 import { c } from '../../styles/theme';
@@ -10,7 +10,7 @@ export function Frame({ title, back, action, keyboard, tab, children }) {
   return (
     <SafeAreaView edges={tab ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']} style={ui.frame}>
       {title && <Header title={title} onBack={back} rightAction={action} />}
-      {keyboard ? <KeyboardAvoidingView behavior="padding" style={ui.fill}>{children}</KeyboardAvoidingView> : children}
+      {keyboard && Platform.OS === 'ios' ? <KeyboardAvoidingView behavior="padding" style={ui.fill}>{children}</KeyboardAvoidingView> : children}
     </SafeAreaView>
   );
 }
@@ -59,10 +59,16 @@ export function GuestGate({ navigation, title, detail, icon }) {
 
 export function QueryState({ query, children }) {
   if (query.isPending) return <Pending />;
-  if (query.isError) return <Empty title="Chưa tải được dữ liệu" detail={query.error.message}>
+  if (query.isError && (query.data === undefined || [401, 403, 404].includes(query.error.status))) return <Empty title="Chưa tải được dữ liệu" detail={query.error.message}>
     <Button title="Thử lại" variant="secondary" onPress={() => query.refetch()} />
   </Empty>;
-  return children;
+  return <>
+    {query.isError && <View style={ui.group}>
+      <Notice error>Chưa cập nhật được. Bạn đang xem dữ liệu của lần tải trước.</Notice>
+      <Button title="Tải lại" variant="outline" onPress={() => query.refetch()} />
+    </View>}
+    {children}
+  </>;
 }
 
 export function Field({ label, style, ...props }) {

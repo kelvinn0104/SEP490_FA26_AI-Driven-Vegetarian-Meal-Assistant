@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View, Image, RefreshControl, ScrollView } from 'react-native';
-import { MessageCircle, ScanLine, CalendarDays } from 'lucide-react-native';
+import { MessageCircle } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Frame, Title, Field, Chip, QueryState, Empty, Notice, ui } from '../../components/ui/Kit';
 import { IconButton } from '../../components/ui/Header';
@@ -28,12 +28,8 @@ export function HomeScreen({ navigation }) {
       ListHeaderComponent={<View style={s.header}>
         <Notice>{notice}</Notice>
         <View style={s.hero}>
-          <View style={s.heroCopy}><Title eyebrow="Sổ tay bếp chay" title={'Hôm nay\nnấu gì?'} detail="Tìm một món để nấu, hay lên thực đơn cho tuần này." /></View>
+          <View style={s.heroCopy}><Title eyebrow="Bếp chay" title={'Hôm nay\nnấu gì?'} /></View>
           <Image source={require('../../../assets/editorial-kitchen.webp')} style={s.editorial} resizeMode="cover" />
-        </View>
-        <View style={ui.row}>
-          <Button title="Lên thực đơn" style={ui.fill} icon={CalendarDays} onPress={() => navigation.navigate('PlannerTab')} />
-          <Button title="Quét ảnh" style={ui.fill} icon={ScanLine} variant="secondary" onPress={() => navigation.navigate('VisionTab')} />
         </View>
         <Field label="Tìm công thức" placeholder="Ví dụ: đậu hũ, nấm, canh…" value={search} onChangeText={setSearch} returnKeyType="search" />
         {!!categories.length && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -41,6 +37,7 @@ export function HomeScreen({ navigation }) {
           {categories.map(name => <Chip key={name} label={categoryName(name)} selected={category === name} onPress={() => setCategory(name)} />)}
         </ScrollView>}
         <View style={ui.between}><Text style={ui.h2}>Công thức chay</Text>{!query.isPending && !query.isError && <Text style={ui.small}>{results.length} món</Text>}</View>
+        {query.isRefetchError && !!results.length && <Notice error>Chưa cập nhật được công thức. Kéo xuống để thử lại.</Notice>}
       </View>}
       ListEmptyComponent={<QueryState query={query}>
         <Empty title={term || category ? 'Chưa tìm thấy món phù hợp' : 'Chưa có công thức'} detail={term || category ? 'Thử từ khóa khác hoặc bỏ bộ lọc.' : undefined}>
@@ -52,7 +49,7 @@ export function HomeScreen({ navigation }) {
 }
 const s = StyleSheet.create({
   header: { gap: 12, paddingBottom: 4 },
-  hero: { borderRadius: 24, overflow: 'hidden', backgroundColor: c.primaryLight, borderWidth: 1, borderColor: c.line },
-  heroCopy: { padding: 18 },
-  editorial: { width: '100%', height: 166 },
+  hero: { flexDirection: 'row', minHeight: 156, borderRadius: 20, overflow: 'hidden', backgroundColor: c.primaryLight },
+  heroCopy: { flex: 1, padding: 16, justifyContent: 'center' },
+  editorial: { width: '42%', height: '100%', alignSelf: 'stretch' },
 });

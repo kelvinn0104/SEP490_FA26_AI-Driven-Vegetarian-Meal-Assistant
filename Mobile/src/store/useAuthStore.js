@@ -26,20 +26,20 @@ export const useAuthStore = create((set, get) => ({
         await saveSession(null);
         return;
       }
+      set({ token: saved.token, user: saved.user, isLoading: false });
       try {
         const user = await authService.getMe();
+        if (get().token !== saved.token) return;
         if (!isUser(user)) {
-          await saveSession(null);
+          await get().logout();
           return;
         }
         await saveSession({ token: saved.token, user });
-        set({ token: saved.token, user });
+        if (get().token === saved.token) set({ user });
       } catch (error) {
-        if (error.status === 401 || error.status === 403) {
-          await saveSession(null);
-          return;
+        if (get().token === saved.token && [401, 403].includes(error.status)) {
+          await get().logout('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         }
-        set({ token: saved.token, user: saved.user });
       }
     } catch {
       await saveSession(null).catch(() => {});
