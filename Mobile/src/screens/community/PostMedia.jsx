@@ -5,24 +5,19 @@ import { Notice, ui } from '../../components/ui/Kit';
 import { imgUrl } from '../../api/client';
 import { c, r } from '../../styles/theme';
 
-export function isImageMedia(value, video = false) {
-  const url = imgUrl(value);
-  return !!url && !video && /\.(jpe?g|png|webp|gif)(?:[?#]|$)/i.test(url);
-}
-
 export function PostMedia({ value, video, height = 212 }) {
   const [failed, setFailed] = useState(false);
   const [error, setError] = useState('');
   const url = imgUrl(value);
   if (!url) return null;
 
-  const image = isImageMedia(url, video);
+  const image = !video;
   if (image && !failed) {
     return (
       <Image
         source={{ uri: url }}
         style={[s.cover, { height }]}
-        resizeMode="cover"
+        resizeMode="contain"
         onError={() => setFailed(true)}
       />
     );
@@ -53,7 +48,7 @@ export function PostMedia({ value, video, height = 212 }) {
         </View>
         <View style={ui.fill}>
           <Text style={[ui.label, video && { color: '#FFFEFA' }]}>
-            {video ? 'Xem video chia sẻ món chay' : 'Mở tư liệu đính kèm'}
+            {video ? 'Xem video' : 'Mở tư liệu đính kèm'}
           </Text>
           <Text style={[ui.small, video && { color: c.primaryLight }]} numberOfLines={1}>
             {host}

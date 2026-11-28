@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, CookingPot, Image, Link2, Video, X } from "lucide-react";
-import { Button, Notice, State, useResource } from "./ui";
+import { ArrowLeft, CheckCircle2, Clock3, CookingPot, Image, Link2, Video, X } from "lucide-react";
+import { Button, Dialog, Notice, State, useResource } from "./ui";
 import { request } from "./api";
 import { listOf, postStatusLabel, userError } from "./data";
 import { postMedia, recipeNumber, validatePost } from "./postData";
@@ -21,7 +21,7 @@ export function EditPost({ id, go, user }) {
   </State>;
 }
 
-export function CreatePost({ go, user, video = false, editPost = null }) {
+export function CreatePost({ go, user, video = false, editPost = null, close, tool = "text" }) {
   const key = `veggie:community-draft:v1:${user.id ?? user.email}`;
   const [draft, setDraft] = useState(() => {
     if (editPost) return {
@@ -37,13 +37,14 @@ export function CreatePost({ go, user, video = false, editPost = null }) {
   });
   const [attachment, setAttachment] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [showRecipes, setShowRecipes] = useState(Boolean(draft.recipeId));
+  const [showRecipes, setShowRecipes] = useState(tool === "recipe" || Boolean(draft.recipeId));
   const [recipeSearch, setRecipeSearch] = useState("");
   const [showLink, setShowLink] = useState(video || Boolean(draft.mediaUrl));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const fileInput = useRef(null);
+  const mediaAction = useRef(null);
   const upload = useRef(null);
   const lock = useRef(false);
   const recipes = useResource(
@@ -65,6 +66,10 @@ export function CreatePost({ go, user, video = false, editPost = null }) {
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [attachment]);
+
+  useEffect(() => {
+    if (tool === "file") mediaAction.current?.focus();
+  }, [tool]);
 
   function update(values) {
     setError("");
@@ -123,7 +128,7 @@ export function CreatePost({ go, user, video = false, editPost = null }) {
       }, editPost ? "PUT" : "POST");
       if (!response?.id) throw new Error("Kiểm tra Bài của tôi trước khi gửi lại.");
       setResult(response);
-      try { sessionStorage.removeItem(key); } catch { /* Optional draft persistence. */ }
+      try { if (!editPost) sessionStorage.removeItem(key); } catch { /* Optional draft persistence. */ }
     } catch (cause) {
       setError(userError(cause));
     } finally {
@@ -132,21 +137,29 @@ export function CreatePost({ go, user, video = false, editPost = null }) {
     }
   }
 
-  if (result) return <div className="vp-thread-shell">
-    <h1>{postStatusLabel(result)}</h1>
-    <p>{result.status === "published" ? "Bài đã xuất hiện trên bảng tin." : "Bài sẽ xuất hiện sau khi được duyệt."}</p>
-    <div className="vp-actions">
-      <Button onClick={() => go("post-detail", result.id)}>Mở bài viết</Button>
-      <Button secondary onClick={() => go("community")}>Về bảng tin</Button>
-    </div>
-  </div>;
+  const title = editPost ? "Sửa bài viết" : "Tạo bài viết";
+  if (result) {
+    const published = result.status === "published";
+    const StatusIcon = published ? CheckCircle2 : Clock3;
+    const confirmation = <div className="vp-social-confirmation" role="status">
+      <span><StatusIcon size={26} aria-hidden="true" /></span>
+      <h2>{postStatusLabel(result)}</h2>
+      <p>{published ? "Bài đã xuất hiện trên bảng tin." : "Bạn có thể theo dõi trạng thái trong Bài của tôi. Bài sẽ lên bảng tin sau khi được duyệt."}</p>
+      <div className="vp-actions">
+        <Button onClick={() => { close?.(true); go("user-posts"); }}>Bài của tôi</Button>
+        <Button secondary onClick={() => { close?.(true); go("post-detail", result.id); }}>Xem bài</Button>
+      </div>
+    </div>;
+    return close ? <Dialog className="vp-community-dialog vp-social-dialog" title="Đã gửi bài" close={() => close(true)}>{confirmation}</Dialog>
+      : <div className="vp-thread-shell vp-social-composer-card">{confirmation}</div>;
+  }
 
-  return <div className="vp-thread-shell">
-    <button className="vp-back" onClick={() => go("community")} disabled={busy}><ArrowLeft size={18} /> Cộng đồng</button>
-    <h1>{editPost ? "Sửa bài viết" : "Bài viết mới"}</h1>
-    <form className="vp-thread-compose" onSubmit={submit}>
-      <PostMeta post={{ authorName: user.displayName || user.name }} />
-      <textarea aria-label="Nội dung bài viết" autoFocus rows={5} maxLength={20000}
+  const form = <form className="vp-thread-compose" onSubmit={submit}>
+      <div className="vp-social-compose-author">
+        <PostMeta post={{ authorName: user.displayName || user.name }} />
+        <small><Clock3 size={14} aria-hidden="true" /> Hiển thị sau khi duyệt</small>
+      </div>
+      <textarea aria-label="Nội dung bài viết" autoFocus={tool === "text"} rows={5} maxLength={20000}
         placeholder="Bạn muốn chia sẻ gì?" value={draft.content} disabled={busy}
         onChange={(event) => update({ content: event.target.value })} />
       {attachment && preview && <div className="vp-thread-attachment">
@@ -186,17 +199,22 @@ export function CreatePost({ go, user, video = false, editPost = null }) {
       <div className="vp-thread-toolbar">
         <div>
           <input ref={fileInput} type="file" accept={accept} hidden onChange={selectFile} />
-          <button type="button" aria-label="Thêm ảnh hoặc video" title="Thêm ảnh hoặc video" className="vp-icon"
-            disabled={busy} onClick={() => fileInput.current?.click()}><Image size={19} /></button>
+          <button type="button" aria-label="Thêm ảnh hoặc video" title="Thêm ảnh hoặc video" className="vp-icon" ref={mediaAction}
+            disabled={busy} onClick={() => fileInput.current?.click()}><Image size={19} /><span>Ảnh / video</span></button>
           <button type="button" aria-label="Gắn công thức" title="Gắn công thức" className="vp-icon"
-            disabled={busy} aria-expanded={showRecipes} onClick={() => setShowRecipes((open) => !open)}><CookingPot size={19} /></button>
+            disabled={busy} aria-expanded={showRecipes} onClick={() => setShowRecipes((open) => !open)}><CookingPot size={19} /><span>Công thức</span></button>
           <button type="button" aria-label="Thêm liên kết media" title="Thêm liên kết media" className="vp-icon"
-            disabled={busy} aria-expanded={showLink} onClick={() => setShowLink((open) => !open)}>{video ? <Video size={19} /> : <Link2 size={19} />}</button>
+            disabled={busy} aria-expanded={showLink} onClick={() => setShowLink((open) => !open)}>{video ? <Video size={19} /> : <Link2 size={19} />}<span>Liên kết</span></button>
         </div>
-        <Button disabled={busy || (!draft.content.trim() && !draft.mediaUrl.trim() && !attachment)}>
-          {busy ? "Đang gửi…" : editPost ? "Lưu và gửi duyệt" : "Gửi bài"}
-        </Button>
       </div>
-    </form>
-  </div>;
+      <Button disabled={busy || (!draft.content.trim() && !draft.mediaUrl.trim() && !attachment)}>
+        {busy ? "Đang gửi…" : editPost ? "Lưu và gửi duyệt" : "Gửi duyệt"}
+      </Button>
+    </form>;
+  return close ? <Dialog className="vp-community-dialog vp-social-dialog" title={title} busy={busy} close={close}>{form}</Dialog>
+    : <div className="vp-thread-shell vp-social-compose-page">
+      <button className="vp-back" onClick={() => go(editPost ? "user-posts" : "community")} disabled={busy}><ArrowLeft size={18} /> Cộng đồng</button>
+      <h1>{title}</h1>
+      {form}
+    </div>;
 }

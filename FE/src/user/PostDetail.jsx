@@ -145,7 +145,7 @@ export function PostDetail({ id, go, user, flash }) {
           "Chưa xác nhận được bình luận. Tải lại bài để kiểm tra trước khi gửi tiếp.",
         );
       const comments = [...(post.comments || []), saved];
-      setChanged({ ...post, comments, commentCount: comments.length });
+      setChanged({ ...post, comments, commentCount: (post.commentCount ?? comments.length - 1) + 1 });
       setComment("");
       flash("Đã gửi bình luận.");
     });
@@ -183,7 +183,9 @@ export function PostDetail({ id, go, user, flash }) {
                     ? "Bài không được duyệt và chưa hiển thị công khai."
                     : post.moderation?.decision === "revision"
                       ? "Người duyệt đề nghị chỉnh sửa trước khi đăng."
-                      : "Bài đang chờ duyệt. Sau khi đăng, mọi người có thể thích và bình luận."}
+                      : post.status === "pending"
+                        ? "Bài đang chờ duyệt. Sau khi đăng, mọi người có thể thích và bình luận."
+                        : "Bài hiện không hiển thị công khai."}
                   {post.moderation?.note && (
                     <>
                       {" "}
@@ -220,7 +222,7 @@ export function PostDetail({ id, go, user, flash }) {
                   <ArrowRight size={19} />
                 </a>
               )}
-              <div className="vp-post-interactions">
+              <div className="vp-post-interactions vp-social-reader-actions">
                 {published && (
                   <div className="vp-thread-actions">
                     <button
@@ -234,10 +236,10 @@ export function PostDetail({ id, go, user, flash }) {
                     </button>
                   </div>
                 )}
-                <a className="vp-text-button" href="#post-comments">
-                  Bình luận ({post.comments?.length ?? post.commentCount ?? 0})
-                </a>
-                <button
+                {published && <a className="vp-text-button" href="#post-comments">
+                  Bình luận ({post.commentCount ?? post.comments?.length ?? 0})
+                </a>}
+                {published && <button
                   className="vp-text-button"
                   onClick={async () => {
                     try {
@@ -250,7 +252,7 @@ export function PostDetail({ id, go, user, flash }) {
                 >
                   <Link size={17} />
                   Sao chép liên kết
-                </button>
+                </button>}
                 {post.canEdit && (
                   <button
                     className="vp-text-button"
@@ -287,14 +289,14 @@ export function PostDetail({ id, go, user, flash }) {
               )}
             </article>
             {error && !dialog && <Notice error>{error}</Notice>}
-            <section
+            {published && <section
               id="post-comments"
               className="vp-post-comments"
               aria-labelledby="post-comments-title"
             >
               <h2 id="post-comments-title">
                 Bình luận{" "}
-                <span>{post.comments?.length ?? post.commentCount ?? 0}</span>
+                <span>{post.commentCount ?? post.comments?.length ?? 0}</span>
               </h2>
               {published &&
                 (user ? (
@@ -388,7 +390,7 @@ export function PostDetail({ id, go, user, flash }) {
                   </p>
                 )}
               </div>
-            </section>
+            </section>}
           </>
         )}
       </State>

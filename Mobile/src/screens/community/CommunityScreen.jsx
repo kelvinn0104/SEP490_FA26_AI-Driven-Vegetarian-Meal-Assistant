@@ -1,26 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { ArrowUpDown, BookOpen, Film, Heart, MessageCircle, PenLine, Users } from 'lucide-react-native';
-import { useQuery } from '@tanstack/react-query';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ArrowUpDown, ArrowUpRight, BookOpen, Clock3, Heart, ImagePlus, MessageCircle, PenLine, Users } from 'lucide-react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/useAuthStore';
 import { communityService } from '../../api/services/communityService';
-import { imgUrl } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import {
   Avatar,
   Badge,
   Empty,
+  Notice,
   Page,
   QueryState,
   SearchBar,
   SegmentedControl,
   ui,
 } from '../../components/ui/Kit';
-import { isImageMedia } from './PostMedia';
+import { PostMedia } from './PostMedia';
 import { c, font, r } from '../../styles/theme';
 import { formatPostDate, isDemo, listOf } from '../../styles/content.mjs';
 
 export function postStatus(post) {
+  if (post.moderation?.decision === 'rejected') return 'Không được duyệt';
   if (post.moderation?.decision === 'revision' && post.status !== 'published') return 'Cần chỉnh sửa';
   return (
     {
@@ -39,22 +40,86 @@ export function postStatusTone(post) {
   return 'soft';
 }
 
-function PostCoverThumb({ uri }) {
-  const [failed, setFailed] = useState(false);
-  const resolved = imgUrl(uri);
-  if (!resolved || failed) return null;
+function FeedCard({ post, mine, navigation, signedIn }) {
+  const client = useQueryClient();
+  const reaction = useMutation({
+    mutationFn: () => communityService.setLike(post, post.myVote !== 1),
+    onSuccess: result => {
+      client.setQueriesData({ queryKey: ['posts'] }, data => Array.isArray(data?.items) ? {
+        ...data, items: data.items.map(item => item.id === post.id ? { ...item, ...result } : item),
+      } : data);
+      client.setQueryData(['post', post.id], data => data ? { ...data, ...result } : data);
+    },
+  });
+  const open = (comments = false) => navigation.navigate('PostDetail', { postId: post.id, comments });
+  const liked = post.myVote === 1;
+  const sameTitle = post.excerpt && (post.excerpt.startsWith(post.title) || post.title.startsWith(post.excerpt.replace(/…$/, '')));
   return (
-    <Image
-      source={{ uri: resolved }}
-      style={s.cardCover}
-      resizeMode="cover"
-      onError={() => setFailed(true)}
-    />
+    <View style={s.articleRow}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Đọc bài ${post.title}`}
+        onPress={() => open()} style={({ pressed }) => [s.postCopy, pressed && s.pressed]}>
+        <View style={ui.between}>
+          <View style={[ui.row, ui.fill]}>
+            <Avatar name={post.authorName} size={40} tone="paper" />
+            <View style={ui.fill}>
+              <Text style={ui.label} numberOfLines={1}>{post.authorName || 'Thành viên VeggieAI'}</Text>
+              <Text style={ui.small}>{formatPostDate(post.createdAt)}</Text>
+            </View>
+          </View>
+          {mine ? <Badge label={postStatus(post)} tone={postStatusTone(post)} /> : null}
+        </View>
+        {!sameTitle && post.title ? <Text style={s.postTitle} numberOfLines={2}>{post.title}</Text> : null}
+        {post.excerpt ? <Text style={s.excerpt} numberOfLines={4}>{post.excerpt}</Text> : null}
+      </Pressable>
+      {mine && post.moderation?.note ? <Notice warning>{post.moderation.note}</Notice> : null}
+      {post.mediaUrl ? <PostMedia key={post.mediaUrl} value={post.mediaUrl} video={post.postType === 'video'} /> : null}
+      {post.recipeId && post.recipeTitle ? (
+        <Pressable accessibilityRole="button" style={s.recipeAttach}
+          onPress={() => navigation.navigate('RecipeDetail', { recipeId: post.recipeId })}>
+          <BookOpen size={18} color={c.primary} />
+          <View style={ui.fill}>
+            <Text style={ui.small}>Công thức đính kèm</Text>
+            <Text style={ui.label} numberOfLines={2}>{post.recipeTitle}</Text>
+          </View>
+          <ArrowUpRight size={17} color={c.primary} />
+        </Pressable>
+      ) : null}
+      {post.status === 'published' ? (
+        <>
+          <View style={ui.between}>
+            <Text style={ui.small}>{post.likeCount ?? post.score ?? 0} {post.likeCount == null ? 'điểm hữu ích' : 'lượt thích'}</Text>
+            <Text style={ui.small}>{post.commentCount ?? 0} bình luận</Text>
+          </View>
+          <View style={s.actions}>
+            <FeedAction icon={Heart} label={liked ? 'Đã thích' : 'Thích'} selected={liked} disabled={reaction.isPending}
+              onPress={() => signedIn ? reaction.mutate() : navigation.navigate('Login')} />
+            <FeedAction icon={MessageCircle} label="Bình luận" onPress={() => open(true)} />
+          </View>
+        </>
+      ) : null}
+      {mine && post.canEdit ? (
+        <View style={s.actions}>
+          <FeedAction icon={PenLine} label="Sửa bài" onPress={() => navigation.navigate('CreatePost', { postId: post.id })} />
+        </View>
+      ) : null}
+      <Notice error>{reaction.error?.message}</Notice>
+    </View>
+  );
+}
+
+function FeedAction({ icon: Icon, label, onPress, selected, disabled }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress}
+      style={({ pressed }) => [s.action, selected && s.actionSelected, pressed && s.pressed]}>
+      <Icon size={18} color={selected ? c.terracotta : c.primary} fill={selected ? c.terracotta : 'none'} />
+      <Text style={ui.label}>{label}</Text>
+    </Pressable>
   );
 }
 
 export function CommunityScreen({ navigation, route }) {
   const signedIn = useAuthStore(state => !!state.token);
+  const user = useAuthStore(state => state.user);
   const [mineRequested, setMine] = useState(false);
   const mine = signedIn && mineRequested;
   const [postType, setType] = useState('');
@@ -71,7 +136,7 @@ export function CommunityScreen({ navigation, route }) {
   }, [signedIn, showMyPostsAt]);
 
   const query = useQuery({
-    queryKey: ['posts', mine, page, keyword, postType, sort],
+    queryKey: ['posts', mine, page, keyword, postType, sort, user?.id ?? user?.email ?? (signedIn ? 'user' : 'guest')],
     queryFn: ({ signal }) => communityService.getPosts({ mine, page, keyword, postType, sort }, signal),
   });
 
@@ -93,15 +158,6 @@ export function CommunityScreen({ navigation, route }) {
       title="Cộng đồng"
       tab
       keyboard
-      action={
-        <Button
-          title="Viết bài"
-          icon={PenLine}
-          size="sm"
-          variant="primary"
-          onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login')}
-        />
-      }
       refreshControl={
         <RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.terracotta]} />
       }
@@ -117,6 +173,24 @@ export function CommunityScreen({ navigation, route }) {
           setPage(1);
         }}
       />
+
+      <View style={s.composer}>
+        <Pressable accessibilityRole="button" onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login')}
+          style={({ pressed }) => [ui.row, pressed && s.pressed]}>
+          <Avatar name={user?.displayName || user?.name || 'VeggieAI'} size={40} tone="paper" />
+          <Text style={s.prompt}>Bạn muốn chia sẻ gì?</Text>
+        </Pressable>
+        <View style={s.actions}>
+          <FeedAction icon={ImagePlus} label="Ảnh / video" onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login', signedIn ? { tool: 'file' } : undefined)} />
+          <FeedAction icon={BookOpen} label="Công thức" onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login', signedIn ? { tool: 'recipe' } : undefined)} />
+        </View>
+      </View>
+      {mine ? (
+        <View style={s.reviewNote}>
+          <Clock3 size={17} color={c.primary} />
+          <Text style={[ui.small, ui.fill]}>Bài chờ duyệt chỉ hiện ở đây. Sau khi duyệt, bài sẽ lên bảng tin.</Text>
+        </View>
+      ) : null}
 
       {!mine ? (
         <View style={{ gap: 10 }}>
@@ -180,72 +254,9 @@ export function CommunityScreen({ navigation, route }) {
           </Empty>
         ) : (
           <View style={s.stream}>
-            {posts.map((post, idx) => {
-              const showCover = isImageMedia(post.mediaUrl, post.postType === 'video');
-              const sameTitle = post.excerpt && (post.excerpt.startsWith(post.title) || post.title.startsWith(post.excerpt.replace(/…$/, '')));
-              return (
-                <Pressable
-                  key={post.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={'Đọc bài ' + post.title}
-                  android_ripple={{ color: 'rgba(20,38,28,0.05)' }}
-                  onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
-                  style={({ pressed }) => [
-                    s.articleRow,
-                    idx < posts.length - 1 && s.articleDivider,
-                    pressed && { opacity: 0.78 },
-                  ]}
-                >
-                  <View style={ui.between}>
-                    <View style={[ui.row, ui.fill]}>
-                      <Avatar name={post.authorName} size={28} tone="paper" />
-                      <Text style={s.byline} numberOfLines={1}>
-                        {post.authorName || 'Thành viên VeggieAI'}
-                        <Text style={s.bylineDate}> · {formatPostDate(post.createdAt)}</Text>
-                      </Text>
-                    </View>
-                    {mine ? (
-                      <Badge label={postStatus(post)} tone={postStatusTone(post)} />
-                    ) : post.postType === 'video' ? (
-                      <Badge label="Video" tone="soft" icon={Film} />
-                    ) : null}
-                  </View>
-
-                  {!sameTitle ? <Text style={s.postTitle} numberOfLines={2}>{post.title}</Text> : null}
-
-                  {post.excerpt ? (
-                    <Text style={s.excerpt} numberOfLines={3}>
-                      {post.excerpt}
-                    </Text>
-                  ) : null}
-
-                  {showCover ? <PostCoverThumb uri={post.mediaUrl} /> : null}
-
-                  {mine && post.moderation?.note ? (
-                    <View style={s.modNote}>
-                      <Text style={s.modNoteText}>{post.moderation.note}</Text>
-                    </View>
-                  ) : null}
-
-                  <View style={s.metaLine}>
-                    <View style={s.recipeTag} accessible accessibilityLabel={`${post.likeCount ?? post.score ?? 0} ${post.likeCount == null ? 'điểm hữu ích' : 'lượt thích'}`}>
-                      <Heart size={16} color={post.myVote === 1 ? c.terracotta : c.muted} fill={post.myVote === 1 ? c.terracotta : 'none'} />
-                      <Text style={s.metaStat}>{post.likeCount ?? post.score ?? 0}</Text>
-                    </View>
-                    <View style={s.recipeTag} accessible accessibilityLabel={`${post.commentCount ?? 0} bình luận`}>
-                      <MessageCircle size={16} color={c.muted} />
-                      <Text style={s.metaStat}>{post.commentCount ?? 0}</Text>
-                    </View>
-                    {post.recipeId ? (
-                      <View style={s.recipeTag}>
-                        <BookOpen size={12} color={c.terracotta} strokeWidth={2} />
-                        <Text style={s.recipeTagText} numberOfLines={1}>{post.recipeTitle || 'Công thức'}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                </Pressable>
-              );
-            })}
+            {posts.map(post => (
+              <FeedCard key={post.id} post={post} mine={mine} navigation={navigation} signedIn={signedIn} />
+            ))}
           </View>
         )}
 
@@ -292,92 +303,28 @@ const s = StyleSheet.create({
     backgroundColor: c.surface,
   },
   sortSelected: { backgroundColor: c.primaryLight, borderColor: c.primary },
-  stream: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: c.line,
-    borderRadius: r.xl,
-    backgroundColor: c.surfaceElevated,
-    overflow: 'hidden',
+  stream: { gap: 14 },
+  composer: {
+    padding: 10, gap: 8, backgroundColor: c.surfaceElevated, borderWidth: 1, borderColor: c.line, borderRadius: r.lg,
+  },
+  prompt: {
+    flex: 1, minHeight: 44, paddingVertical: 12, paddingHorizontal: 14,
+    backgroundColor: c.background, borderRadius: r.pill, color: c.muted, fontFamily: font.medium, fontSize: 14,
   },
   articleRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    gap: 9,
+    padding: 12, gap: 10, backgroundColor: c.surfaceElevated, borderWidth: 1, borderColor: c.line, borderRadius: r.lg,
   },
-  articleDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.line,
+  postCopy: { gap: 8 },
+  postTitle: { fontFamily: font.semi, fontSize: 17, lineHeight: 23, color: c.ink },
+  excerpt: { fontFamily: font.regular, fontSize: 14.5, lineHeight: 22, color: c.inkSoft },
+  reviewNote: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: c.turmericBg, padding: 12, borderRadius: r.md,
   },
-  byline: {
-    flex: 1,
-    fontFamily: font.medium,
-    fontSize: 13,
-    color: c.inkSoft,
-    includeFontPadding: false,
-  },
-  bylineDate: {
-    fontFamily: font.regular,
-    color: c.muted,
-  },
-  cardCover: {
-    width: '100%',
-    height: 176,
-    borderRadius: r.md,
-    backgroundColor: c.surfaceMuted,
-  },
-  postTitle: {
-    fontFamily: font.semi,
-    fontSize: 17,
-    lineHeight: 23,
-    color: c.ink,
-    letterSpacing: -0.2,
-    includeFontPadding: false,
-  },
-  excerpt: {
-    fontFamily: font.regular,
-    fontSize: 14.5,
-    lineHeight: 22,
-    color: c.inkSoft,
-    includeFontPadding: false,
-  },
-  modNote: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: c.turmeric,
-    backgroundColor: c.turmericBg,
-    borderRadius: r.xs,
-  },
-  modNoteText: {
-    fontFamily: font.regular,
-    fontSize: 12.5,
-    color: '#784E0E',
-    includeFontPadding: false,
-  },
-  metaLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 2,
-  },
-  metaStat: {
-    fontFamily: font.regular,
-    fontSize: 12.5,
-    color: c.muted,
-    fontVariant: ['tabular-nums'],
-    includeFontPadding: false,
-  },
-  recipeTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 1,
-  },
-  recipeTagText: {
-    flexShrink: 1,
-    fontFamily: font.medium,
-    fontSize: 12.5,
-    color: c.terracotta,
-    includeFontPadding: false,
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, borderTopWidth: 1, borderTopColor: c.line, paddingTop: 3 },
+  action: { flexGrow: 1, minHeight: 44, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7, paddingHorizontal: 8, borderRadius: r.sm },
+  actionSelected: { backgroundColor: c.terracottaSoft },
+  pressed: { opacity: 0.72 },
+  recipeAttach: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: r.sm, backgroundColor: c.primarySoft,
   },
 });

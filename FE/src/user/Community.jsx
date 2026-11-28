@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { CookingPot, Heart, Image, MessageCircle, PenLine, Search, Trash2 } from "lucide-react";
+import { ArrowUpRight, Clock3, CookingPot, Film, Heart, Image, MessageCircle, PenLine, Search, Share2, Trash2, Users } from "lucide-react";
 import { useResource, Button, State, PageControls, Notice } from "./ui";
 import { listOf, isTestContent, postStatusLabel, userError } from "./data";
 import { request } from "./api";
 import { PostMeta, PostMedia, CommunityDialog, updatePostLike } from "./PostParts";
 
-function FeedPost({ post, user, mine, go, remove }) {
+import { CreatePost } from "./PostComposer";
+
+function FeedPost({ post, user, mine, go, remove, flash }) {
   const [reaction, setReaction] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -35,36 +37,54 @@ function FeedPost({ post, user, mine, go, remove }) {
       setSaving(false);
     }
   }
+  async function share() {
+    const url = new URL(`/post-detail?id=${post.id}`, location.origin).href;
+    try {
+      if (navigator.share) await navigator.share({ title: post.title, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        flash("Đã sao chép liên kết.");
+      }
+    } catch (cause) {
+      if (cause.name !== "AbortError") go("post-detail", post.id);
+    }
+  }
+
   return <article className="vp-thread-post">
     <div className="vp-thread-post-head">
       <PostMeta post={post} />
-      {mine && <span className="vp-post-status" data-status={post.status}>{postStatusLabel(post)}</span>}
+      {mine && <span className="vp-post-status" data-status={post.status}>
+        {post.status === "pending" && !post.moderation?.decision && <Clock3 size={13} aria-hidden="true" />} {postStatusLabel(post)}
+      </span>}
     </div>
     {mine && post.moderation?.note && <Notice>{post.moderation.note}</Notice>}
     <a href={`/post-detail?id=${post.id}`} aria-label={`Mở bài ${post.title}`}
       className="vp-thread-copy" onClick={open}>
-      {!titleIsExcerpt && <strong>{post.title}</strong>}
+      {!titleIsExcerpt && <h2>{post.title}</h2>}
       {post.excerpt && <span>{post.excerpt}</span>}
     </a>
     {post.mediaUrl && <PostMedia key={post.mediaUrl} post={post} />}
     {post.recipeId && post.recipeTitle && <a className="vp-thread-recipe" href={`/article-detail?id=r${post.recipeId}`}
       onClick={(event) => { event.preventDefault(); go("article-detail", `r${post.recipeId}`); }}>
-      <CookingPot size={17} /> <span>{post.recipeTitle}</span>
+      <CookingPot size={20} aria-hidden="true" /><span><small>Công thức đính kèm</small><strong>{post.recipeTitle}</strong></span><ArrowUpRight size={16} aria-hidden="true" />
     </a>}
-    <div className="vp-thread-actions">
+    {post.status === "published" && <div className="vp-social-stats">
+      <span><Heart size={15} aria-hidden="true" /> {count ?? 0} {likes == null ? "điểm hữu ích" : "lượt thích"}</span>
+      <a href={`/post-detail?id=${post.id}#post-comments`} onClick={(event) => open(event, true)}>{post.commentCount ?? 0} bình luận</a>
+    </div>}
+    {(post.status === "published" || (mine && (post.canEdit || post.canDelete))) && <div className="vp-thread-actions vp-social-actions">
       {post.status === "published" && <>
-        <button type="button" aria-pressed={liked}
-          aria-label={`${liked ? "Bỏ thích" : "Thích"}${count == null ? "" : `, ${count} ${likes == null ? "điểm hữu ích" : "lượt thích"}`}`}
-          disabled={saving} onClick={toggleLike}>
-          <Heart size={20} fill={liked ? "currentColor" : "none"} />{count ?? ""}
+        <button type="button" aria-pressed={liked} disabled={saving} onClick={toggleLike}>
+          <Heart size={19} fill={liked ? "currentColor" : "none"} aria-hidden="true" />{liked ? "Đã thích" : "Thích"}
         </button>
-        <a href={`/post-detail?id=${post.id}#post-comments`} aria-label={`Bình luận (${post.commentCount ?? 0})`} onClick={(event) => open(event, true)}>
-          <MessageCircle size={20} />{post.commentCount ?? 0}
+        <a href={`/post-detail?id=${post.id}#post-comments`} onClick={(event) => open(event, true)}>
+          <MessageCircle size={19} aria-hidden="true" />Bình luận
         </a>
+        <button type="button" onClick={share}><Share2 size={18} aria-hidden="true" />Chia sẻ</button>
       </>}
-      {mine && post.canEdit && <button aria-label="Sửa bài" onClick={() => go("create-post", post.id)}><PenLine size={18} /></button>}
-      {mine && post.canDelete && <button aria-label="Xóa bài" onClick={() => remove(post)}><Trash2 size={17} /></button>}
-    </div>
+      {mine && post.canEdit && <button type="button" onClick={() => go("create-post", post.id)}><PenLine size={18} />Sửa bài</button>}
+      {mine && post.canDelete && <button type="button" onClick={() => remove(post)}><Trash2 size={17} />Xóa bài</button>}
+    </div>}
     {error && <Notice error>{error}</Notice>}
   </article>;
 }
@@ -75,6 +95,7 @@ export function Community({ mine, go, user, flash, videos = false }) {
   const [search, setSearch] = useState(initial.get("q")?.slice(0, 200) || "");
   const [keyword, setKeyword] = useState(search);
   const [sort, setSort] = useState(initial.get("sort") === "top" ? "top" : "newest");
+  const [composing, setComposing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -109,26 +130,41 @@ export function Community({ mine, go, user, flash, videos = false }) {
       setBusy(false);
     }
   }
-  return <div className="vp-thread-shell">
-    <header className="vp-thread-heading">
-      <div><h1>{videos ? "Video cộng đồng" : "Cộng đồng"}</h1><p>Chuyện quanh mâm cơm chay</p></div>
-      <Button onClick={() => go("create-post")}><PenLine size={17} /> Viết bài</Button>
+  const compose = (tool = "text") => user ? setComposing(tool) : go("create-post");
+  return <div className="vp-social-layout">
+    <header className="vp-social-sidebar">
+      <h1>{mine ? "Bài của tôi" : videos ? "Video cộng đồng" : "Cộng đồng"}</h1>
+      <nav className="vp-community-tabs" aria-label="Cộng đồng">
+        {[
+          ["community", "Bảng tin", Users, !mine && !videos],
+          ["videos", "Video", Film, videos],
+          ...(user ? [["user-posts", "Bài của tôi", PenLine, mine]] : []),
+        ].map(([route, label, Icon, current]) => (
+          <a key={route} href={`/${route}`} aria-current={current ? "page" : undefined}
+            onClick={(event) => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); go(route); } }}>
+            <Icon size={19} aria-hidden="true" />{label}
+          </a>
+        ))}
+      </nav>
     </header>
-    <nav className="vp-community-tabs" aria-label="Bảng tin cộng đồng">
-      <a href="/community" aria-current={!mine && !videos ? "page" : undefined} onClick={(event) => { event.preventDefault(); go("community"); }}>Bảng tin</a>
-      <a href="/videos" aria-current={videos ? "page" : undefined} onClick={(event) => { event.preventDefault(); go("videos"); }}>Video</a>
-      <a href="/user-posts" aria-current={mine ? "page" : undefined} onClick={(event) => { event.preventDefault(); go("user-posts"); }}>Bài của tôi</a>
-    </nav>
-    {!mine && <>
-      <button className="vp-thread-prompt" type="button" onClick={() => go("create-post")}>
-        <span className="vp-author-initial" aria-hidden="true">{(user?.displayName || user?.name || "V").slice(0, 1)}</span>
-        <span>Bạn muốn chia sẻ gì?</span><Image size={20} aria-hidden="true" />
-      </button>
+    <section className="vp-thread-shell" aria-label="Bài viết cộng đồng">
+      <div className="vp-social-composer-card">
+        <button className="vp-thread-prompt" type="button" onClick={() => compose()}>
+          <span className="vp-author-initial" aria-hidden="true">{(user?.displayName || user?.name || "V").trim().slice(0, 1).toUpperCase()}</span>
+          <span>Bạn muốn chia sẻ gì?</span>
+        </button>
+        <div className="vp-thread-actions vp-social-actions">
+          <button type="button" onClick={() => compose("file")}><Image size={19} aria-hidden="true" />Ảnh / video</button>
+          <button type="button" onClick={() => compose("recipe")}><CookingPot size={19} aria-hidden="true" />Công thức</button>
+        </div>
+      </div>
+      {mine ? <div className="vp-social-review-note"><Clock3 size={17} aria-hidden="true" /> Bài chờ duyệt chỉ hiện ở đây. Sau khi duyệt, bài sẽ lên bảng tin.</div> : <>
       <div className="vp-thread-tools">
         <form role="search" onSubmit={(event) => { event.preventDefault(); setKeyword(search.trim()); setPage(1); }}>
           <Search size={17} />
           <input type="search" aria-label="Tìm bài viết" placeholder="Tìm bài viết…" maxLength={200} value={search}
             onChange={(event) => { setSearch(event.target.value); if (!event.target.value) { setPage(1); setKeyword(""); } }} />
+          <button type="submit">Tìm</button>
         </form>
         <select aria-label="Sắp xếp bài viết" value={sort} onChange={(event) => { setPage(1); setSort(event.target.value); }}>
           <option value="newest">Mới nhất</option><option value="top">Nổi bật</option>
@@ -137,10 +173,12 @@ export function Community({ mine, go, user, flash, videos = false }) {
     </>}
     <State resource={resource}>
       {items.length ? <div className="vp-thread-list">{items.map((post) =>
-        <FeedPost key={post.id} post={post} user={user} mine={mine} go={go} remove={(value) => { setError(""); setDeleting(value); }} />
+        <FeedPost key={post.id} post={post} user={user} mine={mine} go={go} flash={flash} remove={(value) => { setError(""); setDeleting(value); }} />
       )}</div> : <div className="vp-empty"><MessageCircle size={25} /><h2>{mine ? "Bạn chưa có bài viết" : "Chưa có bài phù hợp"}</h2></div>}
     </State>
     <PageControls data={resource.data} page={page} setPage={setPage} disabled={resource.loading} />
+    </section>
+    {composing && user && <CreatePost go={go} user={user} tool={composing} close={(saved) => { setComposing(null); if (saved === true) resource.reload(); }} />}
     {deleting && <CommunityDialog title="Xóa bài viết?" busy={busy} close={() => setDeleting(null)}>
       {error && <Notice error>{error}</Notice>}
       <div className="vp-actions">

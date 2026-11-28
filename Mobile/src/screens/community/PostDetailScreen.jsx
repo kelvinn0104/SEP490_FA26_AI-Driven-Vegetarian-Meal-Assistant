@@ -38,7 +38,8 @@ export function PostDetailScreen({ route, navigation }) {
   const client = useQueryClient();
   const [page, setPage] = useState(1);
   const [comment, setComment] = useState('');
-  const [report, setReport] = useState(false);
+  const [report, setReport] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [category, setCategory] = useState('other');
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -59,26 +60,43 @@ export function PostDetailScreen({ route, navigation }) {
   });
 
   const action = useMutation({
-    mutationFn: ({ type }) => {
+    mutationFn: async ({ type, entryId }) => {
       if (type === 'like') return api.setLike(post, post.myVote !== 1);
-      if (type === 'comment') return api.addComment(id, comment.trim());
-      if (type === 'delete') return api.deletePost(id);
-      return api.report({ targetId: id, targetType: 'post', category, reason: reason.trim() || null });
+      if (type === 'comment' || type === 'edit-comment') {
+        const result = type === 'comment' ? await api.addComment(id, comment.trim())
+          : await api.updateComment(editing.id, editing.content.trim());
+        if (!result?.id) throw new Error('Chưa xác nhận được bình luận.');
+        return result;
+      }
+      if (type === 'delete' || type === 'delete-comment') {
+        const removed = type === 'delete' ? await api.deletePost(id) : await api.deleteComment(entryId);
+        if (removed !== true) throw new Error('Chưa xác nhận được nội dung đã xóa.');
+        return;
+      }
+      const result = await api.report({ targetId: report.id, targetType: report.type, category, reason: reason.trim() || null });
+      if (!result?.id) throw new Error('Chưa xác nhận được báo cáo.');
+      return result;
     },
     onSuccess: async (result, { type }) => {
       if (type === 'like') {
         client.setQueryData(['post', id], data => ({ ...data, ...result }));
       }
-      if (type === 'comment') {
-        setComment('');
+      if (['comment', 'edit-comment', 'delete-comment'].includes(type)) {
+        if (type === 'comment') {
+          setComment('');
+        } else if (type === 'edit-comment') {
+          setEditing(null);
+        } else if (commentItems.length === 1 && page > 1) {
+          setPage(page - 1);
+        }
         await Promise.all([
           client.invalidateQueries({ queryKey: ['comments', id] }),
           client.invalidateQueries({ queryKey: ['post', id] }),
         ]);
-        setFeedback('Đã gửi bình luận của bạn.');
+        setFeedback({ comment: 'Đã gửi bình luận.', 'edit-comment': 'Đã sửa bình luận.', 'delete-comment': 'Đã xóa bình luận.' }[type]);
       }
       if (type === 'report') {
-        setReport(false);
+        setReport(null);
         setReason('');
         setFeedback('Đã ghi nhận báo cáo để kiểm duyệt.');
       }
@@ -95,12 +113,61 @@ export function PostDetailScreen({ route, navigation }) {
     }
   };
 
+  function openReport(type, targetId) {
+    if (!signedIn) return navigation.navigate('Login');
+    action.reset();
+    setFeedback('');
+    setCategory('other');
+    setReason('');
+    setReport({ type, id: targetId });
+  }
+
   const back = () =>
     navigation.canGoBack() ? navigation.goBack() : navigation.navigate('MainTabs', { screen: 'CommunityTab' });
 
   const commentItems = listOf(comments.data);
   const totalComments = Math.max(Number(post?.commentCount) || 0, commentItems.length);
   const validPost = post && (post.canEdit || !isDemo(post));
+
+  const reportForm = report && (
+    <View style={[ui.card, { borderColor: c.errorBorder }]}>
+      <SectionHeader
+        title={report.type === 'comment' ? 'Báo cáo bình luận' : 'Báo cáo bài viết'}
+        actionLabel="Đóng"
+        onAction={() => { if (!action.isPending) setReport(null); }}
+      />
+      <View style={[ui.row, { flexWrap: 'wrap' }]}>
+        {[
+          ['spam', 'Spam'],
+          ['offensive', 'Xúc phạm'],
+          ['inappropriate', 'Không phù hợp'],
+          ['nutrition_misinformation', 'Sai lệch dinh dưỡng'],
+          ['other', 'Khác'],
+        ].map(([key, label]) => (
+          <Chip
+            key={key}
+            label={label}
+            selected={category === key}
+            onPress={() => setCategory(key)}
+          />
+        ))}
+      </View>
+      <Field
+        label="Mô tả thêm (tùy chọn)"
+        multiline
+        maxLength={1000}
+        value={reason}
+        onChangeText={setReason}
+      />
+      <Button
+        title="Gửi báo cáo"
+        variant="danger"
+        loading={action.isPending && action.variables?.type === 'report'}
+        onPress={() => run('report')}
+      />
+    </View>
+
+  );
 
   return (
     <Page
@@ -139,7 +206,7 @@ export function PostDetailScreen({ route, navigation }) {
                 icon={Flag}
                 tone={report ? 'soft' : 'plain'}
                 disabled={action.isPending}
-                onPress={() => (signedIn ? setReport(!report) : navigation.navigate('Login'))}
+                onPress={() => report ? setReport(null) : openReport('post', id)}
               />
             ) : null}
           </View>
@@ -154,7 +221,7 @@ export function PostDetailScreen({ route, navigation }) {
             <Empty title="Bài viết chưa khả dụng" detail="Bài viết có thể đang chờ duyệt hoặc đã được gỡ." />
           ) : (
             <>
-              <View style={{ gap: 8 }}>
+              <View style={ui.card}>
                 <View style={s.authorRow}>
                   <Avatar name={post.authorName} size={36} tone="terracotta" />
                   <View style={ui.fill}>
@@ -213,7 +280,7 @@ export function PostDetailScreen({ route, navigation }) {
                       style={[s.votePill, post.myVote === 1 && s.votePillActive]}
                     >
                       <Heart size={18} color={c.terracotta} fill={post.myVote === 1 ? c.terracotta : 'none'} />
-                      <Text style={s.voteText}>{post.likeCount ?? post.score ?? 0}</Text>
+                      <Text style={s.voteText}>{post.myVote === 1 ? 'Đã thích' : 'Thích'} · {post.likeCount ?? post.score ?? 0}</Text>
                     </Pressable>
 
                     <View style={[ui.row, { marginLeft: 'auto' }]}>
@@ -222,53 +289,16 @@ export function PostDetailScreen({ route, navigation }) {
                     </View>
                   </View>
 
-                  {report ? (
-                    <View style={[ui.card, { borderColor: c.errorBorder }]}>
-                      <SectionHeader
-                        title="Báo cáo bài viết"
-                        actionLabel="Đóng"
-                        onAction={() => setReport(false)}
-                      />
-                      <View style={ui.row}>
-                        {[
-                          ['spam', 'Spam'],
-                          ['offensive', 'Xúc phạm'],
-                          ['inappropriate', 'Không phù hợp'],
-                          ['nutrition_misinformation', 'Sai lệch dinh dưỡng'],
-                          ['other', 'Khác'],
-                        ].map(([key, label]) => (
-                          <Chip
-                            key={key}
-                            label={label}
-                            selected={category === key}
-                            onPress={() => setCategory(key)}
-                          />
-                        ))}
-                      </View>
-                      <Field
-                        label="Mô tả thêm (tùy chọn)"
-                        multiline
-                        maxLength={1000}
-                        value={reason}
-                        onChangeText={setReason}
-                      />
-                      <Button
-                        title="Gửi báo cáo"
-                        variant="danger"
-                        loading={action.isPending && action.variables?.type === 'report'}
-                        onPress={() => run('report')}
-                      />
-                    </View>
-                  ) : null}
+                  {report?.type === 'post' ? reportForm : null}
 
-                  {/* Flat Comments Section on Paper */}
-                  <View style={ui.flatSection}>
-                    <SectionHeader title="Thảo luận" count={`${totalComments}`} />
+                  <View style={s.comments}>
+                    <SectionHeader title="Bình luận" count={`${totalComments}`} />
 
                     {signedIn ? (
                       <View style={s.commentComposer}>
                         <TextInput
                           accessibilityLabel="Viết bình luận"
+                          autoFocus={!!route.params?.comments}
                           placeholder="Chia sẻ cảm nhận hoặc mẹo nấu của bạn…"
                           placeholderTextColor={c.subtle}
                           multiline
@@ -314,11 +344,37 @@ export function PostDetailScreen({ route, navigation }) {
                             >
                               <Avatar name={entry.authorName} size={30} tone="paper" />
                               <View style={[ui.fill, { gap: 3 }]}>
-                                <View style={ui.between}>
+                                <View style={[ui.between, { flexWrap: 'wrap' }]}>
                                   <Text style={ui.label}>{entry.authorName}</Text>
                                   <Text style={ui.small}>{formatPostDate(entry.createdAt)}</Text>
                                 </View>
-                                <Text style={s.commentBody}>{entry.content}</Text>
+                                {editing?.id === entry.id ? (
+                                  <View style={{ gap: 6 }}>
+                                    <Field label="Sửa bình luận" multiline maxLength={2000}
+                                      value={editing.content} editable={!action.isPending}
+                                      onChangeText={content => setEditing({ ...editing, content })} />
+                                    <View style={ui.row}>
+                                      <Button title="Hủy" size="sm" variant="ghost" disabled={action.isPending} onPress={() => setEditing(null)} />
+                                      <Button title="Lưu" size="sm" disabled={!editing.content.trim() || action.isPending} onPress={() => run('edit-comment')} />
+                                    </View>
+                                  </View>
+                                ) : (
+                                  <View style={{ gap: 4 }}>
+                                    <Text style={s.commentBody}>{entry.content}</Text>
+                                    {signedIn && <View style={[ui.row, { flexWrap: 'wrap' }]}>
+                                      {entry.canEdit ? <Button title="Sửa" variant="ghost" size="sm" disabled={action.isPending}
+                                        onPress={() => setEditing({ id: entry.id, content: entry.content })} /> : null}
+                                      {entry.canDelete ? <Button title="Xóa" variant="ghost" size="sm" disabled={action.isPending}
+                                        onPress={() => Alert.alert('Xóa bình luận?', 'Bình luận sẽ được gỡ khỏi bài viết.', [
+                                          { text: 'Hủy', style: 'cancel' },
+                                          { text: 'Xóa', style: 'destructive', onPress: () => run('delete-comment', { entryId: entry.id }) },
+                                        ])} /> : null}
+                                      {!entry.canEdit && !entry.canDelete ? <Button title="Báo cáo" variant="ghost" size="sm" disabled={action.isPending}
+                                        onPress={() => openReport('comment', entry.id)} /> : null}
+                                    </View>}
+                                  </View>
+                                )}
+                                {report?.type === 'comment' && report.id === entry.id ? reportForm : null}
                               </View>
                             </View>
                           ))}
@@ -418,6 +474,7 @@ const s = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
   },
+  comments: { gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.line },
   commentComposer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -441,9 +498,9 @@ const s = StyleSheet.create({
     outlineStyle: 'none',
   },
   commentSend: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: c.terracotta,
     alignItems: 'center',
     justifyContent: 'center',
