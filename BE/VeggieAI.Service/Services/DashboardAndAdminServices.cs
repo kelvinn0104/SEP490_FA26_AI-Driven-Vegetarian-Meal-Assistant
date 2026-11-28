@@ -536,8 +536,8 @@ public class DashboardService : IDashboardService
         var total = users.Count;
         if (total == 0) total = 1;
 
-        var veganCount = users.Count(u => u.HealthProfile?.HealthGoal == "loss" || u.Role == "admin");
-        var lactoCount = users.Count(u => u.HealthProfile?.HealthGoal == "gain" || u.Role == "moderator");
+        var veganCount = users.Count(u => u.HealthProfile?.HealthGoal == "loss" || RoleConstants.Normalize(u.Role) == RoleConstants.SuperAdmin);
+        var lactoCount = users.Count(u => u.HealthProfile?.HealthGoal == "gain" || RoleConstants.Normalize(u.Role) == RoleConstants.Mod);
         var flexiCount = total - veganCount - lactoCount;
         if (flexiCount < 0) flexiCount = 0;
 
@@ -688,9 +688,9 @@ public class RoleService : IRoleService
         {
             var userCount = r.Name switch
             {
-                "Super Admin" => users.Count(u => u.Role == "admin"),
-                "Chuyên gia Dinh dưỡng" => users.Count(u => u.Role == "moderator"),
-                "Người dùng chuẩn" => users.Count(u => u.Role == "user"),
+                "Super Admin" => users.Count(u => RoleConstants.Normalize(u.Role) == RoleConstants.SuperAdmin),
+                "Chuyên gia Dinh dưỡng" => users.Count(u => RoleConstants.Normalize(u.Role) == RoleConstants.Mod),
+                "Người dùng chuẩn" => users.Count(u => RoleConstants.Normalize(u.Role) == RoleConstants.User),
                 _ => 0
             };
 
