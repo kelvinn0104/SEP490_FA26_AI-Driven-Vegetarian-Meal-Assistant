@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
 using VeggieAI.Repository.Repositories;
@@ -8,6 +9,7 @@ namespace VeggieAI.Service.Services;
 public interface IModerationService
 {
     Task<List<ModerationItemDto>> GetPendingItemsAsync(string? type = null);
+    Task<List<ModerationItemDto>> GetModerationHistoryAsync(int limit = 30);
     Task<bool> ModerateAsync(string id, ModerationActionRequest request, int reviewerId);
     Task<int> GetPendingCountAsync();
 
@@ -30,7 +32,7 @@ public class ModerationService : IModerationService
     public async Task<List<ModerationItemDto>> GetPendingItemsAsync(string? type = null)
     {
         var posts = await _unitOfWork.Moderation.GetPendingModerationPostsAsync(type);
-        return posts.Select(p =>
+        var result = posts.Select(p =>
         {
             var log = p.ModerationLogs.OrderByDescending(l => l.ReviewedAt).FirstOrDefault();
             return new ModerationItemDto
@@ -51,6 +53,93 @@ public class ModerationService : IModerationService
                 Protein = $"{p.Recipe?.ProteinG ?? 16.5m}g",
                 Carbs = $"{p.Recipe?.CarbG ?? 45.0m}g",
                 Fat = $"{p.Recipe?.FatG ?? 8.0m}g",
+                Content = p.Content,
+                MediaUrl = p.MediaUrl
+            };
+        }).ToList();
+
+        var normalizedType = (type ?? "all").Trim().ToLowerInvariant();
+        if (normalizedType is "all" or "" or "recipe")
+        {
+            var pendingPostRecipeIds = posts
+                .Where(p => p.RecipeId.HasValue)
+                .Select(p => p.RecipeId!.Value)
+                .ToHashSet();
+
+            var unlinkedRecipes = await _unitOfWork.Context.Recipes
+                .Include(r => r.Creator)
+                .Include(r => r.Category)
+                .Where(r => r.Status == "pending_verification" && !pendingPostRecipeIds.Contains(r.Id))
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            foreach (var r in unlinkedRecipes)
+            {
+                result.Add(new ModerationItemDto
+                {
+                    Id = $"r{r.Id}",
+                    Title = r.Title,
+                    Author = r.Creator?.DisplayName ?? "Người dùng",
+                    AuthorAvatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(r.Creator?.DisplayName ?? "User")}&background=006948&color=ffffff",
+                    Category = r.Category?.Name ?? "Công thức món chay",
+                    SubmittedAt = r.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                    Type = "recipe",
+                    Status = "pending",
+                    AiScore = 95,
+                    NutritionalScore = 90,
+                    PlantBasedScore = 100,
+                    Calories = (int)Math.Round(r.KcalPerServing),
+                    Protein = $"{r.ProteinG}g",
+                    Carbs = $"{r.CarbG}g",
+                    Fat = $"{r.FatG}g",
+                    Content = r.Instructions,
+                    MediaUrl = r.ImageUrl
+                });
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<List<ModerationItemDto>> GetModerationHistoryAsync(int limit = 30)
+    {
+        var logs = await _unitOfWork.Context.ModerationLogs
+            .Include(l => l.Post)
+                .ThenInclude(p => p!.User)
+            .Include(l => l.Post)
+                .ThenInclude(p => p!.Recipe)
+                    .ThenInclude(r => r!.Category)
+            .Include(l => l.Reviewer)
+            .Where(l => l.Decision != "pending")
+            .OrderByDescending(l => l.ReviewedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        return logs.Where(l => l.Post != null).Select(l =>
+        {
+            var p = l.Post!;
+            var log = p.ModerationLogs.OrderByDescending(x => x.ReviewedAt).FirstOrDefault();
+            return new ModerationItemDto
+            {
+                Id = $"mod-{p.Id}",
+                Title = p.Title,
+                Author = p.User?.DisplayName ?? "Người dùng",
+                AuthorAvatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(p.User?.DisplayName ?? "User")}&background=006948&color=ffffff",
+                Category = p.Recipe?.Category?.Name ?? (p.PostType == "video" ? "Video Thực dưỡng" : "Bài viết Cộng đồng"),
+                SubmittedAt = p.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                Type = p.PostType == "video" ? "video" : "recipe",
+                Status = p.Status,
+                Decision = l.Decision,
+                FlagReason = l.Reason,
+                ReviewedBy = l.Reviewer?.DisplayName ?? "Điều phối viên (Mod)",
+                ReviewedAt = l.ReviewedAt.ToString("yyyy-MM-dd HH:mm"),
+                AiScore = (int)((log?.AiConfidence ?? 0.90m) * 100),
+                NutritionalScore = log?.RiskLevel == "high" ? 0 : 90,
+                PlantBasedScore = log?.RiskLevel == "high" ? 0 : 100,
+                Calories = (int)(p.Recipe?.KcalPerServing ?? 0),
+                Protein = p.Recipe != null ? $"{p.Recipe.ProteinG}g" : "0g",
+                Carbs = p.Recipe != null ? $"{p.Recipe.CarbG}g" : "0g",
+                Fat = p.Recipe != null ? $"{p.Recipe.FatG}g" : "0g",
                 Content = p.Content,
                 MediaUrl = p.MediaUrl
             };
@@ -385,25 +474,59 @@ public class DashboardService : IDashboardService
 
     public async Task<DashboardOverviewDto> GetOverviewStatsAsync()
     {
-        var usersCount = await _unitOfWork.Users.CountAsync();
-        var pendingCount = await _unitOfWork.Context.Posts.CountAsync(p => p.Status == "pending");
+        var now = DateTime.UtcNow;
+        var thirtyDaysAgo = now.AddDays(-30);
+        var sixtyDaysAgo = now.AddDays(-60);
+
+        var totalUsers = await _unitOfWork.Context.Users.CountAsync();
+        var totalMods = await _unitOfWork.Context.Users.CountAsync(u => u.Role == RoleConstants.Mod);
+        var totalRoles = await _unitOfWork.Context.Roles.CountAsync();
+        var usersLast30 = await _unitOfWork.Context.Users.CountAsync(u => u.CreatedAt >= thirtyDaysAgo);
+        var usersPrev30 = await _unitOfWork.Context.Users.CountAsync(u => u.CreatedAt >= sixtyDaysAgo && u.CreatedAt < thirtyDaysAgo);
+        var userGrowth = usersPrev30 > 0
+            ? Math.Round((decimal)(usersLast30 - usersPrev30) / usersPrev30 * 100m, 1)
+            : (totalUsers > 0 ? Math.Round((decimal)usersLast30 / totalUsers * 100m, 1) : 0m);
+
+        var totalRecipes = await _unitOfWork.Context.Recipes.CountAsync();
+        var totalCategories = await _unitOfWork.Context.Categories.CountAsync();
+        var totalIngredients = await _unitOfWork.Context.Ingredients.CountAsync();
         var blogsCount = await _unitOfWork.Context.Posts.CountAsync(p => p.PostType == "blog");
         var videosCount = await _unitOfWork.Context.Posts.CountAsync(p => p.PostType == "video");
+        var pendingCount = await _unitOfWork.Context.Posts.CountAsync(p => p.Status == "pending");
+        var openFeedbacks = await _unitOfWork.Context.Reports.CountAsync(r => r.Status == "open");
+        var activeChallenges = await _unitOfWork.Context.VeganChallenges.CountAsync(c => c.Status == "active");
+        var pendingScans = await _unitOfWork.Context.VeganProductScans.CountAsync(s => s.VeganStatus == "pending_review");
+
+        var totalAiQueries = await _unitOfWork.Context.AiModelLogs.CountAsync();
+        var failedAiQueries = await _unitOfWork.Context.AiModelLogs.CountAsync(l => !l.IsSuccess);
+        var aiAccuracy = totalAiQueries > 0
+            ? $"{Math.Round((decimal)(totalAiQueries - failedAiQueries) / totalAiQueries * 100m, 1)}%"
+            : "94.6%";
 
         return new DashboardOverviewDto
         {
-            TotalUsers = usersCount,
-            UserGrowth = 14.2m,
+            TotalUsers = totalUsers,
+            TotalMods = totalMods,
+            TotalRoles = totalRoles,
+            UserGrowth = userGrowth,
+            TotalRecipes = totalRecipes,
+            TotalCategories = totalCategories,
+            TotalIngredients = totalIngredients,
             TotalBlogs = blogsCount,
-            BlogGrowth = 8.5m,
+            BlogGrowth = totalRecipes > 0 ? Math.Round((decimal)blogsCount / Math.Max(1, totalRecipes) * 10m, 1) : 8.5m,
             TotalVideos = videosCount,
-            VideoGrowth = 19.1m,
+            VideoGrowth = totalRecipes > 0 ? Math.Round((decimal)videosCount / Math.Max(1, totalRecipes) * 10m, 1) : 19.1m,
             PendingModeration = pendingCount,
+            OpenFeedbacks = openFeedbacks,
+            ActiveChallenges = activeChallenges,
+            PendingProductScans = pendingScans,
+            TotalAiQueries = totalAiQueries,
+            SystemErrorsCount = failedAiQueries,
             Cluster = "Cụm HCM-01",
             RamUsage = "340GB / 500GB",
             RamPercent = 68,
             GpuLoad = "34.2% ổn định",
-            AiAccuracy = "94.6%"
+            AiAccuracy = aiAccuracy
         };
     }
 

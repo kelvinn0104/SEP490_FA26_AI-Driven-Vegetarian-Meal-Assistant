@@ -26,6 +26,13 @@ public class ModerationController : ControllerBase
         return Ok(ApiResponse<List<ModerationItemDto>>.Ok(result));
     }
 
+    [HttpGet("history")]
+    public async Task<ActionResult<ApiResponse<List<ModerationItemDto>>>> GetHistory([FromQuery] int limit = 30)
+    {
+        var result = await _moderationService.GetModerationHistoryAsync(Math.Clamp(limit, 1, 100));
+        return Ok(ApiResponse<List<ModerationItemDto>>.Ok(result));
+    }
+
     [HttpGet("count")]
     public async Task<ActionResult<ApiResponse<int>>> GetPendingCount()
     {

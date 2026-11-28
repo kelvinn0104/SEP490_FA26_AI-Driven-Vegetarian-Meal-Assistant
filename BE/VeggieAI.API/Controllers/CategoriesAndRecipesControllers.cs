@@ -29,7 +29,8 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> CreateCategory([FromBody] CreateCategoryRequest request)
     {
-        var result = await _categoryService.CreateCategoryAsync(request);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var modId);
+        var result = await _categoryService.CreateCategoryAsync(request, modId);
         return Ok(ApiResponse<CategoryDto>.Ok(result, "Tạo danh mục thành công"));
     }
 
@@ -37,7 +38,8 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<CategoryDto>>> UpdateCategory(int id, [FromBody] UpdateCategoryRequest request)
     {
-        var result = await _categoryService.UpdateCategoryAsync(id, request);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var modId);
+        var result = await _categoryService.UpdateCategoryAsync(id, request, modId);
         if (result == null) return NotFound(ApiResponse<CategoryDto>.Fail("Không tìm thấy danh mục"));
         return Ok(ApiResponse<CategoryDto>.Ok(result, "Cập nhật danh mục thành công"));
     }
@@ -46,7 +48,8 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteCategory(int id)
     {
-        var ok = await _categoryService.DeleteCategoryAsync(id);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var modId);
+        var ok = await _categoryService.DeleteCategoryAsync(id, modId);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy danh mục"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa danh mục"));
     }
@@ -160,6 +163,16 @@ public class RecipesController : ControllerBase
         return CreatedAtAction(nameof(GetRecipeById), new { id = result.Id }, ApiResponse<RecipeDto>.Ok(result, message));
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Roles = AppRoles.Staff)]
+    public async Task<ActionResult<ApiResponse<RecipeDto>>> UpdateRecipe(string id, [FromBody] UpdateRecipeRequest request)
+    {
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var modId);
+        var result = await _recipeService.UpdateRecipeAsync(id, request, modId);
+        if (result == null) return NotFound(ApiResponse<RecipeDto>.Fail("Không tìm thấy công thức"));
+        return Ok(ApiResponse<RecipeDto>.Ok(result, "Cập nhật công thức thành công"));
+    }
+
     [HttpPut("{id}/status")]
     [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateRecipeStatus(string id, [FromBody] UpdateRecipeStatusRequest request)
@@ -174,7 +187,8 @@ public class RecipesController : ControllerBase
     [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteRecipe(string id)
     {
-        var ok = await _recipeService.DeleteRecipeAsync(id);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var verifierId);
+        var ok = await _recipeService.DeleteRecipeAsync(id, verifierId);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy công thức"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa công thức thành công"));
     }
