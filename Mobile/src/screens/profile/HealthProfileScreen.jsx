@@ -1,231 +1,424 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { theme } from '../../styles/theme';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Check, Square, SquareCheck } from 'lucide-react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { healthProfileService } from '../../api/services/healthProfileService';
-import { Header } from '../../components/ui/Header';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/ui/Button';
-import { HeartPulse, Scale, Ruler, Sparkles } from 'lucide-react-native';
+import { StepProgress } from '../../components/ui/Gauges';
+import {
+  Chip,
+  DateField,
+  Field,
+  Notice,
+  Page,
+  QueryState,
+  SearchBar,
+  SectionHeader,
+  Title,
+  ui,
+} from '../../components/ui/Kit';
+import { c, font, r } from '../../styles/theme';
+import { fold, listOf, number, today, validDate } from '../../styles/content.mjs';
+
+const activity = [
+  ['sedentary', 'Ít vận động', 'Làm việc văn phòng, ít đi lại'],
+  ['light', 'Vận động nhẹ', 'Đi bộ hoặc tập nhẹ 1–2 buổi/tuần'],
+  ['moderate', 'Vừa phải', 'Tập thể dục đều 3–5 buổi/tuần'],
+  ['active', 'Năng động', 'Tập cường độ cao 6–7 buổi/tuần'],
+  ['very_active', 'Rất nhiều', 'Vận động thể lực nặng hàng ngày'],
+];
+
+const goals = [
+  ['loss', 'Giảm cân'],
+  ['maintain', 'Duy trì vóc dáng'],
+  ['gain', 'Tăng cân & cơ'],
+];
+
+const allergenLabels = {
+  peanut: 'Đậu phộng (lạc)',
+  soy: 'Đậu nành',
+  'tree nuts': 'Các loại hạt cây',
+  sesame: 'Mè (vừng)',
+  mushroom: 'Nấm các loại',
+  gluten: 'Gluten (lúa mì)',
+};
+
+const allergyLabel = allergy =>
+  allergy.nameVi || allergenLabels[allergy.name?.trim().toLowerCase()] || allergy.name;
 
 export function HealthProfileScreen({ navigation }) {
-  const [profile, setProfile] = useState({
-    heightCm: '',
-    weightKg: '',
-    age: '',
-    gender: 'Nam',
-    activityLevel: 'Vừa phải',
-    goal: 'Duy trì vóc dáng',
+  const profile = useQuery({
+    queryKey: ['profile'],
+    queryFn: ({ signal }) => healthProfileService.getProfile(signal),
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    healthProfileService.getProfile()
-      .then((data) => {
-        if (data) {
-          setProfile({
-            heightCm: String(data.heightCm || data.height || ''),
-            weightKg: String(data.weightKg || data.weight || ''),
-            age: String(data.age || ''),
-            gender: data.gender || 'Nam',
-            activityLevel: data.activityLevel || 'Vừa phải',
-            goal: data.goal || 'Duy trì vóc dáng',
-          });
-        }
-      })
-      .catch((err) => console.warn('Lỗi lấy profile:', err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await healthProfileService.updateProfile({
-        heightCm: parseFloat(profile.heightCm) || 0,
-        weightKg: parseFloat(profile.weightKg) || 0,
-        age: parseInt(profile.age) || 25,
-        gender: profile.gender,
-        activityLevel: profile.activityLevel,
-        goal: profile.goal,
-      });
-      Alert.alert('Thành công', 'Đã cập nhật hồ sơ sức khỏe & chỉ số dinh dưỡng!');
-    } catch (err) {
-      Alert.alert('Lỗi lưu', err.message || 'Không thể cập nhật hồ sơ.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
-
-  // Tính BMI nhanh
-  const h = parseFloat(profile.heightCm) / 100;
-  const w = parseFloat(profile.weightKg);
-  const bmi = (h > 0 && w > 0) ? (w / (h * h)).toFixed(1) : null;
+  const allergies = useQuery({
+    queryKey: ['allergies'],
+    queryFn: ({ signal }) => healthProfileService.getAllergens(signal),
+  });
 
   return (
-    <View style={styles.container}>
-      <Header title="Hồ Sơ Sức Khỏe" onBack={() => navigation.goBack()} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* BMI Card */}
-        {bmi && (
-          <View style={styles.bmiCard}>
-            <View>
-              <Text style={styles.bmiLabel}>Chỉ số BMI của bạn</Text>
-              <Text style={styles.bmiVal}>{bmi}</Text>
-            </View>
-            <View style={styles.bmiStatusBox}>
-              <Text style={styles.bmiStatusText}>
-                {bmi < 18.5 ? 'Gầy' : bmi < 24.9 ? 'Chuẩn cân đối' : 'Thừa cân'}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Input fields */}
-        <View style={styles.formSection}>
-          <Text style={styles.fieldLabel}>Chiều cao (cm)</Text>
-          <View style={styles.inputWrap}>
-            <Ruler size={18} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.input}
-              value={profile.heightCm}
-              onChangeText={(val) => setProfile((p) => ({ ...p, heightCm: val }))}
-              keyboardType="numeric"
-              placeholder="170"
-            />
-          </View>
-
-          <Text style={styles.fieldLabel}>Cân nặng (kg)</Text>
-          <View style={styles.inputWrap}>
-            <Scale size={18} color={theme.colors.textMuted} style={{ marginRight: 8 }} />
-            <TextInput
-              style={styles.input}
-              value={profile.weightKg}
-              onChangeText={(val) => setProfile((p) => ({ ...p, weightKg: val }))}
-              keyboardType="numeric"
-              placeholder="65"
-            />
-          </View>
-
-          <Text style={styles.fieldLabel}>Tuổi</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              value={profile.age}
-              onChangeText={(val) => setProfile((p) => ({ ...p, age: val }))}
-              keyboardType="numeric"
-              placeholder="22"
-            />
-          </View>
-
-          <Text style={styles.fieldLabel}>Mục tiêu dinh dưỡng</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              value={profile.goal}
-              onChangeText={(val) => setProfile((p) => ({ ...p, goal: val }))}
-              placeholder="Giảm mỡ, tăng cơ hoặc duy trì"
-            />
-          </View>
-
-          <Button
-            title="Lưu Hồ Sơ Sức Khỏe"
-            onPress={handleSave}
-            loading={saving}
-            style={{ marginTop: 16 }}
-          />
-        </View>
-      </ScrollView>
-    </View>
+    <Page title="Hồ sơ sức khỏe" back={navigation.goBack} keyboard>
+      <Title
+        eyebrow="Cân đối theo thể trạng"
+        title="Chỉ số & dị ứng"
+        detail="Dữ liệu được dùng để tính nhu cầu năng lượng (TDEE) và loại trừ nguyên liệu dị ứng khi lập thực đơn."
+      />
+      <QueryState query={profile} skeletonCount={2}>
+        <ProfileForm profile={profile.data} allergies={allergies} navigation={navigation} />
+      </QueryState>
+    </Page>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+function ProfileForm({ profile, allergies, navigation }) {
+  const [form, setForm] = useState(() => ({
+    gender: profile?.gender || '',
+    dateOfBirth: profile?.dateOfBirth || '',
+    heightCm: profile?.heightCm == null ? '' : String(profile.heightCm),
+    weightKg: profile?.weightKg == null ? '' : String(profile.weightKg),
+    activityLevel: profile?.activityLevel || '',
+    healthGoal: profile?.healthGoal || '',
+    allergyIds: (profile?.allergies || []).map(item => item.id),
+  }));
+  const [none, setNone] = useState(!!profile && !profile.allergies?.length);
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [saved, setSaved] = useState(null);
+
+  const client = useQueryClient();
+  const updateUser = useAuthStore(state => state.updateUser);
+  const change = (key, value) => setForm(previous => ({ ...previous, [key]: value }));
+  const measurement = value => Number(value.trim().replace(',', '.'));
+
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (allergies.isError || allergies.isPending) throw new Error('Chưa tải được danh mục dị ứng.');
+      if (!form.activityLevel || !form.healthGoal) throw new Error('Chọn mức vận động và mục tiêu sức khỏe.');
+      if (!form.allergyIds.length && !none) {
+        throw new Error('Chọn nhóm dị ứng hoặc xác nhận không có dị ứng thực phẩm đã biết.');
+      }
+      return healthProfileService.updateProfile({
+        ...form,
+        heightCm: measurement(form.heightCm),
+        weightKg: measurement(form.weightKg),
+      });
+    },
+    onSuccess: data => {
+      if (!data?.id) throw new Error('Chưa xác nhận được hồ sơ đã lưu.');
+      client.setQueryData(['profile'], data);
+      client.invalidateQueries({ queryKey: ['diary'] });
+      updateUser({ hasHealthProfile: true });
+      setSaved(data);
+    },
+  });
+
+  const next = () => {
+    const current = today();
+    const dob = form.dateOfBirth.trim();
+    const age =
+      Number(current.slice(0, 4)) -
+      Number(dob.slice(0, 4)) -
+      (current.slice(5) < dob.slice(5) ? 1 : 0);
+    if (!form.gender || !validDate(dob) || age < 10 || age > 120) {
+      setError('Chọn giới tính và ngày sinh hợp lệ (độ tuổi 10–120).');
+      return;
+    }
+    const height = measurement(form.heightCm);
+    const weight = measurement(form.weightKg);
+    if (!(height >= 50 && height <= 250 && weight >= 20 && weight <= 300)) {
+      setError('Chiều cao hợp lệ từ 50–250 cm và cân nặng từ 20–300 kg.');
+      return;
+    }
+    setError('');
+    setStep(2);
+  };
+
+  const toggle = id => {
+    setNone(false);
+    change(
+      'allergyIds',
+      form.allergyIds.includes(id)
+        ? form.allergyIds.filter(item => item !== id)
+        : [...form.allergyIds, id]
+    );
+  };
+
+  const metrics = saved || profile;
+  const maxBirthYear = Number(today().slice(0, 4)) - 10;
+
+  return (
+    <>
+      {/* Flat 3-Column Tabular Metrics Strip on Paper (replaces duplicate dark hero) */}
+      {metrics ? (
+        <View style={s.metricsStrip}>
+          {[
+            ['Chỉ số BMI', metrics.bmi, ''],
+            ['Nhu cầu TDEE', metrics.tdee, 'kcal'],
+            ['Đạm mục tiêu', metrics.targets?.proteinG, 'g'],
+          ].map(([label, value, unit], idx, arr) => (
+            <View style={[s.metricCell, idx < arr.length - 1 && s.metricDivider]} key={label}>
+              <Text style={ui.small}>{label}</Text>
+              <Text style={s.metricVal}>{number(value, unit)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {saved ? (
+        <View style={{ gap: 10 }}>
+          <Notice success>Hồ sơ sức khỏe đã được lưu thành công.</Notice>
+          <Button title="Hoàn tất & quay lại" variant="done" icon={Check} onPress={navigation.goBack} />
+        </View>
+      ) : (
+        <>
+          {profile?.needsUpdate ? (
+            <Notice warning>Hồ sơ của bạn đã lâu chưa cập nhật. Hãy kiểm tra lại cân nặng và mục tiêu.</Notice>
+          ) : null}
+          <Notice error>{error || mutation.error?.message}</Notice>
+
+          {/* Single Focal Surface: Step Form */}
+          <View style={ui.card}>
+            <StepProgress
+              label={step === 1 ? 'Bước 1: Chỉ số cơ thể' : 'Bước 2: Mức vận động & Dị ứng'}
+              current={step}
+              total={2}
+            />
+
+            {step === 1 ? (
+              <>
+                <Text style={ui.label}>Giới tính sinh học</Text>
+                <View style={ui.row}>
+                  {[
+                    ['female', 'Nữ'],
+                    ['male', 'Nam'],
+                  ].map(([key, label]) => (
+                    <Chip
+                      key={key}
+                      label={label}
+                      selected={form.gender === key}
+                      onPress={() => change('gender', key)}
+                    />
+                  ))}
+                </View>
+
+                <DateField
+                  label="Ngày sinh"
+                  value={form.dateOfBirth}
+                  minYear={1925}
+                  maxYear={maxBirthYear}
+                  onChange={value => change('dateOfBirth', value)}
+                />
+
+                <View style={s.twoCols}>
+                  <View style={ui.fill}>
+                    <Field
+                      label="Chiều cao (cm)"
+                      inputMode="decimal"
+                      placeholder="165"
+                      value={form.heightCm}
+                      onChangeText={value => change('heightCm', value)}
+                    />
+                  </View>
+                  <View style={ui.fill}>
+                    <Field
+                      label="Cân nặng (kg)"
+                      inputMode="decimal"
+                      placeholder="56"
+                      value={form.weightKg}
+                      onChangeText={value => change('weightKg', value)}
+                    />
+                  </View>
+                </View>
+
+                <Button title="Tiếp tục bước 2" onPress={next} />
+              </>
+            ) : (
+              <>
+                <Text style={ui.label}>Mức vận động hàng tuần</Text>
+                <View style={{ gap: 8 }}>
+                  {activity.map(([key, label, sub]) => {
+                    const active = form.activityLevel === key;
+                    return (
+                      <Pressable
+                        key={key}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: active, disabled: mutation.isPending }}
+                        disabled={mutation.isPending}
+                        onPress={() => change('activityLevel', key)}
+                        style={[s.choiceCard, active && s.choiceCardActive]}
+                      >
+                        <View style={ui.fill}>
+                          <Text style={ui.label}>{label}</Text>
+                          <Text style={ui.small}>{sub}</Text>
+                        </View>
+                        <View style={[s.radioDot, active && s.radioDotActive]} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text style={ui.label}>Mục tiêu dinh dưỡng</Text>
+                <View style={ui.row}>
+                  {goals.map(([key, label]) => (
+                    <Chip
+                      key={key}
+                      label={label}
+                      selected={form.healthGoal === key}
+                      disabled={mutation.isPending}
+                      onPress={() => change('healthGoal', key)}
+                    />
+                  ))}
+                </View>
+
+                <SectionHeader
+                  title="Dị ứng thực phẩm"
+                  count={
+                    form.allergyIds.length
+                      ? `Đã chọn ${form.allergyIds.length}`
+                      : none
+                        ? 'Không dị ứng'
+                        : 'Cần xác nhận'
+                  }
+                />
+
+                <QueryState query={allergies}>
+                  {listOf(allergies.data).length > 7 ? (
+                    <SearchBar
+                      label="Tìm nhóm dị ứng"
+                      placeholder="Tìm đậu phộng, mè, nấm…"
+                      value={search}
+                      onChangeText={setSearch}
+                    />
+                  ) : null}
+                  <View>
+                    {listOf(allergies.data)
+                      .filter(item => fold(allergyLabel(item)).includes(fold(search)))
+                      .map(item => (
+                        <AllergyItem
+                          key={item.id}
+                          title={allergyLabel(item)}
+                          checked={form.allergyIds.includes(item.id)}
+                          disabled={mutation.isPending}
+                          onPress={() => toggle(item.id)}
+                        />
+                      ))}
+                    <AllergyItem
+                      title="Tôi không có dị ứng thực phẩm đã biết"
+                      checked={none}
+                      disabled={mutation.isPending}
+                      onPress={() => {
+                        setNone(!none);
+                        if (!none) change('allergyIds', []);
+                      }}
+                    />
+                  </View>
+                </QueryState>
+
+                <Button
+                  title="Lưu hồ sơ sức khỏe"
+                  loading={mutation.isPending}
+                  disabled={allergies.isPending || allergies.isError}
+                  onPress={() => mutation.mutate()}
+                />
+                <Button
+                  title="Quay lại chỉ số cơ thể"
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onPress={() => {
+                    mutation.reset();
+                    setStep(1);
+                  }}
+                />
+              </>
+            )}
+          </View>
+        </>
+      )}
+    </>
+  );
+}
+
+function AllergyItem({ title, checked, disabled, onPress }) {
+  const Icon = checked ? SquareCheck : Square;
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[s.allergyRow, checked && s.allergyChecked]}
+    >
+      <Icon size={20} color={checked ? c.ink : c.muted} strokeWidth={1.9} />
+      <Text style={[ui.label, ui.fill]}>{title}</Text>
+    </Pressable>
+  );
+}
+
+const s = StyleSheet.create({
+  metricsStrip: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: c.lineStrong,
+  },
+  metricCell: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    paddingHorizontal: 8,
+    gap: 3,
   },
-  content: {
-    padding: theme.spacing.md,
-    paddingBottom: 40,
+  metricDivider: {
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: c.line,
   },
-  bmiCard: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+  metricVal: {
+    fontFamily: font.serifBold,
+    fontSize: 19,
+    color: c.ink,
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+  },
+  twoCols: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.sm,
+    gap: 10,
   },
-  bmiLabel: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
-  },
-  bmiVal: {
-    color: '#ffffff',
-    fontSize: 28,
-    fontWeight: '900',
-  },
-  bmiStatusBox: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
-  },
-  bmiStatusText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  formSection: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    ...theme.shadows.sm,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  inputWrap: {
+  choiceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    height: 46,
-    paddingHorizontal: 12,
+    gap: 10,
+    padding: 12,
+    borderRadius: r.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: 8,
+    borderColor: c.line,
+    backgroundColor: c.background,
   },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
+  choiceCardActive: {
+    borderColor: c.ink,
+    backgroundColor: c.surface,
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+  radioDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: c.lineStrong,
+  },
+  radioDotActive: {
+    borderWidth: 5,
+    borderColor: c.terracotta,
+  },
+  allergyRow: {
+    minHeight: 48,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: c.line,
+  },
+  allergyChecked: {
+    backgroundColor: c.surface,
   },
 });

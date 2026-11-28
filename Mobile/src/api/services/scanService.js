@@ -1,45 +1,16 @@
-import { apiRequest, unwrap } from '../client';
+import { apiRequest, writeJson } from '../client';
 
 export const scanService = {
-  /**
-   * Upload ảnh chụp tủ lạnh hoặc nguyên liệu từ camera điện thoại
-   * @param {{ uri: string, name?: string, type?: string }} imageFile
-   */
-  uploadScan: async (imageFile) => {
+  uploadScan: asset => {
     const formData = new FormData();
-    
-    // React Native FormData format
-    formData.append('Image', {
-      uri: imageFile.uri,
-      name: imageFile.name || 'scan_ingredient.jpg',
-      type: imageFile.type || 'image/jpeg',
+    formData.append('Image', asset.file || {
+      uri: asset.uri,
+      name: asset.fileName || 'nguyen-lieu.jpg',
+      type: asset.mimeType || 'image/jpeg',
     });
-
-    const raw = await apiRequest('/scans', {
-      method: 'POST',
-      body: formData,
-      timeout: 120000,
-    });
-    return unwrap(raw);
+    return apiRequest('/scans', { method: 'POST', body: formData, timeout: 120000 });
   },
-
-  confirmScan: async (scanId, ingredientIds) => {
-    const raw = await apiRequest(`/scans/${scanId}/confirm`, {
-      method: 'POST',
-      body: JSON.stringify({ ingredientIds }),
-    });
-    return unwrap(raw);
-  },
-
-  getScanById: async (scanId) => {
-    const raw = await apiRequest(`/scans/${scanId}`);
-    return unwrap(raw);
-  },
-
-  getScanHistory: async (page = 1, pageSize = 10) => {
-    const raw = await apiRequest(`/scans?page.Page=${page}&page.PageSize=${pageSize}`);
-    return unwrap(raw);
-  },
+  confirmScan: (id, ingredientIds) => writeJson('/scans/' + id + '/confirm', { ingredientIds }),
+  getScanById: (id, signal) => apiRequest('/scans/' + id, { signal }),
+  getScanHistory: (page, signal) => apiRequest('/scans?page=' + page + '&pageSize=12', { signal }),
 };
-
-export default scanService;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   X,
@@ -10,6 +10,9 @@ import {
 import { useResource, Button, State, Card, PageHeading } from "./ui";
 import { listOf, categoryLabel, isTestContent } from "./data";
 import { request } from "./api";
+const normalize = (value = "") =>
+  String(value ?? "").toLocaleLowerCase("vi-VN").normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d").trim();
+
 export function Discover({ open, go, library = false }) {
   const resource = useResource(
     async (signal) =>
@@ -24,22 +27,19 @@ export function Discover({ open, go, library = false }) {
   const [category, setCategory] = useState("Tất cả");
   const [sort, setSort] = useState("default");
   const [page, setPage] = useState(1);
-  const recipes = resource.data || [];
-  const categories = [
-    "Tất cả",
-    ...new Set(recipes.map((r) => r.category).filter(Boolean)),
-  ];
-  const normalize = (value) =>
-    (value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/đ/g, "d")
-      .toLowerCase();
-  const filtered = recipes.filter(
-    (r) =>
-      (category === "Tất cả" || r.category === category) &&
-      normalize(r.title).includes(normalize(query)),
-  );
+  const recipes = resource.data;
+  const index = useMemo(() => (recipes || []).map((recipe) => ({ recipe, name: normalize(recipe.title) })), [recipes]);
+  const counts = useMemo(() => {
+    const categories = new Map([["Tất cả", index.length]]);
+    for (const { recipe } of index) {
+      if (recipe.category) categories.set(recipe.category, (categories.get(recipe.category) || 0) + 1);
+    }
+    return categories;
+  }, [index]);
+  const search = normalize(query);
+  const filtered = index.filter(({ recipe, name }) =>
+    (category === "Tất cả" || recipe.category === category) && name.includes(search),
+  ).map(({ recipe }) => recipe);
   if (sort === "protein")
     filtered.sort((a, b) => (b.proteinG ?? -1) - (a.proteinG ?? -1));
   if (sort === "calories")
@@ -54,15 +54,9 @@ export function Discover({ open, go, library = false }) {
     <>
       {library ? (
         <PageHeading
-          eyebrow="Một chút cảm hứng, mỗi ngày"
           title="Khám phá món chay"
         >
           <div className="vp-discover-actions">
-            <small>
-              {!resource.loading && !resource.error
-                ? `${filtered.length} công thức`
-                : "Thư viện món chay"}
-            </small>
             <button className="vp-text-button" onClick={() => go("scan")}>
               Quét nguyên liệu
               <ArrowRight size={17} />
@@ -76,15 +70,12 @@ export function Discover({ open, go, library = false }) {
       ) : (
         <section className="vp-hero">
           <div>
-            <span className="vp-eyebrow">Bếp chay mỗi ngày</span>
+            <span className="vp-eyebrow">Sổ tay bếp chay</span>
             <h1>
-              Ăn chay ngon.
-              <br />
-              Đổi vị mỗi ngày.
+              Hôm nay <em>nấu gì?</em>
             </h1>
             <p>
-              Tìm món hợp khẩu vị, lên thực đơn vừa nhu cầu. Bắt đầu từ những gì
-              bạn thích.
+              Tìm một món chay để nấu hôm nay, hoặc lên thực đơn cho những ngày tới.
             </p>
             <form
               className="vp-hero-search"
@@ -109,15 +100,11 @@ export function Discover({ open, go, library = false }) {
                 <ArrowRight size={20} />
               </button>
             </form>
-            <Button onClick={() => go("discover")}>
-              Khám phá món
-              <ArrowRight size={18} />
-            </Button>
             <div className="vp-hero-signature">
-              <button onClick={() => go("planner")}>
-                <CalendarDays size={17} />
+              <Button onClick={() => go("planner")}>
                 Lên thực đơn
-              </button>
+                <ArrowRight size={17} />
+              </Button>
               <button onClick={() => go("chatbot")}>
                 <MessageCircle size={17} />
                 Hỏi trợ lý
@@ -135,24 +122,15 @@ export function Discover({ open, go, library = false }) {
               />
               <figcaption>Hình minh họa bếp chay</figcaption>
             </figure>
-            <button className="vp-hero-plan" onClick={() => go("planner")}>
-              <CalendarDays size={24} />
-              <span>
-                Lên thực đơn<small>Chọn theo nhu cầu của bạn</small>
-              </span>
-              <ArrowRight size={20} />
-            </button>
           </div>
         </section>
       )}
       <section id="recipes" className="vp-library">
-        {!library && (
           <div className="vp-section-heading">
             <div>
-              <span className="vp-eyebrow">Cảm hứng vào bếp</span>
-              <h2>Công thức chay</h2>
+              <h2>{library ? "Thư viện công thức" : "Công thức chay"}</h2>
             </div>
-            <p>
+            <p role="status">
               {resource.loading
                 ? "Đang tải thư viện…"
                 : resource.error
@@ -160,7 +138,6 @@ export function Discover({ open, go, library = false }) {
                   : `${filtered.length} công thức`}
             </p>
           </div>
-        )}
         <div className="vp-toolbar">
           <label className="vp-search">
             <Search size={20} />
@@ -193,7 +170,7 @@ export function Discover({ open, go, library = false }) {
           </select>
         </div>
         <div className="vp-chips" aria-label="Danh mục">
-          {categories.map((c) => (
+          {[...counts].map(([c, count]) => (
             <button
               key={c}
               aria-pressed={category === c}
@@ -203,11 +180,7 @@ export function Discover({ open, go, library = false }) {
               }}
             >
               {categoryLabel(c)}
-              <span className="vp-category-count">
-                {c === "Tất cả"
-                  ? recipes.length
-                  : recipes.filter((r) => r.category === c).length}
-              </span>
+              <span className="vp-category-count">{count}</span>
             </button>
           ))}
         </div>
@@ -237,6 +210,8 @@ export function Discover({ open, go, library = false }) {
                 onClick={() => {
                   setQuery("");
                   setCategory("Tất cả");
+                  setSort("default");
+                  setPage(1);
                 }}
               >
                 Xóa bộ lọc
@@ -245,7 +220,7 @@ export function Discover({ open, go, library = false }) {
           )}
         </State>
       </section>
-      <section className="vp-tools">
+      {!library && <section className="vp-tools" aria-label="Công cụ bếp">
         <div>
           <CalendarDays size={24} />
           <h3>Bớt nghĩ mỗi bữa</h3>
@@ -268,7 +243,7 @@ export function Discover({ open, go, library = false }) {
             <ArrowRight size={16} />
           </button>
         </div>
-      </section>
+      </section>}
     </>
   );
 }

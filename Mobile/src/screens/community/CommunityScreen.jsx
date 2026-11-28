@@ -1,253 +1,383 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { theme } from '../../styles/theme';
+import React, { useEffect, useState } from 'react';
+import { Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ArrowUpDown, BookOpen, Film, Heart, MessageCircle, PenLine, Users } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/useAuthStore';
 import { communityService } from '../../api/services/communityService';
 import { imgUrl } from '../../api/client';
-import { Heart, MessageSquare, Plus, Share2, User } from 'lucide-react-native';
+import { Button } from '../../components/ui/Button';
+import {
+  Avatar,
+  Badge,
+  Empty,
+  Page,
+  QueryState,
+  SearchBar,
+  SegmentedControl,
+  ui,
+} from '../../components/ui/Kit';
+import { isImageMedia } from './PostMedia';
+import { c, font, r } from '../../styles/theme';
+import { formatPostDate, isDemo, listOf } from '../../styles/content.mjs';
 
-export function CommunityScreen({ navigation }) {
-  const queryClient = useQueryClient();
-
-  const {
-    data: posts,
-    isLoading,
-    isRefetching,
-    refetch,
-  } = useQuery({
-    queryKey: ['communityPosts'],
-    queryFn: () => communityService.getPosts(1, 20),
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const likeMutation = useMutation({
-    mutationFn: (postId) => communityService.likePost(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['communityPosts'] });
-    },
-  });
-
+export function postStatus(post) {
+  if (post.moderation?.decision === 'revision' && post.status !== 'published') return 'Cần chỉnh sửa';
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Cộng Đồng Thuần Chay</Text>
-          <Text style={styles.headerSub}>Chia sẻ món ăn và cảm hứng sống xanh</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => navigation.navigate('CreatePost')}
-        >
-          <Plus size={18} color="#ffffff" style={{ marginRight: 4 }} />
-          <Text style={styles.createBtnText}>Đăng bài</Text>
-        </TouchableOpacity>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Đang tải bảng tin cộng đồng...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={posts || []}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary} />
-          }
-          renderItem={({ item }) => {
-            const author = item.authorName || item.user?.displayName || 'Thành viên Veggie';
-            const imageUrl = item.imageUrl || (item.images && item.images[0]);
-
-            return (
-              <View style={styles.postCard}>
-                {/* Author Info */}
-                <View style={styles.authorRow}>
-                  <View style={styles.avatar}>
-                    <User size={18} color="#ffffff" />
-                  </View>
-                  <View>
-                    <Text style={styles.authorName}>{author}</Text>
-                    <Text style={styles.postTime}>{item.createdAt || 'Gần đây'}</Text>
-                  </View>
-                </View>
-
-                {/* Content */}
-                {item.title ? <Text style={styles.postTitle}>{item.title}</Text> : null}
-                <Text style={styles.postContent}>{item.content}</Text>
-
-                {/* Image */}
-                {imageUrl && (
-                  <Image source={{ uri: imgUrl(imageUrl) }} style={styles.postImage} resizeMode="cover" />
-                )}
-
-                {/* Actions */}
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => likeMutation.mutate(item.id)}
-                  >
-                    <Heart
-                      size={18}
-                      color={item.isLiked ? theme.colors.error : theme.colors.textSecondary}
-                      fill={item.isLiked ? theme.colors.error : 'transparent'}
-                    />
-                    <Text style={styles.actionText}>{item.likeCount || 0}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.actionBtn}>
-                    <MessageSquare size={18} color={theme.colors.textSecondary} />
-                    <Text style={styles.actionText}>{item.commentCount || 0}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          }}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={{ color: theme.colors.textMuted, fontSize: 14 }}>
-                Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ nhé!
-              </Text>
-            </View>
-          }
-        />
-      )}
-    </View>
+    {
+      pending: 'Chờ duyệt',
+      published: 'Đã đăng',
+      removed: 'Đã gỡ',
+      flagged: 'Đang xem xét',
+    }[post.status] || post.status
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
+export function postStatusTone(post) {
+  if (post.moderation?.decision === 'revision' && post.status !== 'published') return 'warm';
+  if (post.status === 'published') return 'done';
+  if (post.status === 'removed') return 'error';
+  return 'soft';
+}
+
+function PostCoverThumb({ uri }) {
+  const [failed, setFailed] = useState(false);
+  const resolved = imgUrl(uri);
+  if (!resolved || failed) return null;
+  return (
+    <Image
+      source={{ uri: resolved }}
+      style={s.cardCover}
+      resizeMode="cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+export function CommunityScreen({ navigation, route }) {
+  const signedIn = useAuthStore(state => !!state.token);
+  const [mineRequested, setMine] = useState(false);
+  const mine = signedIn && mineRequested;
+  const [postType, setType] = useState('');
+  const [sort, setSort] = useState('newest');
+  const [search, setSearch] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [page, setPage] = useState(1);
+  const showMyPostsAt = route.params?.showMyPostsAt;
+
+  useEffect(() => {
+    if (!signedIn || !showMyPostsAt) return;
+    setMine(true);
+    setPage(1);
+  }, [signedIn, showMyPostsAt]);
+
+  const query = useQuery({
+    queryKey: ['posts', mine, page, keyword, postType, sort],
+    queryFn: ({ signal }) => communityService.getPosts({ mine, page, keyword, postType, sort }, signal),
+  });
+
+  const posts = listOf(query.data).filter(post => mine || !isDemo(post));
+  const pendingKeyword = search.trim() !== keyword;
+
+  const submitSearch = () => {
+    setKeyword(search.trim());
+    setPage(1);
+  };
+
+  const toggleSort = () => {
+    setSort(prev => (prev === 'newest' ? 'top' : 'newest'));
+    setPage(1);
+  };
+
+  return (
+    <Page
+      title="Cộng đồng"
+      tab
+      keyboard
+      action={
+        <Button
+          title="Viết bài"
+          icon={PenLine}
+          size="sm"
+          variant="primary"
+          onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login')}
+        />
+      }
+      refreshControl={
+        <RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} colors={[c.terracotta]} />
+      }
+    >
+      <SegmentedControl
+        options={signedIn
+          ? [['feed', 'Bảng tin'], ['video', 'Video'], ['mine', 'Bài của tôi']]
+          : [['feed', 'Bảng tin'], ['video', 'Video']]}
+        value={mine ? 'mine' : postType || 'feed'}
+        onChange={val => {
+          setMine(val === 'mine');
+          setType(val === 'video' ? 'video' : '');
+          setPage(1);
+        }}
+      />
+
+      {!mine ? (
+        <View style={{ gap: 10 }}>
+          <View style={s.searchRow}>
+            <View style={ui.fill}>
+              <SearchBar
+                label="Tìm bài viết cộng đồng"
+                placeholder="Tìm bài viết…"
+                value={search}
+                onChangeText={setSearch}
+                onSubmit={submitSearch}
+                onClear={() => {
+                  setKeyword('');
+                  setPage(1);
+                }}
+              />
+            </View>
+            {pendingKeyword ? (
+              <Button title="Tìm" size="sm" variant="ink" onPress={submitSearch} />
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Đang xếp theo ${sort === 'newest' ? 'Mới nhất' : 'Nổi bật'}. Chạm để đổi`}
+              accessibilityState={{ selected: sort === 'top' }}
+              onPress={toggleSort}
+              style={({ pressed }) => [s.sortBtn, sort === 'top' && s.sortSelected, pressed && { opacity: 0.72 }]}
+            >
+              <ArrowUpDown size={13} color={c.inkSoft} strokeWidth={1.9} />
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      <QueryState query={query} skeletonCount={3}>
+        {!posts.length ? (
+          <Empty
+            icon={Users}
+            title={mine ? 'Bạn chưa đăng bài viết nào' : 'Chưa có bài viết phù hợp'}
+            detail={
+              mine
+                ? 'Chia sẻ một góc bếp hoặc công thức tâm đắc của bạn với mọi người.'
+                : keyword || postType
+                  ? 'Thử đổi từ khóa hoặc chọn lại bộ lọc.'
+                  : undefined
+            }
+          >
+            {mine ? (
+              <Button title="Viết bài đầu tiên" icon={PenLine} onPress={() => navigation.navigate('CreatePost')} />
+            ) : keyword || postType ? (
+              <Button
+                title="Xóa bộ lọc"
+                variant="outline"
+                onPress={() => {
+                  setSearch('');
+                  setKeyword('');
+                  setType('');
+                  setPage(1);
+                }}
+              />
+            ) : null}
+          </Empty>
+        ) : (
+          <View style={s.stream}>
+            {posts.map((post, idx) => {
+              const showCover = isImageMedia(post.mediaUrl, post.postType === 'video');
+              const sameTitle = post.excerpt && (post.excerpt.startsWith(post.title) || post.title.startsWith(post.excerpt.replace(/…$/, '')));
+              return (
+                <Pressable
+                  key={post.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={'Đọc bài ' + post.title}
+                  android_ripple={{ color: 'rgba(20,38,28,0.05)' }}
+                  onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
+                  style={({ pressed }) => [
+                    s.articleRow,
+                    idx < posts.length - 1 && s.articleDivider,
+                    pressed && { opacity: 0.78 },
+                  ]}
+                >
+                  <View style={ui.between}>
+                    <View style={[ui.row, ui.fill]}>
+                      <Avatar name={post.authorName} size={28} tone="paper" />
+                      <Text style={s.byline} numberOfLines={1}>
+                        {post.authorName || 'Thành viên VeggieAI'}
+                        <Text style={s.bylineDate}> · {formatPostDate(post.createdAt)}</Text>
+                      </Text>
+                    </View>
+                    {mine ? (
+                      <Badge label={postStatus(post)} tone={postStatusTone(post)} />
+                    ) : post.postType === 'video' ? (
+                      <Badge label="Video" tone="soft" icon={Film} />
+                    ) : null}
+                  </View>
+
+                  {!sameTitle ? <Text style={s.postTitle} numberOfLines={2}>{post.title}</Text> : null}
+
+                  {post.excerpt ? (
+                    <Text style={s.excerpt} numberOfLines={3}>
+                      {post.excerpt}
+                    </Text>
+                  ) : null}
+
+                  {showCover ? <PostCoverThumb uri={post.mediaUrl} /> : null}
+
+                  {mine && post.moderation?.note ? (
+                    <View style={s.modNote}>
+                      <Text style={s.modNoteText}>{post.moderation.note}</Text>
+                    </View>
+                  ) : null}
+
+                  <View style={s.metaLine}>
+                    <View style={s.recipeTag} accessible accessibilityLabel={`${post.likeCount ?? post.score ?? 0} ${post.likeCount == null ? 'điểm hữu ích' : 'lượt thích'}`}>
+                      <Heart size={16} color={post.myVote === 1 ? c.terracotta : c.muted} fill={post.myVote === 1 ? c.terracotta : 'none'} />
+                      <Text style={s.metaStat}>{post.likeCount ?? post.score ?? 0}</Text>
+                    </View>
+                    <View style={s.recipeTag} accessible accessibilityLabel={`${post.commentCount ?? 0} bình luận`}>
+                      <MessageCircle size={16} color={c.muted} />
+                      <Text style={s.metaStat}>{post.commentCount ?? 0}</Text>
+                    </View>
+                    {post.recipeId ? (
+                      <View style={s.recipeTag}>
+                        <BookOpen size={12} color={c.terracotta} strokeWidth={2} />
+                        <Text style={s.recipeTagText} numberOfLines={1}>{post.recipeTitle || 'Công thức'}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {(page > 1 || page < (query.data?.totalPages || 1)) && (
+          <View style={ui.between}>
+            <Button
+              title="Trang trước"
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onPress={() => setPage(page - 1)}
+            />
+            <Text style={ui.small}>
+              Trang {page} / {query.data?.totalPages || 1}
+            </Text>
+            <Button
+              title="Trang sau"
+              variant="outline"
+              size="sm"
+              disabled={page >= (query.data?.totalPages || 1)}
+              onPress={() => setPage(page + 1)}
+            />
+          </View>
+        )}
+      </QueryState>
+    </Page>
+  );
+}
+
+const s = StyleSheet.create({
+  searchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    gap: 8,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  createBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: theme.borderRadius.full,
-  },
-  createBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  listContent: {
-    padding: theme.spacing.md,
-    paddingBottom: 30,
-  },
-  postCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.sm,
-  },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primary,
+  sortBtn: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    borderRadius: r.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.lineStrong,
+    backgroundColor: c.surface,
   },
-  authorName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+  sortSelected: { backgroundColor: c.primaryLight, borderColor: c.primary },
+  stream: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.line,
+    borderRadius: r.xl,
+    backgroundColor: c.surfaceElevated,
+    overflow: 'hidden',
   },
-  postTime: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    marginTop: 2,
+  articleRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 9,
+  },
+  articleDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.line,
+  },
+  byline: {
+    flex: 1,
+    fontFamily: font.medium,
+    fontSize: 13,
+    color: c.inkSoft,
+    includeFontPadding: false,
+  },
+  bylineDate: {
+    fontFamily: font.regular,
+    color: c.muted,
+  },
+  cardCover: {
+    width: '100%',
+    height: 176,
+    borderRadius: r.md,
+    backgroundColor: c.surfaceMuted,
   },
   postTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
+    fontFamily: font.semi,
+    fontSize: 17,
+    lineHeight: 23,
+    color: c.ink,
+    letterSpacing: -0.2,
+    includeFontPadding: false,
   },
-  postContent: {
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    lineHeight: 20,
-    marginBottom: 10,
+  excerpt: {
+    fontFamily: font.regular,
+    fontSize: 14.5,
+    lineHeight: 22,
+    color: c.inkSoft,
+    includeFontPadding: false,
   },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: 10,
-    backgroundColor: theme.colors.borderLight,
+  modNote: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: c.turmeric,
+    backgroundColor: c.turmericBg,
+    borderRadius: r.xs,
   },
-  actionRow: {
+  modNoteText: {
+    fontFamily: font.regular,
+    fontSize: 12.5,
+    color: '#784E0E',
+    includeFontPadding: false,
+  },
+  metaLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
-    paddingTop: 10,
-    gap: 20,
+    gap: 10,
+    paddingTop: 2,
   },
-  actionBtn: {
+  metaStat: {
+    fontFamily: font.regular,
+    fontSize: 12.5,
+    color: c.muted,
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+  },
+  recipeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexShrink: 1,
   },
-  actionText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: theme.colors.textSecondary,
+  recipeTagText: {
+    flexShrink: 1,
+    fontFamily: font.medium,
+    fontSize: 12.5,
+    color: c.terracotta,
+    includeFontPadding: false,
   },
 });

@@ -108,13 +108,16 @@ public static class AiMappers
     }
 
     /// <summary>
-    /// Công thức được phép đưa vào thực đơn của người dùng: đã published, có dinh dưỡng, CÓ ÍT NHẤT 1 NGUYÊN LIỆU
-    /// (món không có dòng nguyên liệu sẽ lọt bộ lọc dị ứng) và không chứa nguyên liệu gây dị ứng.
+    /// Kho công thức công khai. Tài khoản tự duyệt của seed demo không đại diện cho kiểm duyệt.
     /// </summary>
+    public static IQueryable<Recipe> FromApprovedCatalog(this IQueryable<Recipe> recipes) =>
+        recipes.Where(r => r.Status == "published" && r.VerifiedBy != null && r.VerifiedAt >= r.CreatedAt &&
+            r.Verifier != null && r.Verifier.Email != "system.moderator@veggieai.local" &&
+            r.Servings > 0 && r.KcalPerServing > 0 && r.Instructions.Trim() != "" &&
+            r.RecipeIngredients.Any() && !r.RecipeIngredients.Any(ri => ri.QuantityG <= 0));
+
     public static IQueryable<Recipe> EligibleForPlan(this IQueryable<Recipe> recipes, HashSet<int> allergenIngredientIds) =>
-        recipes
-            .Where(r => r.Status == "published" && r.KcalPerServing > 0)
-            .Where(r => r.RecipeIngredients.Any())
+        recipes.FromApprovedCatalog()
             .Where(r => !r.RecipeIngredients.Any(ri => allergenIngredientIds.Contains(ri.IngredientId)));
 }
 

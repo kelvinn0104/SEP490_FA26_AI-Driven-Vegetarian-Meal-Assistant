@@ -349,7 +349,7 @@
   max-width: 980px;
   margin: auto;
 }
-.vp-plan-fields > h2 {
+.vp-plan-fields > legend {
   font: 500 23px/1.35 var(--font-editorial);
   margin: 0 0 16px;
 }
@@ -1002,8 +1002,19 @@
   .vp-today-nutrition > .vp-section-heading h2 {
     font-size: 15px;
   }
+  .vp-today-summary {
+    display: grid;
+    grid-template-columns: minmax(108px, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 16px;
+  }
+  .vp-today-summary .vp-today-macros { grid-template-columns: 1fr; gap: 6px; }
+  .vp-today-summary .vp-nutrient-meter > div { flex-direction: row; align-items: baseline; margin: 0; gap: 4px; }
+  .vp-today-summary .vp-nutrient-meter > div > span { font-size: 11px; }
+  .vp-today-summary .vp-nutrient-meter strong { font-size: 13px; }
+  .vp-today-summary .vp-nutrient-meter > small { font-size: 10px; }
   .vp-today-nutrition .vp-energy-gauge {
-    width: 205px;
+    width: min(158px, 100%);
     margin-bottom: 8px;
     padding-top: 0;
   }
@@ -1011,7 +1022,7 @@
     display: none;
   }
   .vp-today-nutrition .vp-energy-gauge strong {
-    font-size: 26px;
+    font-size: clamp(17px, 5vw, 24px);
   }
   .vp-today-nutrition .vp-text-button {
     min-height: 36px;
@@ -2448,3 +2459,69 @@
 .vp-chat-scan-items { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
 .vp-chat-scan-items li { padding: 3px 10px; border-radius: 999px; background: var(--mint, #e3efd9); font-size: 13px; }
 .vp-chat-scan-items li[data-unknown] { background: transparent; border: 1px dashed var(--theme-control-border, #b1bea6); }
+
+.vp-plan-calendar-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.vp-plan-calendar-label > div { display: flex; gap: 8px; }
+.vp-plan-calendar-label button { width: 44px; min-height: 44px; }
+.vp-plan-calendar-label button:disabled { opacity: 0.45; }
+.vp-plan-view .vp-day-picker { margin-top: 0; }
+.vp-plan-fields > .vp-notice { margin-bottom: 8px; }
+.vp-today-heading { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.vp-today-plan > .vp-section-heading p { margin-top: 4px; font-variant-numeric: tabular-nums; }
+.vp-today-meal.is-recorded { border-inline-start: 3px solid var(--green); }
+.vp .vp-scan-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.vp-scan-metrics > div { padding: 8px 12px; border-radius: 10px; background: var(--surface); }
+.vp-scan-metrics dt { color: var(--muted); font-size: 13px; }
+.vp-scan-metrics dd { margin: 0; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vp-scan-metrics dd small { font-size: 12px; font-weight: 400; }
+.vp-scan-menu { margin-block: 16px; }
+.vp-scan-menu > p { margin: 4px 0 12px; }
+.vp-suggestions { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.vp-suggestions button {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.vp-suggestions button:hover { border-color: var(--green); }
+.vp-suggestions button > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.vp-suggestions button > svg { flex-shrink: 0; color: var(--green); }
+.vp-suggestions button strong, .vp-suggestions button small { display: block; }
+.vp-suggestions button small { color: var(--muted); font-size: 12px; }
+.vp-suggestions button img, .vp-suggestions .vp-image-placeholder { width: 42px; height: 42px; min-height: 0; border-radius: 7px; object-fit: cover; }
+.vp-suggestions .vp-image-placeholder small { display: none; }
+.vp-suggestions .vp-placeholder-plate { width: auto; height: auto; }
+.vp-chat-scan > img { max-width: min(100%, 220px); }
+.vp-chat-scan .vp-suggestions { margin: 0; padding: 0; list-style: none; }
+.vp-notification { margin-bottom: 10px; overflow-wrap: anywhere; }
+.vp-notification h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.vp-notification.is-unread { border-inline-start: 3px solid var(--green); }
+.vp-notification time { color: var(--muted); font-size: 13px; }
+.vp-unread-label { border-radius: 99px; background: var(--mint); padding: 2px 8px; font-size: 11px; font-weight: 500; }
+
+@media (max-width: 480px) {
+  .vp-plan-calendar-label { margin-top: 8px; }
+  .vp-screen-notifications .vp-page-heading { flex-wrap: wrap; }
+  .vp-plan-track-stops { flex-wrap: wrap; }
+}

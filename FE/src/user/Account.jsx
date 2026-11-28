@@ -159,7 +159,7 @@ export function Profile({ flash, go }) {
             : "Thêm chỉ số và dị ứng để tạo thực đơn theo nhu cầu của bạn."}
         </p>
         {resource.data && (
-          <details className="vp-saved-profile">
+          <details className="vp-saved-profile" open>
             <summary>Chỉ số từ hồ sơ đã lưu</summary>
             <section className="vp-profile-summary">
               <div>
@@ -190,9 +190,7 @@ export function Profile({ flash, go }) {
         )}
         {resource.error && resource.error.status !== 404 && (
           <Notice error>
-            {resource.error.status === 404
-              ? "Chưa có hồ sơ đã lưu. Cần tải được danh mục dị ứng trước khi tạo hồ sơ."
-              : userError(resource.error)}{" "}
+            {userError(resource.error)}{" "}
             <button onClick={resource.reload}>Thử tải lại</button>
           </Notice>
         )}

@@ -15,13 +15,14 @@ public record KnowledgeHit(string Type, int Id, string Title, string Snippet, do
 /// </summary>
 public static class ChatKnowledge
 {
-    public const int TopK = 4;
+    public const int TopK = 12;
     private const double MinScore = 3.0;
 
     private static readonly HashSet<string> Stop = new(StringComparer.Ordinal)
     {
         "toi","ban","la","va","co","khong","nen","an","gi","the","nao","cho","cua","voi","mot","nhung","cac","nay","do","thi",
         "bi","duoc","can","muon","hay","khi","nao","bao","nhieu","nhu","de","tu","trong","ve","la","em","anh","chi","minh",
+        "cach","lam","nau","cong","thuc","mon","chay","thuan","xin","giup",
     };
 
     public static string Fold(string s)
@@ -54,6 +55,14 @@ public static class ChatKnowledge
     private static bool Matches(string[] words, string t) =>
         words.Any(w => w == t || (t.Length >= 4 && w.Contains(t, StringComparison.Ordinal)));
 
+    public static bool MatchesNamedRecipe(string question, string title)
+    {
+        var query = Fold(question).Replace("dau phu", "dau hu").Replace("dau hu non", "dau hu mem");
+        var words = Words(Fold(title).Replace("dau phu", "dau hu").Replace("dau hu non", "dau hu mem"));
+        var nameWords = Tokens(query);
+        return nameWords.Count > 0 && nameWords.All(word => words.Contains(word, StringComparer.Ordinal));
+    }
+
     internal static double Score(List<string> q, string title, string body)
     {
         var wt = Words(Fold(title)); var wb = Words(Fold(body));
@@ -75,17 +84,22 @@ public static class ChatKnowledge
         return all.Distinct().ToList();
     }
 
-    public static async Task<List<KnowledgeHit>> RetrieveAsync(VeggieAIDbContext db, int userId, string question, CancellationToken ct)
+    public static async Task<List<KnowledgeHit>> RetrieveAsync(VeggieAIDbContext db, int userId, string question, int? planId, CancellationToken ct)
     {
         var q = Expand(question, Tokens(question));
-        if (q.Count == 0) return new();
+        if (q.Count == 0 && planId is null) return new();
+        var folded = Fold(question);
+        var wantsIdeas = folded.Contains("goi y") || folded.Contains("an gi") || folded.Contains("mon gi");
+        var wantsProtein = wantsIdeas && (folded.Contains("giau dam") || folded.Contains("nhieu dam") || folded.Contains("protein"));
 
         var allergenIds = await db.AllergenIngredientIdsAsync(userId, ct);
-        var recipes = await db.Recipes.AsNoTracking()
-            .EligibleForPlan(allergenIds)
+        var catalog = db.Recipes.AsNoTracking().EligibleForPlan(allergenIds);
+        var recipes = await catalog
             .Select(r => new
             {
                 r.Id, r.Title, r.KcalPerServing, r.ProteinG, r.IronMg, r.Servings,
+                Category = r.Category != null ? r.Category.Name : "",
+                InPlan = planId != null && db.MealPlanItems.Any(i => i.PlanId == planId && i.RecipeId == r.Id),
                 Ing = r.RecipeIngredients.Select(ri => ri.Ingredient!.Name).ToList(),
             })
             .ToListAsync(ct);
@@ -94,20 +108,23 @@ public static class ChatKnowledge
         foreach (var r in recipes)
         {
             var body = string.Join(" ", r.Ing);
-            var s = Score(q, r.Title, body);
+            var s = Score(q, r.Title, body) + (r.InPlan ? MinScore : 0);
+            if (folded.Contains(Fold(r.Title), StringComparison.Ordinal)) s += 100;
+            if (wantsIdeas) s += MinScore + (wantsProtein ? Math.Min(10, (double)r.ProteinG / 4) : 0);
             if (s < MinScore) continue;
             hits.Add(new("recipe", r.Id, r.Title,
-                $"Món \"{r.Title}\": {r.KcalPerServing:0} kcal, đạm {r.ProteinG:0.#} g, sắt {r.IronMg:0.#} mg / khẩu phần; nguyên liệu: {string.Join(", ", r.Ing.Take(8))}.", s));
+                $"Món \"{r.Title}\" ({r.Category}): {r.KcalPerServing:0} kcal, đạm {r.ProteinG:0.#} g, sắt {r.IronMg:0.#} mg / khẩu phần; nguyên liệu: {string.Join(", ", r.Ing)}.", s));
         }
 
+        var catalogIngredients = catalog.SelectMany(r => r.RecipeIngredients).Select(ri => ri.IngredientId);
         var ings = await db.Ingredients.AsNoTracking()
-            .Where(i => !allergenIds.Contains(i.Id))
+            .Where(i => catalogIngredients.Contains(i.Id))
             .Select(i => new { i.Id, i.Name, i.KcalPer100g, i.ProteinPer100g, i.IronPer100g, i.B12Per100g, i.CalciumPer100g, i.ZincPer100g })
             .ToListAsync(ct);
         foreach (var i in ings)
         {
-            var s = Score(q, i.Name, "") + 1.5; if (s < MinScore + 1.5) continue;
-            if (s < MinScore) continue;
+            var s = Score(q, i.Name, "") + 1.5;
+            if (s < MinScore + 1.5) continue;
             hits.Add(new("ingredient", i.Id, i.Name,
                 $"{i.Name} (100 g): {i.KcalPer100g:0} kcal, đạm {i.ProteinPer100g:0.#} g, sắt {i.IronPer100g:0.#} mg, B12 {i.B12Per100g:0.##} mcg, canxi {i.CalciumPer100g:0} mg, kẽm {i.ZincPer100g:0.#} mg.", s));
         }
@@ -119,8 +136,8 @@ public static class ChatKnowledge
     {
         if (hits.Count == 0) return "";
         var sb = new StringBuilder();
-        sb.AppendLine("Tri thức tham khảo từ cơ sở dữ liệu VeggieAI (ưu tiên dùng; đánh dấu [n] khi dựa vào nguồn n; nếu không liên quan thì bỏ qua, không bịa số liệu):");
-        for (var n = 0; n < hits.Count; n++) sb.AppendLine($"[{n + 1}] {hits[n].Snippet}");
+        sb.AppendLine("Dữ liệu để chọn nguồn:");
+        for (var n = 0; n < hits.Count; n++) sb.AppendLine($"[{n + 1}] ({hits[n].Type}) {hits[n].Snippet}");
         return sb.ToString();
     }
 

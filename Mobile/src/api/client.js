@@ -1,166 +1,120 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-export const API_BASE_URL = 'https://veggieai-api.onrender.com/api';
-
-const TOKEN_KEY = 'veggie_token';
-const USER_KEY = 'veggie_user';
-
-// In-memory token cache for sync read in interceptors
-let memoryToken = null;
-
-export const getAuthToken = async () => {
-  if (memoryToken) return memoryToken;
-  try {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
-    memoryToken = token;
-    return token;
-  } catch (error) {
-    console.warn('Lỗi đọc token từ SecureStore:', error);
-    return null;
-  }
-};
-
-export const setAuthToken = async (token) => {
-  memoryToken = token;
-  try {
-    if (token) {
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
-    } else {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+const storage = Platform.OS === 'web'
+  ? {
+      getItemAsync: async key => globalThis.sessionStorage?.getItem(key) ?? null,
+      setItemAsync: async (key, value) => { globalThis.sessionStorage?.setItem(key, value); },
+      deleteItemAsync: async key => { globalThis.sessionStorage?.removeItem(key); },
     }
-  } catch (error) {
-    console.warn('Lỗi ghi token vào SecureStore:', error);
-  }
-};
+  : SecureStore;
 
-export const getStoredUser = async () => {
-  try {
-    const raw = await SecureStore.getItemAsync(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://veggieai-api.onrender.com/api').replace(/\/$/, '');
+const SESSION_KEY = 'veggie_mobile_session';
+const VERIFICATION_KEY = 'veggie_mobile_verification';
+let session = null;
+let onExpired = () => {};
+let writes = Promise.resolve();
 
-export const setStoredUser = async (user) => {
-  try {
-    if (user) {
-      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
-    } else {
-      await SecureStore.deleteItemAsync(USER_KEY);
-    }
-  } catch (error) {
-    console.warn('Lỗi ghi user vào SecureStore:', error);
-  }
-};
-
-export const clearAuth = async () => {
-  memoryToken = null;
-  try {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(USER_KEY);
-  } catch (error) {
-    console.warn('Lỗi xóa auth:', error);
-  }
-};
-
-/**
- * Helper gỡ bọc dữ liệu ApiResponse<T>
- */
-export function unwrap(res) {
-  if (res === null || res === undefined) return null;
-  if (typeof res === 'object') {
-    if ('data' in res && ('success' in res || 'message' in res)) {
-      return res.data;
-    }
-  }
-  return res;
+export function setSessionExpiredHandler(handler) {
+  onExpired = handler;
 }
 
-/**
- * Xử lý link ảnh trả về từ BE
- */
-export const imgUrl = (path) => {
-  if (!path) return undefined;
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  const host = API_BASE_URL.replace(/\/api\/?$/, '');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${host}${cleanPath}`;
-};
-
-export const recipeImageUrl = (path, fallback = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600') => {
-  if (!path) return fallback;
-  const p = String(path);
-  if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:')) return p;
-  if (p.startsWith('/') || p.startsWith('uploads/')) return imgUrl(p);
-  return imgUrl(`/uploads/${p}`);
-};
-
-/**
- * Hàm gọi API chung tương thích chuẩn fetch của React Native
- */
-export async function apiRequest(endpoint, options = {}) {
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
-  const token = await getAuthToken();
-
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-
-  const headers = {
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
-  const timeoutMs = options.timeout || 120000;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      signal: options.signal || controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (response.status === 204) {
-      return null;
+export async function restoreSession() {
+  const saved = await storage.getItemAsync(SESSION_KEY);
+  session = saved ? JSON.parse(saved) : null;
+  if (!session) {
+    // Migrate the original mobile app's stored session.
+    const [token, userJson] = await Promise.all([
+      storage.getItemAsync('veggie_token'), storage.getItemAsync('veggie_user'),
+    ]);
+    if (token && userJson) {
+      await saveSession({ token, user: JSON.parse(userJson) });
+      await Promise.all(['veggie_token', 'veggie_user'].map(key => storage.deleteItemAsync(key)));
     }
+  }
+  return session;
+}
 
-    const contentType = response.headers.get('content-type') || '';
-    let data = null;
-    if (contentType.includes('application/json') || contentType.includes('application/problem+json')) {
-      data = await response.json();
+export function saveSession(next) {
+  if (!next) session = null;
+  const pending = writes.then(async () => {
+    if (next) {
+      await storage.setItemAsync(SESSION_KEY, JSON.stringify(next));
+      session = next;
     } else {
-      data = await response.text();
+      session = null;
+      await Promise.all([SESSION_KEY, 'veggie_token', 'veggie_user'].map(key => storage.deleteItemAsync(key)));
     }
+  });
+  writes = pending.catch(() => {});
+  return pending;
+}
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        console.warn('[VeggieAI Mobile] Token đã hết hạn (401)');
-      }
-      let errorMessage = 'Lỗi máy chủ';
-      if (data && typeof data === 'object') {
-        if (data.detail) errorMessage = data.detail;
-        else if (data.message) errorMessage = data.message;
-        else if (data.title) errorMessage = data.title;
-      } else if (typeof data === 'string' && data.length > 0) {
-        errorMessage = data;
-      }
-      const err = new Error(errorMessage);
-      err.status = response.status;
-      err.data = data;
+export async function restoreVerification() {
+  const saved = await storage.getItemAsync(VERIFICATION_KEY);
+  return saved ? JSON.parse(saved) : null;
+}
+
+export function saveVerification(pending) {
+  return pending ? storage.setItemAsync(VERIFICATION_KEY, JSON.stringify(pending))
+    : storage.deleteItemAsync(VERIFICATION_KEY);
+}
+
+export function unwrap(value) {
+  return value && typeof value === 'object' && 'data' in value ? value.data : value;
+}
+
+export function imgUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const path = value.trim();
+  if (/^https?:\/\//i.test(path)) return path;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith('//')) return undefined;
+  return API_BASE_URL.replace(/\/api$/i, '') + '/' + path.replace(/^\/+/, '');
+}
+
+export async function apiRequest(endpoint, options = {}) {
+  const { timeout = 90000, signal, anonymous = false, ...request } = options;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal?.aborted) abort();
+  signal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(abort, timeout);
+  const sentSession = anonymous ? null : session;
+  try {
+    const response = await fetch(API_BASE_URL + endpoint, {
+      ...request,
+      headers: {
+        ...(typeof request.body === 'string' && { 'Content-Type': 'application/json' }),
+        ...(sentSession?.token && { Authorization: 'Bearer ' + sentSession.token }),
+        ...request.headers,
+      },
+      signal: controller.signal,
+    });
+    if (response.status === 204) return null;
+    if (response.status === 401 && sentSession?.token && session?.token === sentSession.token) {
+      onExpired();
+    }
+    const data = response.headers.get('content-type')?.includes('json') ? await response.json() : null;
+    if (!response.ok || data?.success === false) {
+      const fields = data?.errors && !Array.isArray(data.errors) ? Object.values(data.errors).flat() : [];
+      const err = new Error(data?.detail || fields.join('\n') || data?.message || 'Máy chủ chưa thể xử lý yêu cầu.');
+      const retry = response.headers.get('Retry-After') || (Array.isArray(data?.errors) && data.errors.find(item => typeof item === 'string' && item.startsWith('retryAfterSeconds='))?.split('=')[1]);
+      Object.assign(err, { status: response.status, data, retryAfterSeconds: Number(retry) || 0 });
       throw err;
     }
-
-    return data;
+    if (data === null) throw new Error('Máy chủ trả về dữ liệu không hợp lệ.');
+    return unwrap(data);
   } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Yêu cầu quá thời gian chờ (Timeout). Vui lòng thử lại.');
-    }
+    if (controller.signal.aborted && !signal?.aborted) throw new Error('Máy chủ phản hồi chậm. Bạn có thể thử lại.');
+    if (error instanceof TypeError) throw new Error('Không thể kết nối. Kiểm tra mạng rồi thử lại.');
     throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
   }
+}
+
+export function writeJson(endpoint, body, method = 'POST', options) {
+  return apiRequest(endpoint, { ...options, method, body: JSON.stringify(body) });
 }

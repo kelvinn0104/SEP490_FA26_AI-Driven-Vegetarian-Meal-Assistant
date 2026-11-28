@@ -1,189 +1,91 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
-import { theme } from '../../styles/theme';
+import { Pressable } from 'react-native';
+import { Eye, EyeOff, LogIn, MailCheck } from 'lucide-react-native';
+import { useMutation } from '@tanstack/react-query';
+import { AuthLayout } from './AuthLayout';
+import { Field } from '../../components/ui/Kit';
+import { Button } from '../../components/ui/Button';
 import { authService } from '../../api/services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Button } from '../../components/ui/Button';
-import { Leaf, Mail, Lock } from 'lucide-react-native';
+import { c } from '../../styles/theme';
 
 export function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const loginSuccess = useAuthStore((state) => state.loginSuccess);
+  const [showPwd, setShowPwd] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ Email và Mật khẩu.');
-      return;
-    }
+  const notice = useAuthStore(state => state.notice);
+  const pending = useAuthStore(state => state.pendingVerification);
+  const remember = useAuthStore(state => state.rememberVerification);
+  const login = useAuthStore(state => state.loginSuccess);
+  const address = email.trim().toLowerCase();
 
-    setLoading(true);
-    try {
-      const res = await authService.login(email, password);
-      const token = res?.accessToken || res?.token;
-      const user = res?.user;
-
-      if (!token || !user) {
-        throw new Error('Dữ liệu đăng nhập không hợp lệ.');
+  const mutation = useMutation({
+    mutationFn: async () => login(await authService.login(address, password)),
+    onError: error => {
+      if (
+        error.status === 403 &&
+        (JSON.stringify(error.data).includes('EMAIL_NOT_VERIFIED') || /chưa xác thực/i.test(error.message))
+      ) {
+        if (pending?.email !== address) remember(address);
+        navigation.navigate('OtpVerify', { email: address });
       }
-
-      // Kiểm tra role: Nếu là Admin hoặc Mod, nhắc nhở dùng web
-      const role = (user.role || '').toLowerCase();
-      if (role === 'admin' || role === 'moderator' || role === 'mod') {
-        Alert.alert(
-          'Thông báo quản trị',
-          'Tài khoản của bạn có quyền Quản trị (Admin/Mod). Ứng dụng di động chỉ phục vụ cho người dùng (User). Vui lòng sử dụng phiên bản Web để truy cập các tính năng quản lý!',
-          [{ text: 'Đã hiểu' }]
-        );
-      }
-
-      await loginSuccess(token, user);
-    } catch (err) {
-      Alert.alert('Đăng nhập thất bại', err.message || 'Kiểm tra lại email hoặc mật khẩu.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <AuthLayout
+      navigation={navigation}
+      title="Đăng nhập"
+      error={mutation.error?.message || notice}
     >
-      <View style={styles.content}>
-        {/* Logo & Slogan */}
-        <View style={styles.logoBox}>
-          <View style={styles.iconCircle}>
-            <Leaf size={36} color="#ffffff" />
-          </View>
-          <Text style={styles.brandTitle}>VeggieAI</Text>
-          <Text style={styles.brandSub}>Trợ lý dinh dưỡng thuần chay thông minh</Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          <View style={styles.inputWrap}>
-            <Mail size={18} color={theme.colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              placeholder="Email của bạn"
-              placeholderTextColor={theme.colors.textMuted}
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputWrap}>
-            <Lock size={18} color={theme.colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              placeholder="Mật khẩu"
-              placeholderTextColor={theme.colors.textMuted}
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
-
-          <Button
-            title="Đăng Nhập"
-            onPress={handleLogin}
-            loading={loading}
-            style={{ marginTop: 8 }}
-          />
-
-          <View style={styles.footerLink}>
-            <Text style={styles.footerText}>Chưa có tài khoản? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.linkText}>Đăng ký ngay</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      <Field
+        label="Email"
+        placeholder="ban@email.com"
+        autoComplete="email"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <Field
+        label="Mật khẩu"
+        placeholder="Nhập mật khẩu"
+        autoComplete="current-password"
+        secureTextEntry={!showPwd}
+        value={password}
+        onChangeText={setPassword}
+        rightAction={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showPwd ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+            hitSlop={10}
+            onPress={() => setShowPwd(!showPwd)}
+          >
+            {showPwd ? <EyeOff size={19} color={c.muted} /> : <Eye size={19} color={c.muted} />}
+          </Pressable>
+        }
+      />
+      <Button
+        title="Đăng nhập"
+        icon={LogIn}
+        loading={mutation.isPending}
+        disabled={!address.includes('@') || !password}
+        onPress={() => mutation.mutate()}
+      />
+      <Button
+        title="Tạo tài khoản"
+        variant="outline"
+        onPress={() => navigation.navigate('Register')}
+      />
+      {pending?.email ? (
+        <Button
+          title={`Tiếp tục xác thực ${pending.email}`}
+          icon={MailCheck}
+          variant="secondary"
+          onPress={() => navigation.navigate('OtpVerify', { email: pending.email })}
+        />
+      ) : null}
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing.xl,
-    justifyContent: 'center',
-  },
-  logoBox: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    ...theme.shadows.md,
-  },
-  brandTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: theme.colors.primary,
-  },
-  brandSub: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
-  form: {
-    width: '100%',
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    height: 50,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: 14,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  footerLink: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  linkText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-});

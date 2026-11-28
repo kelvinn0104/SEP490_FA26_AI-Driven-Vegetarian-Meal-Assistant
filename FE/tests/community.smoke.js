@@ -43,21 +43,24 @@ async (page) => {
       if (url.searchParams.get('keyword')) items = items.filter(p => p.title.includes(url.searchParams.get('keyword')));
       if (url.searchParams.get('postType')) items = items.filter(p => p.postType === url.searchParams.get('postType'));
       if (url.searchParams.get('sort') === 'top') items.sort((a, b) => b.score - a.score);
-      return ok({ items: items.map(p => ({ ...p, content: undefined, comments: undefined, commentCount: p.id === 1 ? comments.length : 0 })), page: 1, pageSize: 12, totalCount: items.length, totalPages: 1 });
+      return ok({ items: items.map(p => ({ ...p, canEdit: mine, content: undefined, comments: undefined, commentCount: p.id === 1 ? comments.length : 0 })), page: 1, pageSize: 12, totalCount: items.length, totalPages: 1 });
     }
     const postId = Number(path.match(/\/posts\/(\d+)/)?.[1]);
     const post = posts.find(p => p.id === postId);
     if (post && path.endsWith('/vote')) { post.score += body.value - post.myVote; post.myVote = body.value; return ok(post.score); }
     if (post && path.endsWith('/comments')) {
       if (failComment) { failComment = false; return fail(503, 'Chưa gửi được bình luận.'); }
-      const saved = { id: 100, userId: user.id, authorName: user.displayName, content: body.content, createdAt: '2026-11-04T05:00:00Z' };
+      const saved = { id: 100, userId: user.id, canEdit: true, authorName: user.displayName, content: body.content, createdAt: '2026-11-04T05:00:00Z' };
       comments.push(saved); return ok(saved);
     }
     if (post && method === 'DELETE') {
       if (failDelete) { failDelete = false; return fail(503, 'Chưa thể xóa bài.'); }
       posts = posts.filter(p => p.id !== post.id); return ok(true);
     }
-    if (post) return ok({ ...post, comments: post.id === 1 ? comments : [], commentCount: post.id === 1 ? comments.length : 0 });
+    if (post) {
+      const authenticated = !!req.headers().authorization;
+      return ok({ ...post, canEdit: authenticated && post.authorName === user.displayName, comments: post.id === 1 ? comments.map(c => ({ ...c, canEdit: authenticated && c.userId === user.id })) : [], commentCount: post.id === 1 ? comments.length : 0 });
+    }
     return fail(404, 'Không tìm thấy bài viết');
   });
   await page.setViewportSize({ width: 390, height: 844 });

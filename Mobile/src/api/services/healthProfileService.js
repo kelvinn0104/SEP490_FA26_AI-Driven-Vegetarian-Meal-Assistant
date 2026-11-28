@@ -1,23 +1,14 @@
-import { apiRequest, unwrap } from '../client';
+import { apiRequest, writeJson } from '../client';
 
 export const healthProfileService = {
-  getProfile: async () => {
-    const raw = await apiRequest('/HealthProfile');
-    return unwrap(raw);
+  getProfile: async signal => {
+    try {
+      return await apiRequest('/health-profile', { signal });
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
   },
-
-  updateProfile: async (data) => {
-    const raw = await apiRequest('/HealthProfile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return unwrap(raw);
-  },
-
-  getAllergens: async () => {
-    const raw = await apiRequest('/HealthProfile/allergens');
-    return unwrap(raw) || [];
-  },
+  updateProfile: data => writeJson('/health-profile', data, 'PUT'),
+  getAllergens: signal => apiRequest('/allergies', { signal }),
 };
-
-export default healthProfileService;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CookingPot, Bookmark, ArrowLeft } from "lucide-react";
+import { CookingPot, Bookmark, Check, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { KitchenView } from "./KitchenView";
 import { useResource, Button, State, RecipeImage } from "./ui";
@@ -20,20 +20,23 @@ export function RecipeDetail({ id, go, user, flash }) {
             return recipe;
           })
         : Promise.reject(new Error("Liên kết thiếu mã công thức.")),
-    [id],
+    [id, user?.id],
   );
   const [servings, setServings] = useState(null);
   const [cooking, setCooking] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [favorite, setFavorite] = useState(null);
   const recipe = resource.data;
+  const saved = favorite ?? (recipe?.isFavorite === true);
   const base = Number(recipe?.servings) || 1;
   const factor = (servings || base) / base;
   const save = async () => {
     if (!user) return go("login");
     setSaving(true);
     try {
-      await request(`/recipes/${encodeURIComponent(id)}/favorite`, {}, "POST");
-      flash("Đã lưu món vào bộ sưu tập.");
+      await request(`/recipes/${encodeURIComponent(id)}/favorite`, undefined, saved ? "DELETE" : "POST");
+      setFavorite(!saved);
+      flash(saved ? "Đã bỏ lưu món." : "Đã lưu món vào bộ sưu tập.");
     } catch (e) {
       flash(userError(e));
     } finally {
@@ -101,21 +104,26 @@ export function RecipeDetail({ id, go, user, flash }) {
                     <CookingPot size={18} />
                     Vào bếp
                   </Button>
-                  <Button secondary disabled={saving} onClick={save}>
-                    <Bookmark size={17} />
-                    {saving ? "Đang lưu…" : "Lưu món"}
+                  <Button secondary disabled={saving} aria-pressed={saved} onClick={save}>
+                    {saved ? <Check size={17} /> : <Bookmark size={17} />}
+                    {saving ? "Đang cập nhật…" : saved ? "Đã lưu" : "Lưu món"}
                   </Button>
                 </div>
               </div>
             </div>
             <div className="vp-detail-columns">
               <section>
-                <h2>Nguyên liệu</h2>
+                <div className="vp-section-heading vp-recipe-section-title">
+                  <h2>Nguyên liệu</h2>
+                  {!!recipe.ingredients?.length && <span>{recipe.ingredients.length} loại</span>}
+                </div>
                 {recipe.ingredients?.length ? (
                   <ul className="vp-ingredient-list">
                     {recipe.ingredients.map((item, i) => (
                       <li key={i}>
-                        {item.name || item.ingredientName}
+                        {/^https:\/\/fdc\.nal\.usda\.gov\/food-details\/\d+\/nutrients$/.test(item.dataSource || "")
+                          ? <a href={item.dataSource} target="_blank" rel="noreferrer" title="Nguồn USDA FoodData Central">{item.name}</a>
+                          : item.name || item.ingredientName}
                         <span>
                           {amount(item.quantityG ?? item.quantity, factor)}{" "}
                           {item.unit || "g"}

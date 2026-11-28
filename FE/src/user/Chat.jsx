@@ -3,8 +3,8 @@ import { ArrowRight, Send, History, Plus, Copy, Check, Camera, X } from "lucide-
 import { AiActivity } from "./AiActivity";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useResource, Button, Notice, PageHeading, Dialog, Card } from "./ui";
-import { listOf, userError, isUnavailableChat, validatePhoto } from "./data";
+import { useResource, Button, Notice, PageHeading, Dialog, RecipeSuggestions } from "./ui";
+import { listOf, userError, isUnavailableChat, validatePhoto, safeImage } from "./data";
 import { request } from "./api";
 function historyPreview(message) {
   if (!message || isUnavailableChat(message))
@@ -80,7 +80,6 @@ function Answer({ content }) {
 
 function ScanBubble({ scan, photo, open }) {
   const items = scan?.detectedItems || [];
-  const recipes = (scan?.suggestedRecipes || []).slice(0, 4);
   return (
     <div className="vp-chat-scan">
       {photo && <img src={photo} alt="Ảnh bạn đã gửi" />}
@@ -95,13 +94,7 @@ function ScanBubble({ scan, photo, open }) {
         </ul>
       )}
       {scan?.message && <p>{scan.message}</p>}
-      {recipes.length > 0 && open && (
-        <div className="vp-grid compact">
-          {recipes.map((r) => (
-            <Card key={r.recipeId} recipe={{ ...r, id: r.recipeId }} open={open} />
-          ))}
-        </div>
-      )}
+      <RecipeSuggestions recipes={scan?.suggestedRecipes} limit={3} open={open} />
     </div>
   );
 }
@@ -149,6 +142,9 @@ export function Chat({ open }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [photoUrl, setPhotoUrl] = useState("");
+  const photoInput = useRef(null);
+  const lastScan = useRef(null);
+  const [scanning, setScanning] = useState(false);
   const end = useRef();
   const composer = useRef(null);
   const lock = useRef(false);
@@ -202,7 +198,10 @@ export function Chat({ open }) {
     if (!next) return;
     const message = validatePhoto(next);
     setError(message);
-    if (!message) setPhoto(next);
+    if (!message) {
+      lastScan.current = null;
+      setPhoto(next);
+    }
   };
   const select = async (id) => {
     if (lock.current) return;
@@ -238,15 +237,20 @@ export function Chat({ open }) {
     setError("");
     let content = text.trim();
     let scan = null;
-    const sentPhoto = photoUrl;
     try {
       if (photo) {
-        const form = new FormData();
-        form.append("Image", photo);
-        scan = await request("/scans", form);
+        scan = lastScan.current?.file === photo ? lastScan.current.result : null;
+        if (!scan) {
+          setScanning(true);
+          const form = new FormData();
+          form.append("Image", photo);
+          scan = await request("/scans", form);
+          setScanning(false);
+        }
         if (!scan?.scanId || !Array.isArray(scan.detectedItems))
           throw new Error("Chưa nhận diện được ảnh. Vui lòng thử lại.");
         const names = scan.detectedItems
+          .filter((item) => item.freshness !== "spoiled" && item.isVegetarian !== false)
           .map((i) => i.nameVi || i.name)
           .filter(Boolean);
         if (!names.length && !scan.dishName)
@@ -257,7 +261,12 @@ export function Chat({ open }) {
         const seen = scan.dishName
           ? `Món trong ảnh: ${scan.dishName}${names.length ? `; nguyên liệu: ${names.join(", ")}` : ""}`
           : `Nguyên liệu trong ảnh: ${names.join(", ")}`;
-        content = `${content || "Tôi vừa chụp ảnh, hãy gợi ý món chay phù hợp."}\n\n[${seen}]`;
+        lastScan.current = { file: photo, result: scan };
+        const question = content || "Gợi ý món chay từ ảnh này.";
+        const context = `\n\n[${seen.slice(0, 600)}]`;
+        if (question.length + context.length > 2000)
+          throw new Error(`Ảnh cần thêm chỗ cho kết quả nhận diện. Rút câu hỏi xuống ${2000 - context.length} ký tự rồi gửi lại.`);
+        content = question + context;
       }
       let id = session;
       if (!id) {
@@ -273,34 +282,34 @@ export function Chat({ open }) {
       )
         throw new Error("Chưa nhận được câu trả lời. Bạn có thể thử lại.");
       if (isUnavailableChat(reply.aiMessage.content)) {
-        setMessages((previous) => [
-          ...previous,
-          { ...(reply.userMessage || { sender: "user", content }), scan, photo: sentPhoto },
-        ]);
-        setPhoto(null);
-        setText("");
         setError("Trợ lý đang bận. Bạn có thể thử gửi lại sau.");
         sessions.reload();
         return;
       }
       setMessages((previous) => [
         ...previous,
-        { ...(reply.userMessage || { sender: "user", content }), scan, photo: sentPhoto },
+        {
+          ...(reply.userMessage || { sender: "user", content }),
+          scan,
+          photo: safeImage(scan?.imageUrl),
+        },
         reply.aiMessage,
       ]);
       setText("");
       setPhoto(null);
+      lastScan.current = null;
       sessions.reload();
     } catch (err) {
       setError(userError(err));
     } finally {
+      setScanning(false);
       lock.current = false;
       setBusy(null);
     }
   };
   return (
     <>
-      <PageHeading eyebrow="Hỏi một chút, nấu dễ hơn" title="Trợ lý bếp chay">
+      <PageHeading title="Trợ lý bếp chay">
         <div className="vp-chat-heading-actions">
           <button
             className="vp-icon vp-chat-history-toggle"
@@ -318,6 +327,8 @@ export function Chat({ open }) {
               setSession(null);
               setMessages([]);
               setText("");
+              setPhoto(null);
+              lastScan.current = null;
               setError("");
               composer.current?.focus();
             }}
@@ -405,7 +416,7 @@ export function Chat({ open }) {
               >
                 <strong>Bạn · đang gửi</strong>
                 <div className="vp-prose">
-                  <p className="vp-chat-user-text">{text.trim()}</p>
+                  <p className="vp-chat-user-text">{text.trim() || "Ảnh nguyên liệu"}</p>
                 </div>
               </article>
             )}
@@ -414,7 +425,7 @@ export function Chat({ open }) {
             )}
             <div ref={end} />
           </div>
-          {busy === "send" && <AiActivity kind="chat" />}
+          {busy === "send" && <AiActivity key={scanning ? "scan" : "chat"} kind={scanning ? "scan" : "chat"} />}
           {error && <Notice error>{error}</Notice>}
           {!busy &&
             !error &&
@@ -451,27 +462,36 @@ export function Chat({ open }) {
                 className="vp-icon"
                 aria-label="Bỏ ảnh"
                 disabled={busy === "send"}
-                onClick={() => setPhoto(null)}
+                onClick={() => {
+                  setPhoto(null);
+                  lastScan.current = null;
+                  setError("");
+                }}
               >
                 <X size={16} />
               </button>
             </div>
           )}
           <form className="vp-chat-form" onSubmit={send}>
-            <label
+            <button
+              type="button"
               className="vp-icon vp-chat-photo"
               aria-label="Đính kèm ảnh nguyên liệu"
               title="Đính kèm ảnh nguyên liệu"
+              disabled={!!busy}
+              onClick={() => photoInput.current?.click()}
             >
               <Camera size={20} />
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                hidden
-                disabled={!!busy}
-                onChange={choosePhoto}
-              />
-            </label>
+            </button>
+            <input
+              ref={photoInput}
+              aria-label="Ảnh nguyên liệu"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              disabled={!!busy}
+              onChange={choosePhoto}
+            />
             <textarea
               ref={composer}
               aria-label="Tin nhắn"

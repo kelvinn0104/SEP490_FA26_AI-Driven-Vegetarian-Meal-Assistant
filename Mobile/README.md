@@ -1,35 +1,26 @@
-# 🥦 VeggieAI Mobile App (Role: User)
-> **Ứng dụng di động dành riêng cho người dùng cá nhân (End-User) của hệ sinh thái VeggieAI**  
-> **Tech Stack:** React Native (Expo) + JavaScript (.jsx) + TanStack Query + Zustand + Axios  
-> **API Backend:** ASP.NET Core (.NET 8/9) deployed at `https://veggieai-api.onrender.com/api`
+# VeggieAI Mobile
 
----
+Ứng dụng React Native / Expo SDK 58, ưu tiên Android. Khách có thể tìm công thức và đọc cộng đồng. Tài khoản người dùng có thể lưu món, xác thực email, cập nhật hồ sơ và dị ứng, lập thực đơn, ghi nhật ký, quét ảnh, trò chuyện và tham gia cộng đồng.
 
-## 📌 Tính năng cốt lõi trên Mobile
-1. **🏠 Khám phá món chay (Home & Discover):** Gợi ý công thức nổi bật, tìm kiếm theo nguyên liệu/calo, xem chi tiết công thức (nguyên liệu, cách nấu, bảng vi chất dinh dưỡng), lưu món yêu thích.
-2. **📸 Quét tủ lạnh bằng AI (Vision Scan):** Tận dụng Camera điện thoại chụp ảnh tủ lạnh -> Gửi ảnh lên mô hình YOLOv8 ONNX trên BE để nhận diện nguyên liệu -> Đề xuất món chay "Zero-waste".
-3. **💬 Trợ lý AI (VeggieBot):** Trò chuyện trực tiếp với AI trợ lý dinh dưỡng, tư vấn món ăn thay thế và giải đáp vi chất.
-4. **📅 Kế hoạch dinh dưỡng (Meal Planner):** Lập thực đơn tuần thông minh (bởi Linear Programming solver), theo dõi tiến trình calo và đánh dấu bữa đã ăn.
-5. **👥 Cộng đồng thuần chay (Community):** Xem bảng tin, chụp ảnh đăng bài trực tiếp từ điện thoại, thả tim, bình luận.
-6. **👤 Hồ sơ sức khỏe (Health Profile):** Tính chỉ số BMI, quản lý mục tiêu thể hình và danh mục món đã lưu.
+## Chạy trên Android
 
----
-
-## 🚀 Hướng dẫn Cài đặt & Chạy ứng dụng
-
-### 1. Cài đặt thư viện dependencies
-Mở terminal tại thư mục `Mobile`:
-```bash
-cd Mobile
-npm install
+```sh
+npm ci
+npm run start
 ```
 
-### 2. Khởi chạy ứng dụng với Expo
-```bash
-npx expo start
+Quét mã QR bằng Expo Go tương thích SDK 58. Thiết bị và máy chạy Metro cần nhìn thấy nhau qua mạng. Nếu dùng emulator Android đã cài, chạy `npm run android`.
+
+API mặc định là `https://veggieai-api.onrender.com/api`. Có thể đặt `EXPO_PUBLIC_API_URL` trong `.env.local` để dùng môi trường khác. Biến này được đưa vào bundle nên chỉ chứa URL công khai.
+
+## Kiểm tra
+
+```sh
+npx expo-doctor
+node --test tests/*.test.mjs
+npx expo export --platform android
 ```
 
-### 3. Xem và trải nghiệm trực tiếp trên Điện thoại thật
-1. Cài đặt app **Expo Go** trên điện thoại (từ Google Play hoặc Apple App Store).
-2. Mở camera hoặc app Expo Go trên điện thoại để quét mã **QR Code** xuất hiện trên terminal máy tính.
-3. Ứng dụng sẽ tự động tải và chạy mượt mà ngay trên điện thoại của bạn!
+Expo export kiểm tra bundle JavaScript và assets. Cần thiết bị hoặc emulator để kiểm quyền camera, bàn phím, nút Back và cài đặt ứng dụng. Bài cộng đồng gửi media bằng liên kết HTTPS vì API bài viết nhận JSON. Video mở bằng trình phát hoặc trình duyệt hệ thống.
+
+Ảnh bữa chay ở trang Khám phá là ảnh biên tập tạo bằng ImageGen. Ảnh trong danh sách công thức và bài viết lấy từ dữ liệu API.

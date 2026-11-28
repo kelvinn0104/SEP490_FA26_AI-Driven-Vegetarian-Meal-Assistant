@@ -1,104 +1,156 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { theme } from '../../styles/theme';
-import { recipeImageUrl } from '../../api/client';
-import { Clock, Flame, Dumbbell } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, CookingPot } from 'lucide-react-native';
+import { imgUrl } from '../../api/client';
+import { c, categoryTones, font, r } from '../../styles/theme';
+import { categoryName, initialsOf, number } from '../../styles/content.mjs';
+import { ui } from '../ui/Kit';
 
-export function RecipeCard({ recipe, onPress }) {
-  if (!recipe) return null;
+function toneForCategory(category, categoryId) {
+  const raw = String(category || '');
+  const idx = Math.abs(Number(categoryId || raw.length || 0)) % categoryTones.length;
+  return categoryTones[idx];
+}
 
-  const imageSrc = recipeImageUrl(recipe.imageUrl || recipe.image);
-  const calories = recipe.calories || recipe.kcal || 0;
-  const cookTime = recipe.cookingTimeMinutes || recipe.cookTimeMinutes || recipe.cookTime || 20;
-  const protein = recipe.protein || recipe.proteinGrams || 0;
+// Typographic monogram plate instead of clip-art pot/sun icons
+export function FoodImage({ uri, title, category, categoryId, style }) {
+  const [failed, setFailed] = useState(null);
+  const source = imgUrl(uri);
+  const tone = toneForCategory(category, categoryId);
 
+  if (source && failed !== source) {
+    return (
+      <Image
+        source={{ uri: source }}
+        style={[s.photo, style]}
+        resizeMode="cover"
+        onError={() => setFailed(source)}
+      />
+    );
+  }
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => onPress && onPress(recipe)}
-      style={styles.card}
-    >
-      <Image source={{ uri: imageSrc }} style={styles.image} resizeMode="cover" />
-      
-      <View style={styles.content}>
-        {recipe.categoryName && (
-          <Text style={styles.category}>{recipe.categoryName.toUpperCase()}</Text>
-        )}
-        <Text style={styles.title} numberOfLines={2}>{recipe.title || recipe.name}</Text>
-        
-        <View style={styles.metrics}>
-          <View style={styles.badge}>
-            <Flame size={13} color={theme.colors.calories} />
-            <Text style={styles.badgeText}>{calories} kcal</Text>
-          </View>
-
-          <View style={styles.badge}>
-            <Clock size={13} color={theme.colors.textSecondary} />
-            <Text style={styles.badgeText}>{cookTime}p</Text>
-          </View>
-
-          {protein > 0 && (
-            <View style={styles.badge}>
-              <Dumbbell size={13} color={theme.colors.protein} />
-              <Text style={styles.badgeText}>{protein}g protein</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
+    <View style={[s.photo, s.monogramBox, { backgroundColor: tone.bg, borderColor: tone.rule }, style]}>
+      <Text style={[s.monogramChar, { color: tone.accent }]}>
+        {initialsOf(title || categoryName(category) || 'Chay').slice(0, 1)}
+      </Text>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.md,
-    overflow: 'hidden',
-    ...theme.shadows.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+/**
+ * Editorial Recipe Card — Unified rhythm across photo & non-photo recipes.
+ * Zero clip-art icons; suppresses duplicate stock photos automatically via `suppressPhoto`.
+ */
+export function RecipeCard({ recipe, onPress, reason, suppressPhoto = false }) {
+  const [imgFailed, setImgFailed] = useState(null);
+  if (!recipe?.title) return null;
+
+  const source = suppressPhoto ? undefined : imgUrl(recipe.imageUrl);
+  const hasPhoto = !!source && imgFailed !== source;
+  const tone = toneForCategory(recipe.category, recipe.categoryId);
+  const catLabel = recipe.category ? categoryName(recipe.category) : 'Món chay';
+  const hasKcal = recipe.kcalPerServing != null && Number(recipe.kcalPerServing) > 0;
+  const hasProtein = recipe.proteinG != null && Number(recipe.proteinG) > 0;
+
+  const nutritionMeta = [];
+  if (hasKcal) nutritionMeta.push(number(recipe.kcalPerServing, 'kcal'));
+  if (hasProtein) nutritionMeta.push(`${number(recipe.proteinG, 'g')} đạm`);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={'Xem công thức ' + recipe.title}
+      android_ripple={{ color: 'rgba(20,38,28,0.05)' }}
+      onPress={() => onPress(recipe)}
+      style={({ pressed }) => [s.editorialRow, pressed && s.pressed]}
+    >
+      {hasPhoto ? (
+        <Image source={{ uri: source }} style={s.thumb} resizeMode="cover" onError={() => setImgFailed(source)} />
+      ) : (
+        <View style={[s.thumb, s.iconTile, { backgroundColor: tone.bg }]} importantForAccessibility="no-hide-descendants">
+          <CookingPot size={23} color={tone.accent} strokeWidth={1.65} />
+        </View>
+      )}
+      <View style={[ui.fill, { gap: 4 }]}>
+        <Text style={[s.kicker, { color: tone.accent }]} numberOfLines={1}>
+          {catLabel}
+        </Text>
+        <Text style={s.serifTitle} numberOfLines={2}>
+          {recipe.title}
+        </Text>
+        {reason ? (
+          <Text style={s.reasonText} numberOfLines={2}>
+            {reason}
+          </Text>
+        ) : null}
+        {nutritionMeta.length > 0 ? (
+          <Text style={s.metaText} numberOfLines={1}>
+            {nutritionMeta.join('  ·  ')}
+          </Text>
+        ) : null}
+      </View>
+
+      <ChevronRight size={16} color={c.muted} strokeWidth={1.8} />
+    </Pressable>
+  );
+}
+
+const s = StyleSheet.create({
+  photo: { backgroundColor: c.surfaceMuted },
+  monogramBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  image: {
-    width: '100%',
-    height: 160,
-    backgroundColor: theme.colors.borderLight,
+  monogramChar: {
+    fontFamily: font.serifBold,
+    fontSize: 18,
+    includeFontPadding: false,
   },
-  content: {
-    padding: theme.spacing.md,
-  },
-  category: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.primary,
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    lineHeight: 22,
-    marginBottom: theme.spacing.sm,
-  },
-  metrics: {
+  pressed: { opacity: 0.78 },
+  editorialRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 11,
+    padding: 10,
+    borderRadius: r.md,
+    backgroundColor: c.surfaceElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.line,
   },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
-    gap: 4,
+  kicker: {
+    fontFamily: font.medium,
+    fontSize: 11.5,
+    includeFontPadding: false,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+  serifTitle: {
+    fontFamily: font.semi,
+    fontSize: 15,
+    lineHeight: 21,
+    color: c.ink,
+    letterSpacing: -0.2,
+    includeFontPadding: false,
   },
+  reasonText: {
+    fontFamily: font.regular,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: c.muted,
+    includeFontPadding: false,
+  },
+  metaText: {
+    fontFamily: font.regular,
+    fontSize: 12.5,
+    color: c.muted,
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  thumb: {
+    width: 58,
+    height: 58,
+    borderRadius: r.md,
+    backgroundColor: c.surfaceMuted,
+  },
+  iconTile: { alignItems: 'center', justifyContent: 'center' },
 });

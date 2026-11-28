@@ -1,56 +1,31 @@
-import { apiRequest, unwrap } from '../client';
+import { apiRequest, writeJson } from '../client';
 
 export const communityService = {
-  getPosts: async (page = 1, pageSize = 10, type = null) => {
-    const query = new URLSearchParams({ page, pageSize });
-    if (type) query.append('type', type);
-    const raw = await apiRequest(`/community/posts?${query.toString()}`);
-    return unwrap(raw) || [];
+  getPosts: ({ page, mine, keyword, postType, sort }, signal) => {
+    const params = new URLSearchParams({ page: String(page), pageSize: '15' });
+    if (keyword && !mine) params.set('keyword', keyword);
+    if (postType && !mine) params.set('postType', postType);
+    if (sort && !mine) params.set('sort', sort);
+    return apiRequest('/community/posts' + (mine ? '/mine' : '') + '?' + params, { signal });
   },
-
-  getPostById: async (postId) => {
-    const raw = await apiRequest(`/community/posts/${postId}`);
-    return unwrap(raw);
+  getPostById: (id, signal) => apiRequest('/community/posts/' + id, { signal }),
+  createPost: data => writeJson('/community/posts', data),
+  updatePost: (id, data) => writeJson('/community/posts/' + id, data, 'PUT'),
+  deletePost: id => apiRequest('/community/posts/' + id, { method: 'DELETE' }),
+  getComments: (id, page, signal) => apiRequest('/community/posts/' + id + '/comments?page=' + page + '&pageSize=20', { signal }),
+  addComment: (id, content) => writeJson('/community/posts/' + id + '/comments', { content }),
+  setLike: async (post, liked) => {
+    const path = '/community/posts/' + post.id;
+    if (post.likeCount == null) {
+      const score = await writeJson(path + '/vote', { value: liked ? 1 : 0 }, 'PUT');
+      if (!Number.isInteger(score)) throw new Error('Chưa xác nhận được lượt phản hồi.');
+      return { score, myVote: liked ? 1 : 0 };
+    }
+    const response = await writeJson(path + '/like', { liked }, 'PUT');
+    if (!Number.isInteger(response?.likeCount) || typeof response.liked !== 'boolean') {
+      throw new Error('Chưa xác nhận được lượt thích.');
+    }
+    return { likeCount: response.likeCount, myVote: response.liked ? 1 : 0 };
   },
-
-  createPost: async ({ title, content, type = 'text', imageUris = [], recipeId = null }) => {
-    const formData = new FormData();
-    formData.append('Title', title);
-    formData.append('Content', content);
-    formData.append('Type', type);
-    if (recipeId) formData.append('RecipeId', recipeId);
-
-    imageUris.forEach((uri, idx) => {
-      formData.append('Images', {
-        uri,
-        name: `post_img_${idx}.jpg`,
-        type: 'image/jpeg',
-      });
-    });
-
-    const raw = await apiRequest('/community/posts', {
-      method: 'POST',
-      body: formData,
-    });
-    return unwrap(raw);
-  },
-
-  likePost: async (postId) => {
-    return await apiRequest(`/community/posts/${postId}/like`, { method: 'POST' });
-  },
-
-  getComments: async (postId) => {
-    const raw = await apiRequest(`/community/posts/${postId}/comments`);
-    return unwrap(raw) || [];
-  },
-
-  addComment: async (postId, content) => {
-    const raw = await apiRequest(`/community/posts/${postId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
-    return unwrap(raw);
-  },
+  report: data => writeJson('/community/reports', data),
 };
-
-export default communityService;

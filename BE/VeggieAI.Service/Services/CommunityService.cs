@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using VeggieAI.Service.Services.AI;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
 using VeggieAI.Repository.Data;
@@ -19,6 +20,7 @@ public interface ICommunityService
     Task<PostCommentDto> UpdateCommentAsync(int userId, int commentId, string content, CancellationToken ct = default);
     Task DeleteCommentAsync(int userId, bool isStaff, int commentId, CancellationToken ct = default);
     Task<int> VoteAsync(int userId, int postId, int value, CancellationToken ct = default);
+    Task<PostLikeDto> LikeAsync(int userId, int postId, bool liked, CancellationToken ct = default);
     Task<ReportDto> ReportAsync(int userId, CreateReportRequest req, CancellationToken ct = default);
     Task<PagedResult<ReportDto>> ListMyReportsAsync(int userId, PageQuery page, CancellationToken ct = default);
 }
@@ -51,7 +53,7 @@ public class CommunityService : ICommunityService
         }
 
         q = string.Equals(sort, "top", StringComparison.OrdinalIgnoreCase)
-            ? q.OrderByDescending(p => p.Votes.Sum(v => (int)v.Value)).ThenByDescending(p => p.CreatedAt)
+            ? q.OrderByDescending(p => p.Votes.Count(v => v.Value == 1)).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
             : q.OrderByDescending(p => p.CreatedAt);
 
         return await PageAsync(q, viewerId, includeModeration: false, page, ct);
@@ -72,14 +74,16 @@ public class CommunityService : ICommunityService
     public async Task<PostDetailDto> GetAsync(int? viewerId, bool viewerIsStaff, int postId, CancellationToken ct = default)
     {
         var vid = viewerId ?? 0;
+        var attachable = _db.Recipes.FromApprovedCatalog();
         var p = await _db.Posts.AsNoTracking()
             .Where(x => x.Id == postId)
             .Select(x => new
             {
                 x.Id, x.UserId, x.PostType, x.Title, x.MediaUrl, x.RecipeId, x.Status, x.CreatedAt, x.UpdatedAt, x.Content, x.VideoSummary,
                 AuthorName = x.User != null ? x.User.DisplayName : "",
-                RecipeTitle = x.Recipe != null ? x.Recipe.Title : null,
+                RecipeTitle = attachable.Where(r => r.Id == x.RecipeId).Select(r => r.Title).FirstOrDefault(),
                 Score = x.Votes.Sum(v => (int)v.Value),
+                LikeCount = x.Votes.Count(v => v.Value == 1),
                 MyVote = x.Votes.Where(v => v.UserId == vid).Select(v => (int)v.Value).FirstOrDefault(),
                 Moderation = x.ModerationLogs.OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
                     .Select(l => new { l.Decision, l.Reason, l.ReviewedAt }).FirstOrDefault(),
@@ -110,18 +114,13 @@ public class CommunityService : ICommunityService
             UpdatedAt: p.UpdatedAt,
             CanEdit: isAuthor && CanAuthorEdit(p.Status, p.Moderation?.Decision),
             CanDelete: (isAuthor || viewerIsStaff) && p.Status != "removed",
-            Moderation: showModeration ? new PostModerationDto(p.Moderation!.Decision, p.Moderation.Reason, p.Moderation.ReviewedAt) : null);
+            Moderation: showModeration ? new PostModerationDto(p.Moderation!.Decision, p.Moderation.Reason, p.Moderation.ReviewedAt) : null,
+            LikeCount: p.LikeCount);
     }
 
     public async Task<PostDetailDto> CreateAsync(int userId, CreatePostRequest req, CancellationToken ct = default)
     {
-        var title = req.Title.Trim();
-        if (title.Length == 0) throw new AppException("Tiêu đề không được để trống.");
-        if (req.PostType == "video" && string.IsNullOrWhiteSpace(req.MediaUrl))
-            throw new AppException("Bài video bắt buộc có mediaUrl.");
-        if (req.PostType == "blog" && string.IsNullOrWhiteSpace(req.Content))
-            throw new AppException("Bài blog cần có nội dung.");
-        ValidateMediaUrl(req.MediaUrl);
+        var (title, content, mediaUrl) = ValidatePost(req.PostType, req.Title, req.Content, req.MediaUrl);
         await EnsureRecipeAttachableAsync(req.RecipeId, ct);
 
         var post = new Post
@@ -129,8 +128,8 @@ public class CommunityService : ICommunityService
             UserId = userId,
             PostType = req.PostType,
             Title = title,
-            Content = req.Content,
-            MediaUrl = string.IsNullOrWhiteSpace(req.MediaUrl) ? null : req.MediaUrl.Trim(),
+            Content = content,
+            MediaUrl = mediaUrl,
             RecipeId = req.RecipeId,
             Status = "pending",
             CreatedAt = DateTime.UtcNow,
@@ -150,16 +149,14 @@ public class CommunityService : ICommunityService
         if (!CanAuthorEdit(post.Status, lastDecision))
             throw new AppException("Bài viết đã bị xóa nên không thể sửa.", 400, "POST_NOT_EDITABLE");
 
-        var title = req.Title.Trim();
-        if (title.Length == 0) throw new AppException("Tiêu đề không được để trống.");
-        var mediaUrl = string.IsNullOrWhiteSpace(req.MediaUrl) ? null : req.MediaUrl.Trim();
-        if (post.PostType == "video" && mediaUrl is null) throw new AppException("Bài video bắt buộc có mediaUrl.");
-        if (post.PostType == "blog" && string.IsNullOrWhiteSpace(req.Content)) throw new AppException("Bài blog cần có nội dung.");
-        ValidateMediaUrl(mediaUrl);
+        var postType = req.PostType ?? post.PostType;
+        var (title, content, mediaUrl) = ValidatePost(postType, req.Title, req.Content, req.MediaUrl);
         if (req.RecipeId != post.RecipeId) await EnsureRecipeAttachableAsync(req.RecipeId, ct);
 
         post.Title = title;
-        post.Content = req.Content;
+        post.Content = content;
+        if (post.MediaUrl != mediaUrl || post.PostType != postType) post.VideoSummary = null;
+        post.PostType = postType;
         post.MediaUrl = mediaUrl;
         post.RecipeId = req.RecipeId;
         post.UpdatedAt = DateTime.UtcNow;
@@ -252,8 +249,32 @@ public class CommunityService : ICommunityService
     public async Task<int> VoteAsync(int userId, int postId, int value, CancellationToken ct = default)
     {
         if (value is < -1 or > 1) throw new AppException("value phải là -1, 0 hoặc 1.");
+        await SetVoteAsync(userId, postId, value, ct);
+        return await _db.PostVotes.Where(v => v.PostId == postId).SumAsync(v => (int)v.Value, ct);
+    }
+
+    public async Task<PostLikeDto> LikeAsync(int userId, int postId, bool liked, CancellationToken ct = default)
+    {
+        await SetVoteAsync(userId, postId, liked ? 1 : 0, ct);
+        return new PostLikeDto(await _db.PostVotes.CountAsync(v => v.PostId == postId && v.Value == 1, ct), liked);
+    }
+
+    private async Task SetVoteAsync(int userId, int postId, int value, CancellationToken ct)
+    {
         await EnsurePublishedAsync(postId, ct);
 
+        if (_db.Database.IsNpgsql())
+        {
+            if (value == 0)
+                await _db.PostVotes.Where(v => v.PostId == postId && v.UserId == userId).ExecuteDeleteAsync(ct);
+            else
+                await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO veggieai.""PostVote"" (""PostId"", ""UserId"", ""Value"", ""CreatedAt"")
+                    VALUES ({postId}, {userId}, {(short)value}, {DateTime.UtcNow})
+                    ON CONFLICT (""PostId"", ""UserId"") DO UPDATE
+                    SET ""Value"" = EXCLUDED.""Value"", ""CreatedAt"" = EXCLUDED.""CreatedAt""", ct);
+            return;
+        }
         var vote = await _db.PostVotes.FirstOrDefaultAsync(v => v.PostId == postId && v.UserId == userId, ct);
         if (value == 0)
         {
@@ -269,8 +290,6 @@ public class CommunityService : ICommunityService
             vote.CreatedAt = DateTime.UtcNow;
         }
         await _db.SaveChangesAsync(ct);
-
-        return await _db.PostVotes.Where(v => v.PostId == postId).SumAsync(v => (int)v.Value, ct);
     }
 
     public async Task<ReportDto> ReportAsync(int userId, CreateReportRequest req, CancellationToken ct = default)
@@ -386,6 +405,19 @@ public class CommunityService : ICommunityService
             .OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
             .Select(l => l.Decision).FirstOrDefaultAsync(ct);
 
+    private static (string Title, string? Content, string? MediaUrl) ValidatePost(
+        string postType, string? title, string? content, string? mediaUrl)
+    {
+        content = string.IsNullOrWhiteSpace(content) ? null : content.Trim();
+        mediaUrl = string.IsNullOrWhiteSpace(mediaUrl) ? null : mediaUrl.Trim();
+        if (postType == "video" && mediaUrl is null) throw new AppException("Chọn video trước khi gửi.");
+        if (content is null && mediaUrl is null) throw new AppException("Viết nội dung hoặc đính kèm ảnh/video.");
+        ValidateMediaUrl(mediaUrl);
+        var heading = string.IsNullOrWhiteSpace(title) ? content?.Split('\n', 2)[0].Trim() : title.Trim();
+        heading ??= postType == "video" ? "Video chia sẻ" : "Ảnh chia sẻ";
+        return (heading.Length > 200 ? heading[..200] : heading, content, mediaUrl);
+    }
+
     /// <summary>mediaUrl chỉ nhận http(s) tuyệt đối hoặc đường dẫn /uploads/... (chặn javascript:, data:, ftp:...).</summary>
     private static void ValidateMediaUrl(string? mediaUrl)
     {
@@ -434,7 +466,7 @@ public class CommunityService : ICommunityService
 
     private async Task EnsureRecipeAttachableAsync(int? recipeId, CancellationToken ct)
     {
-        if (recipeId is int rid && !await _db.Recipes.AnyAsync(r => r.Id == rid && r.Status == "published", ct))
+        if (recipeId is int rid && !await _db.Recipes.FromApprovedCatalog().AnyAsync(r => r.Id == rid, ct))
             throw AppException.NotFound("Công thức");
     }
 
@@ -471,10 +503,11 @@ public class CommunityService : ICommunityService
         return text[..(cut > ExcerptLength / 2 ? cut : ExcerptLength)].TrimEnd(',', '.', ';', ':') + "…";
     }
 
-    private static async Task<PagedResult<PostSummaryDto>> PageAsync(IQueryable<Post> q, int? viewerId, bool includeModeration,
+    private async Task<PagedResult<PostSummaryDto>> PageAsync(IQueryable<Post> q, int? viewerId, bool includeModeration,
         PageQuery page, CancellationToken ct)
     {
         var vid = viewerId ?? 0;
+        var attachable = _db.Recipes.FromApprovedCatalog();
         var total = await q.CountAsync(ct);
         var rows = await q.Skip(page.Skip).Take(page.PageSize)
             .Select(p => new
@@ -483,6 +516,8 @@ public class CommunityService : ICommunityService
                 AuthorName = p.User != null ? p.User.DisplayName : "",
                 ContentHead = p.Content == null ? null : (p.Content.Length > 600 ? p.Content.Substring(0, 600) : p.Content),
                 Score = p.Votes.Sum(v => (int)v.Value),
+                LikeCount = p.Votes.Count(v => v.Value == 1),
+                RecipeTitle = attachable.Where(r => r.Id == p.RecipeId).Select(r => r.Title).FirstOrDefault(),
                 CommentCount = p.Comments.Count(c => c.Status == "visible"),
                 MyVote = p.Votes.Where(v => v.UserId == vid).Select(v => (int)v.Value).FirstOrDefault(),
                 Moderation = p.ModerationLogs.OrderByDescending(l => l.ReviewedAt).ThenByDescending(l => l.Id)
@@ -502,7 +537,7 @@ public class CommunityService : ICommunityService
                 CanDelete: isAuthor && p.Status != "removed",
                 Moderation: includeModeration && isAuthor && p.Moderation is not null && p.Moderation.Decision != "pending"
                     ? new PostModerationDto(p.Moderation.Decision, p.Moderation.Reason, p.Moderation.ReviewedAt)
-                    : null);
+                    : null, LikeCount: p.LikeCount, RecipeTitle: p.RecipeTitle);
         }).ToList();
 
         return new PagedResult<PostSummaryDto> { Items = items, TotalCount = total, Page = page.Page, PageSize = page.PageSize };

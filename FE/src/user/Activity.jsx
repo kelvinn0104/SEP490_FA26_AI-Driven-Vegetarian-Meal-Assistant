@@ -38,7 +38,8 @@ export function Collection({ open, flash, go }) {
         undefined,
         "DELETE",
       );
-      resource.reload();
+      if (recipes.length === 1 && page > 1) setPage(page - 1);
+      else resource.reload();
       flash("Đã bỏ lưu món.");
     } catch (e) {
       flash(userError(e));
@@ -106,10 +107,10 @@ export function Collection({ open, flash, go }) {
     </>
   );
 }
-export function Nutrition() {
-  const [date, setDate] = useState(vietnamDate());
+export function Nutrition({ initialDate }) {
+  const [date, setDate] = useState(initialDate || vietnamDate());
   const resource = useResource(
-    () => request(`/nutrition/daily?date=${date}`),
+    (signal) => request(`/nutrition/daily?date=${date}`, undefined, undefined, signal),
     [date],
   );
   const data = resource.data;
@@ -146,7 +147,8 @@ export function Nutrition() {
             type="date"
             required
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            disabled={busy}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
           />
         </label>
       </PageHeading>
@@ -305,9 +307,10 @@ export function Notifications() {
       <PageHeading title="Thông báo">
         <Button
           secondary
-          disabled={busy || !!resource.error || resource.loading}
+          disabled={busy || resource.loading || !listOf(resource.data).length}
           onClick={async () => {
             setBusy(true);
+            setError("");
             try {
               await request("/notifications/read-all", undefined, "PATCH");
               resource.reload();
@@ -322,19 +325,20 @@ export function Notifications() {
         </Button>
       </PageHeading>
       {error && <Notice error>{error}</Notice>}
-      <State resource={resource}>
+      <State resource={resource} empty="Chưa có thông báo">
         {listOf(resource.data).length ? (
           listOf(resource.data).map((n) => (
             <article
-              className={`vp-list-card ${n.isRead ? "is-read" : "is-unread"}`}
+              className={`vp-list-card vp-notification ${n.isRead ? "is-read" : "is-unread"}`}
               key={n.id}
             >
               <h3>
                 <Bell size={17} aria-hidden="true" />{" "}
                 {n.title || "Thông báo VeggieAI"}
+                {!n.isRead && <span className="vp-unread-label">Chưa đọc</span>}
               </h3>
               <p>{n.content}</p>
-              <small>{new Date(n.createdAt).toLocaleString("vi-VN")}</small>
+              <time dateTime={n.createdAt}>{new Date(n.createdAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}</time>
               {!n.isRead && (
                 <button
                   className="vp-text-button"

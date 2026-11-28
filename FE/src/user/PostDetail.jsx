@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
   ArrowLeft,
-  ArrowUp,
-  ArrowDown,
+  Heart,
   Link,
   Flag,
   Trash2,
@@ -15,7 +14,7 @@ import { Button, State, Notice, useResource } from "./ui";
 import { request } from "./api";
 import { isTestContent, postStatusLabel, userError } from "./data";
 import { postDate } from "./postData";
-import { PostMeta, PostMedia, PostBody, CommunityDialog } from "./PostParts";
+import { PostMeta, PostMedia, PostBody, CommunityDialog, updatePostLike } from "./PostParts";
 
 const reportCategories = [
   ["spam", "Spam hoặc quảng cáo"],
@@ -99,6 +98,7 @@ export function PostDetail({ id, go, user, flash }) {
   const [changed, setChanged] = useState(null);
   const post = changed || resource.data;
   const [comment, setComment] = useState("");
+  const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [dialog, setDialog] = useState(null);
@@ -126,20 +126,11 @@ export function PostDetail({ id, go, user, flash }) {
       setBusy("");
     }
   };
-  const vote = (value) => {
+  const toggleLike = () => {
     if (!user) return go("login");
-    const nextVote = post.myVote === value ? 0 : value;
     mutate("vote", async () => {
-      const score = await request(
-        `/community/posts/${id}/vote`,
-        { value: nextVote },
-        "PUT",
-      );
-      if (!Number.isFinite(score))
-        throw new Error(
-          "Chưa nhận được điểm bình chọn mới. Tải lại bài để kiểm tra.",
-        );
-      setChanged({ ...post, score, myVote: nextVote });
+      const { liked, ...count } = await updatePostLike(post, post.myVote !== 1);
+      setChanged({ ...post, ...count, myVote: liked ? 1 : 0 });
     });
   };
   const addComment = (e) => {
@@ -159,9 +150,20 @@ export function PostDetail({ id, go, user, flash }) {
       flash("Đã gửi bình luận.");
     });
   };
+  const saveComment = (e) => {
+    e.preventDefault();
+    if (!editing?.content.trim()) return;
+    mutate("edit-comment", async () => {
+      const saved = await request(`/community/comments/${editing.id}`, { content: editing.content.trim() }, "PUT");
+      if (saved?.id !== editing.id) throw new Error("Chưa xác nhận được thay đổi.");
+      setChanged({ ...post, comments: post.comments.map((entry) => entry.id === saved.id ? saved : entry) });
+      setEditing(null);
+      flash("Đã sửa bình luận.");
+    });
+  };
   const link = `${window.location.origin}/post-detail?id=${id}`;
   return (
-    <div className="vp-post-reader">
+    <div className="vp-post-reader vp-thread-shell">
       <button className="vp-back" onClick={() => go("community")}>
         <ArrowLeft size={18} />
         Cộng đồng
@@ -170,30 +172,18 @@ export function PostDetail({ id, go, user, flash }) {
         {post && (
           <>
             <article className="vp-post-article">
-              <header className="vp-reader-heading">
-                <div className="vp-post-reader-top">
-                  <span className="vp-eyebrow">
-                    {post.postType === "video"
-                      ? "Video từ cộng đồng"
-                      : "Chuyện từ căn bếp"}
-                  </span>
-                  {!published && (
-                    <span className="vp-post-status" data-status={post.status}>
-                      {postStatusLabel(post)}
-                    </span>
-                  )}
-                </div>
-                <h1>{post.title}</h1>
+              <header className="vp-thread-post-head">
                 <PostMeta post={post} />
+                {!published && <span className="vp-post-status" data-status={post.status}>{postStatusLabel(post)}</span>}
               </header>
-              <PostMedia key={post.mediaUrl} post={post} />
+              <h1 className={post.content?.trim().split("\n")[0]?.slice(0, 200) === post.title ? "vp-thread-visually-hidden" : "vp-thread-post-title"}>{post.title}</h1>
               {!published && (
                 <Notice>
                   {post.moderation?.decision === "rejected"
                     ? "Bài không được duyệt và chưa hiển thị công khai."
                     : post.moderation?.decision === "revision"
                       ? "Người duyệt đề nghị chỉnh sửa trước khi đăng."
-                      : "Bài chưa hiển thị công khai. Bình chọn và bình luận mở khi bài được duyệt."}
+                      : "Bài đang chờ duyệt. Sau khi đăng, mọi người có thể thích và bình luận."}
                   {post.moderation?.note && (
                     <>
                       {" "}
@@ -204,13 +194,14 @@ export function PostDetail({ id, go, user, flash }) {
                 </Notice>
               )}
               <PostBody content={post.content} />
+              <PostMedia key={post.mediaUrl} post={post} />
               {post.videoSummary && (
                 <details className="vp-video-summary">
                   <summary>Tóm tắt video</summary>
                   <PostBody content={post.videoSummary} />
                 </details>
               )}
-              {post.recipeId && (
+              {post.recipeId && post.recipeTitle && (
                 <a
                   className="vp-linked-recipe"
                   href={`/article-detail?id=r${post.recipeId}`}
@@ -231,29 +222,15 @@ export function PostDetail({ id, go, user, flash }) {
               )}
               <div className="vp-post-interactions">
                 {published && (
-                  <div
-                    className="vp-votes"
-                    role="group"
-                    aria-label="Bình chọn bài viết"
-                  >
+                  <div className="vp-thread-actions">
                     <button
                       disabled={!!busy}
-                      aria-label="Hữu ích"
+                      aria-label={post.myVote === 1 ? "Bỏ thích" : "Thích"}
                       aria-pressed={post.myVote === 1}
-                      onClick={() => vote(1)}
+                      onClick={toggleLike}
                     >
-                      <ArrowUp size={20} />
-                    </button>
-                    <output aria-label="Điểm cộng đồng">
-                      {post.score ?? 0}
-                    </output>
-                    <button
-                      disabled={!!busy}
-                      aria-label="Chưa hữu ích"
-                      aria-pressed={post.myVote === -1}
-                      onClick={() => vote(-1)}
-                    >
-                      <ArrowDown size={20} />
+                      <Heart size={20} fill={post.myVote === 1 ? "currentColor" : "none"} />
+                      {post.likeCount ?? post.score ?? ""}
                     </button>
                   </div>
                 )}
@@ -366,8 +343,20 @@ export function PostDetail({ id, go, user, flash }) {
                             {postDate(entry.createdAt)}
                           </time>
                         </div>
-                        <p>{entry.content}</p>
-                        {user && (
+                        {editing?.id === entry.id ? (
+                          <form className="vp-comment-compose" onSubmit={saveComment}>
+                            <textarea aria-label="Sửa nội dung bình luận" rows={3} maxLength={2000}
+                              disabled={!!busy} value={editing.content}
+                              onChange={(e) => setEditing({ ...editing, content: e.target.value })} />
+                            <div><Button type="button" secondary disabled={!!busy} onClick={() => setEditing(null)}>Hủy</Button>
+                              <Button disabled={!!busy || !editing.content.trim()}>Lưu bình luận</Button></div>
+                          </form>
+                        ) : <p>{entry.content}</p>}
+                        {user && editing?.id !== entry.id && <div className="vp-comment-actions">
+                          {own && published && <button className="vp-text-button" disabled={!!busy}
+                            onClick={() => { setError(""); setEditing({ id: entry.id, content: entry.content }); }}>
+                            <PenLine size={14} /> Sửa
+                          </button>}
                           <button
                             className="vp-text-button"
                             disabled={!!busy}
@@ -388,7 +377,7 @@ export function PostDetail({ id, go, user, flash }) {
                             {own ? <Trash2 size={14} /> : <Flag size={14} />}
                             {own ? "Xóa" : "Báo cáo"}
                           </button>
-                        )}
+                        </div>}
                       </article>
                     );
                   })

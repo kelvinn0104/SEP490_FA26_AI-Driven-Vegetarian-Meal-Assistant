@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace VeggieAI.Model.DTOs;
 
@@ -7,8 +8,8 @@ public class CreatePostRequest
     [Required, RegularExpression("^(blog|video)$", ErrorMessage = "postType phải là blog hoặc video.")]
     public string PostType { get; set; } = "blog";
 
-    [Required, MaxLength(200)]
-    public string Title { get; set; } = string.Empty;
+    [MaxLength(200)]
+    public string? Title { get; set; }
 
     [MaxLength(20000)]
     public string? Content { get; set; }
@@ -51,8 +52,11 @@ public class CreateReportRequest
 /// <summary>Sửa bài (chỉ tác giả). Bài sửa xong quay về trạng thái pending để kiểm duyệt lại.</summary>
 public class UpdatePostRequest
 {
-    [Required, MaxLength(200)]
-    public string Title { get; set; } = string.Empty;
+    [MaxLength(200)]
+    public string? Title { get; set; }
+
+    [RegularExpression("^(blog|video)$", ErrorMessage = "postType phải là blog hoặc video.")]
+    public string? PostType { get; set; }
 
     [MaxLength(20000)]
     public string? Content { get; set; }
@@ -82,7 +86,8 @@ public record PostModerationDto(string Decision, string? Note, DateTime Reviewed
 public record PostSummaryDto(int Id, string PostType, string Title, string? MediaUrl, string AuthorName, int? RecipeId,
     string Status, int Score, int CommentCount, int MyVote, DateTime CreatedAt,
     int AuthorId = 0, string? Excerpt = null, DateTime? UpdatedAt = null,
-    bool CanEdit = false, bool CanDelete = false, PostModerationDto? Moderation = null);
+    bool CanEdit = false, bool CanDelete = false, PostModerationDto? Moderation = null, int LikeCount = 0,
+    string? RecipeTitle = null);
 
 public record PostCommentDto(int Id, int UserId, string AuthorName, string Content, DateTime CreatedAt,
     DateTime? UpdatedAt = null, bool CanEdit = false, bool CanDelete = false);
@@ -90,7 +95,11 @@ public record PostCommentDto(int Id, int UserId, string AuthorName, string Conte
 public record PostDetailDto(int Id, string PostType, string Title, string? MediaUrl, string AuthorName, int? RecipeId,
     string Status, int Score, int CommentCount, int MyVote, DateTime CreatedAt,
     string? Content, string? VideoSummary, string? RecipeTitle, IReadOnlyList<PostCommentDto> Comments,
-    int AuthorId = 0, DateTime? UpdatedAt = null, bool CanEdit = false, bool CanDelete = false, PostModerationDto? Moderation = null);
+    int AuthorId = 0, DateTime? UpdatedAt = null, bool CanEdit = false, bool CanDelete = false, PostModerationDto? Moderation = null,
+    int LikeCount = 0);
+
+public record PostLikeDto(int LikeCount, bool Liked);
+public record PostLikeRequest([property: JsonRequired] bool Liked);
 
 public record ReportDto(int Id, string TargetType, int TargetId, string Category, string? Reason, string Status, DateTime CreatedAt,
     DateTime? HandledAt = null, string? TargetPreview = null);
