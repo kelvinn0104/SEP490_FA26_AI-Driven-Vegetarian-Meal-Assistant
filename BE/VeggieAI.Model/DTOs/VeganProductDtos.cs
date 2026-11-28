@@ -75,6 +75,25 @@ public class UpdateVeganProductRequest
     public string? NutritionistNotes { get; set; }
 }
 
+public class SubmitVeganProductScanRequest
+{
+    [Required(ErrorMessage = "Tên sản phẩm không được để trống")]
+    public string ProductName { get; set; } = string.Empty;
+
+    public string? Barcode { get; set; }
+
+    public string Brand { get; set; } = string.Empty;
+
+    public string Category { get; set; } = "beverage";
+
+    public string? ImageUrl { get; set; }
+
+    public string? LabelImageUrl { get; set; }
+
+    [Required(ErrorMessage = "Thành phần nhãn thực phẩm không được để trống")]
+    public string IngredientListRaw { get; set; } = string.Empty;
+}
+
 public class ReviewProductScanRequest
 {
     [Required]

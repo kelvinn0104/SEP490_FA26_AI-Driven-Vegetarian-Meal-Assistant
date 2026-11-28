@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VeggieAI.Model.Entities;
 
-[Table("eco_rewards")]
+[Table("EcoReward", Schema = "veggieai")]
 public class EcoReward
 {
     [Key]
@@ -18,15 +18,18 @@ public class EcoReward
 
     public int PointsRequired { get; set; } = 500;
 
-    public int StockQuantity { get; set; } = 50;
+    public int StockQuantity { get; set; } = 0;
 
-    public int ClaimedQuantity { get; set; } = 12;
+    public int ClaimedQuantity { get; set; } = 0;
 
+    [Required]
     [MaxLength(50)]
     public string Category { get; set; } = "voucher"; // voucher, ebook, physical, seed
 
+    [MaxLength(500)]
     public string? ImageUrl { get; set; }
 
+    [Required]
     [MaxLength(30)]
     public string Status { get; set; } = "active"; // active, out_of_stock, paused
 
@@ -35,18 +38,20 @@ public class EcoReward
     public virtual ICollection<RewardClaim> Claims { get; set; } = new List<RewardClaim>();
 }
 
-[Table("reward_claims")]
+[Table("RewardClaim", Schema = "veggieai")]
 public class RewardClaim
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
+    [Required]
     public int RewardId { get; set; }
 
     [ForeignKey(nameof(RewardId))]
     public virtual EcoReward? Reward { get; set; }
 
+    [Required]
     public int UserId { get; set; }
 
     [ForeignKey(nameof(UserId))]
@@ -54,6 +59,7 @@ public class RewardClaim
 
     public int PointsSpent { get; set; }
 
+    [Required]
     [MaxLength(30)]
     public string Status { get; set; } = "pending"; // pending, approved, delivered, rejected
 
@@ -63,6 +69,8 @@ public class RewardClaim
 
     public int? HandledById { get; set; }
 
+    [ForeignKey(nameof(HandledById))]
+    public virtual User? Handler { get; set; }
+
     public string? Notes { get; set; }
 }
-

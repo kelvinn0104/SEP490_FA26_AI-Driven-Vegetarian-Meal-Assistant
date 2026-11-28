@@ -61,6 +61,9 @@ public class Recipe
     public decimal FatG { get; set; }
 
     [Column(TypeName = "numeric(6,2)")]
+    public decimal? FiberG { get; set; }
+
+    [Column(TypeName = "numeric(6,2)")]
     public decimal IronMg { get; set; }
 
     [Column(TypeName = "numeric(6,2)")]

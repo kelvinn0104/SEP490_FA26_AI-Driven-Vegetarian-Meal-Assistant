@@ -55,6 +55,9 @@ public class Ingredient
     public decimal FatPer100g { get; set; }
 
     [Column(TypeName = "numeric(6,2)")]
+    public decimal? FiberPer100g { get; set; }
+
+    [Column(TypeName = "numeric(6,2)")]
     public decimal IronPer100g { get; set; }
 
     [Column(TypeName = "numeric(6,2)")]

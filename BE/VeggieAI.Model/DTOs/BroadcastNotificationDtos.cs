@@ -10,7 +10,7 @@ public class BroadcastNotificationDto
     public string Type { get; set; } = "tip";
     public string TypeLabel { get; set; } = "Mẹo Dinh Dưỡng";
     public string TargetAudience { get; set; } = "all";
-    public string TargetAudienceLabel { get; set; } = "Toàn bộ hội viên (3,840 người)";
+    public string TargetAudienceLabel { get; set; } = string.Empty;
     public string Status { get; set; } = "sent";
     public string? ScheduledAt { get; set; }
     public string? SentAt { get; set; }
@@ -66,5 +66,14 @@ public class BroadcastStatsDto
     public int ScheduledCount { get; set; }
     public decimal AvgOpenRate { get; set; }
     public int TotalClicks { get; set; }
+}
+
+public class UserNotificationDto
+{
+    public int Id { get; set; }
+    public string Type { get; set; } = "system";
+    public string Content { get; set; } = string.Empty;
+    public bool IsRead { get; set; }
+    public string CreatedAt { get; set; } = string.Empty;
 }
 

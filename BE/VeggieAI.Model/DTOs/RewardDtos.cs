@@ -73,6 +73,11 @@ public class RewardClaimDto
     public string? Notes { get; set; }
 }
 
+public class CreateRewardClaimRequest
+{
+    public string? Notes { get; set; }
+}
+
 public class ProcessClaimRequest
 {
     [Required]

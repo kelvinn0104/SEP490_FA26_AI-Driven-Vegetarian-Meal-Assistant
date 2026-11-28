@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using VeggieAI.Model.Constants;
 
 namespace VeggieAI.Model.Entities;
 
@@ -23,12 +24,12 @@ public class User
     public string DisplayName { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(20)]
-    public string Role { get; set; } = "user"; // 'admin', 'moderator', 'user'
+    [MaxLength(30)]
+    public string Role { get; set; } = RoleConstants.User; // 'SuperAdmin', 'Mod', 'User'
 
     [Required]
     [MaxLength(20)]
-    public string Status { get; set; } = "active"; // 'pending' (chờ xác thực email), 'active', 'locked'
+    public string Status { get; set; } = "active"; // 'active', 'locked'
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

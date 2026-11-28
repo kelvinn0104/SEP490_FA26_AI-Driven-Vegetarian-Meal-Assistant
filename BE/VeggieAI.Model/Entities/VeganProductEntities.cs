@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VeggieAI.Model.Entities;
 
-[Table("vegan_product_scans")]
+[Table("VeganProductScan", Schema = "veggieai")]
 public class VeganProductScan
 {
     [Key]
@@ -20,6 +20,7 @@ public class VeganProductScan
     [MaxLength(100)]
     public string Brand { get; set; } = string.Empty;
 
+    [Required]
     [MaxLength(50)]
     public string Category { get; set; } = "beverage"; // beverage, snack, condiment, canned, dairy_alt, supplement, noodle
 
@@ -29,22 +30,24 @@ public class VeganProductScan
     [MaxLength(500)]
     public string? LabelImageUrl { get; set; }
 
+    [Required]
     public string IngredientListRaw { get; set; } = string.Empty;
 
-    public string? FlaggedNonVeganIngredients { get; set; } // JSON or comma separated
+    public string? FlaggedNonVeganIngredients { get; set; }
 
+    [Required]
     [MaxLength(30)]
     public string VeganStatus { get; set; } = "pending_review"; // vegan, vegetarian, non_vegan, pending_review
 
     [Column(TypeName = "numeric(5,2)")]
-    public decimal ConfidenceScore { get; set; } = 95.0m;
+    public decimal ConfidenceScore { get; set; } = 0m;
 
     [MaxLength(50)]
     public string? ModeratorVerdict { get; set; } // verified_vegan, verified_vegetarian, rejected_non_vegan
 
     public string? NutritionistNotes { get; set; }
 
-    public int SubmittedById { get; set; } = 1;
+    public int? SubmittedById { get; set; }
 
     [ForeignKey(nameof(SubmittedById))]
     public virtual User? SubmittedBy { get; set; }
@@ -60,4 +63,3 @@ public class VeganProductScan
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
-

@@ -99,6 +99,19 @@ public class ChallengeCheckinDto
     public string? ReviewedByName { get; set; }
 }
 
+public class CreateChallengeCheckinRequest
+{
+    [Range(1, 90, ErrorMessage = "Ngày điểm danh không hợp lệ")]
+    public int DayNumber { get; set; } = 1;
+
+    [Required(ErrorMessage = "Tên bữa ăn điểm danh không được để trống")]
+    public string MealTitle { get; set; } = string.Empty;
+
+    public string? MediaUrl { get; set; }
+
+    public string? Notes { get; set; }
+}
+
 public class ReviewCheckinRequest
 {
     [Required]
