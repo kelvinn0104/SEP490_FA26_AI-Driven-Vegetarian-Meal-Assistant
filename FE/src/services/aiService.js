@@ -1,26 +1,19 @@
-/**
- * VeggieAI Service layer for AI reasoning, nutrition inference and moderation
- */
+import { aiApi } from '../api';
 
+/**
+ * VeggieAI Service layer delegating nutrition & ingredient analysis strictly to Backend API.
+ * No API keys or mock setTimeout simulations exist on Frontend.
+ */
 export async function analyzeRecipeIngredients(ingredientsText) {
-  // Simulating async AI service call with USDA DB match
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        data: {
-          calories: 245,
-          protein: '18.2g',
-          fiber: '7.8g',
-          iron: '3.4mg (24% DV)',
-          b12: '1.2mcg',
-          veganPurity: '100% Thuần chay',
-          toxicityScore: 0.001,
-          absorptionRate: '91%',
-        },
-      });
-    }, 600);
-  });
+  if (!ingredientsText || !ingredientsText.trim()) {
+    throw new Error('Vui lòng nhập danh sách nguyên liệu cần phân tích.');
+  }
+
+  const result = await aiApi.parseNutrition(ingredientsText.trim());
+  return {
+    success: Boolean(result?.analyzed),
+    data: result,
+  };
 }
 
 export default {
