@@ -2,6 +2,7 @@ using VeggieAI.API;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
 
@@ -156,7 +157,7 @@ public class AiController : ControllerBase
     }
 
     [HttpPut("models/{id}/status")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateModelStatus(int id, [FromBody] UpdateAiModelStatusRequest request)
     {
         var ok = await _aiService.UpdateModelStatusAsync(id, request.Status);
@@ -225,7 +226,7 @@ public class DashboardController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;
