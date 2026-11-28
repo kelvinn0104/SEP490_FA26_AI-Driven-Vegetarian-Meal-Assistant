@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace VeggieAI.Model.Entities;
 
-[Table("broadcast_notifications")]
+[Table("BroadcastNotification", Schema = "veggieai")]
 public class BroadcastNotification
 {
     [Key]
@@ -17,33 +17,36 @@ public class BroadcastNotification
     [Required]
     public string Message { get; set; } = string.Empty;
 
+    [Required]
     [MaxLength(50)]
     public string Type { get; set; } = "tip"; // tip, challenge, urgent, recipe, event
 
+    [Required]
     [MaxLength(50)]
     public string TargetAudience { get; set; } = "all"; // all, challenge_participants, beginners, fitness
 
+    [Required]
     [MaxLength(30)]
-    public string Status { get; set; } = "sent"; // sent, scheduled, draft
+    public string Status { get; set; } = "draft"; // sent, scheduled, draft
 
     public DateTime? ScheduledAt { get; set; }
 
     public DateTime? SentAt { get; set; }
 
-    public int RecipientsCount { get; set; } = 3840;
+    public int RecipientsCount { get; set; } = 0;
 
-    public decimal OpenRate { get; set; } = 42.5m;
+    [Column(TypeName = "numeric(5,2)")]
+    public decimal OpenRate { get; set; } = 0m;
 
-    public int ClickCount { get; set; } = 890;
+    public int ClickCount { get; set; } = 0;
 
     [MaxLength(300)]
     public string? ActionUrl { get; set; }
 
-    public int CreatedById { get; set; } = 1;
+    public int? CreatedById { get; set; }
 
     [ForeignKey(nameof(CreatedById))]
     public virtual User? CreatedBy { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
-

@@ -10,6 +10,7 @@ public class IngredientDto
     public decimal ProteinPer100g { get; set; }
     public decimal CarbPer100g { get; set; }
     public decimal FatPer100g { get; set; }
+    public decimal? FiberPer100g { get; set; }
     public decimal IronPer100g { get; set; }
     public decimal B12Per100g { get; set; }
     public decimal CalciumPer100g { get; set; }
@@ -38,6 +39,9 @@ public class CreateIngredientRequest
     [Range(0, 100, ErrorMessage = "Chất béo phải nằm trong khoảng 0 - 100g")]
     public decimal FatPer100g { get; set; }
 
+    [Range(0, 100, ErrorMessage = "Chất xơ phải nằm trong khoảng 0 - 100g")]
+    public decimal? FiberPer100g { get; set; }
+
     [Range(0, 500, ErrorMessage = "Sắt phải từ 0 - 500mg")]
     public decimal IronPer100g { get; set; }
 
@@ -64,6 +68,7 @@ public class UpdateIngredientRequest
     public decimal ProteinPer100g { get; set; }
     public decimal CarbPer100g { get; set; }
     public decimal FatPer100g { get; set; }
+    public decimal? FiberPer100g { get; set; }
     public decimal IronPer100g { get; set; }
     public decimal B12Per100g { get; set; }
     public decimal CalciumPer100g { get; set; }
@@ -91,43 +96,3 @@ public class NutrientStandardDto
     public decimal ZincMg { get; set; }
     public string? Note { get; set; }
 }
-
-/// <summary>Ghi nhận bữa đã ăn: gửi PlanItemId (món trong thực đơn) hoặc RecipeId (+ mealType, servings, logDate).</summary>
-public class LogMealRequest
-{
-    public int? PlanItemId { get; set; }
-    public int? RecipeId { get; set; }
-
-    [RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
-    public string? MealType { get; set; }
-
-    [Range(0.25, 10.0, ErrorMessage = "servings phải trong khoảng 0.25–10.")]
-    public decimal? Servings { get; set; }
-
-    public DateOnly? LogDate { get; set; }
-}
-
-public class UpsertActivityRequest
-{
-    public DateOnly? ActivityDate { get; set; }
-
-    [Range(0.0, 10000.0, ErrorMessage = "kcalBurned phải trong khoảng 0–10000.")]
-    public decimal KcalBurned { get; set; }
-
-    [Range(0, 200000, ErrorMessage = "steps phải trong khoảng 0–200000.")]
-    public int Steps { get; set; }
-}
-
-public record MealLogDto(int Id, DateOnly LogDate, string MealType, int RecipeId, string RecipeTitle,
-    decimal Servings, decimal KcalConsumed, int? PlanItemId, NutrientAmountsDto Nutrition);
-
-/// <summary>level: medium (&lt;75% mục tiêu) | high (&lt;50%).</summary>
-public record NutritionAlertDto(string Nutrient, decimal Consumed, decimal Target, int Percent, string Level, string Message);
-
-public record DailyNutritionDto(DateOnly Date, NutrientAmountsDto Consumed, NutrientAmountsDto Target,
-    decimal KcalBurned, int Steps, decimal NetKcal, IReadOnlyList<MealLogDto> Logs, IReadOnlyList<NutritionAlertDto> Alerts);
-
-public record TrendPointDto(DateOnly Date, decimal Kcal, decimal ProteinG, decimal IronMg, decimal B12Mcg,
-    decimal KcalTarget, decimal KcalBurned);
-
-public record ActivityDataDto(int Id, DateOnly ActivityDate, decimal KcalBurned, int Steps, DateTime SyncedAt);

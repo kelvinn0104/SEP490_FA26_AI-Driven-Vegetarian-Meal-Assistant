@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
 using VeggieAI.Repository.Repositories;
@@ -10,9 +11,10 @@ public interface IBroadcastNotificationService
     Task<List<BroadcastNotificationDto>> GetBroadcastsAsync(string? status = null, string? type = null, string? search = null);
     Task<BroadcastStatsDto> GetStatsAsync();
     Task<BroadcastNotificationDto> CreateBroadcastAsync(CreateBroadcastNotificationRequest request, int creatorId);
-    Task<BroadcastNotificationDto?> UpdateBroadcastAsync(int id, UpdateBroadcastNotificationRequest request);
-    Task<bool> DeleteBroadcastAsync(int id);
-    Task<bool> SendNowAsync(int id);
+    Task<BroadcastNotificationDto?> UpdateBroadcastAsync(int id, UpdateBroadcastNotificationRequest request, int modId);
+    Task<bool> DeleteBroadcastAsync(int id, int modId);
+    Task<bool> SendNowAsync(int id, int modId);
+    Task<List<UserNotificationDto>> GetUserNotificationsAsync(int userId);
 }
 
 public class BroadcastNotificationService : IBroadcastNotificationService
@@ -26,8 +28,6 @@ public class BroadcastNotificationService : IBroadcastNotificationService
 
     public async Task<List<BroadcastNotificationDto>> GetBroadcastsAsync(string? status = null, string? type = null, string? search = null)
     {
-        await EnsureSeedBroadcastsAsync();
-
         var query = _unitOfWork.Context.BroadcastNotifications
             .Include(b => b.CreatedBy)
             .AsQueryable();
@@ -54,8 +54,6 @@ public class BroadcastNotificationService : IBroadcastNotificationService
 
     public async Task<BroadcastStatsDto> GetStatsAsync()
     {
-        await EnsureSeedBroadcastsAsync();
-
         var list = await _unitOfWork.Context.BroadcastNotifications.ToListAsync();
         var sentList = list.Where(b => b.Status == "sent").ToList();
 
@@ -63,59 +61,121 @@ public class BroadcastNotificationService : IBroadcastNotificationService
         {
             TotalSent = sentList.Count,
             ScheduledCount = list.Count(b => b.Status == "scheduled"),
-            AvgOpenRate = sentList.Count > 0 ? Math.Round(sentList.Average(b => b.OpenRate), 1) : 41.8m,
+            AvgOpenRate = sentList.Count > 0 ? Math.Round(sentList.Average(b => b.OpenRate), 1) : 0m,
             TotalClicks = sentList.Sum(b => b.ClickCount)
         };
     }
 
+    private async Task<List<int>> ResolveRecipientUserIdsAsync(string targetAudience)
+    {
+        var activeUsersQuery = _unitOfWork.Context.Users
+            .Where(u => u.Role == RoleConstants.User && u.Status == "active");
+
+        return targetAudience switch
+        {
+            "challenge_participants" => await _unitOfWork.Context.ChallengeCheckins
+                .Select(c => c.UserId)
+                .Distinct()
+                .ToListAsync(),
+            "fitness" => await _unitOfWork.Context.HealthProfiles
+                .Where(hp => hp.HealthGoal == "gain")
+                .Select(hp => hp.UserId)
+                .ToListAsync(),
+            "beginners" => await activeUsersQuery
+                .Where(u => u.CreatedAt >= DateTime.UtcNow.AddDays(-30))
+                .Select(u => u.Id)
+                .ToListAsync(),
+            _ => await activeUsersQuery.Select(u => u.Id).ToListAsync()
+        };
+    }
+
+    private async Task DeliverInAppNotificationsAsync(BroadcastNotification broadcast, List<int> recipientIds)
+    {
+        if (recipientIds.Count == 0) return;
+
+        var notifType = broadcast.Type == "urgent" ? "nutrition_alert" : "system";
+        var notifications = recipientIds.Select(uid => new Notification
+        {
+            UserId = uid,
+            Type = notifType,
+            Content = $"{broadcast.Title}: {broadcast.Message}",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        }).ToList();
+
+        await _unitOfWork.Context.Notifications.AddRangeAsync(notifications);
+    }
+
     public async Task<BroadcastNotificationDto> CreateBroadcastAsync(CreateBroadcastNotificationRequest request, int creatorId)
     {
+        var recipientIds = await ResolveRecipientUserIdsAsync(request.TargetAudience);
+        var normalizedStatus = request.Status is "sent" or "scheduled" or "draft" ? request.Status : "draft";
+
         var item = new BroadcastNotification
         {
             Title = request.Title.Trim(),
             Message = request.Message.Trim(),
             Type = request.Type,
             TargetAudience = request.TargetAudience,
-            Status = request.Status,
-            ScheduledAt = request.ScheduledAt,
-            SentAt = request.Status == "sent" ? DateTime.UtcNow : null,
-            RecipientsCount = request.TargetAudience == "all" ? 3840 : 442,
-            OpenRate = request.Status == "sent" ? 38.5m : 0,
-            ClickCount = request.Status == "sent" ? 420 : 0,
-            ActionUrl = request.ActionUrl,
+            Status = normalizedStatus,
+            ScheduledAt = normalizedStatus == "scheduled" ? request.ScheduledAt : null,
+            SentAt = normalizedStatus == "sent" ? DateTime.UtcNow : null,
+            RecipientsCount = recipientIds.Count,
+            OpenRate = 0m,
+            ClickCount = 0,
+            ActionUrl = string.IsNullOrWhiteSpace(request.ActionUrl) ? null : request.ActionUrl.Trim(),
             CreatedById = creatorId,
             CreatedAt = DateTime.UtcNow
         };
 
         _unitOfWork.Context.BroadcastNotifications.Add(item);
-        await _unitOfWork.CommitAsync();
 
+        if (normalizedStatus == "sent")
+        {
+            await DeliverInAppNotificationsAsync(item, recipientIds);
+        }
+
+        await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+        {
+            UserId = creatorId,
+            Action = normalizedStatus == "sent" ? "Phát sóng thông báo" : "Lưu thông báo",
+            Target = item.Title,
+            Details = $"Đối tượng: {item.TargetAudience} ({recipientIds.Count} người nhận)",
+            LogType = "moderation"
+        });
+
+        await _unitOfWork.CommitAsync();
         return MapToDto(item);
     }
 
-    public async Task<BroadcastNotificationDto?> UpdateBroadcastAsync(int id, UpdateBroadcastNotificationRequest request)
+    public async Task<BroadcastNotificationDto?> UpdateBroadcastAsync(int id, UpdateBroadcastNotificationRequest request, int modId)
     {
         var item = await _unitOfWork.Context.BroadcastNotifications.FindAsync(id);
         if (item == null) return null;
+
+        var recipientIds = await ResolveRecipientUserIdsAsync(request.TargetAudience);
+        var wasSent = item.Status == "sent";
 
         item.Title = request.Title.Trim();
         item.Message = request.Message.Trim();
         item.Type = request.Type;
         item.TargetAudience = request.TargetAudience;
         item.Status = request.Status;
-        item.ScheduledAt = request.ScheduledAt;
-        if (request.Status == "sent" && item.SentAt == null)
+        item.ScheduledAt = request.Status == "scheduled" ? request.ScheduledAt : null;
+        item.RecipientsCount = recipientIds.Count;
+        item.ActionUrl = string.IsNullOrWhiteSpace(request.ActionUrl) ? null : request.ActionUrl.Trim();
+
+        if (!wasSent && request.Status == "sent")
         {
             item.SentAt = DateTime.UtcNow;
-            item.OpenRate = 35.0m;
+            await DeliverInAppNotificationsAsync(item, recipientIds);
         }
-        item.ActionUrl = request.ActionUrl;
 
         await _unitOfWork.CommitAsync();
         return MapToDto(item);
     }
 
-    public async Task<bool> DeleteBroadcastAsync(int id)
+    public async Task<bool> DeleteBroadcastAsync(int id, int modId)
     {
         var item = await _unitOfWork.Context.BroadcastNotifications.FindAsync(id);
         if (item == null) return false;
@@ -125,18 +185,40 @@ public class BroadcastNotificationService : IBroadcastNotificationService
         return true;
     }
 
-    public async Task<bool> SendNowAsync(int id)
+    public async Task<bool> SendNowAsync(int id, int modId)
     {
         var item = await _unitOfWork.Context.BroadcastNotifications.FindAsync(id);
         if (item == null) return false;
 
-        item.Status = "sent";
-        item.SentAt = DateTime.UtcNow;
-        item.OpenRate = 42.0m;
-        item.ClickCount = 760;
+        if (item.Status != "sent")
+        {
+            var recipientIds = await ResolveRecipientUserIdsAsync(item.TargetAudience);
+            item.Status = "sent";
+            item.SentAt = DateTime.UtcNow;
+            item.RecipientsCount = recipientIds.Count;
+            await DeliverInAppNotificationsAsync(item, recipientIds);
+            await _unitOfWork.CommitAsync();
+        }
 
-        await _unitOfWork.CommitAsync();
         return true;
+    }
+
+    public async Task<List<UserNotificationDto>> GetUserNotificationsAsync(int userId)
+    {
+        var list = await _unitOfWork.Context.Notifications
+            .Where(n => n.UserId == userId)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(50)
+            .ToListAsync();
+
+        return list.Select(n => new UserNotificationDto
+        {
+            Id = n.Id,
+            Type = n.Type,
+            Content = n.Content,
+            IsRead = n.IsRead,
+            CreatedAt = n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+        }).ToList();
     }
 
     private static BroadcastNotificationDto MapToDto(BroadcastNotification b)
@@ -149,7 +231,7 @@ public class BroadcastNotificationService : IBroadcastNotificationService
             Type = b.Type,
             TypeLabel = GetTypeLabel(b.Type),
             TargetAudience = b.TargetAudience,
-            TargetAudienceLabel = GetAudienceLabel(b.TargetAudience),
+            TargetAudienceLabel = $"{GetAudienceLabel(b.TargetAudience)} ({b.RecipientsCount} người)",
             Status = b.Status,
             ScheduledAt = b.ScheduledAt?.ToString("dd/MM/yyyy HH:mm"),
             SentAt = b.SentAt?.ToString("dd/MM/yyyy HH:mm"),
@@ -158,7 +240,7 @@ public class BroadcastNotificationService : IBroadcastNotificationService
             ClickCount = b.ClickCount,
             ActionUrl = b.ActionUrl,
             CreatedAt = b.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
-            CreatedByName = b.CreatedBy?.DisplayName ?? "Chuyên Gia Dinh Dưỡng VeggieAI"
+            CreatedByName = b.CreatedBy?.DisplayName ?? "Điều phối viên (Mod)"
         };
     }
 
@@ -174,75 +256,10 @@ public class BroadcastNotificationService : IBroadcastNotificationService
 
     private static string GetAudienceLabel(string aud) => aud switch
     {
-        "all" => "Toàn bộ hội viên (3,840 người)",
-        "challenge_participants" => "Đang tham gia Thử thách (442 người)",
-        "beginners" => "Hội viên mới bắt đầu ăn chay",
-        "fitness" => "Nhóm Thể thao & Tăng cơ",
-        _ => "Toàn thể cộng đồng"
+        "all" => "Toàn bộ người dùng",
+        "challenge_participants" => "Người tham gia Thử thách",
+        "beginners" => "Người dùng mới (30 ngày)",
+        "fitness" => "Nhóm Tăng cơ & Thể thao",
+        _ => "Cộng đồng"
     };
-
-    private async Task EnsureSeedBroadcastsAsync()
-    {
-        if (await _unitOfWork.Context.BroadcastNotifications.AnyAsync()) return;
-
-        var seeds = new List<BroadcastNotification>
-        {
-            new()
-            {
-                Title = "Mẹo Dinh Dưỡng Hôm Nay: Tăng gấp 3 lần hấp thu sắt non-heme",
-                Message = "Để hấp thu sắt từ rau bina và đậu lăng tốt nhất, hãy kết hợp cùng nước cốt chanh hoặc ớt chuông giàu Vitamin C. Tránh uống trà xanh trong 2 giờ sau bữa ăn!",
-                Type = "tip",
-                TargetAudience = "all",
-                Status = "sent",
-                SentAt = DateTime.UtcNow.AddHours(-4),
-                RecipientsCount = 3840,
-                OpenRate = 46.8m,
-                ClickCount = 1120,
-                ActionUrl = "/ingredient-management",
-                CreatedAt = DateTime.UtcNow.AddHours(-4)
-            },
-            new()
-            {
-                Title = "Điểm danh Check-in Ngày 14: Thử Thách 21 Ngày Khởi Đầu Chay",
-                Message = "Chúc mừng bạn đã đi được 2/3 chặng đường! Hãy chụp ảnh mâm cơm trưa hôm nay và đăng lên nhật ký để chuyên gia dinh dưỡng chấm điểm nhé.",
-                Type = "challenge",
-                TargetAudience = "challenge_participants",
-                Status = "sent",
-                SentAt = DateTime.UtcNow.AddDays(-1),
-                RecipientsCount = 442,
-                OpenRate = 68.2m,
-                ClickCount = 305,
-                ActionUrl = "/challenge-management",
-                CreatedAt = DateTime.UtcNow.AddDays(-1)
-            },
-            new()
-            {
-                Title = "Nhắc nhở nạp Vitamin B12 cuối tuần",
-                Message = "Cuối tuần là thời điểm lý tưởng để rà soát lượng men dinh dưỡng (Nutritional Yeast) hoặc bổ sung B12 dạng ngậm để giữ năng lượng sảng khoái.",
-                Type = "tip",
-                TargetAudience = "all",
-                Status = "scheduled",
-                ScheduledAt = DateTime.UtcNow.AddDays(2),
-                RecipientsCount = 3840,
-                OpenRate = 0,
-                ClickCount = 0,
-                CreatedAt = DateTime.UtcNow.AddHours(-1)
-            },
-            new()
-            {
-                Title = "Ra mắt bộ cẩm nang: 50 Công Thức Nấu Chay Nhanh Dưới 15 Phút",
-                Message = "Dành riêng cho dân văn phòng bận rộn muốn duy trì lối sống lành mạnh mà không tốn nhiều thời gian chuẩn bị.",
-                Type = "recipe",
-                TargetAudience = "all",
-                Status = "draft",
-                RecipientsCount = 3840,
-                OpenRate = 0,
-                ClickCount = 0,
-                CreatedAt = DateTime.UtcNow.AddDays(-2)
-            }
-        };
-
-        _unitOfWork.Context.BroadcastNotifications.AddRange(seeds);
-        await _unitOfWork.CommitAsync();
-    }
 }

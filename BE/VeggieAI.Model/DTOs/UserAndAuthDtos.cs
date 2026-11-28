@@ -1,70 +1,35 @@
 using System.ComponentModel.DataAnnotations;
+using VeggieAI.Model.Constants;
 
 namespace VeggieAI.Model.DTOs;
 
 public class LoginRequest
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email không được để trống")]
+    [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Mật khẩu không được để trống")]
     public string Password { get; set; } = string.Empty;
+
+    public bool PortalOnly { get; set; } = false;
 }
 
 public class RegisterRequest
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email không được để trống")]
+    [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    [MinLength(6)]
+    [Required(ErrorMessage = "Mật khẩu không được để trống")]
+    [MinLength(6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự")]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Tên hiển thị không được để trống")]
     public string DisplayName { get; set; } = string.Empty;
 
-    public string Role { get; set; } = "user"; // 'admin', 'moderator', 'user'
+    public string Role { get; set; } = RoleConstants.User; // 'SuperAdmin', 'Mod', 'User'
     public string? InviteCode { get; set; }
-}
-
-/// <summary>Bước 2: xác thực OTP — POST /api/auth/verify-code</summary>
-public class VerifyCodeRequest
-{
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-
-    [Required]
-    [RegularExpression(@"^\d{6}$", ErrorMessage = "Mã OTP phải gồm đúng 6 chữ số.")]
-    public string OtpCode { get; set; } = string.Empty;
-}
-
-/// <summary>Gửi lại mã — POST /api/auth/resend-code</summary>
-public class ResendCodeRequest
-{
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Kết quả của /register và /resend-code: tài khoản đang ở trạng thái "pending", chờ nhập OTP.
-/// FE dùng ExpiresInSeconds / ResendAfterSeconds để hiển thị đồng hồ đếm ngược.
-/// </summary>
-public class RegisterPendingResponse
-{
-    public string Email { get; set; } = string.Empty;
-    public string Status { get; set; } = "pending";
-    public bool RequiresVerification { get; set; } = true;
-    public bool CodeSent { get; set; } = true;
-    public int ExpiresInSeconds { get; set; }
-    public int ResendAfterSeconds { get; set; }
-    public DateTime? ExpiresAt { get; set; }
-
-    /// <summary>Chỉ có giá trị khi Otp:ExposeOtpInResponse = true (môi trường Dev).</summary>
-    public string? DevOtp { get; set; }
 }
 
 public class AuthResponse
@@ -78,55 +43,41 @@ public class AuthResponse
 public class UserDto
 {
     public string Id { get; set; } = string.Empty;
+    public int NumericId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Avatar { get; set; } = string.Empty;
     public string DietType { get; set; } = "vegan";
-    public string Role { get; set; } = "user";
+    public string Role { get; set; } = RoleConstants.User; // Canonical: 'SuperAdmin', 'Mod', 'User'
+    public string RoleDisplayName { get; set; } = "Người dùng";
     public string Status { get; set; } = "active";
     public string JoinedDate { get; set; } = string.Empty;
     public int RecipesCount { get; set; }
     public int AiQueriesCount { get; set; }
     public string? Bio { get; set; }
     public List<string> Allergies { get; set; } = new();
-
-    /// <summary>false → FE chuyển người dùng tới màn hình nhập hồ sơ sức khỏe.</summary>
-    public bool HasHealthProfile { get; set; }
+    public List<string> Permissions { get; set; } = new();
 }
 
 public class CreateUserRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Tên người dùng không được để trống")]
     public string Name { get; set; } = string.Empty;
 
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email không được để trống")]
+    [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
     public string Email { get; set; } = string.Empty;
 
-    public string? Password { get; set; }
+    [Required(ErrorMessage = "Mật khẩu khởi tạo là bắt buộc")]
+    [MinLength(6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự")]
+    public string Password { get; set; } = string.Empty;
+
     public string DietType { get; set; } = "vegan";
-    public string Role { get; set; } = "user";
+    public string Role { get; set; } = RoleConstants.User;
 }
 
 public class UpdateUserRoleRequest
 {
     [Required]
-    public string Role { get; set; } = string.Empty;
-}
-
-public class ChangePasswordRequest
-{
-    [Required]
-    public string CurrentPassword { get; set; } = string.Empty;
-
-    [Required]
-    [MinLength(8, ErrorMessage = "Mật khẩu mới phải có ít nhất 8 ký tự.")]
-    public string NewPassword { get; set; } = string.Empty;
-}
-
-public class UpdateMeRequest
-{
-    [Required]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "Tên hiển thị phải từ 2 đến 100 ký tự.")]
-    public string DisplayName { get; set; } = string.Empty;
+    public string Role { get; set; } = RoleConstants.User;
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -5,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using VeggieAI.API.Middlewares;
+using VeggieAI.Model.Constants;
 using VeggieAI.Repository.Data;
 using VeggieAI.Repository.Repositories;
 using VeggieAI.Service.Services;
@@ -19,63 +21,68 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
-// 2. Database Configuration (Intelligent PostgreSQL check with InMemory fallback)
-var useInMemory = builder.Configuration.GetValue<bool>("ConnectionStrings:UseInMemoryDatabase");
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddHttpClient();
 
-bool canConnectToPostgres = false;
-if (!useInMemory && !string.IsNullOrWhiteSpace(connStr))
+// 2. Database Configuration (Secrets via User Secrets or Environment Variables; NO plaintext password in appsettings)
+var useInMemory = builder.Environment.IsDevelopment()
+                  && builder.Configuration.GetValue<bool>("ConnectionStrings:UseInMemoryDatabase");
+
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connStr))
 {
-    try
+    connStr = Environment.GetEnvironmentVariable("VEGGIEAI_DB_CONNECTION")
+              ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+}
+
+// Allow injecting DB password via VEGGIEAI_DB_PASSWORD or PGPASSWORD when base connection string omits Password=
+if (!string.IsNullOrWhiteSpace(connStr)
+    && !connStr.Contains("Password=", StringComparison.OrdinalIgnoreCase))
+{
+    var envDbPassword = builder.Configuration["Database:Password"]
+                        ?? Environment.GetEnvironmentVariable("VEGGIEAI_DB_PASSWORD")
+                        ?? Environment.GetEnvironmentVariable("PGPASSWORD");
+    if (!string.IsNullOrWhiteSpace(envDbPassword))
     {
-        Console.WriteLine($"[PostgreSQL] Đang kiểm tra kết nối đến cơ sở dữ liệu...");
-        using var testConn = new Npgsql.NpgsqlConnection(connStr);
-        testConn.Open();
-        canConnectToPostgres = true;
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"[PostgreSQL THÀNH CÔNG] Đã kết nối thành công đến PostgreSQL!");
-        Console.ResetColor();
+        connStr = $"{connStr.TrimEnd(';')};Password={envDbPassword}";
     }
-    catch (Exception ex)
+}
+
+if (!useInMemory)
+{
+    if (string.IsNullOrWhiteSpace(connStr))
     {
-        canConnectToPostgres = false;
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"[PostgreSQL CẢNH BÁO] Không thể kết nối đến PostgreSQL: {ex.Message}");
-        Console.WriteLine($"[PostgreSQL CẢNH BÁO] Hệ thống đang tự động kích hoạt InMemory Database dự phòng để API vẫn chạy được.");
-        Console.WriteLine($"[PostgreSQL CẢNH BÁO] Dữ liệu InMemory chỉ là seed tạm và SẼ MẤT sau mỗi lần restart — kiểm tra ConnectionStrings__DefaultConnection trên Render.");
-        Console.ResetColor();
+        throw new InvalidOperationException(
+            "Thiếu cấu hình kết nối PostgreSQL. Vui lòng thiết lập biến môi trường 'ConnectionStrings__DefaultConnection' (hoặc User Secrets trong Development).");
+    }
+
+    if (!connStr.Contains("Password=", StringComparison.OrdinalIgnoreCase)
+        && !connStr.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+        && !connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            "Chuỗi kết nối PostgreSQL chưa có mật khẩu. Không lưu mật khẩu trong appsettings.json; hãy cấu hình qua User Secrets ('dotnet user-secrets set \"ConnectionStrings:DefaultConnection\" ...') hoặc biến môi trường 'VEGGIEAI_DB_PASSWORD' / 'ConnectionStrings__DefaultConnection'.");
     }
 }
 
 builder.Services.AddDbContext<VeggieAIDbContext>(options =>
 {
-    if (canConnectToPostgres && !string.IsNullOrWhiteSpace(connStr))
+    if (useInMemory)
     {
-        options.UseNpgsql(connStr);
+        options.UseInMemoryDatabase("VeggieAIDevDb");
     }
     else
     {
-        options.UseInMemoryDatabase("VeggieAIDb");
+        options.UseNpgsql(connStr);
     }
 });
 
 // 3. Dependency Injection (4-Layer Pattern)
-// Repositories & Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRecipeRepository, RecipeRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IModerationRepository, ModerationRepository>();
 builder.Services.AddScoped<IAiModelRepository, AiModelRepository>();
-
-// Email OTP verification (IMemoryCache + SMTP)
-builder.Services.AddMemoryCache();
-builder.Services.Configure<VeggieAI.Model.DTOs.EmailOptions>(
-    builder.Configuration.GetSection(VeggieAI.Model.DTOs.EmailOptions.Section));
-builder.Services.Configure<VeggieAI.Model.DTOs.OtpOptions>(
-    builder.Configuration.GetSection(VeggieAI.Model.DTOs.OtpOptions.Section));
-builder.Services.AddSingleton<IOtpService, OtpService>();
-builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
 
 // Business Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -87,6 +94,7 @@ builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISystemLogService, SystemLogService>();
+builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<IIngredientService, IngredientService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IVeganChallengeService, VeganChallengeService>();
@@ -94,26 +102,26 @@ builder.Services.AddScoped<INutritionAnalyticsService, NutritionAnalyticsService
 builder.Services.AddScoped<IBroadcastNotificationService, BroadcastNotificationService>();
 builder.Services.AddScoped<IRewardService, RewardService>();
 builder.Services.AddScoped<IVeganProductService, VeganProductService>();
-builder.Services.AddScoped<IHealthProfileService, HealthProfileService>();
-builder.Services.AddScoped<IMealPlanService, MealPlanService>();
-builder.Services.AddScoped<INutritionService, NutritionService>();
-builder.Services.AddScoped<ICommunityService, CommunityService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IVeganShopService, VeganShopService>();
 
-// AI services (Gemini/OpenAI)
-builder.Services.Configure<VeggieAI.Model.DTOs.AiOptions>(
-    builder.Configuration.GetSection(VeggieAI.Model.DTOs.AiOptions.Section));
-builder.Services.AddHttpClient<VeggieAI.Service.Services.AI.GeminiProvider>();
-builder.Services.AddHttpClient<VeggieAI.Service.Services.AI.OpenAiProvider>();
-builder.Services.AddScoped<VeggieAI.Service.Services.AI.ILlmClient, VeggieAI.Service.Services.AI.LlmClient>();
-builder.Services.AddSingleton<VeggieAI.Service.Services.AI.IFileStorage, VeggieAI.Service.Services.AI.LocalFileStorage>();
-builder.Services.AddScoped<VeggieAI.Service.Services.AI.IAiMealPlanner, VeggieAI.Service.Services.AI.AiMealPlanner>();
-builder.Services.AddScoped<VeggieAI.Service.Services.AI.IChatService, VeggieAI.Service.Services.AI.ChatService>();
-builder.Services.AddScoped<VeggieAI.Service.Services.AI.IIngredientScanService, VeggieAI.Service.Services.AI.IngredientScanService>();
+// 4. Strict JWT Authentication & Role-Based Authorization Policies
+var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("VEGGIEAI_JWT_KEY");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("VEGGIEAI_JWT_ISSUER");
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("VEGGIEAI_JWT_AUDIENCE");
 
-// 4. JWT Authentication & Authorization
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "VeggieAI_Super_Secret_Key_2026_Enterprise_Edition_Must_Be_Long_Enough!";
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Cấu hình bảo mật 'Jwt:Key' (hoặc biến môi trường 'Jwt__Key' / 'VEGGIEAI_JWT_KEY') bắt buộc phải được thiết lập tối thiểu 32 bytes. Không sử dụng khóa mặc định.");
+}
+
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException("Cấu hình bảo mật 'Jwt:Issuer' và 'Jwt:Audience' bắt buộc phải được thiết lập.");
+}
+
+// Ensure AuthService reading IConfiguration["Jwt:Key"] also sees env fallback if VEGGIEAI_JWT_KEY was used
+builder.Configuration["Jwt:Key"] = jwtKey;
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -127,22 +135,75 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "VeggieAI",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "VeggieAIClient",
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        RoleClaimType = ClaimTypes.Role,
+        NameClaimType = ClaimTypes.NameIdentifier
     };
 });
-builder.Services.AddAuthorization();
 
-// 5. CORS Configuration
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(RoleConstants.SuperAdminOnlyPolicy, policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(ctx =>
+                  RoleConstants.Normalize(ctx.User.FindFirstValue(ClaimTypes.Role)) == RoleConstants.SuperAdmin));
+
+    options.AddPolicy(RoleConstants.ModOnlyPolicy, policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(ctx =>
+                  RoleConstants.Normalize(ctx.User.FindFirstValue(ClaimTypes.Role)) == RoleConstants.Mod));
+
+    options.AddPolicy(RoleConstants.ManagementAccessPolicy, policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(ctx =>
+                  RoleConstants.IsManagementRole(ctx.User.FindFirstValue(ClaimTypes.Role))));
+
+    options.AddPolicy(RoleConstants.AuthenticatedUserPolicy, policy =>
+        policy.RequireAuthenticatedUser());
+});
+
+// 5. Environment-Aware Restricted CORS Configuration
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+var envOriginsRaw = builder.Configuration["CORS_ALLOWED_ORIGINS"] ?? Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS");
+var envOrigins = string.IsNullOrWhiteSpace(envOriginsRaw)
+    ? Array.Empty<string>()
+    : envOriginsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+var effectiveOrigins = configuredOrigins
+    .Concat(envOrigins)
+    .Where(o => !string.IsNullOrWhiteSpace(o))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+if (!builder.Environment.IsDevelopment())
+{
+    // Strip localhost origins in Production to prevent accidental dev CORS exposure
+    effectiveOrigins = effectiveOrigins
+        .Where(o => !o.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+                    && !o.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+
+    if (effectiveOrigins.Length == 0)
+    {
+        throw new InvalidOperationException(
+            "Môi trường Production bắt buộc phải cấu hình domain thực tế trong 'Cors:AllowedOrigins' hoặc biến môi trường 'CORS_ALLOWED_ORIGINS' (không sử dụng localhost).");
+    }
+}
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("ConfiguredCors", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (effectiveOrigins.Length > 0)
+        {
+            policy.WithOrigins(effectiveOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -154,7 +215,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "VeggieAI RESTful API",
         Version = "v1",
-        Description = "Nền tảng Quản trị & Trợ lý Chế độ ăn Thuần thực vật VeggieAI"
+        Description = "Nền tảng Quản trị (Web Admin Portal: SuperAdmin & Mod) & Dịch vụ Ứng dụng Người dùng VeggieAI (User App / Mobile)"
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -178,71 +239,56 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// 7. Initialize Database & Seed
+// Ensure wwwroot/uploads exists for file uploads
+var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRoot, "uploads"));
+
+// 7. Verify Database Connection, Sync Schema, and Seed ONLY in Development
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
-    try
+    var context = services.GetRequiredService<VeggieAIDbContext>();
+
+    if (!useInMemory)
     {
-        var context = services.GetRequiredService<VeggieAIDbContext>();
-        if (canConnectToPostgres)
+        if (!await context.Database.CanConnectAsync())
         {
-            context.Database.EnsureCreated();
-            try
-            {
-                // Cho phép trạng thái 'pending' (chờ xác thực email OTP) trên bảng User
-                context.Database.ExecuteSqlRaw(@"
-DO $$
-BEGIN
-    IF to_regclass('veggieai.""User""') IS NOT NULL THEN
-        ALTER TABLE veggieai.""User"" DROP CONSTRAINT IF EXISTS ""User_Status_check"";
-        ALTER TABLE veggieai.""User"" ADD CONSTRAINT ""User_Status_check""
-            CHECK (""Status"" IN ('pending', 'active', 'locked'));
-    END IF;
-END $$;");
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Không cập nhật được CHECK constraint User.Status — hãy chạy database/migrations/20261024_user_pending_status.sql thủ công.");
-            }
-            await DatabaseSeeder.SeedAsync(context);
-            logger.LogInformation("PostgreSQL Database connected and initialized successfully.");
+            logger.LogCritical("Không thể kết nối đến PostgreSQL Database. Hệ thống từ chối chuyển sang InMemory.");
+            throw new InvalidOperationException("Không thể kết nối đến cơ sở dữ liệu PostgreSQL. Vui lòng kiểm tra dịch vụ PostgreSQL và chuỗi kết nối.");
         }
-        else
-        {
-            context.Database.EnsureCreated();
-            await DatabaseSeeder.SeedAsync(context);
-            logger.LogInformation("VeggieAI API running with InMemory Database and preloaded seed data.");
-        }
+
+        await DatabaseSeeder.EnsureSchemaSynchronizedAsync(context);
+        logger.LogInformation("PostgreSQL Database connected and schema synchronized.");
     }
-    catch (Exception ex)
+    else
     {
-        logger.LogError(ex, "An error occurred during database seeding.");
+        await context.Database.EnsureCreatedAsync();
+    }
+
+    if (app.Environment.IsDevelopment())
+    {
+        await DatabaseSeeder.SeedDevelopmentDataAsync(context);
+        logger.LogInformation("Development seed data verified.");
     }
 }
 
 // 8. Middleware Pipeline
 app.UseMiddleware<ExceptionMiddleware>();
 
-app.UseCors("AllowAll");
+app.UseStaticFiles();
 
-// Phục vụ ảnh upload (/uploads/...) — cùng thư mục gốc với LocalFileStorage (Storage:LocalRoot).
-// Trước đây không có middleware này nên mọi ảnh upload đều trả 404.
-var uploadsRoot = app.Configuration["Storage:LocalRoot"] ?? Path.Combine(AppContext.BaseDirectory, "wwwroot", "uploads");
-Directory.CreateDirectory(uploadsRoot);
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsRoot),
-    RequestPath = "/uploads"
-});
+app.UseCors("ConfiguredCors");
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "VeggieAI API v1");
-    c.RoutePrefix = string.Empty; // Serve Swagger at root "/"
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "VeggieAI API v1");
+        c.RoutePrefix = string.Empty;
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

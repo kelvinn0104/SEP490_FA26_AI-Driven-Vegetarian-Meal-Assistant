@@ -1,14 +1,13 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
 
 namespace VeggieAI.API.Controllers;
 
-[ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController : ApiControllerBase
 {
     private readonly IAuthService _authService;
 
@@ -25,38 +24,16 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<AuthResponse>.Ok(result, "Đăng nhập thành công"));
     }
 
-    /// <summary>Bước 1: tạo tài khoản "pending", sinh OTP 6 số và gửi qua email. Không trả JWT.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<RegisterPendingResponse>>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
-        var message = result.CodeSent
-            ? $"Mã xác thực 6 số đã được gửi tới email {result.Email}"
-            : $"Mã xác thực đã được gửi tới email {result.Email} trước đó, vui lòng kiểm tra hộp thư";
-        return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, message));
-    }
-
-    /// <summary>Bước 2: kiểm tra OTP → kích hoạt tài khoản (active) → trả JWT để đăng nhập luôn.</summary>
-    [HttpPost("verify-code")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyCode([FromBody] VerifyCodeRequest request)
-    {
-        var result = await _authService.VerifyCodeAsync(request);
-        return Ok(ApiResponse<AuthResponse>.Ok(result, "Xác thực email thành công"));
-    }
-
-    /// <summary>Hủy OTP cũ, sinh mã mới và gửi lại (chỉ cho phép sau 60 giây).</summary>
-    [HttpPost("resend-code")]
-    [AllowAnonymous]
-    public async Task<ActionResult<ApiResponse<RegisterPendingResponse>>> ResendCode([FromBody] ResendCodeRequest request)
-    {
-        var result = await _authService.ResendCodeAsync(request);
-        return Ok(ApiResponse<RegisterPendingResponse>.Ok(result, $"Đã gửi lại mã xác thực tới email {result.Email}"));
+        return Ok(ApiResponse<AuthResponse>.Ok(result, "Đăng ký tài khoản thành công"));
     }
 
     [HttpPost("logout")]
-    [AllowAnonymous]
+    [Authorize]
     public ActionResult<ApiResponse<string>> Logout()
     {
         return Ok(ApiResponse<string>.Ok("Logged out", "Đăng xuất thành công"));
@@ -66,50 +43,25 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<ActionResult<ApiResponse<UserDto>>> GetMe()
     {
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!int.TryParse(userIdStr, out var userId))
-        {
-            return Unauthorized(ApiResponse<UserDto>.Fail("Không xác định được danh tính."));
-        }
-
+        var userId = GetRequiredUserId();
         var user = await _authService.GetCurrentUserAsync(userId);
         if (user == null)
         {
-            return NotFound(ApiResponse<UserDto>.Fail("Người dùng không tồn tại."));
+            return Unauthorized(ApiResponse<UserDto>.Fail("Tài khoản không tồn tại hoặc đã bị khóa."));
         }
 
         return Ok(ApiResponse<UserDto>.Ok(user));
     }
-
-    /// <summary>Cập nhật tên hiển thị của tài khoản đang đăng nhập.</summary>
-    [HttpPut("me")]
-    [Authorize]
-    public async Task<ActionResult<ApiResponse<UserDto>>> UpdateMe([FromBody] UpdateMeRequest request)
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            return Unauthorized(ApiResponse<UserDto>.Fail("Không xác định được danh tính."));
-
-        var user = await _authService.UpdateMeAsync(userId, request);
-        return Ok(ApiResponse<UserDto>.Ok(user, "Cập nhật thông tin thành công"));
-    }
-
-    /// <summary>Đổi mật khẩu (yêu cầu mật khẩu hiện tại).</summary>
-    [HttpPost("change-password")]
-    [Authorize]
-    public async Task<ActionResult<ApiResponse<bool>>> ChangePassword([FromBody] ChangePasswordRequest request)
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
-            return Unauthorized(ApiResponse<bool>.Fail("Không xác định được danh tính."));
-
-        await _authService.ChangePasswordAsync(userId, request);
-        return Ok(ApiResponse<bool>.Ok(true, "Đổi mật khẩu thành công"));
-    }
 }
 
-[ApiController]
+public class LockUserRequest
+{
+    public string? Reason { get; set; }
+}
+
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Admin)]
-public class UsersController : ControllerBase
+[Authorize(Policy = RoleConstants.ManagementAccessPolicy)]
+public class UsersController : ApiControllerBase
 {
     private readonly IUserService _userService;
 
@@ -125,14 +77,18 @@ public class UsersController : ControllerBase
         [FromQuery] string? role,
         [FromQuery] string? status)
     {
-        var users = await _userService.GetUsersAsync(search, diet, role, status);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var users = await _userService.GetUsersAsync(actorId, actorRole, search, diet, role, status);
         return Ok(ApiResponse<List<UserDto>>.Ok(users));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<UserDto>>> GetUserById(string id)
     {
-        var user = await _userService.GetUserByIdAsync(id);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var user = await _userService.GetUserByIdAsync(id, actorId, actorRole);
         if (user == null)
         {
             return NotFound(ApiResponse<UserDto>.Fail("Không tìm thấy người dùng."));
@@ -141,16 +97,21 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<UserDto>>> CreateUser([FromBody] CreateUserRequest request)
     {
-        var created = await _userService.CreateUserAsync(request);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var created = await _userService.CreateUserAsync(request, actorId, actorRole);
         return CreatedAtAction(nameof(GetUserById), new { id = created.Id }, ApiResponse<UserDto>.Ok(created, "Tạo tài khoản thành công"));
     }
 
     [HttpPut("{id}/lock")]
-    public async Task<ActionResult<ApiResponse<bool>>> LockUser(string id)
+    public async Task<ActionResult<ApiResponse<bool>>> LockUser(string id, [FromBody] LockUserRequest? request = null)
     {
-        var ok = await _userService.LockUserAsync(id);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var ok = await _userService.LockUserAsync(id, actorId, actorRole, request?.Reason);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã khóa tài khoản thành công"));
     }
@@ -158,23 +119,31 @@ public class UsersController : ControllerBase
     [HttpPut("{id}/unlock")]
     public async Task<ActionResult<ApiResponse<bool>>> UnlockUser(string id)
     {
-        var ok = await _userService.UnlockUserAsync(id);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var ok = await _userService.UnlockUserAsync(id, actorId, actorRole);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã mở khóa tài khoản thành công"));
     }
 
     [HttpPut("{id}/role")]
+    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateUserRole(string id, [FromBody] UpdateUserRoleRequest request)
     {
-        var ok = await _userService.UpdateUserRoleAsync(id, request.Role);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var ok = await _userService.UpdateUserRoleAsync(id, request.Role, actorId, actorRole);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Cập nhật phân quyền thành công"));
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteUser(string id)
     {
-        var ok = await _userService.DeleteUserAsync(id);
+        var actorId = GetRequiredUserId();
+        var actorRole = GetCurrentUserRole();
+        var ok = await _userService.DeleteUserAsync(id, actorId, actorRole);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa người dùng"));
     }

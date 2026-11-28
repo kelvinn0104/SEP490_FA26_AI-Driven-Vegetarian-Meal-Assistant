@@ -12,7 +12,7 @@ public class ModerationItemDto
     public string Category { get; set; } = string.Empty;
     public string SubmittedAt { get; set; } = string.Empty;
     public string Type { get; set; } = "recipe"; // 'recipe', 'blog', 'video'
-    public string Status { get; set; } = "pending"; // 'pending', 'approved', 'rejected'
+    public string Status { get; set; } = "pending";
     public int AiScore { get; set; }
     public int NutritionalScore { get; set; }
     public int PlantBasedScore { get; set; }
@@ -23,6 +23,9 @@ public class ModerationItemDto
     public string Fat { get; set; } = string.Empty;
     public string? Content { get; set; }
     public string? MediaUrl { get; set; }
+    public string? ReviewedBy { get; set; }
+    public string? ReviewedAt { get; set; }
+    public string? Decision { get; set; }
 }
 
 public class ModerationActionRequest
@@ -54,28 +57,34 @@ public class AiTelemetryLogDto
     public string Tag { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public int LatencyMs { get; set; }
-    public string Type { get; set; } = "info"; // 'success', 'info', 'accent', 'warn', 'error'
+    public string Type { get; set; } = "info";
 }
 
 public class NutritionAnalysisRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Vui lòng nhập danh sách nguyên liệu cần phân tích.")]
     public string RecipeText { get; set; } = string.Empty;
 }
 
 public class NutritionAnalysisResponse
 {
+    public bool Analyzed { get; set; } = true;
+    public string Source { get; set; } = "database"; // 'gemini' | 'database'
     public int Calories { get; set; }
     public string Protein { get; set; } = string.Empty;
+    public string Carbs { get; set; } = string.Empty;
+    public string Fat { get; set; } = string.Empty;
     public string B12Percent { get; set; } = string.Empty;
     public string IronPercent { get; set; } = string.Empty;
     public string AbsorptionRating { get; set; } = string.Empty;
     public string VeganPurity { get; set; } = string.Empty;
     public string AllergenAlert { get; set; } = string.Empty;
+    public List<string> MatchedIngredients { get; set; } = new();
 }
 
 public class UpdateAiModelStatusRequest
 {
+    [Required]
     public string Status { get; set; } = "active";
 }
 
@@ -83,17 +92,23 @@ public class UpdateAiModelStatusRequest
 public class DashboardOverviewDto
 {
     public int TotalUsers { get; set; }
+    public int TotalMods { get; set; }
+    public int TotalRoles { get; set; }
     public decimal UserGrowth { get; set; }
+    public int TotalRecipes { get; set; }
+    public int TotalCategories { get; set; }
+    public int TotalIngredients { get; set; }
     public int TotalBlogs { get; set; }
     public decimal BlogGrowth { get; set; }
     public int TotalVideos { get; set; }
     public decimal VideoGrowth { get; set; }
     public int PendingModeration { get; set; }
-    public string Cluster { get; set; } = "Cụm HCM-01";
-    public string RamUsage { get; set; } = "340GB / 500GB";
-    public int RamPercent { get; set; } = 68;
-    public string GpuLoad { get; set; } = "34.2% ổn định";
-    public string AiAccuracy { get; set; } = "94.6%";
+    public int OpenFeedbacks { get; set; }
+    public int ActiveChallenges { get; set; }
+    public int PendingProductScans { get; set; }
+    public int TotalAiQueries { get; set; }
+    public int SystemErrorsCount { get; set; }
+    public string AiAccuracy { get; set; } = "0%";
 }
 
 public class DietDistributionItemDto
@@ -109,6 +124,7 @@ public class DietDistributionItemDto
 public class WeeklyChartDayDto
 {
     public string Day { get; set; } = string.Empty;
+    public string Date { get; set; } = string.Empty;
     public int Recipes { get; set; }
     public int Queries { get; set; }
     public int Users { get; set; }
@@ -131,13 +147,13 @@ public class ActivityItemDto
     public string Target { get; set; } = string.Empty;
     public string Details { get; set; } = string.Empty;
     public string Time { get; set; } = string.Empty;
-    public string Status { get; set; } = "Thành công";
+    public string Status { get; set; } = "Hoàn tất";
     public string StatusBgClass { get; set; } = "bg-secondary-container";
     public string StatusTextClass { get; set; } = "text-on-secondary-container";
     public string Avatar { get; set; } = string.Empty;
 }
 
-// ROLES
+// ROLES & PERMISSIONS
 public class PermissionDto
 {
     public string Id { get; set; } = string.Empty;
@@ -164,6 +180,27 @@ public class SaveRoleRequest
 
     public string Description { get; set; } = string.Empty;
     public List<string> Permissions { get; set; } = new();
+}
+
+// SYSTEM SETTINGS
+public class SystemSettingDto
+{
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? UpdatedByName { get; set; }
+    public string UpdatedAt { get; set; } = string.Empty;
+}
+
+public class SaveSystemSettingRequest
+{
+    [Required(ErrorMessage = "Khóa cấu hình không được để trống")]
+    public string Key { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Giá trị cấu hình không được để trống")]
+    public string Value { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
 }
 
 // SYSTEM LOGS

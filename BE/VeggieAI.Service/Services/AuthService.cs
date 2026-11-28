@@ -1,13 +1,12 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
-using VeggieAI.Model.Exceptions;
 using VeggieAI.Repository.Repositories;
 
 namespace VeggieAI.Service.Services;
@@ -15,41 +14,19 @@ namespace VeggieAI.Service.Services;
 public interface IAuthService
 {
     Task<AuthResponse> LoginAsync(LoginRequest request);
-    Task<RegisterPendingResponse> RegisterAsync(RegisterRequest request);
-    Task<AuthResponse> VerifyCodeAsync(VerifyCodeRequest request);
-    Task<RegisterPendingResponse> ResendCodeAsync(ResendCodeRequest request);
+    Task<AuthResponse> RegisterAsync(RegisterRequest request);
     Task<UserDto?> GetCurrentUserAsync(int userId);
-    Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request);
-    Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
 }
 
 public class AuthService : IAuthService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _config;
-    private readonly IOtpService _otp;
-    private readonly IEmailService _email;
-    private readonly OtpOptions _otpOptions;
-    private readonly ILogger<AuthService> _log;
 
-    public const string StatusPending = "pending";
-    public const string StatusActive = "active";
-    public const string StatusLocked = "locked";
-
-    public AuthService(
-        IUnitOfWork unitOfWork,
-        IConfiguration config,
-        IOtpService otp,
-        IEmailService email,
-        IOptions<OtpOptions> otpOptions,
-        ILogger<AuthService> log)
+    public AuthService(IUnitOfWork unitOfWork, IConfiguration config)
     {
         _unitOfWork = unitOfWork;
         _config = config;
-        _otp = otp;
-        _email = email;
-        _otpOptions = otpOptions.Value;
-        _log = log;
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -60,21 +37,20 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
         }
 
-        if (user.Status == StatusLocked)
+        if (user.Status == "locked")
         {
-            throw new InvalidOperationException("Tài khoản của bạn đã bị khóa bởi Quản trị viên.");
+            throw new ForbiddenAccessException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.");
         }
 
-        // Verify password
-        bool validPassword = false;
+        bool validPassword;
         try
         {
-            validPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+            validPassword = !string.IsNullOrWhiteSpace(user.PasswordHash)
+                            && BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         }
         catch
         {
-            // Fallback for seed testing if raw match
-            validPassword = request.Password == "Password123!" || request.Password == user.PasswordHash;
+            validPassword = false;
         }
 
         if (!validPassword)
@@ -82,291 +58,166 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Tài khoản hoặc mật khẩu không chính xác.");
         }
 
-        // Chỉ báo "chưa xác thực" SAU khi mật khẩu đúng (tránh lộ thông tin tài khoản)
-        if (user.Status == StatusPending)
+        var normalizedRole = RoleConstants.Normalize(user.Role);
+        if (user.Role != normalizedRole)
         {
-            throw new EmailNotVerifiedException(user.Email,
-                "Tài khoản chưa xác thực email. Vui lòng nhập mã OTP đã gửi tới email hoặc bấm \"Gửi lại mã\".");
-        }
-
-        var token = GenerateJwtToken(user);
-        var expiresAt = DateTime.UtcNow.AddDays(7);
-
-        // System Log
-        try
-        {
-            await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
-            {
-                UserId = user.Id,
-                Action = "Đăng nhập hệ thống",
-                Target = user.DisplayName,
-                Details = $"Đăng nhập thành công với vai trò: {user.Role}",
-                LogType = "auth",
-                CreatedAt = DateTime.UtcNow
-            });
+            user.Role = normalizedRole;
+            _unitOfWork.Users.Update(user);
             await _unitOfWork.CommitAsync();
         }
-        catch { }
+
+        if (request.PortalOnly && !RoleConstants.IsManagementRole(normalizedRole))
+        {
+            throw new ForbiddenAccessException("Tài khoản người dùng thông thường không có quyền truy cập cổng quản trị Web.");
+        }
+
+        var expiryDays = int.TryParse(_config["Jwt:ExpiryDays"], out var parsedDays) && parsedDays > 0 ? parsedDays : 7;
+        var expiresAt = DateTime.UtcNow.AddDays(expiryDays);
+        var token = GenerateJwtToken(user, expiresAt);
+        var permissions = await GetRolePermissionsAsync(normalizedRole);
+        var aiCount = await _unitOfWork.Context.AiModelLogs.CountAsync(l => l.UserId == user.Id);
+
+        await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+        {
+            UserId = user.Id,
+            Action = "Đăng nhập hệ thống",
+            Target = user.Email,
+            Details = $"Đăng nhập thành công với vai trò: {normalizedRole}",
+            LogType = "auth",
+            CreatedAt = DateTime.UtcNow
+        });
+        await _unitOfWork.CommitAsync();
 
         return new AuthResponse
         {
             Token = token,
             RefreshToken = Guid.NewGuid().ToString("N"),
             ExpiresAt = expiresAt,
-            User = MapUserToDto(user)
+            User = MapUserToDto(user, permissions, aiCount)
         };
     }
 
-    /// <summary>
-    /// Bước 1: tạo user ở trạng thái "pending" + sinh OTP 6 số + gửi email. KHÔNG trả JWT ở bước này.
-    /// Nếu email đã đăng ký nhưng vẫn "pending" (bỏ dở lần trước) → cập nhật lại thông tin và gửi mã mới.
-    /// </summary>
-    public async Task<RegisterPendingResponse> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
-        var email = request.Email.Trim().ToLowerInvariant();
-        var existing = await _unitOfWork.Users.GetByEmailAsync(email);
-        if (existing != null && existing.Status != StatusPending)
+        var existing = await _unitOfWork.Users.GetByEmailAsync(request.Email);
+        if (existing != null)
         {
             throw new InvalidOperationException("Email này đã được sử dụng trên hệ thống.");
         }
 
-        var allowedRole = ResolveRegisterRole(request.Role, request.InviteCode);
+        var requestedRole = RoleConstants.Normalize(request.Role);
+        if (requestedRole == RoleConstants.SuperAdmin || requestedRole == RoleConstants.Mod)
+        {
+            var allowInvite = bool.TryParse(_config["Auth:AllowInviteRegistration"], out var parsedAllow) && parsedAllow;
+            if (!allowInvite)
+            {
+                throw new ForbiddenAccessException("Chức năng tự đăng ký tài khoản quản trị đang tắt. Vui lòng liên hệ SuperAdmin cấp tài khoản.");
+            }
+
+            var expectedCode = requestedRole == RoleConstants.SuperAdmin
+                ? _config["Auth:SuperAdminInviteCode"]
+                : _config["Auth:ModInviteCode"];
+
+            if (string.IsNullOrWhiteSpace(expectedCode)
+                || string.IsNullOrWhiteSpace(request.InviteCode)
+                || !string.Equals(request.InviteCode.Trim(), expectedCode.Trim(), StringComparison.Ordinal))
+            {
+                throw new UnauthorizedAccessException("Mã mời xác thực vai trò quản trị không hợp lệ.");
+            }
+        }
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        User user;
-        if (existing == null)
+        var user = new User
         {
-            user = new User
-            {
-                Email = email,
-                DisplayName = request.DisplayName.Trim(),
-                PasswordHash = passwordHash,
-                Role = allowedRole,
-                Status = StatusPending,
-                CreatedAt = DateTime.UtcNow
-            };
-            await _unitOfWork.Users.AddAsync(user);
-        }
-        else
-        {
-            user = existing;
-            user.DisplayName = request.DisplayName.Trim();
-            user.PasswordHash = passwordHash;
-            user.Role = allowedRole;
-        }
+            Email = request.Email.Trim().ToLowerInvariant(),
+            DisplayName = request.DisplayName.Trim(),
+            PasswordHash = passwordHash,
+            Role = requestedRole,
+            Status = "active",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.Users.AddAsync(user);
         await _unitOfWork.CommitAsync();
 
-        await WriteLogAsync(user, "Đăng ký tài khoản",
-            $"Tạo tài khoản {user.Email} vai trò {user.Role} — chờ xác thực email");
-
-        // Đăng ký lại khi mã cũ vẫn đang trong thời gian chờ → không gửi thêm, FE tiếp tục bước nhập OTP
-        var cooldown = _otp.GetResendRemainingSeconds(user.Email);
-        if (existing != null && cooldown > 0)
+        await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
         {
-            return new RegisterPendingResponse
-            {
-                Email = user.Email,
-                CodeSent = false,
-                ExpiresInSeconds = _otp.GetCodeRemainingSeconds(user.Email),
-                ResendAfterSeconds = cooldown
-            };
-        }
-
-        return await IssueAndSendOtpAsync(user);
-    }
-
-    /// <summary>
-    /// Vai trò khi tự đăng ký: mặc định "user". Muốn đăng ký admin/moderator phải nhập đúng mã mời
-    /// cấu hình qua biến môi trường Auth__AdminInviteCodes / Auth__ModeratorInviteCodes (nhiều mã cách nhau dấu phẩy).
-    /// Không cấu hình mã → không cho tự đăng ký vai trò đó (admin tạo tài khoản qua /api/Users).
-    /// </summary>
-    private string ResolveRegisterRole(string? requestedRole, string? inviteCode)
-    {
-        var role = (requestedRole ?? AppRoles.User).Trim().ToLowerInvariant();
-        if (role == "mod") role = AppRoles.Moderator;
-        if (role != AppRoles.Admin && role != AppRoles.Moderator) return AppRoles.User;
-
-        var key = role == AppRoles.Admin ? "Auth:AdminInviteCodes" : "Auth:ModeratorInviteCodes";
-        var codes = (_config[key] ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var code = inviteCode?.Trim();
-        if (string.IsNullOrEmpty(code) || !codes.Contains(code, StringComparer.Ordinal))
-        {
-            throw AppException.Forbidden(role == AppRoles.Admin
-                ? "Mã mời Admin không hợp lệ."
-                : "Mã mời Moderator không hợp lệ.");
-        }
-        return role;
-    }
-
-    /// <summary>
-    /// Bước 2: kiểm tra OTP (còn mã? hết hạn? sai quá số lần? khớp?) → kích hoạt tài khoản → trả JWT.
-    /// </summary>
-    public async Task<AuthResponse> VerifyCodeAsync(VerifyCodeRequest request)
-    {
-        var email = request.Email.Trim().ToLowerInvariant();
-        var user = await _unitOfWork.Users.GetByEmailAsync(email);
-        if (user == null)
-        {
-            throw new InvalidOperationException("Không tìm thấy yêu cầu xác thực cho email này. Vui lòng đăng ký lại.");
-        }
-        if (user.Status == StatusLocked)
-        {
-            throw new InvalidOperationException("Tài khoản của bạn đã bị khóa bởi Quản trị viên.");
-        }
-        if (user.Status == StatusActive)
-        {
-            throw new InvalidOperationException("Tài khoản đã được xác thực trước đó. Vui lòng đăng nhập.");
-        }
-
-        var result = _otp.Verify(email, request.OtpCode);
-        switch (result.Status)
-        {
-            case OtpVerifyStatus.NotFound:
-                throw new InvalidOperationException("Không có mã OTP nào đang chờ cho email này. Vui lòng bấm \"Gửi lại mã\".");
-            case OtpVerifyStatus.Expired:
-                throw new InvalidOperationException("Mã OTP đã hết hạn, vui lòng lấy mã mới.");
-            case OtpVerifyStatus.TooManyAttempts:
-                throw new InvalidOperationException(
-                    $"Bạn đã nhập sai quá {_otpOptions.MaxAttempts} lần. Mã OTP đã bị hủy, vui lòng lấy mã mới.");
-            case OtpVerifyStatus.Invalid:
-                throw new InvalidOperationException($"Mã OTP không chính xác. Bạn còn {result.RemainingAttempts} lần thử.");
-        }
-
-        // Hợp lệ → kích hoạt tài khoản (mã OTP đã được xóa trong OtpService.Verify)
-        user.Status = StatusActive;
+            UserId = user.Id,
+            Action = "Đăng ký tài khoản",
+            Target = user.Email,
+            Details = $"Tạo mới tài khoản {user.Email} với vai trò {user.Role}",
+            LogType = "auth",
+            CreatedAt = DateTime.UtcNow
+        });
         await _unitOfWork.CommitAsync();
 
-        await WriteLogAsync(user, "Xác thực email", $"Tài khoản {user.Email} đã xác thực email bằng OTP và được kích hoạt");
+        var expiryDays = int.TryParse(_config["Jwt:ExpiryDays"], out var parsedDays) && parsedDays > 0 ? parsedDays : 7;
+        var expiresAt = DateTime.UtcNow.AddDays(expiryDays);
+        var token = GenerateJwtToken(user, expiresAt);
+        var permissions = await GetRolePermissionsAsync(user.Role);
 
         return new AuthResponse
         {
-            Token = GenerateJwtToken(user),
+            Token = token,
             RefreshToken = Guid.NewGuid().ToString("N"),
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
-            User = MapUserToDto(user)
+            ExpiresAt = expiresAt,
+            User = MapUserToDto(user, permissions, 0)
         };
-    }
-
-    /// <summary>Hủy OTP cũ, sinh mã mới và gửi lại (chỉ khi đã hết 60s chờ).</summary>
-    public async Task<RegisterPendingResponse> ResendCodeAsync(ResendCodeRequest request)
-    {
-        var email = request.Email.Trim().ToLowerInvariant();
-        var user = await _unitOfWork.Users.GetByEmailAsync(email);
-        if (user == null)
-        {
-            throw new InvalidOperationException("Không tìm thấy tài khoản đang chờ xác thực với email này.");
-        }
-        if (user.Status == StatusActive)
-        {
-            throw new InvalidOperationException("Tài khoản đã được xác thực. Vui lòng đăng nhập.");
-        }
-        if (user.Status == StatusLocked)
-        {
-            throw new InvalidOperationException("Tài khoản của bạn đã bị khóa bởi Quản trị viên.");
-        }
-
-        return await IssueAndSendOtpAsync(user);
-    }
-
-    private async Task<RegisterPendingResponse> IssueAndSendOtpAsync(User user)
-    {
-        // Ném TooManyRequestsException (HTTP 429) nếu chưa hết thời gian chờ
-        var issued = _otp.Issue(user.Email);
-        try
-        {
-            await _email.SendOtpAsync(user.Email, user.DisplayName, issued.Code, _otpOptions.ExpiryMinutes);
-        }
-        catch (Exception ex)
-        {
-            _otp.RollbackIssue(user.Email); // cho phép người dùng bấm gửi lại ngay
-            _log.LogError(ex, "[OTP] Gửi email OTP tới {Email} thất bại", user.Email);
-            throw new InvalidOperationException("Không gửi được email xác thực. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau.");
-        }
-
-        return new RegisterPendingResponse
-        {
-            Email = user.Email,
-            CodeSent = true,
-            ExpiresInSeconds = issued.ExpiresInSeconds,
-            ResendAfterSeconds = issued.ResendAfterSeconds,
-            ExpiresAt = issued.ExpiresAt,
-            DevOtp = _otpOptions.ExposeOtpInResponse ? issued.Code : null
-        };
-    }
-
-    private async Task WriteLogAsync(User user, string action, string details)
-    {
-        try
-        {
-            await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
-            {
-                UserId = user.Id,
-                Action = action,
-                Target = user.DisplayName,
-                Details = details,
-                LogType = "auth",
-                CreatedAt = DateTime.UtcNow
-            });
-            await _unitOfWork.CommitAsync();
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "Không ghi được SystemLog cho {Action}", action);
-        }
     }
 
     public async Task<UserDto?> GetCurrentUserAsync(int userId)
     {
         var user = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
-        return user == null ? null : MapUserToDto(user);
-    }
-
-    public async Task<UserDto> UpdateMeAsync(int userId, UpdateMeRequest request)
-    {
-        var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
-        var name = (request.DisplayName ?? string.Empty).Trim();
-        if (name.Length < 2) throw new AppException("Tên hiển thị phải có ít nhất 2 ký tự.");
-
-        user.DisplayName = name;
-        _unitOfWork.Users.Update(user);
-        await _unitOfWork.CommitAsync();
-
-        var detailed = await _unitOfWork.Users.GetUserWithDetailsAsync(userId);
-        return MapUserToDto(detailed ?? user);
-    }
-
-    public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
-    {
-        var user = await _unitOfWork.Users.GetByIdAsync(userId) ?? throw AppException.NotFound("Người dùng");
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-            throw new AppException("Mật khẩu mới phải có ít nhất 8 ký tự.");
-        if (request.NewPassword == request.CurrentPassword)
-            throw new AppException("Mật khẩu mới phải khác mật khẩu hiện tại.");
-
-        bool valid;
-        try
+        if (user == null || user.Status == "locked")
         {
-            valid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash);
+            return null;
         }
-        catch
-        {
-            // Tài khoản seed cũ có thể lưu mật khẩu dạng thô (giống logic LoginAsync)
-            valid = request.CurrentPassword == user.PasswordHash;
-        }
-        if (!valid) throw new AppException("Mật khẩu hiện tại không chính xác.");
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-        _unitOfWork.Users.Update(user);
-        await _unitOfWork.CommitAsync();
+        var normalizedRole = RoleConstants.Normalize(user.Role);
+        var permissions = await GetRolePermissionsAsync(normalizedRole);
+        var aiCount = await _unitOfWork.Context.AiModelLogs.CountAsync(l => l.UserId == user.Id);
+        return MapUserToDto(user, permissions, aiCount);
     }
 
-    private string GenerateJwtToken(User user)
+    private async Task<List<string>> GetRolePermissionsAsync(string normalizedRole)
     {
-        var secret = _config["Jwt:Key"] ?? "VeggieAI_Super_Secret_Key_2026_Enterprise_Edition_Must_Be_Long_Enough!";
-        var issuer = _config["Jwt:Issuer"] ?? "VeggieAI";
-        var audience = _config["Jwt:Audience"] ?? "VeggieAIClient";
+        var perms = await _unitOfWork.Context.RolePermissions
+            .Where(rp => rp.RoleId == normalizedRole)
+            .Select(rp => rp.PermissionId)
+            .ToListAsync();
 
+        if (perms.Count == 0)
+        {
+            if (normalizedRole == RoleConstants.SuperAdmin)
+            {
+                return new List<string> { "usr_read", "usr_write", "usr_role", "nutri_read", "sys_log", "sys_ai" };
+            }
+            if (normalizedRole == RoleConstants.Mod)
+            {
+                return new List<string> { "usr_read", "nutri_read", "nutri_write", "content_approve", "content_delete", "ops_manage" };
+            }
+        }
+
+        return perms;
+    }
+
+    private string GenerateJwtToken(User user, DateTime expiresAt)
+    {
+        var secret = _config["Jwt:Key"];
+        var issuer = _config["Jwt:Issuer"];
+        var audience = _config["Jwt:Audience"];
+
+        if (string.IsNullOrWhiteSpace(secret) || Encoding.UTF8.GetByteCount(secret) < 32)
+        {
+            throw new InvalidOperationException("Chưa cấu hình khóa bí mật JWT hợp lệ.");
+        }
+
+        if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience))
+        {
+            throw new InvalidOperationException("Chưa cấu hình Jwt:Issuer hoặc Jwt:Audience.");
+        }
+
+        var normalizedRole = RoleConstants.Normalize(user.Role);
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -375,7 +226,7 @@ public class AuthService : IAuthService
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Name, user.DisplayName),
-            new(ClaimTypes.Role, user.Role),
+            new(ClaimTypes.Role, normalizedRole),
             new("status", user.Status)
         };
 
@@ -383,21 +234,20 @@ public class AuthService : IAuthService
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: expiresAt,
             signingCredentials: creds
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public static UserDto MapUserToDto(User user)
+    public static UserDto MapUserToDto(User user, List<string>? permissions = null, int aiQueriesCount = 0)
     {
+        var normalizedRole = RoleConstants.Normalize(user.Role);
         var allergies = user.UserAllergies?
             .Select(ua => ua.Allergy?.Name ?? "")
             .Where(n => !string.IsNullOrEmpty(n))
             .ToList() ?? new List<string>();
-
-        if (allergies.Count == 0) allergies.Add("Không");
 
         var diet = "vegan";
         if (user.HealthProfile != null)
@@ -413,18 +263,20 @@ public class AuthService : IAuthService
         return new UserDto
         {
             Id = $"USR-{user.Id:D4}",
+            NumericId = user.Id,
             Name = user.DisplayName,
             Email = user.Email,
             Avatar = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(user.DisplayName)}&background=006948&color=ffffff&bold=true",
             DietType = diet,
-            Role = user.Role,
+            Role = normalizedRole,
+            RoleDisplayName = RoleConstants.GetDisplayName(normalizedRole),
             Status = user.Status,
             JoinedDate = user.CreatedAt.ToString("yyyy-MM-dd"),
             RecipesCount = user.CreatedRecipes?.Count ?? 0,
-            AiQueriesCount = 12,
-            Bio = $"Thành viên {user.Role} hệ thống VeggieAI.",
+            AiQueriesCount = aiQueriesCount,
+            Bio = $"Tài khoản {RoleConstants.GetDisplayName(normalizedRole)} trên nền tảng VeggieAI.",
             Allergies = allergies,
-            HasHealthProfile = user.HealthProfile != null
+            Permissions = permissions ?? new List<string>()
         };
     }
 }
