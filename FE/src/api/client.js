@@ -67,6 +67,16 @@ export const setStoredUser = (user) => {
   }
 };
 
+export const clearAuthStorage = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('veggie_token');
+  localStorage.removeItem('veggie_user');
+  localStorage.removeItem('veggieai_user');
+  localStorage.removeItem('veggieai_active_tab');
+  localStorage.removeItem('veggie_user_profile');
+  localStorage.removeItem('veggie_weekly_plan');
+};
+
 /**
  * Unwrap backend response helper.
  * Seamlessly handles:

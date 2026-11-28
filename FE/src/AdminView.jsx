@@ -11,6 +11,8 @@ import {
   UserManagementScreen,
   AiMonitoringScreen,
   RoleManagementScreen,
+  SystemSettingsScreen,
+  SystemLogsScreen,
 } from "./pages/admin";
 import {
   CategoryManagementScreen,
@@ -83,50 +85,54 @@ export default function AdminView({
             />
           )}
 
-          {currentScreen === "user-management" && <UserManagementScreen />}
+          {currentScreen === "user-management" && <UserManagementScreen mode="users" />}
+          {currentScreen === "mod-management" && <UserManagementScreen mode="mods" />}
+          {currentScreen === "role-management" && <RoleManagementScreen />}
+          {currentScreen === "system-settings" && <SystemSettingsScreen />}
+          {currentScreen === "system-logs" && <SystemLogsScreen />}
+          {currentScreen === "ai-model-monitoring" && <AiMonitoringScreen />}
 
           {currentScreen === "category-management" && (
-            <CategoryManagementScreen />
+            <CategoryManagementScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
           )}
 
           {currentScreen === "ingredient-management" && (
-            <IngredientManagementScreen />
+            <IngredientManagementScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
           )}
 
           {currentScreen === "content-moderation" && (
             <ContentModerationScreen
+              readOnly={userRole === 'admin' || userRole === 'SuperAdmin'}
               onUpdatePendingCount={(count) => setPendingCount(count)}
             />
           )}
 
-          {currentScreen === "recipe-management" && <RecipeManagementScreen />}
+          {currentScreen === "recipe-management" && (
+            <RecipeManagementScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
+          )}
 
           {currentScreen === "challenge-management" && (
-            <VeganChallengeManagementScreen />
+            <VeganChallengeManagementScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
           )}
 
           {currentScreen === "product-scanner" && (
-            <VeganProductScannerScreen />
+            <VeganProductScannerScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
           )}
 
-          {currentScreen === "ai-model-monitoring" && <AiMonitoringScreen />}
-
-          {currentScreen === "role-management" && <RoleManagementScreen />}
-
           {currentScreen === "feedback-management" && (
-            <FeedbackManagementScreen userRole={userRole} />
+            <FeedbackManagementScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} userRole={userRole} />
           )}
 
           {currentScreen === "nutrition-analytics" && (
-            <NutritionAnalyticsScreen userRole={userRole} />
+            <NutritionAnalyticsScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} userRole={userRole} />
           )}
 
           {currentScreen === "broadcast-notification" && (
-            <BroadcastNotificationScreen />
+            <BroadcastNotificationScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
           )}
 
           {currentScreen === "reward-management" && (
-            <RewardManagementScreen />
+            <RewardManagementScreen readOnly={userRole === 'admin' || userRole === 'SuperAdmin'} />
           )}
         </main>
       </div>

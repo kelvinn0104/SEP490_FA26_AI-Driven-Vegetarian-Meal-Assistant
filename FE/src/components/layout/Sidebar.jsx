@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({
   currentScreen,
@@ -7,98 +8,54 @@ export const Sidebar = ({
   isOpenMobile = false,
   onCloseMobile,
   onOpenDocModal,
-  userRole = 'admin',
-  onToggleRole,
 }) => {
-  const navItems = [
-    {
-      id: 'dashboard',
-      label: 'Tổng quan',
-      icon: 'grid_view',
-    },
-    {
-      id: 'user-management',
-      label: 'Quản lý Người dùng',
-      icon: 'group',
-      adminOnly: true,
-    },
-    {
-      id: 'category-management',
-      label: 'Nguồn Dinh dưỡng',
-      icon: 'category',
-      modOnly: true,
-    },
-    {
-      id: 'ingredient-management',
-      label: 'Thư viện Vi chất & Đạm',
-      icon: 'science',
-      modOnly: true,
-    },
+  const { userRole, isSuperAdmin, hasPermission } = useAuth();
+
+  const superAdminSystemItems = [
+    { id: 'dashboard', label: 'Tổng quan hệ thống', icon: 'grid_view' },
+    { id: 'user-management', label: 'Quản lý Tài khoản', icon: 'group' },
+    { id: 'mod-management', label: 'Quản lý Mod', icon: 'badge' },
+    { id: 'role-management', label: 'Quản lý Role / Quyền', icon: 'admin_panel_settings' },
+    { id: 'system-settings', label: 'System Settings', icon: 'tune' },
+    { id: 'system-logs', label: 'System Logs', icon: 'receipt_long' },
+    { id: 'ai-model-monitoring', label: 'Giám sát AI', icon: 'neurology' },
+  ];
+
+  const operationalItems = [
+    { id: 'category-management', label: 'Nguồn Dinh dưỡng', icon: 'category' },
+    { id: 'ingredient-management', label: 'Thư viện Vi chất & Đạm', icon: 'science' },
+    { id: 'recipe-management', label: 'Quản lý Công thức', icon: 'menu_book' },
     {
       id: 'content-moderation',
       label: 'Duyệt bài & Công thức',
-      icon: 'local_hospital',
+      icon: 'fact_check',
       badge: pendingCount,
-      modOnly: true,
     },
-    {
-      id: 'recipe-management',
-      label: 'Quản lý Bài viết',
-      icon: 'menu_book',
-      modOnly: true,
-    },
-    {
-      id: 'challenge-management',
-      label: 'Thử thách Lối sống Chay',
-      icon: 'military_tech',
-      modOnly: true,
-    },
-    {
-      id: 'product-scanner',
-      label: 'Thẩm định Nhãn & Quét Chay',
-      icon: 'document_scanner',
-      modOnly: true,
-    },
-    {
-      id: 'ai-model-monitoring',
-      label: 'Log Hệ thống',
-      icon: 'neurology',
-      statusPill: 'Healthy',
-      adminOnly: true,
-    },
-    {
-      id: 'role-management',
-      label: 'Phân quyền Hệ thống',
-      icon: 'admin_panel_settings',
-      adminOnly: true,
-    },
-    {
-      id: 'feedback-management',
-      label: 'Phản hồi & Báo cáo',
-      icon: 'rate_review',
-    },
-    {
-      id: 'nutrition-analytics',
-      label: 'Phân tích Dịch tễ & Macro',
-      icon: 'insights',
-    },
-    {
-      id: 'broadcast-notification',
-      label: 'Thông báo & Mẹo Dinh dưỡng',
-      icon: 'campaign',
-    },
-    {
-      id: 'reward-management',
-      label: 'Đổi Thưởng Mầm Xanh',
-      icon: 'redeem',
-    },
+    { id: 'feedback-management', label: 'Phản hồi & Báo cáo', icon: 'rate_review' },
+    { id: 'nutrition-analytics', label: 'Phân tích Dịch tễ & Macro', icon: 'insights' },
+    { id: 'challenge-management', label: 'Thử thách Lối sống Chay', icon: 'military_tech' },
+    { id: 'product-scanner', label: 'Thẩm định Nhãn & Quét Chay', icon: 'document_scanner' },
+    { id: 'broadcast-notification', label: 'Thông báo & Mẹo Dinh dưỡng', icon: 'campaign' },
+    { id: 'reward-management', label: 'Đổi Thưởng Mầm Xanh', icon: 'redeem' },
   ];
 
-  const filteredNavItems = navItems.filter((item) => {
-    if (userRole === 'admin' && item.modOnly) return false;
-    if (userRole === 'mod' && item.adminOnly) return false;
-    return true;
-  });
+  const modPrimaryItems = [
+    { id: 'dashboard', label: 'Tổng quan vận hành', icon: 'grid_view' },
+    ...(hasPermission('usr_read')
+      ? [{ id: 'user-management', label: 'Quản lý Tài khoản', icon: 'group' }]
+      : []),
+    { id: 'ai-model-monitoring', label: 'Theo dõi vận hành AI', icon: 'neurology' },
+  ];
+
+  const sections = isSuperAdmin
+    ? [
+        { title: 'Quản trị Hệ thống', items: superAdminSystemItems },
+        { title: 'Giám sát Vận hành (Chỉ xem)', items: operationalItems, readOnlyBadge: true },
+      ]
+    : [
+        { title: 'Điều hành chung', items: modPrimaryItems },
+        { title: 'Nghiệp vụ Nội dung & Dữ liệu', items: operationalItems },
+      ];
 
   const handleItemClick = (screen) => {
     onNavigate(screen);
@@ -107,7 +64,6 @@ export const Sidebar = ({
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {isOpenMobile && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 lg:hidden"
@@ -121,115 +77,105 @@ export const Sidebar = ({
           isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex flex-col">
-          {/* Brand header */}
-          <div className="h-16 px-space-md flex items-center justify-between border-b border-surface-container-low">
-            <div
-              className="flex items-center gap-space-sm cursor-pointer"
-              onClick={() => handleItemClick('dashboard')}
-            >
-              <div className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center shadow-sm shrink-0">
-                <span className="material-symbols-outlined text-[20px]">eco</span>
-              </div>
-              <span className="font-bold text-lg text-on-surface tracking-tight">VeggieAI</span>
+        {/* Brand header */}
+        <div className="h-16 px-space-md flex items-center justify-between border-b border-surface-container-low shrink-0">
+          <div
+            className="flex items-center gap-space-sm cursor-pointer"
+            onClick={() => handleItemClick('dashboard')}
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center shadow-sm shrink-0">
+              <span className="material-symbols-outlined text-[20px]">eco</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="px-space-xs py-space-2xs rounded bg-surface-container-high text-primary font-mono text-xs font-semibold tracking-wide">
-                v2.4 Prod
-              </span>
-              <button
-                type="button"
-                onClick={onCloseMobile}
-                className="lg:hidden p-1 rounded-md text-on-surface-variant hover:bg-surface-container"
-              >
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            </div>
+            <span className="font-bold text-lg text-on-surface tracking-tight">VeggieAI</span>
           </div>
-
-          {/* Navigation Items */}
-          <nav className="flex flex-col gap-1 px-space-sm mt-space-sm">
-            {filteredNavItems.map((item) => {
-              const isActive = currentScreen === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleItemClick(item.id)}
-                  className={`flex items-center justify-between px-space-sm py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 text-left ${
-                    isActive
-                      ? 'bg-primary-container text-on-primary-container shadow-sm font-bold'
-                      : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="material-symbols-outlined text-[20px] shrink-0">
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </div>
-
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-mono text-xs font-bold shrink-0">
-                      {item.badge}
-                    </span>
-                  )}
-
-                  {item.statusPill && (
-                    <span className="flex items-center gap-1 text-secondary font-mono text-xs font-semibold shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
-                      {item.statusPill}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded bg-surface-container-high text-primary font-mono text-[11px] font-bold">
+              {isSuperAdmin ? 'ADMIN' : 'MOD'}
+            </span>
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              className="lg:hidden p-1 rounded-md text-on-surface-variant hover:bg-surface-container cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
         </div>
 
-        {/* Bottom system status & links */}
-        <div className="p-space-sm flex flex-col gap-space-sm border-t border-surface-container-low">
-          <div className="bg-surface-container-low rounded-lg p-space-sm flex flex-col gap-space-xs">
-            <div className="flex items-center justify-between text-on-surface-variant text-xs">
-              <span className="font-medium">Máy chủ AI & Bộ nhớ</span>
-              <span className="font-mono text-on-surface font-semibold">68%</span>
-            </div>
-            <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
-              <div
-                className="bg-primary h-full rounded-full transition-all duration-500"
-                style={{ width: '68%' }}
-              ></div>
-            </div>
-            <div className="flex items-center justify-between pt-space-2xs font-mono text-xs text-on-surface-variant">
-              <span>340GB / 500GB</span>
-              <span className="text-primary font-medium">Cụm HCM-01</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <button
-              className="flex items-center justify-between w-full px-space-sm py-1.5 rounded-lg text-on-surface-variant text-xs font-medium hover:bg-surface-container hover:text-on-surface transition-colors"
-              type="button"
-              onClick={() => alert('Môi trường: Sản xuất (Production cluster VN-SOUTH-01) hoạt động ổn định.')}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[18px]">dns</span>
-                <span>Môi trường:</span>
+        {/* Scrollable Navigation Sections */}
+        <div className="flex-1 overflow-y-auto px-space-sm py-space-sm space-y-4">
+          {sections.map((section) => (
+            <div key={section.title} className="space-y-1">
+              <div className="px-2.5 py-1 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  {section.title}
+                </span>
+                {section.readOnlyBadge && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-surface-container text-outline font-mono font-bold">
+                    READ
+                  </span>
+                )}
               </div>
-              <span className="px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-mono text-xs font-bold">
-                PROD
-              </span>
-            </button>
+              <nav className="flex flex-col gap-0.5">
+                {section.items.map((item) => {
+                  const isActive = currentScreen === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleItemClick(item.id)}
+                      className={`flex items-center justify-between px-space-sm py-2 rounded-lg text-[13px] font-semibold transition-all duration-150 text-left cursor-pointer ${
+                        isActive
+                          ? 'bg-primary-container text-on-primary-container shadow-xs font-bold'
+                          : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="material-symbols-outlined text-[19px] shrink-0">
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </div>
 
-            <button
-              onClick={onOpenDocModal}
-              className="flex items-center gap-1.5 px-space-sm py-1.5 rounded-lg text-on-surface-variant text-xs font-medium hover:bg-surface-container hover:text-on-surface transition-colors text-left"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">help</span>
-              <span>Hỗ trợ & Tài liệu Dev</span>
-            </button>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-mono text-[11px] font-bold shrink-0">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom Role & Help Footer */}
+        <div className="p-space-sm flex flex-col gap-2 border-t border-surface-container-low shrink-0">
+          <div className="bg-surface-container-low rounded-lg p-2.5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="material-symbols-outlined text-primary text-[18px]">
+                {isSuperAdmin ? 'shield_person' : 'verified_user'}
+              </span>
+              <div className="truncate">
+                <p className="font-bold text-on-surface leading-tight">
+                  {userRole === 'SuperAdmin' ? 'SuperAdmin' : 'Mod Vận hành'}
+                </p>
+                <p className="text-[10px] text-outline truncate">
+                  {isSuperAdmin ? 'Quản trị hệ thống & Giám sát' : 'Quản lý nội dung & dữ liệu'}
+                </p>
+              </div>
+            </div>
           </div>
+
+          <button
+            onClick={onOpenDocModal}
+            className="flex items-center gap-1.5 px-space-sm py-1.5 rounded-lg text-on-surface-variant text-xs font-medium hover:bg-surface-container hover:text-on-surface transition-colors text-left cursor-pointer"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[18px]">help</span>
+            <span>Tài liệu API & Kiến trúc</span>
+          </button>
         </div>
       </aside>
     </>

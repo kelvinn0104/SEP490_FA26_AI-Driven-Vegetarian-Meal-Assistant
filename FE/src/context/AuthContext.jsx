@@ -102,8 +102,29 @@ export function AuthProvider({ children }) {
     } catch (e) {}
   };
 
+  const roleStr = (user?.role || "").toLowerCase();
+  const isSuperAdmin = roleStr === "superadmin" || roleStr === "admin";
+  const isMod = roleStr === "mod" || roleStr === "moderator";
+  const normalizedRole = isSuperAdmin ? "SuperAdmin" : isMod ? "Mod" : "User";
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  const hasPermission = (perm) => isSuperAdmin || permissions.includes(perm);
+
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        currentUser: user,
+        setUser,
+        login,
+        logout,
+        isAuthenticated: !!user,
+        isSuperAdmin,
+        isMod,
+        userRole: normalizedRole,
+        permissions,
+        hasPermission,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -114,6 +135,13 @@ export function useAuth() {
   if (!context) {
     return {
       user: null,
+      currentUser: null,
+      isAuthenticated: false,
+      isSuperAdmin: false,
+      isMod: false,
+      userRole: null,
+      permissions: [],
+      hasPermission: () => false,
       login: () => {},
       logout: () => {},
     };
