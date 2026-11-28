@@ -11,7 +11,7 @@ public interface IIngredientService
     Task<IngredientDto?> GetIngredientByIdAsync(int id);
     Task<IngredientDto> CreateIngredientAsync(CreateIngredientRequest request, int moderatorId);
     Task<IngredientDto?> UpdateIngredientAsync(int id, UpdateIngredientRequest request, int moderatorId);
-    Task<bool> DeleteIngredientAsync(int id);
+    Task<bool> DeleteIngredientAsync(int id, int moderatorId = 0);
     Task<List<AllergyAdminDto>> GetAllergiesAsync();
     Task<List<NutrientStandardDto>> GetNutrientStandardsAsync();
 }
@@ -49,6 +49,7 @@ public class IngredientService : IIngredientService
         query = sortBy switch
         {
             "protein_desc" => query.OrderByDescending(i => i.ProteinPer100g),
+            "fiber_desc" => query.OrderByDescending(i => i.FiberPer100g ?? -1m),
             "iron_desc" => query.OrderByDescending(i => i.IronPer100g),
             "b12_desc" => query.OrderByDescending(i => i.B12Per100g),
             "calcium_desc" => query.OrderByDescending(i => i.CalciumPer100g),
@@ -76,6 +77,13 @@ public class IngredientService : IIngredientService
 
     public async Task<IngredientDto> CreateIngredientAsync(CreateIngredientRequest request, int moderatorId)
     {
+        var exists = await _unitOfWork.Context.Ingredients
+            .AnyAsync(i => i.Name.ToLower() == request.Name.Trim().ToLower());
+        if (exists)
+        {
+            throw new InvalidOperationException($"Nguyên liệu '{request.Name.Trim()}' đã tồn tại trong thư viện.");
+        }
+
         var ingredient = new Ingredient
         {
             Name = request.Name.Trim(),
@@ -83,11 +91,12 @@ public class IngredientService : IIngredientService
             ProteinPer100g = request.ProteinPer100g,
             CarbPer100g = request.CarbPer100g,
             FatPer100g = request.FatPer100g,
+            FiberPer100g = request.FiberPer100g,
             IronPer100g = request.IronPer100g,
             B12Per100g = request.B12Per100g,
             CalciumPer100g = request.CalciumPer100g,
             ZincPer100g = request.ZincPer100g,
-            DataSource = string.IsNullOrWhiteSpace(request.DataSource) ? "Viện Dinh Dưỡng Thực Dưỡng" : request.DataSource.Trim(),
+            DataSource = string.IsNullOrWhiteSpace(request.DataSource) ? "USDA FoodData Central" : request.DataSource.Trim(),
             UpdatedBy = moderatorId,
             UpdatedAt = DateTime.UtcNow
         };
@@ -97,7 +106,12 @@ public class IngredientService : IIngredientService
 
         if (request.AllergyIds != null && request.AllergyIds.Count > 0)
         {
-            foreach (var aId in request.AllergyIds.Distinct())
+            var validAllergies = await _unitOfWork.Context.Allergies
+                .Where(a => request.AllergyIds.Contains(a.Id))
+                .Select(a => a.Id)
+                .ToListAsync();
+
+            foreach (var aId in validAllergies.Distinct())
             {
                 await _unitOfWork.Context.IngredientAllergies.AddAsync(new IngredientAllergy
                 {
@@ -107,6 +121,16 @@ public class IngredientService : IIngredientService
             }
             await _unitOfWork.CommitAsync();
         }
+
+        await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+        {
+            UserId = moderatorId,
+            Action = "Thêm nguyên liệu",
+            Target = ingredient.Name,
+            Details = $"Thêm '{ingredient.Name}' ({ingredient.KcalPer100g} kcal/100g)",
+            LogType = "moderation"
+        });
+        await _unitOfWork.CommitAsync();
 
         return (await GetIngredientByIdAsync(ingredient.Id))!;
     }
@@ -124,6 +148,7 @@ public class IngredientService : IIngredientService
         item.ProteinPer100g = request.ProteinPer100g;
         item.CarbPer100g = request.CarbPer100g;
         item.FatPer100g = request.FatPer100g;
+        item.FiberPer100g = request.FiberPer100g;
         item.IronPer100g = request.IronPer100g;
         item.B12Per100g = request.B12Per100g;
         item.CalciumPer100g = request.CalciumPer100g;
@@ -138,7 +163,12 @@ public class IngredientService : IIngredientService
         if (request.AllergyIds != null)
         {
             _unitOfWork.Context.IngredientAllergies.RemoveRange(item.IngredientAllergies);
-            foreach (var aId in request.AllergyIds.Distinct())
+            var validAllergies = await _unitOfWork.Context.Allergies
+                .Where(a => request.AllergyIds.Contains(a.Id))
+                .Select(a => a.Id)
+                .ToListAsync();
+
+            foreach (var aId in validAllergies.Distinct())
             {
                 await _unitOfWork.Context.IngredientAllergies.AddAsync(new IngredientAllergy
                 {
@@ -148,16 +178,37 @@ public class IngredientService : IIngredientService
             }
         }
 
+        await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+        {
+            UserId = moderatorId,
+            Action = "Cập nhật nguyên liệu",
+            Target = item.Name,
+            Details = $"Sửa thông số nguyên liệu ID #{item.Id}",
+            LogType = "moderation"
+        });
+
         await _unitOfWork.CommitAsync();
         return (await GetIngredientByIdAsync(id))!;
     }
 
-    public async Task<bool> DeleteIngredientAsync(int id)
+    public async Task<bool> DeleteIngredientAsync(int id, int moderatorId = 0)
     {
         var item = await _unitOfWork.Context.Ingredients.FindAsync(id);
         if (item == null) return false;
 
+        var name = item.Name;
         _unitOfWork.Context.Ingredients.Remove(item);
+        if (moderatorId > 0)
+        {
+            await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+            {
+                UserId = moderatorId,
+                Action = "Xóa nguyên liệu",
+                Target = name,
+                Details = $"Xóa nguyên liệu ID #{id}",
+                LogType = "moderation"
+            });
+        }
         await _unitOfWork.CommitAsync();
         return true;
     }
@@ -212,6 +263,7 @@ public class IngredientService : IIngredientService
             ProteinPer100g = i.ProteinPer100g,
             CarbPer100g = i.CarbPer100g,
             FatPer100g = i.FatPer100g,
+            FiberPer100g = i.FiberPer100g,
             IronPer100g = i.IronPer100g,
             B12Per100g = i.B12Per100g,
             CalciumPer100g = i.CalciumPer100g,

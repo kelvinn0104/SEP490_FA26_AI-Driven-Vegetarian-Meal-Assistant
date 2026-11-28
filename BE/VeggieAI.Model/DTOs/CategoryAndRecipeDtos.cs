@@ -18,7 +18,7 @@ public class CategoryDto
 
 public class CreateCategoryRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Tên danh mục không được để trống")]
     public string Name { get; set; } = string.Empty;
 
     [Required]
@@ -27,16 +27,27 @@ public class CreateCategoryRequest
 
 public class UpdateCategoryRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Tên danh mục không được để trống")]
     public string Name { get; set; } = string.Empty;
 
     [Required]
     public string Type { get; set; } = "recipe";
 }
 
+public class RecipeIngredientDetailDto
+{
+    public int IngredientId { get; set; }
+    public string IngredientName { get; set; } = string.Empty;
+    public decimal QuantityG { get; set; }
+    public decimal Kcal { get; set; }
+    public decimal ProteinG { get; set; }
+    public decimal? FiberG { get; set; }
+}
+
 public class RecipeDto
 {
     public string Id { get; set; } = string.Empty;
+    public int NumericId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Author { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
@@ -52,6 +63,7 @@ public class RecipeDto
     public decimal ProteinG { get; set; }
     public decimal CarbG { get; set; }
     public decimal FatG { get; set; }
+    public decimal? FiberG { get; set; }
     public decimal IronMg { get; set; }
     public decimal B12Mcg { get; set; }
     public decimal CalciumMg { get; set; }
@@ -81,14 +93,18 @@ public class RecipeIngredientDto
 {
     public int IngredientId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string IngredientName { get => Name; set => Name = value; }
     public string? DataSource { get; set; }
     /// <summary>Khối lượng cho cả công thức (ứng với Servings khẩu phần).</summary>
     public decimal QuantityG { get; set; }
+    public decimal Kcal { get; set; }
+    public decimal ProteinG { get; set; }
+    public decimal? FiberG { get; set; }
 }
 
 public class CreateRecipeRequest
 {
-    [Required]
+    [Required(ErrorMessage = "Tiêu đề công thức không được để trống")]
     public string Title { get; set; } = string.Empty;
 
     [Required]
@@ -96,10 +112,29 @@ public class CreateRecipeRequest
 
     public string? ImageUrl { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Hướng dẫn chế biến không được để trống")]
     public string Instructions { get; set; } = string.Empty;
 
     public int Servings { get; set; } = 1;
+    public string Status { get; set; } = "published";
+    public List<RecipeIngredientItemDto>? Ingredients { get; set; }
+}
+
+public class UpdateRecipeRequest
+{
+    [Required(ErrorMessage = "Tiêu đề công thức không được để trống")]
+    public string Title { get; set; } = string.Empty;
+
+    [Required]
+    public int CategoryId { get; set; }
+
+    public string? ImageUrl { get; set; }
+
+    [Required(ErrorMessage = "Hướng dẫn chế biến không được để trống")]
+    public string Instructions { get; set; } = string.Empty;
+
+    public int Servings { get; set; } = 1;
+    public string Status { get; set; } = "published";
     public List<RecipeIngredientItemDto>? Ingredients { get; set; }
 }
 

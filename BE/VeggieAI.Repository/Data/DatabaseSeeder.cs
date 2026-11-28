@@ -5,15 +5,47 @@ namespace VeggieAI.Repository.Data;
 
 public static class DatabaseSeeder
 {
-    public static async Task SeedAsync(VeggieAIDbContext context)
+    public static async Task EnsureSchemaSynchronizedAsync(VeggieAIDbContext context)
     {
-        // 0. Ensure missing tables exist in database (PostgreSQL dynamic creation)
         try
         {
             if (context.Database.IsRelational())
             {
                 var sql = @"
 CREATE SCHEMA IF NOT EXISTS ""veggieai"";
+
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'veggieai' AND table_name = 'User'
+    ) THEN
+        FOR r IN (
+            SELECT con.conname
+            FROM pg_constraint con
+            JOIN pg_class rel ON rel.oid = con.conrelid
+            JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+            WHERE nsp.nspname = 'veggieai'
+              AND rel.relname = 'User'
+              AND con.contype = 'c'
+              AND pg_get_constraintdef(con.oid) ILIKE '%Role%'
+        ) LOOP
+            EXECUTE format('ALTER TABLE ""veggieai"".""User"" DROP CONSTRAINT IF EXISTS %I', r.conname);
+        END LOOP;
+
+        ALTER TABLE ""veggieai"".""User"" ALTER COLUMN ""Role"" TYPE VARCHAR(30);
+        ALTER TABLE ""veggieai"".""User"" ALTER COLUMN ""Role"" SET DEFAULT 'User';
+
+        UPDATE ""veggieai"".""User"" SET ""Role"" = 'SuperAdmin' WHERE LOWER(""Role"") IN ('admin', 'superadmin', 'super_admin', 'super admin');
+        UPDATE ""veggieai"".""User"" SET ""Role"" = 'Mod' WHERE LOWER(""Role"") IN ('moderator', 'mod');
+        UPDATE ""veggieai"".""User"" SET ""Role"" = 'User' WHERE ""Role"" NOT IN ('SuperAdmin', 'Mod', 'User');
+
+        ALTER TABLE ""veggieai"".""User""
+            ADD CONSTRAINT ""CK_User_Role"" CHECK (""Role"" IN ('SuperAdmin', 'Mod', 'User'));
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS ""veggieai"".""Role"" (
     ""Id""            VARCHAR(50) PRIMARY KEY,
@@ -52,8 +84,19 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DatabaseSeeder Notice] Table creation check: {ex.Message}");
+            Console.WriteLine($"[DatabaseSeeder Notice] Schema check: {ex.Message}");
         }
+    }
+
+    public static async Task SeedDevelopmentDataAsync(VeggieAIDbContext context)
+    {
+        await SeedAsync(context);
+    }
+
+    public static async Task SeedAsync(VeggieAIDbContext context)
+    {
+        // 0. Ensure missing tables exist in database (PostgreSQL dynamic creation)
+        await EnsureSchemaSynchronizedAsync(context);
 
         // 1. Allergies
         if (!await context.Allergies.AnyAsync())

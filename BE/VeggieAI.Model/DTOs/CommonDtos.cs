@@ -25,7 +25,11 @@ public class PagedResult<T>
 }
 
 /// <summary>Kết quả POST /api/uploads. kind: image | video. durable = false khi đang lưu trên ổ đĩa server (mất khi redeploy).</summary>
-public record UploadResultDto(string Url, string ContentType, long Size, string Kind, bool Durable);
+public record UploadResultDto(string Url, string ContentType, long Size, string Kind, bool Durable)
+{
+    public string FileName => System.IO.Path.GetFileName(Url);
+    public long SizeBytes => Size;
+}
 
 /// <summary>Kết quả GET /api/ingredients — dùng để chọn nguyên liệu khi xác nhận scan, tạo công thức.</summary>
 public record IngredientLookupDto(int Id, string Name, decimal KcalPer100g, decimal ProteinPer100g);

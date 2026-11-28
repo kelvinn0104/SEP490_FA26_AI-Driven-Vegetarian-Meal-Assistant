@@ -10,6 +10,7 @@ public class IngredientDto
     public decimal ProteinPer100g { get; set; }
     public decimal CarbPer100g { get; set; }
     public decimal FatPer100g { get; set; }
+    public decimal? FiberPer100g { get; set; }
     public decimal IronPer100g { get; set; }
     public decimal B12Per100g { get; set; }
     public decimal CalciumPer100g { get; set; }
@@ -38,6 +39,9 @@ public class CreateIngredientRequest
     [Range(0, 100, ErrorMessage = "Chất béo phải nằm trong khoảng 0 - 100g")]
     public decimal FatPer100g { get; set; }
 
+    [Range(0, 100, ErrorMessage = "Chất xơ phải nằm trong khoảng 0 - 100g")]
+    public decimal? FiberPer100g { get; set; }
+
     [Range(0, 500, ErrorMessage = "Sắt phải từ 0 - 500mg")]
     public decimal IronPer100g { get; set; }
 
@@ -64,6 +68,7 @@ public class UpdateIngredientRequest
     public decimal ProteinPer100g { get; set; }
     public decimal CarbPer100g { get; set; }
     public decimal FatPer100g { get; set; }
+    public decimal? FiberPer100g { get; set; }
     public decimal IronPer100g { get; set; }
     public decimal B12Per100g { get; set; }
     public decimal CalciumPer100g { get; set; }

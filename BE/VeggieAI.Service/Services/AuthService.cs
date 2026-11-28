@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Model.Entities;
 using VeggieAI.Model.Exceptions;
@@ -88,6 +89,15 @@ public class AuthService : IAuthService
         {
             throw new EmailNotVerifiedException(user.Email,
                 "Tài khoản chưa xác thực email. Vui lòng nhập mã OTP đã gửi tới email hoặc bấm \"Gửi lại mã\".");
+        }
+
+        if (request.PortalOnly)
+        {
+            var normalized = RoleConstants.Normalize(user.Role);
+            if (normalized != RoleConstants.SuperAdmin && normalized != RoleConstants.Mod)
+            {
+                throw new ForbiddenAccessException("Chỉ tài khoản Quản trị viên (SuperAdmin) hoặc Điều hành viên (Mod) mới có quyền truy cập vào cổng quản trị.");
+            }
         }
 
         // System Log
@@ -174,21 +184,37 @@ public class AuthService : IAuthService
     /// </summary>
     private string ResolveRegisterRole(string? requestedRole, string? inviteCode)
     {
-        var role = (requestedRole ?? AppRoles.User).Trim().ToLowerInvariant();
-        if (role == "mod") role = AppRoles.Moderator;
-        if (role != AppRoles.Admin && role != AppRoles.Moderator) return AppRoles.User;
+        var normalized = RoleConstants.Normalize(requestedRole);
+        if (normalized == RoleConstants.User) return RoleConstants.User;
 
-        var key = role == AppRoles.Admin ? "Auth:AdminInviteCodes" : "Auth:ModeratorInviteCodes";
-        var codes = (_config[key] ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var code = inviteCode?.Trim();
-        if (string.IsNullOrEmpty(code) || !codes.Contains(code, StringComparer.Ordinal))
+        var code = inviteCode?.Trim() ?? string.Empty;
+        if (normalized == RoleConstants.SuperAdmin)
         {
-            throw AppException.Forbidden(role == AppRoles.Admin
-                ? "Mã mời Admin không hợp lệ."
-                : "Mã mời Moderator không hợp lệ.");
+            var single = _config["Auth:SuperAdminInviteCode"];
+            var multi = (_config["Auth:AdminInviteCodes"] ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if ((!string.IsNullOrEmpty(single) && string.Equals(code, single, StringComparison.Ordinal)) ||
+                multi.Contains(code, StringComparer.Ordinal))
+            {
+                return RoleConstants.SuperAdmin;
+            }
+            throw AppException.Forbidden("Mã mời Admin không hợp lệ.");
         }
-        return role;
+
+        if (normalized == RoleConstants.Mod)
+        {
+            var single = _config["Auth:ModInviteCode"];
+            var multi = (_config["Auth:ModeratorInviteCodes"] ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if ((!string.IsNullOrEmpty(single) && string.Equals(code, single, StringComparison.Ordinal)) ||
+                multi.Contains(code, StringComparer.Ordinal))
+            {
+                return RoleConstants.Mod;
+            }
+            throw AppException.Forbidden("Mã mời Moderator không hợp lệ.");
+        }
+
+        return RoleConstants.User;
     }
 
     /// <summary>
@@ -597,12 +623,13 @@ public class AuthService : IAuthService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        var normalizedRole = RoleConstants.Normalize(user.Role);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Name, user.DisplayName),
-            new(ClaimTypes.Role, user.Role),
+            new(ClaimTypes.Role, normalizedRole),
             new("status", user.Status),
             new(TokenVersionClaim, user.TokenVersion.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
@@ -619,8 +646,11 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public static UserDto MapUserToDto(User user)
+    public static UserDto MapUserToDto(User user) => MapUserToDto(user, null, null);
+
+    public static UserDto MapUserToDto(User user, List<string>? permissions = null, int? aiQueriesCount = null)
     {
+        var normalizedRole = RoleConstants.Normalize(user.Role);
         var allergies = user.UserAllergies?
             .Select(ua => ua.Allergy?.Name ?? "")
             .Where(n => !string.IsNullOrEmpty(n))
@@ -642,6 +672,7 @@ public class AuthService : IAuthService
         return new UserDto
         {
             Id = $"USR-{user.Id:D4}",
+            NumericId = user.Id,
             Name = user.DisplayName,
             Email = user.Email,
             Avatar = string.IsNullOrWhiteSpace(user.AvatarUrl)
@@ -649,13 +680,15 @@ public class AuthService : IAuthService
                 : user.AvatarUrl,
             HasCustomAvatar = !string.IsNullOrWhiteSpace(user.AvatarUrl),
             DietType = diet,
-            Role = user.Role,
+            Role = normalizedRole,
+            RoleDisplayName = RoleConstants.GetDisplayName(normalizedRole),
             Status = user.Status,
             JoinedDate = user.CreatedAt.ToString("yyyy-MM-dd"),
             RecipesCount = user.CreatedRecipes?.Count ?? 0,
-            AiQueriesCount = 0, // GetCurrentUserAsync điền số thật
-            Bio = $"Thành viên {user.Role} hệ thống VeggieAI.",
+            AiQueriesCount = aiQueriesCount ?? 0,
+            Bio = $"Thành viên {RoleConstants.GetDisplayName(normalizedRole)} hệ thống VeggieAI.",
             Allergies = allergies,
+            Permissions = permissions ?? new List<string>(),
             HasHealthProfile = user.HealthProfile != null
         };
     }

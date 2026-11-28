@@ -8,6 +8,7 @@ public static class RoleConstants
 
     // Authorization Policy Names
     public const string ManagementAccessPolicy = "ManagementAccess";
+    public const string StaffPolicy = "ManagementAccess";
     public const string SuperAdminOnlyPolicy = "SuperAdminOnly";
     public const string ModOnlyPolicy = "ModOnly";
     public const string AuthenticatedUserPolicy = "AuthenticatedUser";

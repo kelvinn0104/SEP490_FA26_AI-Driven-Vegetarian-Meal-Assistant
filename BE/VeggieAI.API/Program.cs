@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using VeggieAI.API.Middlewares;
+using VeggieAI.Model.Constants;
 using VeggieAI.Repository.Data;
 using VeggieAI.Repository.Repositories;
 using VeggieAI.Service.Services;
@@ -21,9 +22,27 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
+builder.Services.AddHttpClient();
+
 // 2. Database Configuration (Intelligent PostgreSQL check with InMemory fallback)
 var useInMemory = builder.Configuration.GetValue<bool>("ConnectionStrings:UseInMemoryDatabase");
 var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connStr))
+{
+    connStr = Environment.GetEnvironmentVariable("VEGGIEAI_DB_CONNECTION")
+              ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+}
+
+if (!string.IsNullOrWhiteSpace(connStr) && !connStr.Contains("Password=", StringComparison.OrdinalIgnoreCase))
+{
+    var envDbPassword = builder.Configuration["Database:Password"]
+                        ?? Environment.GetEnvironmentVariable("VEGGIEAI_DB_PASSWORD")
+                        ?? Environment.GetEnvironmentVariable("PGPASSWORD");
+    if (!string.IsNullOrWhiteSpace(envDbPassword))
+    {
+        connStr = $"{connStr.TrimEnd(';')};Password={envDbPassword}";
+    }
+}
 
 bool canConnectToPostgres = false;
 if (!useInMemory && !string.IsNullOrWhiteSpace(connStr))
@@ -215,9 +234,33 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(RoleConstants.SuperAdminOnlyPolicy, policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(ctx =>
+                  RoleConstants.Normalize(ctx.User.FindFirstValue(ClaimTypes.Role)) == RoleConstants.SuperAdmin));
+
+    options.AddPolicy(RoleConstants.ModOnlyPolicy, policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(ctx =>
+                  RoleConstants.Normalize(ctx.User.FindFirstValue(ClaimTypes.Role)) == RoleConstants.Mod
+                  || RoleConstants.Normalize(ctx.User.FindFirstValue(ClaimTypes.Role)) == RoleConstants.SuperAdmin));
+
+    options.AddPolicy(RoleConstants.StaffPolicy, policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(ctx =>
+              {
+                  var r = RoleConstants.Normalize(ctx.User.FindFirstValue(ClaimTypes.Role));
+                  return r == RoleConstants.SuperAdmin || r == RoleConstants.Mod;
+              }));
+
+    options.AddPolicy(RoleConstants.AuthenticatedUserPolicy, policy =>
+        policy.RequireAuthenticatedUser());
+});
 
 // 5. CORS Configuration
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -225,6 +268,24 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader();
+    });
+
+    options.AddPolicy("ConfiguredCors", policy =>
+    {
+        if (configuredOrigins.Length > 0)
+        {
+            policy.WithOrigins(configuredOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 

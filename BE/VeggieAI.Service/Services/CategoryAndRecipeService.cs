@@ -9,9 +9,9 @@ namespace VeggieAI.Service.Services;
 public interface ICategoryService
 {
     Task<List<CategoryDto>> GetCategoriesAsync(string? type = null);
-    Task<CategoryDto> CreateCategoryAsync(CreateCategoryRequest request);
-    Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryRequest request);
-    Task<bool> DeleteCategoryAsync(int id);
+    Task<CategoryDto> CreateCategoryAsync(CreateCategoryRequest request, int modId = 0);
+    Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryRequest request, int modId = 0);
+    Task<bool> DeleteCategoryAsync(int id, int modId = 0);
 }
 
 public class CategoryService : ICategoryService
@@ -72,7 +72,7 @@ public class CategoryService : ICategoryService
         }).ToList();
     }
 
-    public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryRequest request)
+    public async Task<CategoryDto> CreateCategoryAsync(CreateCategoryRequest request, int modId = 0)
     {
         var cat = new Category
         {
@@ -81,6 +81,17 @@ public class CategoryService : ICategoryService
         };
 
         await _unitOfWork.Categories.AddAsync(cat);
+        if (modId > 0)
+        {
+            await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+            {
+                UserId = modId,
+                Action = "Tạo danh mục",
+                Target = cat.Name,
+                Details = $"Thêm danh mục '{cat.Name}' ({cat.Type})",
+                LogType = "moderation"
+            });
+        }
         await _unitOfWork.CommitAsync();
 
         return new CategoryDto
@@ -92,7 +103,7 @@ public class CategoryService : ICategoryService
         };
     }
 
-    public async Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryRequest request)
+    public async Task<CategoryDto?> UpdateCategoryAsync(int id, UpdateCategoryRequest request, int modId = 0)
     {
         var cat = await _unitOfWork.Categories.GetByIdAsync(id);
         if (cat == null) return null;
@@ -101,6 +112,17 @@ public class CategoryService : ICategoryService
         cat.Type = request.Type.Trim().ToLower();
 
         _unitOfWork.Categories.Update(cat);
+        if (modId > 0)
+        {
+            await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+            {
+                UserId = modId,
+                Action = "Cập nhật danh mục",
+                Target = cat.Name,
+                Details = $"Cập nhật danh mục #{id} '{cat.Name}'",
+                LogType = "moderation"
+            });
+        }
         await _unitOfWork.CommitAsync();
 
         return new CategoryDto
@@ -112,12 +134,24 @@ public class CategoryService : ICategoryService
         };
     }
 
-    public async Task<bool> DeleteCategoryAsync(int id)
+    public async Task<bool> DeleteCategoryAsync(int id, int modId = 0)
     {
         var cat = await _unitOfWork.Categories.GetByIdAsync(id);
         if (cat == null) return false;
 
+        var name = cat.Name;
         _unitOfWork.Categories.Delete(cat);
+        if (modId > 0)
+        {
+            await _unitOfWork.Context.SystemLogs.AddAsync(new SystemLog
+            {
+                UserId = modId,
+                Action = "Xóa danh mục",
+                Target = name,
+                Details = $"Xóa danh mục #{id}",
+                LogType = "moderation"
+            });
+        }
         await _unitOfWork.CommitAsync();
         return true;
     }
@@ -134,8 +168,9 @@ public interface IRecipeService
     /// </summary>
     Task<RecipeDto?> GetRecipeByIdAsync(string id, int? viewerId = null, bool viewerIsStaff = false);
     Task<RecipeDto> CreateRecipeAsync(CreateRecipeRequest request, int creatorId, string? creatorRole);
+    Task<RecipeDto?> UpdateRecipeAsync(string id, UpdateRecipeRequest request, int modId);
     Task<bool> UpdateRecipeStatusAsync(string id, string status, int verifierId);
-    Task<bool> DeleteRecipeAsync(string id);
+    Task<bool> DeleteRecipeAsync(string id, int modId = 0);
     Task<PagedResult<RecipeDto>> GetFavoritesAsync(int userId, int page, int pageSize);
     Task AddFavoriteAsync(int userId, string recipeId);
     Task RemoveFavoriteAsync(int userId, string recipeId);
@@ -356,21 +391,130 @@ public class RecipeService : IRecipeService
         return true;
     }
 
-    public async Task<bool> DeleteRecipeAsync(string id)
+    public async Task<RecipeDto?> UpdateRecipeAsync(string id, UpdateRecipeRequest request, int modId)
+    {
+        var intId = ParseRecipeId(id);
+        var recipe = await _unitOfWork.Context.Recipes
+            .Include(r => r.RecipeIngredients)
+            .FirstOrDefaultAsync(r => r.Id == intId);
+        if (recipe == null) return null;
+
+        recipe.Title = request.Title.Trim();
+        recipe.CategoryId = request.CategoryId;
+        recipe.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
+        recipe.Instructions = request.Instructions.Trim();
+        recipe.Servings = request.Servings > 0 ? request.Servings : 1;
+        var normalizedStatus = (request.Status ?? "published").Trim().ToLowerInvariant();
+        recipe.Status = AllowedStatuses.Contains(normalizedStatus) ? normalizedStatus : "published";
+        if (recipe.Status == "published")
+        {
+            recipe.VerifiedBy = modId;
+            recipe.VerifiedAt ??= DateTime.UtcNow;
+        }
+        recipe.UpdatedAt = DateTime.UtcNow;
+
+        if (request.Ingredients != null)
+        {
+            _unitOfWork.Context.RecipeIngredients.RemoveRange(recipe.RecipeIngredients);
+            await _unitOfWork.CommitAsync();
+
+            var validItems = request.Ingredients
+                .Where(i => i.IngredientId > 0 && i.QuantityG > 0)
+                .GroupBy(i => i.IngredientId)
+                .Select(g => new { IngredientId = g.Key, QuantityG = g.Sum(x => x.QuantityG) })
+                .ToList();
+
+            if (validItems.Count > 0)
+            {
+                var ingIds = validItems.Select(x => x.IngredientId).ToList();
+                var dbIngredients = await _unitOfWork.Context.Ingredients
+                    .Where(i => ingIds.Contains(i.Id))
+                    .ToDictionaryAsync(i => i.Id);
+
+                decimal totalKcal = 0, totalProtein = 0, totalCarb = 0, totalFat = 0, totalFiber = 0;
+                decimal totalIron = 0, totalB12 = 0, totalCalcium = 0, totalZinc = 0;
+                int ingredientCount = 0;
+                bool allIngredientsHaveFiber = true;
+
+                foreach (var vi in validItems)
+                {
+                    if (!dbIngredients.TryGetValue(vi.IngredientId, out var ing)) continue;
+
+                    await _unitOfWork.Context.RecipeIngredients.AddAsync(new RecipeIngredient
+                    {
+                        RecipeId = recipe.Id,
+                        IngredientId = vi.IngredientId,
+                        QuantityG = vi.QuantityG
+                    });
+
+                    var factor = vi.QuantityG / 100m;
+                    ingredientCount++;
+                    totalKcal += ing.KcalPer100g * factor;
+                    totalProtein += ing.ProteinPer100g * factor;
+                    totalCarb += ing.CarbPer100g * factor;
+                    totalFat += ing.FatPer100g * factor;
+                    if (ing.FiberPer100g.HasValue) totalFiber += ing.FiberPer100g.Value * factor;
+                    else allIngredientsHaveFiber = false;
+
+                    totalIron += ing.IronPer100g * factor;
+                    totalB12 += ing.B12Per100g * factor;
+                    totalCalcium += ing.CalciumPer100g * factor;
+                    totalZinc += ing.ZincPer100g * factor;
+                }
+
+                var servings = Math.Max(1, recipe.Servings);
+                recipe.KcalPerServing = Math.Round(totalKcal / servings, 2);
+                recipe.ProteinG = Math.Round(totalProtein / servings, 2);
+                recipe.CarbG = Math.Round(totalCarb / servings, 2);
+                recipe.FatG = Math.Round(totalFat / servings, 2);
+                recipe.FiberG = ingredientCount > 0 && allIngredientsHaveFiber ? Math.Round(totalFiber / servings, 2) : null;
+                recipe.IronMg = Math.Round(totalIron / servings, 2);
+                recipe.B12Mcg = Math.Round(totalB12 / servings, 2);
+                recipe.CalciumMg = Math.Round(totalCalcium / servings, 2);
+                recipe.ZincMg = Math.Round(totalZinc / servings, 2);
+            }
+        }
+
+        _unitOfWork.Recipes.Update(recipe);
+        await _unitOfWork.CommitAsync();
+
+        var updated = await _unitOfWork.Recipes.GetRecipeDetailAsync(recipe.Id);
+        return MapRecipeToDto(updated ?? recipe, includeIngredients: true);
+    }
+
+    public async Task<bool> DeleteRecipeAsync(string id, int modId = 0)
     {
         var intId = ParseRecipeId(id);
         var recipe = await _unitOfWork.Recipes.GetByIdAsync(intId);
         if (recipe == null) return false;
 
+        var hasReferences = await _unitOfWork.Context.MealLogs.AnyAsync(m => m.RecipeId == intId)
+                            || await _unitOfWork.Context.MealPlanItems.AnyAsync(m => m.RecipeId == intId);
+
+        if (hasReferences)
+        {
+            recipe.Status = "hidden";
+            recipe.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Recipes.Update(recipe);
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
         try
         {
+            var linkedPosts = await _unitOfWork.Context.Posts.Where(p => p.RecipeId == intId).ToListAsync();
+            foreach (var p in linkedPosts)
+            {
+                p.RecipeId = null;
+            }
+            await _unitOfWork.CommitAsync();
+
             _unitOfWork.Recipes.Delete(recipe);
             await _unitOfWork.CommitAsync();
             return true;
         }
         catch
         {
-            // Soft delete fallback to preserve referential integrity
             recipe.Status = "hidden";
             recipe.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.Recipes.Update(recipe);
@@ -461,6 +605,7 @@ public class RecipeService : IRecipeService
         return new RecipeDto
         {
             Id = $"r{r.Id}",
+            NumericId = r.Id,
             Title = r.Title,
             Author = r.Creator?.DisplayName ?? "VeggieAI Chef",
             Category = r.Category?.Name ?? "Món chay",
@@ -474,6 +619,7 @@ public class RecipeService : IRecipeService
             ProteinG = r.ProteinG,
             CarbG = r.CarbG,
             FatG = r.FatG,
+            FiberG = r.FiberG,
             IronMg = r.IronMg,
             B12Mcg = r.B12Mcg,
             CalciumMg = r.CalciumMg,
@@ -487,7 +633,10 @@ public class RecipeService : IRecipeService
                         IngredientId = ri.IngredientId,
                         Name = ri.Ingredient?.Name ?? string.Empty,
                         DataSource = ri.Ingredient?.DataSource,
-                        QuantityG = ri.QuantityG
+                        QuantityG = ri.QuantityG,
+                        Kcal = ri.Ingredient != null ? Math.Round((ri.Ingredient.KcalPer100g * ri.QuantityG) / 100m, 1) : 0,
+                        ProteinG = ri.Ingredient != null ? Math.Round((ri.Ingredient.ProteinPer100g * ri.QuantityG) / 100m, 1) : 0,
+                        FiberG = ri.Ingredient?.FiberPer100g.HasValue == true ? Math.Round((ri.Ingredient.FiberPer100g.Value * ri.QuantityG) / 100m, 1) : null
                     })
                     .ToList()
                 : null

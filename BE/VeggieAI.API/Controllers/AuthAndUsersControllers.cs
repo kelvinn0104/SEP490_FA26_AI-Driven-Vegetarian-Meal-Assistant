@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
 
@@ -150,7 +151,7 @@ public class AuthController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Roles = AppRoles.Staff)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -167,14 +168,18 @@ public class UsersController : ControllerBase
         [FromQuery] string? role,
         [FromQuery] string? status)
     {
-        var users = await _userService.GetUsersAsync(search, diet, role, status);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var users = await _userService.GetUsersAsync(actorId, actorRole, search, diet, role, status);
         return Ok(ApiResponse<List<UserDto>>.Ok(users));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<UserDto>>> GetUserById(string id)
     {
-        var user = await _userService.GetUserByIdAsync(id);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var user = await _userService.GetUserByIdAsync(id, actorId, actorRole);
         if (user == null)
         {
             return NotFound(ApiResponse<UserDto>.Fail("Không tìm thấy người dùng."));
@@ -185,14 +190,19 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ApiResponse<UserDto>>> CreateUser([FromBody] CreateUserRequest request)
     {
-        var created = await _userService.CreateUserAsync(request);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var created = await _userService.CreateUserAsync(request, actorId, actorRole);
         return CreatedAtAction(nameof(GetUserById), new { id = created.Id }, ApiResponse<UserDto>.Ok(created, "Tạo tài khoản thành công"));
     }
 
     [HttpPut("{id}/lock")]
-    public async Task<ActionResult<ApiResponse<bool>>> LockUser(string id)
+    public async Task<ActionResult<ApiResponse<bool>>> LockUser(string id, [FromBody] LockUserRequest? body = null, [FromQuery] string? reason = null)
     {
-        var ok = await _userService.LockUserAsync(id);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var finalReason = body?.Reason ?? reason;
+        var ok = await _userService.LockUserAsync(id, actorId, actorRole, finalReason);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã khóa tài khoản thành công"));
     }
@@ -200,7 +210,9 @@ public class UsersController : ControllerBase
     [HttpPut("{id}/unlock")]
     public async Task<ActionResult<ApiResponse<bool>>> UnlockUser(string id)
     {
-        var ok = await _userService.UnlockUserAsync(id);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var ok = await _userService.UnlockUserAsync(id, actorId, actorRole);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã mở khóa tài khoản thành công"));
     }
@@ -208,7 +220,9 @@ public class UsersController : ControllerBase
     [HttpPut("{id}/role")]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateUserRole(string id, [FromBody] UpdateUserRoleRequest request)
     {
-        var ok = await _userService.UpdateUserRoleAsync(id, request.Role);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var ok = await _userService.UpdateUserRoleAsync(id, request.Role, actorId, actorRole);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Cập nhật phân quyền thành công"));
     }
@@ -216,7 +230,9 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteUser(string id)
     {
-        var ok = await _userService.DeleteUserAsync(id);
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId);
+        var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? RoleConstants.SuperAdmin;
+        var ok = await _userService.DeleteUserAsync(id, actorId, actorRole);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy người dùng"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa người dùng"));
     }

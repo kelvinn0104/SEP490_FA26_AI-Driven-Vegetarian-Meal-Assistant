@@ -363,7 +363,7 @@ public class CommunityService : ICommunityService
             if (flagged || sc.Priority != "low")
             {
                 var staffIds = await _db.Users
-                    .Where(u => (u.Role == AppRoles.Admin || u.Role == AppRoles.Moderator) && u.Status == "active" && u.Id != ownerId)
+                    .Where(u => (u.Role == AppRoles.Admin || u.Role == AppRoles.Moderator || u.Role == AppRoles.SuperAdmin || u.Role == AppRoles.Mod) && u.Status == "active" && u.Id != ownerId)
                     .Select(u => u.Id).ToListAsync(ct);
                 var msg = flagged
                     ? $"Nội dung ({report.TargetType} #{report.TargetId}) đã bị tự động ẩn: {sc.ReportCount} báo cáo, điểm uy tín {sc.Score}."
@@ -451,7 +451,7 @@ public class CommunityService : ICommunityService
             });
 
             var staffIds = await _db.Users
-                .Where(u => (u.Role == AppRoles.Admin || u.Role == AppRoles.Moderator) && u.Status == "active" && u.Id != post.UserId)
+                .Where(u => (u.Role == AppRoles.Admin || u.Role == AppRoles.Moderator || u.Role == AppRoles.SuperAdmin || u.Role == AppRoles.Mod) && u.Status == "active" && u.Id != post.UserId)
                 .Select(u => u.Id).ToListAsync(ct);
             var verb = isResubmit ? "được sửa và gửi lại" : "mới chờ duyệt";
             foreach (var id in staffIds)
