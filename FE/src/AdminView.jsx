@@ -18,6 +18,7 @@ import {
   RecipeManagementScreen,
   IngredientManagementScreen,
   VeganChallengeManagementScreen,
+  VeganProductScannerScreen,
 } from "./pages/mod";
 import { FeedbackManagementScreen } from "./pages/FeedbackManagementScreen";
 import { NutritionAnalyticsScreen } from "./pages/NutritionAnalyticsScreen";
@@ -102,6 +103,10 @@ export default function AdminView({
 
           {currentScreen === "challenge-management" && (
             <VeganChallengeManagementScreen />
+          )}
+
+          {currentScreen === "product-scanner" && (
+            <VeganProductScannerScreen />
           )}
 
           {currentScreen === "ai-model-monitoring" && <AiMonitoringScreen />}

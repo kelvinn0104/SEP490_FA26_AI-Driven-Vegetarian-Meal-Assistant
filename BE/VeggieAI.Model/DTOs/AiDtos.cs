@@ -1,0 +1,242 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace VeggieAI.Model.DTOs;
+
+// ============================================================
+// AI DTOs - Ported from TuanHMSE151471 branch
+// ============================================================
+
+// ---------------- AI Config ----------------
+
+public class AiOptions
+{
+    public const string Section = "Ai";
+    public string Provider { get; set; } = "Gemini";
+    public int TimeoutSeconds { get; set; } = 90;
+    public GeminiOptions Gemini { get; set; } = new();
+    public OpenAiOptions OpenAI { get; set; } = new();
+}
+
+public class GeminiOptions
+{
+    public string ApiKey { get; set; } = "";
+    public string BaseUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta";
+    public string Model { get; set; } = "gemini-3.8-flash";
+    public string VisionModel { get; set; } = "gemini-3.8-flash";
+    /// <summary>Gemini 2.5: số token suy nghĩ (0 = tắt, -1 = tự động). Chỉ gửi cho model có "2.5" trong tên.</summary>
+    public int ThinkingBudget { get; set; } = 0;
+
+    /// <summary>Model dự phòng, thử lần lượt khi model chính báo quá tải (429/503), hết giờ hoặc không tồn tại (404).</summary>
+    public List<string> FallbackModels { get; set; } = new() { "gemini-3.5-flash-lite", "gemini-3.1-flash-lite" };
+
+    /// <summary>Thời gian chờ tối đa cho MỖI lần gọi một model (giây) trước khi chuyển model dự phòng.</summary>
+    public int AttemptTimeoutSeconds { get; set; } = 40;
+
+    /// <summary>
+    /// Gemini 3+ / alias "*-latest": mức suy nghĩ ("minimal" | "low" | "medium" | "high"). Để trống = không gửi.
+    /// Nếu model không hỗ trợ tham số này, client tự gọi lại không kèm thinkingConfig.
+    /// </summary>
+    public string? ThinkingLevel { get; set; } = "low";
+}
+
+public class OpenAiOptions
+{
+    public string ApiKey { get; set; } = "";
+    public string BaseUrl { get; set; } = "https://api.openai.com/v1";
+    public string Model { get; set; } = "gpt-4o-mini";
+    public string VisionModel { get; set; } = "gpt-4o-mini";
+}
+
+// ---------------- Shared ----------------
+
+public class PageQuery
+{
+    private int _page = 1, _pageSize = 20;
+    public int Page { get => _page; set => _page = value < 1 ? 1 : value; }
+    public int PageSize { get => _pageSize; set => _pageSize = value is < 1 or > 100 ? 20 : value; }
+    public int Skip => (Page - 1) * PageSize;
+
+    /// <summary>
+    /// Controller nhận ?page=&amp;pageSize= dạng tham số thường rồi tạo PageQuery.
+    /// (Bind thẳng [FromQuery] PageQuery khiến ASP.NET chỉ nhận page.Page/page.PageSize và bỏ qua ?page=2.)
+    /// </summary>
+    public static PageQuery Of(int? page, int? pageSize) => new() { Page = page ?? 1, PageSize = pageSize ?? 20 };
+}
+
+// ---------------- AppException ----------------
+
+/// <summary>Business error that is translated to an HTTP status code by the API middleware.</summary>
+public class AppException : Exception
+{
+    public int StatusCode { get; }
+
+    /// <summary>Mã lỗi máy đọc được (trả trong errors[0]) để FE xử lý, ví dụ AI_UNAVAILABLE, INVALID_REFRESH_TOKEN.</summary>
+    public string? ErrorCode { get; }
+
+    public AppException(string message, int statusCode = 400, string? errorCode = null) : base(message)
+    {
+        StatusCode = statusCode;
+        ErrorCode = errorCode;
+    }
+
+    public static AppException NotFound(string what) => new($"{what} không tồn tại.", 404, "NOT_FOUND");
+    public static AppException Forbidden(string message = "Bạn không có quyền thực hiện thao tác này.") => new(message, 403, "FORBIDDEN");
+    public static AppException Conflict(string message) => new(message, 409, "CONFLICT");
+    public static AppException Unauthorized(string message) => new(message, 401, "UNAUTHORIZED");
+}
+
+// ---------------- LLM ----------------
+
+public record LlmImage(byte[] Data, string MimeType);
+
+public class LlmRequest
+{
+    public string Task { get; set; } = "";
+    public int? UserId { get; set; }
+    public double Temperature { get; set; } = 0.7;
+    public int MaxOutputTokens { get; set; } = 2048;
+    public string? SystemPrompt { get; set; }
+    public List<LlmMessage> Messages { get; set; } = new();
+    public List<LlmImage> Images { get; set; } = new();
+    public bool JsonOutput { get; set; }
+}
+
+public record LlmMessage(string Role, string Content)
+{
+    public static LlmMessage User(string content) => new("user", content);
+    public static LlmMessage Assistant(string content) => new("assistant", content);
+    public static LlmMessage System(string content) => new("system", content);
+}
+
+public record LlmResponse(string Text, string Provider, string Model, int? TokensUsed, int LatencyMs);
+
+// ---------------- Vision / Ingredient scan ----------------
+
+public class DetectedItemDto
+{
+    public int? IngredientId { get; set; }
+    public string Name { get; set; } = "";
+    public string? NameVi { get; set; }
+    public double Confidence { get; set; }
+    public string Freshness { get; set; } = "unknown";
+    public decimal? EstimatedQuantityG { get; set; }
+    /// <summary>false khi AI thấy thịt/cá/trứng/hải sản; null = không rõ.</summary>
+    public bool? IsVegetarian { get; set; }
+}
+
+public record ScanResultDto(
+    int ScanId, string ImageUrl, DateTime CreatedAt,
+    string ImageType, string? DishName, string? DishDescription,
+    NutrientAmountsDto? EstimatedDishNutrition,
+    IReadOnlyList<DetectedItemDto> DetectedItems,
+    IReadOnlyList<RecipeSuggestionDto> SuggestedRecipes,
+    SuggestedMenuDto? SuggestedMenu, string? Message);
+
+public record SuggestedMenuDto(IReadOnlyList<SuggestedMenuMealDto> Meals, NutrientAmountsDto Total, decimal KcalTarget, string? Notes);
+public record SuggestedMenuMealDto(string MealType, int RecipeId, string RecipeTitle, decimal Servings, NutrientAmountsDto Nutrition, string? Reason);
+
+public class ConfirmScanRequest
+{
+    [Required] public List<int> IngredientIds { get; set; } = new();
+}
+
+public record ScanSummaryDto(int Id, string ImageUrl, DateTime CreatedAt, int ItemCount, IReadOnlyList<string> ItemNames);
+
+// ---------------- Chat ----------------
+
+public class CreateChatSessionRequest
+{
+    public int? PlanId { get; set; }
+}
+
+public class SendChatMessageRequest
+{
+    [Required, MaxLength(2000)] public string Content { get; set; } = "";
+}
+
+public record ChatSessionDto(int Id, int? PlanId, DateTime CreatedAt, string? LastMessage, int MessageCount);
+public record ChatMessageDto(int Id, string Sender, string Content, DateTime CreatedAt);
+public record ChatCitationDto(int Index, string Type, int Id, string Title);
+public record ChatReplyDto(ChatMessageDto UserMessage, ChatMessageDto AiMessage, IReadOnlyList<ChatCitationDto>? Citations = null);
+
+// ---------------- Nutrient amounts (shared with ProfileDtos) ----------------
+
+public record NutrientAmountsDto(
+    decimal Kcal, decimal ProteinG, decimal CarbG, decimal FatG,
+    decimal IronMg, decimal B12Mcg, decimal CalciumMg, decimal ZincMg)
+{
+    public static readonly NutrientAmountsDto Zero = new(0, 0, 0, 0, 0, 0, 0, 0);
+    public NutrientAmountsDto Add(NutrientAmountsDto o) => new(Kcal + o.Kcal, ProteinG + o.ProteinG, CarbG + o.CarbG,
+        FatG + o.FatG, IronMg + o.IronMg, B12Mcg + o.B12Mcg, CalciumMg + o.CalciumMg, ZincMg + o.ZincMg);
+    public NutrientAmountsDto Scale(decimal f) => new(Kcal * f, ProteinG * f, CarbG * f, FatG * f,
+        IronMg * f, B12Mcg * f, CalciumMg * f, ZincMg * f);
+    public NutrientAmountsDto Rounded() => new(Math.Round(Kcal, 1), Math.Round(ProteinG, 1), Math.Round(CarbG, 1),
+        Math.Round(FatG, 1), Math.Round(IronMg, 2), Math.Round(B12Mcg, 2), Math.Round(CalciumMg, 1), Math.Round(ZincMg, 2));
+}
+
+public record RecipeSuggestionDto(int RecipeId, string Title, string? ImageUrl, decimal KcalPerServing, string? Reason);
+
+// ---------------- Meal Plan AI & DTOs ----------------
+
+public class GenerateMealPlanRequest
+{
+    public DateOnly? StartDate { get; set; }
+    [Range(1, 60)] public int Days { get; set; } = 7;
+    public List<string>? MealTypes { get; set; }
+    public List<int>? PreferredIngredientIds { get; set; }
+    public int? ScanId { get; set; }
+    [MaxLength(500)] public string? Note { get; set; }
+    [RegularExpression("^(loss|gain|maintain)$")] public string? HealthGoal { get; set; }
+}
+
+public class SwapMealRequest
+{
+    [MaxLength(300)] public string? Reason { get; set; }
+
+    /// <summary>Món thay thế người dùng tự chọn. Bỏ trống → AI/rule-based chọn giúp.</summary>
+    public int? RecipeId { get; set; }
+
+    /// <summary>Khẩu phần mới (0.25–5). Bỏ trống → tự tính để giữ năng lượng xấp xỉ món cũ.</summary>
+    [Range(0.25, 5.0)] public decimal? Servings { get; set; }
+}
+
+/// <summary>Thêm món thủ công vào thực đơn.</summary>
+public class AddMealPlanItemRequest
+{
+    [Required] public DateOnly PlanDate { get; set; }
+
+    [Required, RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
+    public string MealType { get; set; } = "lunch";
+
+    [Required] public int RecipeId { get; set; }
+
+    [Range(0.25, 5.0)] public decimal Servings { get; set; } = 1;
+}
+
+/// <summary>Sửa một món trong thực đơn — chỉ gửi trường cần đổi.</summary>
+public class UpdateMealPlanItemRequest
+{
+    [RegularExpression("^(breakfast|lunch|dinner|snack)$", ErrorMessage = "mealType phải là breakfast, lunch, dinner hoặc snack.")]
+    public string? MealType { get; set; }
+
+    public DateOnly? PlanDate { get; set; }
+
+    public int? RecipeId { get; set; }
+
+    [Range(0.25, 5.0)] public decimal? Servings { get; set; }
+}
+
+public record MealPlanItemDto(int Id, DateOnly PlanDate, string MealType, decimal Servings,
+    int RecipeId, string RecipeTitle, string? RecipeImageUrl, NutrientAmountsDto Nutrition);
+
+public record MealPlanDayDto(DateOnly Date, IReadOnlyList<MealPlanItemDto> Meals, NutrientAmountsDto Total,
+    decimal KcalTarget, decimal KcalDeviationPercent);
+
+public record MealPlanSummaryDto(int Id, DateOnly StartDate, DateOnly EndDate, string HealthGoal, string Status,
+    DateTime CreatedAt, int ItemCount);
+
+public record MealPlanDetailDto(int Id, DateOnly StartDate, DateOnly EndDate, string HealthGoal, string Status,
+    DateTime CreatedAt, NutrientAmountsDto DailyTargets, IReadOnlyList<MealPlanDayDto> Days, bool HasShoppingList);
+
+public record GeneratedMealPlanDto(MealPlanDetailDto Plan, string GeneratedBy, string? AiNotes,
+    int Attempts, IReadOnlyList<string> ValidationWarnings);

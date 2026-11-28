@@ -1,4 +1,4 @@
-import { BottomNav, PersonalSpace, Welcome } from "./Navigation";
+import { activeTab, BottomNav, PersonalSpace, Welcome } from "./Navigation";
 import {
   useState,
   useEffect,
@@ -44,6 +44,9 @@ const Account = lazy(() =>
 const Community = lazy(() =>
   import("./Community").then((module) => ({ default: module.Community })),
 );
+const EditPost = lazy(() =>
+  import("./PostComposer").then((module) => ({ default: module.EditPost })),
+);
 const CreatePost = lazy(() =>
   import("./PostComposer").then((module) => ({ default: module.CreatePost })),
 );
@@ -62,6 +65,9 @@ const Nutrition = lazy(() =>
 const Notifications = lazy(() =>
   import("./Activity").then((module) => ({ default: module.Notifications })),
 );
+const Vision = lazy(() =>
+  import("./Vision").then((module) => ({ default: module.Vision })),
+);
 const titles = {
   home: "Khám phá món chay",
   discover: "Khám phá món chay",
@@ -75,6 +81,7 @@ const titles = {
   "create-plan": "Tạo thực đơn",
   "meal-history": "Lịch sử thực đơn",
   chatbot: "Trò chuyện",
+  scan: "Quét nguyên liệu",
   community: "Cộng đồng",
   "post-detail": "Bài viết cộng đồng",
   "user-collection": "Món đã lưu",
@@ -92,6 +99,7 @@ const protectedScreens = [
   "create-mealplan",
   "meal-history",
   "chatbot",
+  "scan",
   "user-collection",
   "user-profile",
   "user-settings",
@@ -110,6 +118,10 @@ const guestCopy = {
     "Bạn muốn hỏi gì về bữa chay?",
     "Đăng nhập để hỏi trợ lý và xem lại những cuộc trò chuyện của bạn.",
   ],
+  scan: [
+    "Có gì trong bếp, nấu món đó.",
+    "Đăng nhập để quét ảnh nguyên liệu và nhận gợi ý món phù hợp với dị ứng của bạn.",
+  ],
   "user-collection": [
     "Giữ lại món bạn muốn nấu.",
     "Đăng nhập để lưu công thức và mở lại trên các thiết bị của bạn.",
@@ -118,6 +130,17 @@ const guestCopy = {
     "Bắt đầu từ nhu cầu của bạn.",
     "Hồ sơ sức khỏe và dị ứng giúp điều chỉnh thực đơn. Bạn có thể cập nhật bất cứ lúc nào.",
   ],
+};
+const mobileParents = {
+  scan: ["discover", "Khám phá"],
+  "create-plan": ["planner", "Thực đơn"],
+  "create-mealplan": ["planner", "Thực đơn"],
+  "meal-history": ["planner", "Thực đơn"],
+  "user-posts": ["me", "Cá nhân"],
+  "user-profile": ["me", "Cá nhân"],
+  "user-settings": ["me", "Cá nhân"],
+  "user-nutrition": ["me", "Cá nhân"],
+  notifications: ["me", "Cá nhân"],
 };
 export default function UserPortal({ screen, onNavigate, onLogin }) {
   const { user, logout } = useAuth();
@@ -129,6 +152,8 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
     }
   });
   const dark = theme === "dark";
+  const tab = activeTab(screen);
+  const navTab = !user && tab === "discover" ? "home" : tab;
   const themeLabel = dark ? "Bật giao diện sáng" : "Bật giao diện tối";
   const toggleTheme = () => {
     const next = dark ? "light" : "dark";
@@ -146,8 +171,14 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
     ["community", "Cộng đồng"],
   ];
   const [toast, setToast] = useState("");
+  const [routeSearch, setRouteSearch] = useState(() => window.location.search);
   const toastTimer = useRef();
   const returnTo = useRef(null);
+  useEffect(() => {
+    const syncUrl = () => setRouteSearch(window.location.search);
+    window.addEventListener("popstate", syncUrl);
+    return () => window.removeEventListener("popstate", syncUrl);
+  }, []);
   const flash = useCallback((message) => {
     setToast(message);
     clearTimeout(toastTimer.current);
@@ -172,12 +203,13 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
       "",
       `${target === "home" ? "/" : "/" + target}${params.size ? "?" + params : ""}`,
     );
+    setRouteSearch(window.location.search);
   };
   const open = (id) => go("article-detail", id);
   useEffect(() => {
     document.getElementById("vp-main")?.focus({ preventScroll: true });
     document.title = `${screen === "home" && user ? "Bếp hôm nay" : titles[screen] || "VeggieAI"} · VeggieAI`;
-  }, [screen, !!user]);
+  }, [screen, routeSearch, !!user]);
   const signOut = async () => {
     await logout();
     go("home");
@@ -199,6 +231,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
     "Đăng nhập để lưu món, quản lý bài viết và theo dõi những bữa ăn của bạn.",
   ];
   let content;
+  const routeId = new URLSearchParams(routeSearch).get("id");
   if (screen === "me")
     content = <PersonalSpace user={user} go={go} signOut={signOut} />;
   else if (!user && protectedScreens.includes(screen))
@@ -234,8 +267,8 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   else if (screen === "article-detail")
     content = (
       <RecipeDetail
-        key={window.location.search}
-        id={new URLSearchParams(window.location.search).get("id")}
+        key={routeSearch}
+        id={routeId}
         go={go}
         user={user}
         flash={flash}
@@ -260,19 +293,33 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   )
     content = (
       <Planner
-        key={`${user?.id || user?.email}:${screen}`}
+        key={`${user?.id || user?.email}:${screen}:${routeId || ""}`}
         go={go}
         flash={flash}
         open={open}
         history={screen === "meal-history"}
         hasProfile={user?.hasHealthProfile}
         create={["create-plan", "create-mealplan"].includes(screen)}
+        scanId={screen === "create-plan" && /^[1-9][0-9]{0,9}$/.test(routeId) && Number(routeId) <= 2147483647 ? Number(routeId) : undefined}
       />
     );
-  else if (screen === "chatbot") content = <Chat />;
+  else if (screen === "chatbot") content = <Chat open={open} />;
+  else if (screen === "scan") content = <Vision open={open} flash={flash} go={go} />;
   else if (screen === "user-profile")
     content = <Profile flash={flash} go={go} />;
   else if (screen === "user-settings") content = <Account user={user} />;
+  else if (
+    screen === "create-post" &&
+    routeId
+  )
+    content = (
+      <EditPost
+        key={`${user?.id || user?.email}:${routeSearch}`}
+        id={routeId}
+        go={go}
+        user={user}
+      />
+    );
   else if (["create-post", "create-video"].includes(screen))
     content = (
       <CreatePost
@@ -285,8 +332,8 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
   else if (["post-detail", "video-detail"].includes(screen))
     content = (
       <PostDetail
-        key={`${screen}:${window.location.search}:${user?.id || "guest"}`}
-        id={new URLSearchParams(window.location.search).get("id")}
+        key={`${screen}:${routeSearch}:${user?.id || "guest"}`}
+        id={routeId}
         go={go}
         user={user}
         flash={flash}
@@ -305,7 +352,8 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
     );
   else if (screen === "user-collection")
     content = <Collection open={open} flash={flash} go={go} />;
-  else if (screen === "user-nutrition") content = <Nutrition />;
+  else if (screen === "user-nutrition")
+    content = <Nutrition key={routeId} initialDate={/^\d{4}-\d{2}-\d{2}$/.test(routeId) ? routeId : undefined} />;
   else if (screen === "notifications") content = <Notifications />;
   else
     content = (
@@ -341,16 +389,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
                     key={id}
                     href={id === "home" ? "/" : "/" + id}
                     aria-current={
-                      screen === id ||
-                      (id === "community" &&
-                        [
-                          "post-detail",
-                          "user-posts",
-                          "create-post",
-                          "create-video",
-                          "videos",
-                          "video-detail",
-                        ].includes(screen))
+                      navTab === id
                         ? "page"
                         : undefined
                     }
@@ -379,7 +418,7 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
                   <span aria-hidden="true">{dark ? "Sáng" : "Tối"}</span>
                 </button>
                 <button
-                  className="vp-header-tool vp-desktop-tool"
+                  className={`vp-header-tool ${user ? "vp-mobile-chat" : "vp-desktop-tool"}`}
                   title="Hỏi trợ lý"
                   aria-label="Hỏi trợ lý"
                   onClick={() => go("chatbot")}
@@ -422,30 +461,13 @@ export default function UserPortal({ screen, onNavigate, onLogin }) {
             </div>
           </header>
           <main id="vp-main" className="vp-main" tabIndex={-1}>
-            {![
-              "home",
-              "discover",
-              "blog",
-              "article-detail",
-              "planner",
-              "user-collection",
-              "me",
-              "login",
-              "register",
-              "welcome",
-              "community",
-              "videos",
-              "post-detail",
-              "video-detail",
-              "create-post",
-              "create-video",
-            ].includes(screen) && (
+            {mobileParents[screen] && (
               <button
                 className="vp-mobile-back"
-                onClick={() => go("me")}
+                onClick={() => go(mobileParents[screen][0])}
               >
                 <ArrowLeft size={18} />
-                Quay lại
+                {mobileParents[screen][1]}
               </button>
             )}
             <div className="vp-screen" key={screen}>

@@ -111,6 +111,14 @@ export const aiApi = {
     return unwrap(res) || [];
   },
 
+  updateModelStatus: async (id, status) => {
+    const res = await apiRequest(`/ai/models/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+    return unwrap(res);
+  },
+
   getTelemetry: async () => {
     const res = await apiRequest('/ai/telemetry');
     return unwrap(res) || [];
@@ -248,6 +256,336 @@ export const recipesApi = {
   deleteRecipe: async (id) => {
     const res = await apiRequest(`/recipes/${id}`, {
       method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+};
+
+export const productScansApi = {
+  getProducts: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/productscans${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/productscans/stats');
+    return unwrap(res);
+  },
+
+  getProductById: async (id) => {
+    const res = await apiRequest(`/productscans/${id}`);
+    return unwrap(res);
+  },
+
+  createProduct: async (data) => {
+    const res = await apiRequest('/productscans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  updateProduct: async (id, data) => {
+    const res = await apiRequest(`/productscans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  deleteProduct: async (id) => {
+    const res = await apiRequest(`/productscans/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
+  reviewProduct: async (id, data) => {
+    const res = await apiRequest(`/productscans/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+};
+
+export const ingredientsApi = {
+  getIngredients: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.allergyId && params.allergyId !== 'all') query.append('allergyId', params.allergyId);
+    if (params.sortBy) query.append('sortBy', params.sortBy);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/ingredients${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getIngredientById: async (id) => {
+    const res = await apiRequest(`/ingredients/${id}`);
+    return unwrap(res);
+  },
+
+  createIngredient: async (data) => {
+    const res = await apiRequest('/ingredients', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  updateIngredient: async (id, data) => {
+    const res = await apiRequest(`/ingredients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  deleteIngredient: async (id) => {
+    const res = await apiRequest(`/ingredients/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
+  getAllergies: async () => {
+    const res = await apiRequest('/ingredients/allergies');
+    return unwrap(res) || [];
+  },
+
+  getNutrientStandards: async () => {
+    const res = await apiRequest('/ingredients/standards');
+    return unwrap(res) || [];
+  },
+};
+
+export const feedbacksApi = {
+  getFeedbacks: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/feedbacks${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/feedbacks/stats');
+    return unwrap(res);
+  },
+
+  resolveFeedback: async (id, data, feedbackType = 'report') => {
+    const res = await apiRequest(`/feedbacks/${id}/resolve?feedbackType=${feedbackType}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  createReport: async (data) => {
+    const res = await apiRequest('/feedbacks/report', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  submitAiFeedback: async (data) => {
+    const res = await apiRequest('/feedbacks/ai', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+};
+
+export const challengesApi = {
+  getChallenges: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.difficulty && params.difficulty !== 'all') query.append('difficulty', params.difficulty);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/challenges${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/challenges/stats');
+    return unwrap(res);
+  },
+
+  getChallengeById: async (id) => {
+    const res = await apiRequest(`/challenges/${id}`);
+    return unwrap(res);
+  },
+
+  createChallenge: async (data) => {
+    const res = await apiRequest('/challenges', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  updateChallenge: async (id, data) => {
+    const res = await apiRequest(`/challenges/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  deleteChallenge: async (id) => {
+    const res = await apiRequest(`/challenges/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
+  getCheckinsQueue: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.challengeId) query.append('challengeId', params.challengeId);
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/challenges/checkins${qs}`);
+    return unwrap(res) || [];
+  },
+
+  reviewCheckin: async (id, data) => {
+    const res = await apiRequest(`/challenges/checkins/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+};
+
+export const analyticsApi = {
+  getOverview: async () => {
+    const res = await apiRequest('/nutritionanalytics/overview');
+    return unwrap(res);
+  },
+
+  getDeficits: async () => {
+    const res = await apiRequest('/nutritionanalytics/deficits');
+    return unwrap(res) || [];
+  },
+
+  getTrends: async () => {
+    const res = await apiRequest('/nutritionanalytics/trends');
+    return unwrap(res) || [];
+  },
+};
+
+export const broadcastsApi = {
+  getBroadcasts: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/broadcasts${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/broadcasts/stats');
+    return unwrap(res);
+  },
+
+  createBroadcast: async (data) => {
+    const res = await apiRequest('/broadcasts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  updateBroadcast: async (id, data) => {
+    const res = await apiRequest(`/broadcasts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  deleteBroadcast: async (id) => {
+    const res = await apiRequest(`/broadcasts/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
+  sendNow: async (id) => {
+    const res = await apiRequest(`/broadcasts/${id}/send-now`, {
+      method: 'POST',
+    });
+    return unwrap(res);
+  },
+};
+
+export const rewardsApi = {
+  getRewards: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/rewards${qs}`);
+    return unwrap(res) || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/rewards/stats');
+    return unwrap(res);
+  },
+
+  createReward: async (data) => {
+    const res = await apiRequest('/rewards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  updateReward: async (id, data) => {
+    const res = await apiRequest(`/rewards/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return unwrap(res);
+  },
+
+  deleteReward: async (id) => {
+    const res = await apiRequest(`/rewards/${id}`, {
+      method: 'DELETE',
+    });
+    return unwrap(res);
+  },
+
+  getClaims: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/rewards/claims${qs}`);
+    return unwrap(res) || [];
+  },
+
+  processClaim: async (id, data) => {
+    const res = await apiRequest(`/rewards/claims/${id}/process`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
     return unwrap(res);
   },

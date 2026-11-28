@@ -13,6 +13,7 @@ const adminScreens = [
   "content-moderation",
   "recipe-management",
   "challenge-management",
+  "product-scanner",
   "ai-model-monitoring",
   "role-management",
   "feedback-management",
@@ -34,6 +35,7 @@ const userScreens = [
   "create-mealplan",
   "meal-history",
   "chatbot",
+  "scan",
   "community",
   "post-detail",
   "blog",
@@ -205,6 +207,7 @@ export default function App() {
           "content-moderation",
           "recipe-management",
           "challenge-management",
+          "product-scanner",
         ].includes(target)
       ) {
         setCurrentScreen("dashboard");
@@ -277,6 +280,7 @@ export default function App() {
         "content-moderation",
         "recipe-management",
         "challenge-management",
+        "product-scanner",
       ].includes(currentScreen)
     ) {
       handleNavigate("dashboard");

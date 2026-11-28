@@ -33,6 +33,16 @@ public class User
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Ảnh đại diện do người dùng tải lên (null → FE dùng avatar chữ cái).</summary>
+    [MaxLength(500)]
+    public string? AvatarUrl { get; set; }
+
+    /// <summary>
+    /// Phiên bản phiên đăng nhập. JWT mang claim "tv" = giá trị này; tăng lên khi đăng xuất, đổi/đặt lại mật khẩu
+    /// hoặc bị khóa → mọi access token cũ lập tức không còn hợp lệ.
+    /// </summary>
+    public int TokenVersion { get; set; }
+
     // Navigation properties
     public virtual HealthProfile? HealthProfile { get; set; }
     public virtual ICollection<UserAllergy> UserAllergies { get; set; } = new List<UserAllergy>();

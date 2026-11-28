@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   MessageCircle,
+  ScanLine,
   CalendarDays,
   Check,
   HeartPulse,
@@ -89,7 +90,7 @@ export function Today({ user, go, open, flash }) {
           <h1>
             Bếp hôm nay<span>.</span>
           </h1>
-          <p>Chào {user.displayName || user.name || "bạn"}. Hôm nay ăn gì?</p>
+          <p>Chào {user.displayName || user.name || "bạn"}.</p>
         </div>
         <Button secondary onClick={() => go("discover")}>
           Khám phá món
@@ -111,7 +112,7 @@ export function Today({ user, go, open, flash }) {
           </div>
           <State resource={daily} empty="Chưa có nhật ký hôm nay">
             {daily.data && (
-              <>
+              <div className="vp-today-summary">
                 <EnergyGauge
                   value={daily.data.consumed?.kcal}
                   target={daily.data.target?.kcal}
@@ -131,13 +132,18 @@ export function Today({ user, go, open, flash }) {
                     />
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </State>
         </aside>
         <section className="vp-today-plan">
           <div className="vp-section-heading">
-            <h2>Trên thực đơn</h2>
+            <div>
+              <h2>Trên thực đơn</h2>
+              {meals.length > 0 && daily.data?.date === date && (
+                <p>{meals.filter((meal) => meal.recorded).length}/{meals.length} bữa đã ghi nhận</p>
+              )}
+            </div>
             <button className="vp-text-button" onClick={() => go("planner")}>
               Xem thực đơn
               <ArrowRight size={16} />
@@ -251,6 +257,12 @@ export function Today({ user, go, open, flash }) {
       )}
       <section className="vp-today-tools" aria-label="Công cụ bếp">
         {[
+          [
+            "scan",
+            "Quét nguyên liệu",
+            "Chụp ảnh, nhận gợi ý món từ đồ có sẵn",
+            ScanLine,
+          ],
           [
             "chatbot",
             "Hỏi trợ lý bếp",

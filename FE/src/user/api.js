@@ -11,7 +11,7 @@ export async function request(path, body, method, signal) {
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    path.includes("/generate") ? 180000 : 90000,
+    path.includes("/generate") ? 300000 : 90000,
   );
   const abort = () => controller.abort();
   if (signal?.aborted) controller.abort();

@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+.git/
+src/
+postman/
+tools/
+_backup*/
+**/wwwroot/uploads/
+# Không đưa secret vào image - cấu hình bằng biến môi trường
+**/appsettings.Development.json
+**/appsettings.Local.json
+.env

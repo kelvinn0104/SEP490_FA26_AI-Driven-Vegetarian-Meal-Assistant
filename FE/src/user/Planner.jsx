@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AiActivity } from "./AiActivity";
 import {
   Plus,
@@ -12,6 +12,8 @@ import {
   Sun,
   Moon,
   Apple,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   useResource,
@@ -193,7 +195,7 @@ function DayTracking({ meals, resource, date, go }) {
       <button
         className="vp-icon"
         aria-label="Mở nhật ký dinh dưỡng"
-        onClick={() => go("user-nutrition")}
+        onClick={() => go("user-nutrition", date)}
       >
         <ArrowRight size={18} />
       </button>
@@ -217,7 +219,7 @@ function PlanMealVisual({ meal }) {
   );
 }
 
-export function Planner({ go, flash, open, history, create, hasProfile }) {
+export function Planner({ go, flash, open, history, create, hasProfile, scanId }) {
   const { user } = useAuth();
   const selectionKey = user
     ? `veggie:meal-plan:${user.id || user.email}`
@@ -290,14 +292,26 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
   const [days, setDays] = useState(7);
   const [note, setNote] = useState("");
   const [date, setDate] = useState(vietnamDate());
-  const [goal, setGoal] = useState("maintain");
+  const [goal, setGoal] = useState("");
   const [shopping, setShopping] = useState(null);
   const [shoppingOpen, setShoppingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(vietnamDate());
+  const dayPicker = useRef(null);
   const [warnings, setWarnings] = useState([]);
   const plan = generated || resource.data;
   const selectedDay =
     plan?.days?.find((day) => day.date === selectedDate) || plan?.days?.[0];
+  const dayIndex = plan?.days?.indexOf(selectedDay) ?? -1;
+  useEffect(() => {
+    const picker = dayPicker.current;
+    const selected = picker?.querySelector('[aria-pressed="true"]');
+    if (!selected) return;
+    const pickerBox = picker.getBoundingClientRect();
+    const selectedBox = selected.getBoundingClientRect();
+    if (selectedBox.left < pickerBox.left || selectedBox.right > pickerBox.right) {
+      picker.scrollLeft += selectedBox.left - pickerBox.left - (picker.clientWidth - selectedBox.width) / 2;
+    }
+  }, [selectedDay?.date, plan?.id, editing]);
   const daily = useResource(
     (signal) =>
       !editing && (!history || generated) && selectedDay?.date
@@ -353,7 +367,8 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
           startDate: date,
           days: Number(days),
           mealTypes: ["breakfast", "lunch", "dinner"],
-          healthGoal: goal,
+          ...(goal && { healthGoal: goal }),
+          ...(scanId && { scanId }),
           note,
         });
         const next = result?.plan;
@@ -493,7 +508,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
           )}
         </div>
       </PageHeading>
-      {!editing && !resource.loading && !plan?.days && (
+      {!editing && !resource.loading && !resource.error && !plan?.days && (
         <section className="vp-planner-start vp-editorial-banner">
           <div>
             <span className="vp-eyebrow">Kế hoạch bữa ăn</span>
@@ -516,7 +531,8 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
         {editing && (
           <form className="vp-panel" onSubmit={generate}>
             <fieldset className="vp-plan-fields" disabled={!!busy}>
-              <h2>Thông tin thực đơn</h2>
+              <legend>Thông tin thực đơn</legend>
+              {scanId && <Notice>Ưu tiên nguyên liệu từ lượt quét đã chọn nếu có món phù hợp.</Notice>}
               <div className="vp-plan-date-fields">
                 <label>
                   Ngày bắt đầu
@@ -532,7 +548,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   <input
                     type="number"
                     min="1"
-                    max="14"
+                    max="60"
                     required
                     value={days}
                     onChange={(e) => setDays(e.target.value)}
@@ -544,7 +560,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 role="group"
                 aria-label="Chọn nhanh số ngày"
               >
-                {[3, 7, 14].map((value) => (
+                {[3, 7, 14, 30].map((value) => (
                   <button
                     type="button"
                     key={value}
@@ -558,6 +574,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
               <label>
                 Mục tiêu
                 <select value={goal} onChange={(e) => setGoal(e.target.value)}>
+                  <option value="">Theo hồ sơ sức khỏe</option>
                   <option value="maintain">Duy trì cân nặng</option>
                   <option value="loss">Giảm cân</option>
                   <option value="gain">Tăng cân</option>
@@ -621,14 +638,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                 height="640"
                 alt=""
               />
-              <span className="vp-eyebrow">
-                Một kế hoạch, nhẹ việc mỗi ngày
-              </span>
-              <h2>
-                Bớt nghĩ mỗi bữa.
-                <br />
-                <em>Thêm thời gian vào bếp.</em>
-              </h2>
+              <h2>Ba bữa mỗi ngày</h2>
               <p>
                 Chọn số ngày và sở thích. Dị ứng được lấy từ hồ sơ sức khỏe đã
                 lưu.
@@ -684,7 +694,7 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                         }, "Đã kích hoạt thực đơn.")
                       }
                     >
-                      Dùng thực đơn này
+                      {plan.status === "draft" ? "Dùng thực đơn này" : "Dùng lại thực đơn"}
                     </Button>
                   )}
                   <Button
@@ -716,7 +726,14 @@ export function Planner({ go, flash, open, history, create, hasProfile }) {
                   </Button>
                 </div>
               </div>
-              <nav className="vp-day-picker" aria-label="Ngày trong thực đơn">
+              <div className="vp-plan-calendar-label">
+                <span>Ngày {dayIndex + 1} / {plan.days.length}</span>
+                <div>
+                  <button className="vp-icon" aria-label="Ngày trước" disabled={dayIndex <= 0} onClick={() => setSelectedDate(plan.days[dayIndex - 1].date)}><ChevronLeft size={18} /></button>
+                  <button className="vp-icon" aria-label="Ngày tiếp" disabled={dayIndex >= plan.days.length - 1} onClick={() => setSelectedDate(plan.days[dayIndex + 1].date)}><ChevronRight size={18} /></button>
+                </div>
+              </div>
+              <nav ref={dayPicker} className="vp-day-picker" aria-label="Ngày trong thực đơn">
                 {plan.days.map((day) => (
                   <button
                     key={day.date}

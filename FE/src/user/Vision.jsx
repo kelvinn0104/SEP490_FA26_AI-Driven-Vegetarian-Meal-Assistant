@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, Check, ScanLine } from "lucide-react";
+import { Camera, Check, ScanLine, ArrowUpRight } from "lucide-react";
 import { AiActivity } from "./AiActivity";
-import { Button, Notice, PageHeading, Card } from "./ui";
-import { userError, validatePhoto, isTestContent } from "./data";
+import { Button, Notice, PageHeading, RecipeSuggestions } from "./ui";
+import { amount, mealLabels, userError, validatePhoto, isTestContent } from "./data";
 import { request } from "./api";
-export function Vision({ open, flash }) {
+export function Vision({ open, flash, go }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState("");
   const [result, setResult] = useState(null);
@@ -24,11 +24,14 @@ export function Vision({ open, flash }) {
   }, [file]);
   const choose = (e) => {
     const next = e.target.files?.[0];
-    setResult(null);
-    setConfirmed(false);
+    e.target.value = "";
+    if (!next) return;
     const message = validatePhoto(next);
     setError(message);
-    setFile(message ? null : next);
+    if (message) return;
+    setResult(null);
+    setConfirmed(false);
+    setFile(next);
   };
   const scan = async () => {
     if (!file || lock.current) return;
@@ -46,8 +49,8 @@ export function Vision({ open, flash }) {
       setResult(data);
       setConfirmed(false);
       setSelected(
-        (data?.detectedItems || [])
-          .filter((i) => i.ingredientId != null)
+        data.detectedItems
+          .filter((i) => canUseIngredient(i) && (i.confidence == null || i.confidence >= 0.4))
           .map((i) => i.ingredientId),
       );
     } catch (e) {
@@ -64,7 +67,7 @@ export function Vision({ open, flash }) {
     setError("");
     try {
       const next = await request(`/scans/${result.scanId}/confirm`, {
-        ingredientIds: selected,
+        ingredientIds: [...new Set(selected)],
       });
       if (!next?.scanId || !Array.isArray(next.detectedItems))
         throw new Error("Chưa nhận được kết quả xác nhận hợp lệ.");
@@ -81,12 +84,14 @@ export function Vision({ open, flash }) {
   const suggestions = (result?.suggestedRecipes || []).filter(
     (recipe) => !isTestContent(recipe),
   );
+  const menu = (result?.suggestedMenu?.meals || []).filter(
+    (meal) => meal.recipeId && !isTestContent({ title: meal.recipeTitle }),
+  );
+  const canConfirm = result?.detectedItems.some(canUseIngredient);
+  const showSuggestions = result && (confirmed || !canConfirm);
   return (
     <>
-      <PageHeading
-        title="Quét nguyên liệu"
-        eyebrow="Từ nguyên liệu đến bữa ăn"
-      />
+      <PageHeading title="Quét nguyên liệu" />
       <ol className="vp-scan-flow" aria-label="Các bước quét nguyên liệu">
         <li
           className={result ? "done" : "current"}
@@ -95,15 +100,15 @@ export function Vision({ open, flash }) {
           <span>{file ? <Check size={16} /> : "01"}</span>Chọn ảnh
         </li>
         <li
-          className={confirmed ? "done" : result ? "current" : ""}
-          aria-current={result && !confirmed ? "step" : undefined}
+          className={showSuggestions ? "done" : result ? "current" : ""}
+          aria-current={result && !showSuggestions ? "step" : undefined}
         >
-          <span>{confirmed ? <Check size={16} /> : "02"}</span>Kiểm tra nguyên
+          <span>{showSuggestions ? <Check size={16} /> : "02"}</span>Kiểm tra nguyên
           liệu
         </li>
         <li
-          className={confirmed ? "current" : ""}
-          aria-current={confirmed ? "step" : undefined}
+          className={showSuggestions ? "current" : ""}
+          aria-current={showSuggestions ? "step" : undefined}
         >
           <span>03</span>Tìm món
         </li>
@@ -167,13 +172,34 @@ export function Vision({ open, flash }) {
                 width="92"
                 height="92"
               />
-              <h3>Từ nguyên liệu đến ý tưởng</h3>
-              <p>Kết quả và gợi ý món ăn sẽ xuất hiện tại đây.</p>
+                <h3>Kiểm tra trước khi chọn món</h3>
+                <p>Sau khi quét, bạn có thể bỏ những nguyên liệu nhận diện sai.</p>
             </div>
           ) : (
             <>
-              {result.message && <p>{result.message}</p>}
-              {!result.detectedItems?.length && (
+              {result.message && <Notice>{result.message}</Notice>}
+              {result.dishName && (
+                <div className="vp-scan-dish">
+                  <span className="vp-eyebrow">
+                    {result.imageType === "mixed"
+                      ? "Món ăn và nguyên liệu"
+                      : "Món ăn nhận diện được"}
+                  </span>
+                  <h3>{result.dishName}</h3>
+                  {result.dishDescription && <p>{result.dishDescription}</p>}
+                  {result.estimatedDishNutrition && (
+                    <>
+                      <p>Ước tính một phần từ ảnh</p>
+                      <dl className="vp-scan-metrics">
+                        {[["Năng lượng", "kcal", "kcal"], ["Đạm", "proteinG", "g"], ["Tinh bột", "carbG", "g"], ["Chất béo", "fatG", "g"]].map(([label, key, unit]) => (
+                          <div key={key}><dt>{label}</dt><dd>{amount(result.estimatedDishNutrition[key])} <small>{unit}</small></dd></div>
+                        ))}
+                      </dl>
+                    </>
+                  )}
+                </div>
+              )}
+              {!result.detectedItems?.length && !result.dishName && (
                 <Notice>
                   Chưa nhận diện được nguyên liệu. Thử ảnh rõ và đủ sáng hơn.
                 </Notice>
@@ -183,7 +209,7 @@ export function Vision({ open, flash }) {
                   <label key={i} className="vp-check">
                     <input
                       type="checkbox"
-                      disabled={item.ingredientId == null || busy}
+                      disabled={!canUseIngredient(item) || !!busy}
                       checked={selected.includes(item.ingredientId)}
                       onChange={(e) => {
                         setConfirmed(false);
@@ -195,13 +221,19 @@ export function Vision({ open, flash }) {
                       }}
                     />
                     {item.nameVi || item.name}
-                    {item.ingredientId == null && (
-                      <small>Chưa có trong danh mục</small>
+                    {!canUseIngredient(item) && (
+                      <small>
+                        {item.isVegetarian === false
+                          ? "Không phải đồ chay"
+                          : item.freshness === "spoiled"
+                            ? "Có dấu hiệu hỏng"
+                            : "Chưa có trong danh mục"}
+                      </small>
                     )}
                   </label>
                 ))}
               </div>
-              <Button
+              {canConfirm && <Button
                 disabled={
                   busy || confirmed || !selected.length || !result.scanId
                 }
@@ -212,32 +244,41 @@ export function Vision({ open, flash }) {
                   : busy === "confirm"
                     ? "Đang xác nhận…"
                     : "Xác nhận nguyên liệu"}
-              </Button>
+              </Button>}
               <p>
                 Nhận diện chỉ mang tính gợi ý, không xác nhận thực phẩm an toàn
                 để ăn.
               </p>
-              {confirmed && suggestions.length > 0 && (
-                <h3 className="vp-result-heading">Món có thể nấu</h3>
-              )}
-              {confirmed &&
-                (suggestions.length ? (
-                  <div className="vp-grid compact">
-                    {suggestions.map((r) => (
-                      <Card
-                        key={r.recipeId}
-                        recipe={{ ...r, id: r.recipeId }}
-                        open={open}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p>Chưa có món gợi ý cho các nguyên liệu đã chọn.</p>
-                ))}
+              {showSuggestions && <>
+                {suggestions.length > 0 && <h3 className="vp-result-heading">Món có thể nấu</h3>}
+                <RecipeSuggestions recipes={suggestions} open={open} />
+                {menu.length > 0 && (
+                  <section className="vp-scan-menu">
+                    <h3>Gợi ý bữa ăn trong ngày</h3>
+                    {result.suggestedMenu.notes && <p>{result.suggestedMenu.notes}</p>}
+                    <ul className="vp-suggestions">
+                      {menu.map((meal) => (
+                        <li key={`${meal.mealType}:${meal.recipeId}`}>
+                          <button onClick={() => open(meal.recipeId)}>
+                            <span><small>{mealLabels[meal.mealType] || meal.mealType} · {amount(meal.nutrition?.kcal)} kcal</small><strong>{meal.recipeTitle}</strong></span>
+                            <ArrowUpRight size={17} aria-hidden="true" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {!suggestions.length && !menu.length && <p>Chưa có món gợi ý từ lần quét này.</p>}
+                {confirmed && <Button secondary onClick={() => go("create-plan", result.scanId)}>Lên thực đơn từ nguyên liệu <ArrowUpRight size={17} /></Button>}
+              </>}
             </>
           )}
         </section>
       </div>
     </>
   );
+}
+
+function canUseIngredient(item) {
+  return item.ingredientId != null && item.freshness !== "spoiled" && item.isVegetarian !== false;
 }

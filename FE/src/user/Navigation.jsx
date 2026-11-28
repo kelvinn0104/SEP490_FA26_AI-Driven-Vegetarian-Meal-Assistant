@@ -15,19 +15,22 @@ import {
   Users,
   Check,
   ArrowRight,
+  ScanLine,
+  Compass,
 } from "lucide-react";
 import { Button } from "./ui";
 import { m } from "motion/react";
 const tabs = [
-  ["home", "Khám phá", Home],
+  ["home", "Hôm nay", Home],
+  ["discover", "Khám phá", Compass],
   ["planner", "Thực đơn", CalendarDays],
   ["community", "Cộng đồng", Users],
-  ["user-collection", "Đã lưu", Bookmark],
   ["me", "Cá nhân", UserRound],
 ];
 export function activeTab(screen) {
-  if (["home", "blog", "article-detail", "discover"].includes(screen))
-    return "home";
+  if (screen === "home") return "home";
+  if (["blog", "article-detail", "discover", "scan"].includes(screen))
+    return "discover";
   if (
     [
       "community",
@@ -46,23 +49,23 @@ export function activeTab(screen) {
     )
   )
     return "planner";
-  if (screen === "user-collection") return "user-collection";
   return "me";
 }
 export function BottomNav({ screen, go, user }) {
+  const current = !user && screen === "home" ? "discover" : activeTab(screen);
   return (
     <nav className="vp-bottom-nav" aria-label="Điều hướng nhanh">
-      {tabs.map(([id, label, Icon]) => (
+      {tabs.filter(([id]) => user || id !== "home").map(([id, label, Icon]) => (
         <a
           key={id}
-          href={id === "home" ? "/" : "/" + id}
-          aria-current={activeTab(screen) === id ? "page" : undefined}
+          href={id === "home" || (!user && id === "discover") ? "/" : "/" + id}
+          aria-current={current === id ? "page" : undefined}
           onClick={(e) => {
             e.preventDefault();
-            go(id);
+            go(!user && id === "discover" ? "home" : id);
           }}
         >
-          {activeTab(screen) === id && (
+          {current === id && (
             <m.span
               className="vp-nav-indicator"
               layoutId="user-bottom-active"
@@ -70,7 +73,7 @@ export function BottomNav({ screen, go, user }) {
             />
           )}
           <Icon size={21} strokeWidth={1.7} />
-          <span>{id === "home" && user ? "Hôm nay" : label}</span>
+          <span>{label}</span>
         </a>
       ))}
     </nav>
@@ -89,6 +92,7 @@ const groups = [
   [
     "Khám phá thêm",
     [
+      ["scan", "Quét nguyên liệu", ScanLine],
       ["chatbot", "Hỏi trợ lý", MessageCircle],
       ["community", "Cộng đồng", Users],
     ],

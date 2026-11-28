@@ -1,14 +1,16 @@
+using VeggieAI.API;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VeggieAI.Model.Constants;
 using VeggieAI.Model.DTOs;
 using VeggieAI.Service.Services;
 
 namespace VeggieAI.API.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = RoleConstants.ManagementAccessPolicy)]
-public class ModerationController : ApiControllerBase
+[Authorize(Roles = AppRoles.Staff)]
+public class ModerationController : ControllerBase
 {
     private readonly IModerationService _moderationService;
 
@@ -24,13 +26,6 @@ public class ModerationController : ApiControllerBase
         return Ok(ApiResponse<List<ModerationItemDto>>.Ok(result));
     }
 
-    [HttpGet("history")]
-    public async Task<ActionResult<ApiResponse<List<ModerationItemDto>>>> GetHistory([FromQuery] int limit = 30)
-    {
-        var result = await _moderationService.GetModerationHistoryAsync(limit);
-        return Ok(ApiResponse<List<ModerationItemDto>>.Ok(result));
-    }
-
     [HttpGet("count")]
     public async Task<ActionResult<ApiResponse<int>>> GetPendingCount()
     {
@@ -39,10 +34,9 @@ public class ModerationController : ApiControllerBase
     }
 
     [HttpPost("{id}/approve")]
-    [Authorize(Policy = RoleConstants.ModOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<bool>>> Approve(string id, [FromBody] ModerationActionRequest? request)
     {
-        var reviewerId = GetRequiredUserId();
+        var reviewerId = GetCurrentUserId();
         var actionRequest = request ?? new ModerationActionRequest { Decision = "approved" };
         actionRequest.Decision = "approved";
 
@@ -52,10 +46,9 @@ public class ModerationController : ApiControllerBase
     }
 
     [HttpPost("{id}/reject")]
-    [Authorize(Policy = RoleConstants.ModOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<bool>>> Reject(string id, [FromBody] ModerationActionRequest? request)
     {
-        var reviewerId = GetRequiredUserId();
+        var reviewerId = GetCurrentUserId();
         var actionRequest = request ?? new ModerationActionRequest { Decision = "rejected" };
         actionRequest.Decision = "rejected";
 
@@ -65,10 +58,9 @@ public class ModerationController : ApiControllerBase
     }
 
     [HttpPost("{id}/revision")]
-    [Authorize(Policy = RoleConstants.ModOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<bool>>> RequestRevision(string id, [FromBody] ModerationActionRequest? request)
     {
-        var reviewerId = GetRequiredUserId();
+        var reviewerId = GetCurrentUserId();
         var actionRequest = request ?? new ModerationActionRequest { Decision = "revision" };
         actionRequest.Decision = "revision";
 
@@ -76,11 +68,36 @@ public class ModerationController : ApiControllerBase
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy nội dung"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã gửi yêu cầu chỉnh sửa cho tác giả!"));
     }
+
+    /// <summary>Báo cáo vi phạm từ người dùng. status: open (mặc định) | resolved | dismissed | all.</summary>
+    [HttpGet("reports")]
+    public async Task<ActionResult<ApiResponse<PagedResult<StaffReportDto>>>> GetReports(
+        [FromQuery] string? status, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    {
+        var result = await _moderationService.GetReportsAsync(status, this.Paging(page, pageSize), ct);
+        return Ok(ApiResponse<PagedResult<StaffReportDto>>.Ok(result));
+    }
+
+    /// <summary>Xử lý báo cáo: { status: resolved|dismissed, removeContent?, note? }. Người báo cáo nhận thông báo kết quả.</summary>
+    [HttpPost("reports/{reportId:int}/handle")]
+    public async Task<ActionResult<ApiResponse<StaffReportDto>>> HandleReport(int reportId, [FromBody] HandleReportRequest request, CancellationToken ct)
+    {
+        var result = await _moderationService.HandleReportAsync(reportId, request, GetCurrentUserId(), ct);
+        return Ok(ApiResponse<StaffReportDto>.Ok(result, "Đã xử lý báo cáo"));
+    }
+
+    private int GetCurrentUserId()
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(idStr, out var id) ? id : 0;
+    }
 }
 
+[ApiController]
 [Route("api/[controller]")]
-[Authorize]
-public class AiController : ApiControllerBase
+// Không đặt [Authorize(Roles = Staff)] ở cấp class: attribute cấp class cộng dồn (AND) với cấp action,
+// khiến /health và /recipe/parse-macros bị chặn với khách và user thường → FE coi như BE mất kết nối.
+public class AiController : ControllerBase
 {
     private readonly IAiService _aiService;
 
@@ -89,27 +106,42 @@ public class AiController : ApiControllerBase
         _aiService = aiService;
     }
 
+    /// <summary>Health check công khai — FE gọi khi khởi động để biết BE còn sống (không cần đăng nhập).</summary>
+    /// <summary>
+    /// Kiểm tra sống: trạng thái API, loại DB, AI đã cấu hình chưa, nơi lưu file và thời gian chạy thật của tiến trình.
+    /// (Bỏ các số liệu cố định uptime 99.98% / GPU 58°C trước đây — không phản ánh hệ thống thật.)
+    /// </summary>
     [HttpGet("health")]
-    [Authorize(Policy = RoleConstants.ManagementAccessPolicy)]
-    public async Task<ActionResult<ApiResponse<object>>> GetHealth()
+    [HttpGet("~/api/health")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<object>>> GetHealth(
+        [FromServices] VeggieAI.Repository.Data.VeggieAIDbContext db,
+        [FromServices] VeggieAI.Service.Services.AI.ILlmClient llm,
+        [FromServices] VeggieAI.Service.Services.AI.IFileStorage storage,
+        CancellationToken ct)
     {
-        var models = await _aiService.GetModelsAsync();
-        var activeCount = models.Count(m => m.Status == "active");
-        var role = GetCurrentUserRole();
-        var canConfigureModels = role == RoleConstants.SuperAdmin;
+        // Cho biết BE đang chạy Postgres thật hay InMemory dự phòng (InMemory = dữ liệu mất sau mỗi lần restart)
+        var provider = db.Database.ProviderName ?? "unknown";
+        var database = provider.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ? "inmemory" : "postgresql";
+        bool dbOk;
+        try { dbOk = await db.Database.CanConnectAsync(ct); }
+        catch { dbOk = false; }
 
+        var started = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
         return Ok(ApiResponse<object>.Ok(new
         {
-            status = activeCount > 0 ? "healthy" : "degraded",
-            activeModels = activeCount,
-            totalModels = models.Count,
-            accessScope = canConfigureModels ? "system_supervision_and_config" : "operational_read_only",
-            canConfigureModels
-        }, "Trạng thái dịch vụ AI"));
+            status = dbOk ? "healthy" : "degraded",
+            database,
+            databaseReachable = dbOk,
+            aiConfigured = llm.IsConfigured,
+            durableFileStorage = storage.IsDurable,
+            startedAt = started,
+            uptimeSeconds = (long)(DateTime.UtcNow - started).TotalSeconds,
+        }, dbOk ? "API đang hoạt động" : "API chạy nhưng không kết nối được cơ sở dữ liệu"));
     }
 
     [HttpGet("models")]
-    [Authorize(Policy = RoleConstants.ManagementAccessPolicy)]
+    [Authorize(Roles = AppRoles.Staff)]
     public async Task<ActionResult<ApiResponse<List<AiModelDto>>>> GetModels()
     {
         var result = await _aiService.GetModelsAsync();
@@ -117,38 +149,36 @@ public class AiController : ApiControllerBase
     }
 
     [HttpPut("models/{id}/status")]
-    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateModelStatus(int id, [FromBody] UpdateAiModelStatusRequest request)
     {
-        var adminId = GetRequiredUserId();
-        var ok = await _aiService.UpdateModelStatusAsync(id, request.Status, adminId);
+        var ok = await _aiService.UpdateModelStatusAsync(id, request.Status);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy mô hình"));
         return Ok(ApiResponse<bool>.Ok(true, "Cập nhật trạng thái mô hình thành công"));
     }
 
     [HttpGet("telemetry")]
-    [Authorize(Policy = RoleConstants.ManagementAccessPolicy)]
-    public async Task<ActionResult<ApiResponse<List<AiTelemetryLogDto>>>> GetTelemetry([FromQuery] int limit = 30)
+    [Authorize(Roles = AppRoles.Staff)]
+    public async Task<ActionResult<ApiResponse<List<AiTelemetryLogDto>>>> GetTelemetry()
     {
-        var result = await _aiService.GetTelemetryLogsAsync(limit);
+        var result = await _aiService.GetTelemetryLogsAsync();
         return Ok(ApiResponse<List<AiTelemetryLogDto>>.Ok(result));
     }
 
+    /// <summary>Mọi người dùng đã đăng nhập đều dùng được (trang Tạo bài viết của user gọi endpoint này).</summary>
     [HttpPost("recipe/parse-macros")]
-    [Authorize(Policy = RoleConstants.AuthenticatedUserPolicy)]
+    [Authorize]
     public async Task<ActionResult<ApiResponse<NutritionAnalysisResponse>>> ParseMacros([FromBody] NutritionAnalysisRequest request)
     {
-        var userId = GetRequiredUserId();
-        var result = await _aiService.ParseNutritionAsync(request.RecipeText, userId);
-        return Ok(ApiResponse<NutritionAnalysisResponse>.Ok(result, result.Analyzed
-            ? "Phân tích dinh dưỡng hoàn tất"
-            : "Không tìm thấy nguyên liệu tương ứng để phân tích"));
+        var result = await _aiService.ParseNutritionAsync(request.RecipeText);
+        return Ok(ApiResponse<NutritionAnalysisResponse>.Ok(result, "Phân tích dinh dưỡng AI hoàn tất"));
     }
 }
 
+[ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = RoleConstants.ManagementAccessPolicy)]
-public class DashboardController : ApiControllerBase
+[Authorize(Roles = AppRoles.Staff)]
+public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
 
@@ -172,9 +202,9 @@ public class DashboardController : ApiControllerBase
     }
 
     [HttpGet("charts")]
-    public async Task<ActionResult<ApiResponse<List<WeeklyChartDayDto>>>> GetCharts([FromQuery] int days = 7)
+    public async Task<ActionResult<ApiResponse<List<WeeklyChartDayDto>>>> GetCharts()
     {
-        var result = await _dashboardService.GetWeeklyChartDataAsync(days);
+        var result = await _dashboardService.GetWeeklyChartDataAsync();
         return Ok(ApiResponse<List<WeeklyChartDayDto>>.Ok(result));
     }
 
@@ -186,13 +216,10 @@ public class DashboardController : ApiControllerBase
     }
 }
 
-/// <summary>
-/// Note: Class-level [Authorize] only requires authentication so action-level policies
-/// do NOT stack SuperAdminOnly onto GET /api/roles/my-permissions (allowing Mod to fetch own permissions).
-/// </summary>
+[ApiController]
 [Route("api/[controller]")]
-[Authorize]
-public class RolesController : ApiControllerBase
+[Authorize(Roles = AppRoles.Admin)]
+public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;
 
@@ -202,7 +229,6 @@ public class RolesController : ApiControllerBase
     }
 
     [HttpGet]
-    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<List<RoleDto>>>> GetRoles()
     {
         var result = await _roleService.GetRolesAsync();
@@ -210,74 +236,23 @@ public class RolesController : ApiControllerBase
     }
 
     [HttpGet("permissions")]
-    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<List<PermissionDto>>>> GetPermissions()
     {
         var result = await _roleService.GetAllPermissionsAsync();
         return Ok(ApiResponse<List<PermissionDto>>.Ok(result));
     }
 
-    [HttpGet("my-permissions")]
-    [Authorize(Policy = RoleConstants.AuthenticatedUserPolicy)]
-    public async Task<ActionResult<ApiResponse<List<string>>>> GetMyPermissions()
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<RoleDto>>> CreateRole([FromBody] SaveRoleRequest request)
     {
-        var role = GetCurrentUserRole();
-        var result = await _roleService.GetPermissionsByRoleAsync(role);
-        return Ok(ApiResponse<List<string>>.Ok(result));
+        var result = await _roleService.SaveRoleAsync(null, request);
+        return Ok(ApiResponse<RoleDto>.Ok(result, "Tạo vai trò thành công"));
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
     public async Task<ActionResult<ApiResponse<RoleDto>>> UpdateRole(string id, [FromBody] SaveRoleRequest request)
     {
-        var adminId = GetRequiredUserId();
-        var result = await _roleService.SaveRoleAsync(id, request, adminId);
-        return Ok(ApiResponse<RoleDto>.Ok(result, "Cập nhật phân quyền thành công"));
-    }
-
-    [HttpDelete("{id}")]
-    [Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
-    public async Task<ActionResult<ApiResponse<bool>>> DeleteRole(string id)
-    {
-        var adminId = GetRequiredUserId();
-        var ok = await _roleService.DeleteRoleAsync(id, adminId);
-        if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy vai trò cần xóa"));
-        return Ok(ApiResponse<bool>.Ok(true, "Đã xóa vai trò"));
-    }
-}
-
-[Route("api/system-settings")]
-[Authorize(Policy = RoleConstants.SuperAdminOnlyPolicy)]
-public class SystemSettingsController : ApiControllerBase
-{
-    private readonly ISystemSettingService _settingService;
-
-    public SystemSettingsController(ISystemSettingService settingService)
-    {
-        _settingService = settingService;
-    }
-
-    [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<SystemSettingDto>>>> GetSettings([FromQuery] string? search)
-    {
-        var result = await _settingService.GetSettingsAsync(search);
-        return Ok(ApiResponse<List<SystemSettingDto>>.Ok(result));
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<ApiResponse<SystemSettingDto>>> SaveSetting([FromBody] SaveSystemSettingRequest request)
-    {
-        var adminId = GetRequiredUserId();
-        var result = await _settingService.SaveSettingAsync(request, adminId);
-        return Ok(ApiResponse<SystemSettingDto>.Ok(result, "Lưu cấu hình hệ thống thành công"));
-    }
-
-    [HttpDelete("{key}")]
-    public async Task<ActionResult<ApiResponse<bool>>> DeleteSetting(string key)
-    {
-        var adminId = GetRequiredUserId();
-        var ok = await _settingService.DeleteSettingAsync(Uri.UnescapeDataString(key), adminId);
-        if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy khóa cấu hình"));
-        return Ok(ApiResponse<bool>.Ok(true, "Đã xóa cấu hình hệ thống"));
+        var result = await _roleService.SaveRoleAsync(id, request);
+        return Ok(ApiResponse<RoleDto>.Ok(result, "Cập nhật vai trò thành công"));
     }
 }

@@ -16,9 +16,15 @@
 }
 .vp-hero h1 {
   margin: 20px 0;
-  font: 600 clamp(38px, 3.9vw, 56px)/1.18 var(--font-body);
+  font: 600 clamp(45px, 6vw, 84px)/1.06 var(--font-body);
   letter-spacing: -2.8px;
   text-wrap: initial;
+}
+.vp-hero h1 em {
+  display: block;
+  color: var(--green);
+  font-family: "Lora", Georgia, serif;
+  font-weight: 500;
 }
 .vp-hero p {
   font-size: 15px;
@@ -32,6 +38,7 @@
   min-height: 50px;
   padding: 13px 23px;
   font-weight: 600;
+  transition-property: transform;
 }
 .vp-hero .vp-button:hover {
   background: var(--theme-selected, #cbe080);
@@ -72,7 +79,7 @@
   gap: 18px;
   margin-top: 20px;
 }
-.vp-hero-signature button {
+.vp-hero-signature button:not(.vp-button) {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -99,7 +106,8 @@
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 36px 70px 36px 36px;
+  border-radius: 48% 48% 16px 16px / 29% 29% 16px 16px;
+  box-shadow: var(--shadow);
 }
 .vp-hero-still-life figcaption {
   position: absolute;
@@ -498,6 +506,9 @@
 .vp-detail-columns > section > h2:not(:first-child) {
   margin-top: 44px;
 }
+.vp-recipe-section-title { margin-bottom: 12px; }
+.vp-recipe-section-title > span { color: var(--muted); font-size: 13px; }
+.vp-kitchen-inner > header h1 { overflow-wrap: anywhere; }
 .vp-detail-columns > aside {
   position: sticky;
   top: 112px;

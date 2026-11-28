@@ -36,6 +36,23 @@ public class ModerationActionRequest
     public string? Reason { get; set; }
 }
 
+public class HandleReportRequest
+{
+    /// <summary>resolved | dismissed</summary>
+    [Required]
+    public string Status { get; set; } = "resolved";
+
+    /// <summary>true → gỡ nội dung bị báo cáo (bài/bình luận → removed, công thức → hidden). Chỉ áp dụng khi resolved.</summary>
+    public bool RemoveContent { get; set; }
+
+    [MaxLength(500)]
+    public string? Note { get; set; }
+}
+
+public record StaffReportDto(int Id, string TargetType, int TargetId, string? TargetPreview, string Category, string? Reason,
+    string Status, string ReporterName, DateTime CreatedAt, DateTime? HandledAt,
+    int ReportCount = 1, double TrustScore = 0, string Priority = "low", int ReporterAgeDays = 0);
+
 // AI
 public class AiModelDto
 {
@@ -108,7 +125,11 @@ public class DashboardOverviewDto
     public int PendingProductScans { get; set; }
     public int TotalAiQueries { get; set; }
     public int SystemErrorsCount { get; set; }
-    public string AiAccuracy { get; set; } = "0%";
+    public string Cluster { get; set; } = "Cụm HCM-01";
+    public string RamUsage { get; set; } = "340GB / 500GB";
+    public int RamPercent { get; set; } = 68;
+    public string GpuLoad { get; set; } = "34.2% ổn định";
+    public string AiAccuracy { get; set; } = "94.6%";
 }
 
 public class DietDistributionItemDto

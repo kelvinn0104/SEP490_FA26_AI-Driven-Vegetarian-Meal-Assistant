@@ -36,6 +36,9 @@ public class Post
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Lần sửa gần nhất của tác giả (null = chưa sửa).</summary>
+    public DateTime? UpdatedAt { get; set; }
+
     [ForeignKey(nameof(UserId))]
     public virtual User? User { get; set; }
 
@@ -68,6 +71,9 @@ public class Comment
     public string Status { get; set; } = "visible"; // 'visible', 'hidden', 'removed'
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Lần sửa gần nhất (null = chưa sửa).</summary>
+    public DateTime? UpdatedAt { get; set; }
 
     [ForeignKey(nameof(PostId))]
     public virtual Post? Post { get; set; }

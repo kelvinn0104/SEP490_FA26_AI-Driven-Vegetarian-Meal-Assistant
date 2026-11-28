@@ -1,125 +1,95 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  Video,
-  Eye,
-  PenLine,
-  Check,
-  Trash2,
-  Bold,
-  List,
-  Link,
-} from "lucide-react";
-import { useResource, Button, Notice, PageHeading } from "./ui";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, CookingPot, Image, Link2, Video, X } from "lucide-react";
+import { Button, Notice, State, useResource } from "./ui";
 import { request } from "./api";
-import { listOf, isTestContent, statusLabel, userError } from "./data";
-import { validatePost, recipeNumber } from "./postData";
-import { PostMedia, PostBody, CommunityDialog } from "./PostParts";
+import { listOf, postStatusLabel, userError } from "./data";
+import { postMedia, recipeNumber, validatePost } from "./postData";
+import { PostMedia, PostMeta } from "./PostParts";
 
-export function CreatePost({ go, user, video = false }) {
-  const draftKey = `veggie:community-draft:v1:${user.id ?? user.email}`;
+const accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
+const empty = { content: "", recipeId: "", mediaUrl: "", postType: "blog" };
+
+export function EditPost({ id, go, user }) {
+  const resource = useResource(
+    (signal) => request(`/community/posts/${id}`, undefined, undefined, signal),
+    [id],
+  );
+  return <State resource={resource}>
+    {resource.data?.canEdit
+      ? <CreatePost go={go} user={user} editPost={resource.data} />
+      : resource.data && <Notice error>Bạn không thể sửa bài viết này.</Notice>}
+  </State>;
+}
+
+export function CreatePost({ go, user, video = false, editPost = null }) {
+  const key = `veggie:community-draft:v1:${user.id ?? user.email}`;
   const [draft, setDraft] = useState(() => {
-    const blank = {
-      postType: video ? "video" : "blog",
-      title: "",
-      content: "",
-      mediaUrl: "",
-      recipeId: "",
+    if (editPost) return {
+      ...empty, content: editPost.content || "", recipeId: String(editPost.recipeId ?? ""),
+      mediaUrl: editPost.mediaUrl || "", postType: editPost.postType,
     };
     try {
-      const saved = JSON.parse(sessionStorage.getItem(draftKey));
-      if (!saved || !["blog", "video"].includes(saved.postType)) return blank;
-      for (const field of ["title", "content", "mediaUrl", "recipeId"])
-        if (typeof saved[field] !== "string") return blank;
-      return {
-        postType: saved.postType,
-        title: saved.title.slice(0, 200),
-        content: saved.content.slice(0, 20000),
-        mediaUrl: saved.mediaUrl.slice(0, 500),
-        recipeId: saved.recipeId,
-      };
-    } catch {
-      return blank;
-    }
+      const saved = JSON.parse(sessionStorage.getItem(key));
+      if (saved && typeof saved.content === "string")
+        return { ...empty, ...saved, content: saved.content.slice(0, 20000) };
+    } catch { /* Storage may be disabled. */ }
+    return { ...empty, postType: video ? "video" : "blog" };
   });
-  const [preview, setPreview] = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [showRecipes, setShowRecipes] = useState(Boolean(draft.recipeId));
+  const [recipeSearch, setRecipeSearch] = useState("");
+  const [showLink, setShowLink] = useState(video || Boolean(draft.mediaUrl));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [draftStored, setDraftStored] = useState(false);
   const [result, setResult] = useState(null);
-  const [discard, setDiscard] = useState(false);
+  const fileInput = useRef(null);
+  const upload = useRef(null);
   const lock = useRef(false);
-  const contentField = useRef(null);
   const recipes = useResource(
-    (signal) => request("/Recipes", undefined, undefined, signal),
-    [],
+    (signal) => showRecipes ? request("/Recipes", undefined, undefined, signal) : [],
+    [showRecipes],
   );
-  const recipeOptions = listOf(recipes.data).filter(
-    (recipe) =>
-      recipe.status === "published" &&
-      !isTestContent(recipe) &&
-      recipeNumber(recipe.id),
-  );
-  const dirty = !!(
-    draft.title ||
-    draft.content ||
-    draft.mediaUrl ||
-    draft.recipeId
+  const search = recipeSearch.trim().toLocaleLowerCase("vi-VN");
+  const choices = listOf(recipes.data).filter((recipe) =>
+    recipe.status === "published" && recipeNumber(recipe.id) &&
+    (recipeNumber(recipe.id) === recipeNumber(draft.recipeId) || recipe.title.toLocaleLowerCase("vi-VN").includes(search)),
   );
   useEffect(() => {
-    if (result) return;
-    try {
-      if (dirty) sessionStorage.setItem(draftKey, JSON.stringify(draft));
-      else sessionStorage.removeItem(draftKey);
-      setDraftStored(dirty);
-    } catch {
-      setDraftStored(false);
-    }
-  }, [draft, draftKey, dirty, result]);
+    if (editPost || result) return;
+    try { sessionStorage.setItem(key, JSON.stringify(draft)); } catch { /* Optional draft persistence. */ }
+  }, [draft, key, editPost, result]);
   useEffect(() => {
-    if (!dirty || result || draftStored) return;
-    const warn = (e) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty, result, draftStored]);
-  const update = (field, value) => {
+    if (!attachment) { setPreview(null); return; }
+    const url = URL.createObjectURL(attachment);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [attachment]);
+
+  function update(values) {
     setError("");
-    setDraft((previous) => ({ ...previous, [field]: value }));
-  };
-  const format = (kind) => {
-    const field = contentField.current;
-    if (!field) return;
-    const start = field.selectionStart;
-    const end = field.selectionEnd;
-    const selected = draft.content.slice(start, end);
-    const text = selected || (kind === "link" ? "Tên liên kết" : "Nội dung");
-    const insertion =
-      kind === "bold"
-        ? `**${text}**`
-        : kind === "link"
-          ? `[${text}](https://)`
-          : `${start && draft.content[start - 1] !== "\n" ? "\n" : ""}- ${text.replaceAll("\n", "\n- ")}`;
-    const next =
-      draft.content.slice(0, start) + insertion + draft.content.slice(end);
-    if (next.length > 20000) {
-      setError("Nội dung tối đa 20.000 ký tự.");
+    setDraft((previous) => ({ ...previous, ...values }));
+  }
+
+  function selectFile(event) {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (!file) return;
+    const isVideo = file.type.startsWith("video/");
+    if (!accept.split(",").includes(file.type) || !file.size || file.size > (isVideo ? 50 : 8) * 1024 ** 2) {
+      setError("Chọn ảnh JPG, PNG, WebP, GIF tối đa 8 MB hoặc video MP4, WebM, MOV tối đa 50 MB.");
       return;
     }
-    update("content", next);
-    window.requestAnimationFrame(() => {
-      field.focus();
-      field.setSelectionRange(start, start + insertion.length);
-    });
-  };
-  const submit = async (e) => {
-    e.preventDefault();
+    upload.current = null;
+    setAttachment(file);
+    update({ mediaUrl: "", postType: isVideo ? "video" : "blog" });
+  }
+
+  async function submit(event) {
+    event.preventDefault();
     if (lock.current) return;
-    const validation = validatePost(draft);
+    const content = draft.content.trim();
+    const validation = validatePost(draft, attachment);
     if (validation) {
       setError(validation);
       return;
@@ -128,337 +98,105 @@ export function CreatePost({ go, user, video = false }) {
     setBusy(true);
     setError("");
     try {
-      const response = await request("/community/posts", {
-        postType: draft.postType,
-        title: draft.title.trim(),
-        content: draft.content.trim() || null,
-        mediaUrl: draft.mediaUrl.trim() || null,
-        recipeId: draft.recipeId ? recipeNumber(draft.recipeId) : null,
-      });
-      if (!response?.id)
-        throw new Error(
-          "Chưa xác nhận được bài đã gửi. Kiểm tra Bài của tôi trước khi gửi lại.",
-        );
-      setResult(response);
-      try {
-        sessionStorage.removeItem(draftKey);
-      } catch {
-        /* Draft storage may be unavailable. */
+      let mediaUrl = draft.mediaUrl.trim() || null;
+      const linkedMedia = postMedia(mediaUrl);
+      let postType = mediaUrl && (draft.postType === "video" || ["video", "youtube"].includes(linkedMedia?.kind)) ? "video" : "blog";
+      if (attachment) {
+        if (upload.current?.file !== attachment) {
+          const form = new FormData();
+          form.append("File", attachment);
+          form.append("Purpose", "post");
+          const media = await request("/uploads", form);
+          if (!media?.url || !["image", "video"].includes(media.kind))
+            throw new Error("Máy chủ chưa trả về tệp đính kèm hợp lệ.");
+          upload.current = { file: attachment, media };
+        }
+        mediaUrl = upload.current.media.url;
+        postType = upload.current.media.kind === "video" ? "video" : "blog";
       }
-    } catch (e) {
-      setError(userError(e));
+      const response = await request(editPost ? `/community/posts/${editPost.id}` : "/community/posts", {
+        postType, content: content || null, mediaUrl,
+        title: editPost && editPost.content?.trim().split("\n")[0]?.slice(0, 200) !== editPost.title
+          ? editPost.title
+          : content.split("\n")[0].slice(0, 200) || (postType === "video" ? "Video chia sẻ" : "Ảnh chia sẻ"),
+        recipeId: recipeNumber(draft.recipeId),
+      }, editPost ? "PUT" : "POST");
+      if (!response?.id) throw new Error("Kiểm tra Bài của tôi trước khi gửi lại.");
+      setResult(response);
+      try { sessionStorage.removeItem(key); } catch { /* Optional draft persistence. */ }
+    } catch (cause) {
+      setError(userError(cause));
     } finally {
       lock.current = false;
       setBusy(false);
     }
-  };
-  if (result)
-    return (
-      <div className="vp-compose-success">
-        <span className="vp-welcome-mark">
-          <Check size={30} />
-        </span>
-        <span className="vp-eyebrow">{statusLabel(result.status)}</span>
-        <h1>Đã gửi bài viết</h1>
-        <p>
-          “{result.title}”
-          {result.status === "published"
-            ? " đã hiển thị trong cộng đồng."
-            : " đang chờ kiểm duyệt. Bạn có thể theo dõi tại Bài của tôi."}
-        </p>
-        <div className="vp-actions">
-          <Button onClick={() => go("post-detail", result.id)}>
-            Xem bài vừa gửi
-            <ArrowRight size={17} />
-          </Button>
-          <Button secondary onClick={() => go("user-posts")}>
-            Bài của tôi
-          </Button>
-        </div>
-      </div>
-    );
-  return (
-    <div className="vp-post-composer">
-      <button
-        className="vp-back"
-        disabled={busy}
-        onClick={() => go("community")}
-      >
-        <ArrowLeft size={18} />
-        Cộng đồng
-      </button>
-      <PageHeading eyebrow="Cộng đồng" title="Viết bài" />
-      <form onSubmit={submit} noValidate>
-        <div className="vp-composer-toolbar">
-          <div
-            role="group"
-            aria-label="Định dạng bài đăng"
-            className="vp-type-filter"
-          >
-            <button
-              type="button"
-              disabled={busy}
-              aria-pressed={draft.postType === "blog"}
-              onClick={() => update("postType", "blog")}
-            >
-              <BookOpen size={17} />
-              Bài viết
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-pressed={draft.postType === "video"}
-              onClick={() => update("postType", "video")}
-            >
-              <Video size={17} />
-              Video
-            </button>
-          </div>
-          <button
-            type="button"
-            className="vp-text-button"
-            onClick={() => setPreview(!preview)}
-          >
-            {preview ? <PenLine size={17} /> : <Eye size={17} />}
-            {preview ? "Tiếp tục viết" : "Xem trước"}
-          </button>
-        </div>
-        {preview ? (
-          <section
-            className="vp-compose-preview"
-            aria-label="Xem trước bài viết"
-          >
-            <span className="vp-eyebrow">Bản xem trước · chưa gửi</span>
-            <h2>{draft.title || "Tiêu đề bài viết"}</h2>
-            <PostMedia
-              key={`${draft.postType}:${draft.mediaUrl}`}
-              post={draft}
-            />
-            <PostBody content={draft.content} />
-            {draft.recipeId && (
-              <p className="vp-preview-recipe">
-                Công thức:{" "}
-                {recipeOptions.find(
-                  (recipe) =>
-                    String(recipeNumber(recipe.id)) === draft.recipeId,
-                )?.title || "Đã chọn"}
-              </p>
-            )}
-          </section>
-        ) : (
-          <div className="vp-composer-fields">
-            <label>
-              Tiêu đề
-              <input
-                aria-label="Tiêu đề"
-                required
-                maxLength={200}
-                placeholder="Bạn muốn chia sẻ điều gì?"
-                value={draft.title}
-                disabled={busy}
-                onChange={(e) => update("title", e.target.value)}
-              />
-              <small>{draft.title.length}/200</small>
-            </label>
-            <div className="vp-content-field">
-              <label htmlFor="compose-content">
-                {draft.postType === "video"
-                  ? "Nội dung (không bắt buộc)"
-                  : "Nội dung"}
-              </label>
-              <div
-                className="vp-format-toolbar"
-                role="group"
-                aria-label="Định dạng nội dung"
-              >
-                {[
-                  ["bold", "In đậm", Bold],
-                  ["list", "Danh sách", List],
-                  ["link", "Chèn liên kết", Link],
-                ].map(([kind, label, Icon]) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    title={label}
-                    aria-label={label}
-                    disabled={busy}
-                    onClick={() => format(kind)}
-                  >
-                    <Icon size={17} />
-                  </button>
-                ))}
-              </div>
-              <textarea
-                id="compose-content"
-                ref={contentField}
-                aria-label={
-                  draft.postType === "video"
-                    ? "Nội dung (không bắt buộc)"
-                    : "Nội dung"
-                }
-                required={draft.postType === "blog"}
-                maxLength={20000}
-                rows={7}
-                placeholder="Kể cách bạn nấu, điều đã thử hoặc một mẹo muốn chia sẻ…"
-                value={draft.content}
-                disabled={busy}
-                onChange={(e) => update("content", e.target.value)}
-              />
-              <small>
-                {draft.content.length.toLocaleString("vi-VN")}/20.000 · Có thể
-                viết như bình thường hoặc dùng công cụ định dạng.
-              </small>
-            </div>
-            {draft.postType === "video" ? (
-              <label>
-                Liên kết video
-                <input
-                  type="url"
-                  aria-label="Liên kết video"
-                  required
-                  maxLength={500}
-                  placeholder="https://youtu.be/… hoặc liên kết video"
-                  value={draft.mediaUrl}
-                  disabled={busy}
-                  onChange={(e) => update("mediaUrl", e.target.value)}
-                />
-                <small>
-                  YouTube hoặc video MP4/WebM. Liên kết khác sẽ mở ở trang
-                  nguồn.
-                </small>
-              </label>
-            ) : (
-              <details
-                className="vp-compose-cover"
-                open={draft.mediaUrl ? true : undefined}
-              >
-                <summary>
-                  <Link size={17} /> Ảnh bìa <small>Không bắt buộc</small>
-                </summary>
-                <label>
-                  Liên kết ảnh
-                  <input
-                    type="url"
-                    aria-label="Ảnh bìa (URL, không bắt buộc)"
-                    maxLength={500}
-                    placeholder="https://…"
-                    value={draft.mediaUrl}
-                    disabled={busy}
-                    onChange={(event) => update("mediaUrl", event.target.value)}
-                  />
-                  <small>
-                    Dùng liên kết ảnh công khai mà bạn có quyền chia sẻ.
-                  </small>
-                </label>
-              </details>
-            )}
-            <label>
-              Công thức đính kèm (không bắt buộc)
-              <select
-                value={draft.recipeId}
-                disabled={busy || recipes.loading || !!recipes.error}
-                onChange={(e) => update("recipeId", e.target.value)}
-              >
-                <option value="">Không đính kèm</option>
-                {recipeOptions.map((recipe) => (
-                  <option key={recipe.id} value={recipeNumber(recipe.id)}>
-                    {recipe.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {recipes.error && (
-              <Notice error>
-                Chưa tải được công thức đính kèm.
-                <button type="button" onClick={recipes.reload}>
-                  Thử lại
-                </button>
-              </Notice>
-            )}
-          </div>
-        )}
-        {error && <Notice error>{error}</Notice>}
-        <div className="vp-composer-submit">
-          <div>
-            <strong>Bài mới sẽ được kiểm duyệt trước khi xuất bản.</strong>
-            <small>
-              {dirty
-                ? draftStored
-                  ? "Bản nháp được giữ trong tab này, chưa gửi lên cộng đồng."
-                  : "Chưa giữ được bản nháp trên thiết bị. Giữ tab mở để tránh mất nội dung."
-                : "Chỉ chia sẻ nội dung bạn có quyền sử dụng."}
-            </small>
-          </div>
-          <Button
-            disabled={
-              busy ||
-              !draft.title.trim() ||
-              (draft.postType === "blog"
-                ? !draft.content.trim()
-                : !draft.mediaUrl.trim())
-            }
-          >
-            {busy ? "Đang gửi…" : "Gửi bài viết"}
-            <ArrowRight size={17} />
-          </Button>
-        </div>
-        {dirty && (
-          <button
-            type="button"
-            className="vp-text-button vp-discard-draft"
-            disabled={busy}
-            onClick={() => setDiscard(true)}
-          >
-            <Trash2 size={15} />
-            Xóa bản nháp
-          </button>
-        )}
-      </form>
-      <aside className="vp-composer-guide">
-        <img
-          src="/images/brand/shared-table.webp"
-          width="960"
-          height="640"
-          alt=""
-          loading="lazy"
-        />
-        <div>
-          <h2>Chia sẻ từ bếp nhà</h2>
-          <p>
-            Món bạn vừa thử, một cách thay nguyên liệu, hay mẹo nấu giúp tiết
-            kiệm thời gian.
-          </p>
-          <p>
-            Dùng nút <strong>Xem trước</strong> để kiểm tra bài trước khi gửi.
-          </p>
-        </div>
-      </aside>
-      {discard && (
-        <CommunityDialog title="Xóa bản nháp?" close={() => setDiscard(false)}>
-          <p>Nội dung đang soạn sẽ bị xóa khỏi tab này.</p>
-          <div className="vp-actions">
-            <Button secondary onClick={() => setDiscard(false)}>
-              Tiếp tục viết
-            </Button>
-            <Button
-              onClick={() => {
-                setDraft({
-                  postType: "blog",
-                  title: "",
-                  content: "",
-                  mediaUrl: "",
-                  recipeId: "",
-                });
-                setPreview(false);
-                setError("");
-                setDiscard(false);
-              }}
-            >
-              Xóa bản nháp
-            </Button>
-          </div>
-        </CommunityDialog>
-      )}
+  }
+
+  if (result) return <div className="vp-thread-shell">
+    <h1>{postStatusLabel(result)}</h1>
+    <p>{result.status === "published" ? "Bài đã xuất hiện trên bảng tin." : "Bài sẽ xuất hiện sau khi được duyệt."}</p>
+    <div className="vp-actions">
+      <Button onClick={() => go("post-detail", result.id)}>Mở bài viết</Button>
+      <Button secondary onClick={() => go("community")}>Về bảng tin</Button>
     </div>
-  );
+  </div>;
+
+  return <div className="vp-thread-shell">
+    <button className="vp-back" onClick={() => go("community")} disabled={busy}><ArrowLeft size={18} /> Cộng đồng</button>
+    <h1>{editPost ? "Sửa bài viết" : "Bài viết mới"}</h1>
+    <form className="vp-thread-compose" onSubmit={submit}>
+      <PostMeta post={{ authorName: user.displayName || user.name }} />
+      <textarea aria-label="Nội dung bài viết" autoFocus rows={5} maxLength={20000}
+        placeholder="Bạn muốn chia sẻ gì?" value={draft.content} disabled={busy}
+        onChange={(event) => update({ content: event.target.value })} />
+      {attachment && preview && <div className="vp-thread-attachment">
+        {attachment.type.startsWith("video/")
+          ? <video controls preload="metadata" src={preview} />
+          : <img src={preview} alt="Xem trước ảnh đính kèm" />}
+        <button type="button" className="vp-icon" aria-label="Bỏ tệp đính kèm" disabled={busy}
+          onClick={() => { setAttachment(null); upload.current = null; }}><X size={19} /></button>
+      </div>}
+      {!attachment && draft.mediaUrl && <div className="vp-thread-attachment">
+        <PostMedia key={draft.mediaUrl} post={draft} />
+        <button type="button" className="vp-icon" aria-label="Bỏ liên kết đính kèm" disabled={busy}
+          onClick={() => update({ mediaUrl: "", postType: "blog" })}><X size={19} /></button>
+      </div>}
+      {showLink && !attachment && <div className="vp-thread-link">
+        <input type="text" inputMode="url" placeholder="Liên kết media HTTPS" aria-label="Liên kết media" maxLength={500}
+          value={draft.mediaUrl} disabled={busy} onChange={(event) => update({ mediaUrl: event.target.value })} />
+        <select aria-label="Loại liên kết media" disabled={busy} value={draft.postType}
+          onChange={(event) => update({ postType: event.target.value })}>
+          <option value="blog">Ảnh</option><option value="video">Video</option>
+        </select>
+      </div>}
+      {showRecipes && <div className="vp-thread-recipe-picker">
+        <input type="search" aria-label="Tìm công thức để đính kèm" placeholder="Tìm công thức đã duyệt…"
+          value={recipeSearch} onChange={(event) => setRecipeSearch(event.target.value)} disabled={busy || recipes.loading} />
+        <select aria-label="Công thức đính kèm" value={draft.recipeId} disabled={busy || recipes.loading}
+          onChange={(event) => update({ recipeId: event.target.value })}>
+          <option value="">Không đính kèm</option>
+          {draft.recipeId && !choices.some((recipe) => recipeNumber(recipe.id) === recipeNumber(draft.recipeId)) &&
+            <option value={draft.recipeId}>Công thức cũ hiện không khả dụng</option>}
+          {choices.map((recipe) => <option key={recipe.id} value={recipeNumber(recipe.id)}>{recipe.title}</option>)}
+        </select>
+        {recipes.error && <span role="alert">Chưa tải được công thức.</span>}
+        {!recipes.loading && !recipes.error && !choices.length && <small>Chưa có công thức phù hợp.</small>}
+      </div>}
+      {error && <Notice error>{error}</Notice>}
+      <div className="vp-thread-toolbar">
+        <div>
+          <input ref={fileInput} type="file" accept={accept} hidden onChange={selectFile} />
+          <button type="button" aria-label="Thêm ảnh hoặc video" title="Thêm ảnh hoặc video" className="vp-icon"
+            disabled={busy} onClick={() => fileInput.current?.click()}><Image size={19} /></button>
+          <button type="button" aria-label="Gắn công thức" title="Gắn công thức" className="vp-icon"
+            disabled={busy} aria-expanded={showRecipes} onClick={() => setShowRecipes((open) => !open)}><CookingPot size={19} /></button>
+          <button type="button" aria-label="Thêm liên kết media" title="Thêm liên kết media" className="vp-icon"
+            disabled={busy} aria-expanded={showLink} onClick={() => setShowLink((open) => !open)}>{video ? <Video size={19} /> : <Link2 size={19} />}</button>
+        </div>
+        <Button disabled={busy || (!draft.content.trim() && !draft.mediaUrl.trim() && !attachment)}>
+          {busy ? "Đang gửi…" : editPost ? "Lưu và gửi duyệt" : "Gửi bài"}
+        </Button>
+      </div>
+    </form>
+  </div>;
 }

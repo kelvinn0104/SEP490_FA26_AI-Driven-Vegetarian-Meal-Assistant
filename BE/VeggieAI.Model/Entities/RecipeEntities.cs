@@ -83,6 +83,9 @@ public class Recipe
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Số lượt xem chi tiết thật (tăng ở GET /api/Recipes/{id} với công thức đã published).</summary>
+    public int ViewCount { get; set; }
+
     [ForeignKey(nameof(CategoryId))]
     public virtual Category? Category { get; set; }
 

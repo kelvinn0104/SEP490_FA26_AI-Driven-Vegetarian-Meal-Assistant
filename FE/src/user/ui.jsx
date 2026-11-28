@@ -13,6 +13,7 @@ import {
   amount,
   categoryLabel,
   nutrientProgress,
+  isTestContent,
 } from "./data";
 export function useResource(loader, dependencies = []) {
   const [state, setState] = useState({
@@ -161,8 +162,14 @@ export function Card({ recipe, open }) {
           </button>
         </h3>
         <p>
-          {amount(recipe.kcalPerServing)} kcal <span>·</span>{" "}
-          {amount(recipe.proteinG)} g đạm <small>/ khẩu phần</small>
+          {amount(recipe.kcalPerServing)} kcal
+          {recipe.proteinG != null && (
+            <>
+              {" "}
+              <span>·</span> {amount(recipe.proteinG)} g đạm
+            </>
+          )}{" "}
+          <small>/ khẩu phần</small>
         </p>
         <button
           className="vp-recipe-open"
@@ -174,6 +181,27 @@ export function Card({ recipe, open }) {
         </button>
       </div>
     </article>
+  );
+}
+
+export function RecipeSuggestions({ recipes, limit, open }) {
+  const items = (recipes || []).filter((recipe) => recipe.recipeId && !isTestContent(recipe));
+  if (!open || !items.length) return null;
+  return (
+    <ul className="vp-suggestions" aria-label="Công thức gợi ý">
+      {items.slice(0, limit ?? items.length).map((recipe) => (
+        <li key={recipe.recipeId}>
+          <button type="button" onClick={() => open(recipe.recipeId)}>
+            {safeImage(recipe.imageUrl) ? <RecipeImage recipe={recipe} /> : <CookingPot size={20} aria-hidden="true" />}
+            <span>
+              <strong>{recipe.title}</strong>
+              {recipe.reason && <small>{recipe.reason}</small>}
+            </span>
+            <ArrowUpRight size={17} aria-hidden="true" />
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

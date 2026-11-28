@@ -1,63 +1,15 @@
-import React, { useState, useMemo } from 'react';
-
-const INITIAL_BROADCASTS = [
-  {
-    id: 'bc-1',
-    title: 'Mẹo Dinh Dưỡng: Bổ sung Vitamin B12 khoa học cho người ăn thuần chay',
-    message: 'Vitamin B12 không tự tổng hợp được từ rau củ tự nhiên. Chuyên gia khuyến nghị bổ sung men dinh dưỡng tăng cường B12 hoặc viên ngậm methylcobalamin định kỳ.',
-    type: 'tip',
-    targetAudience: 'all',
-    targetAudienceLabel: 'Toàn bộ hội viên (3,840 người)',
-    status: 'sent',
-    createdAt: '08:00 Hôm nay',
-    openRate: 54.2,
-    clickCount: 680,
-    actionUrl: '/ingredient-management',
-  },
-  {
-    id: 'bc-2',
-    title: 'Khởi động Thử thách 21 Ngày Khởi Đầu Chay - Nhận Huy Hiệu Mầm Xanh',
-    message: 'Chiến dịch thói quen thuần chay mới đã mở! Đăng ký ngay để nhận cẩm nang thực đơn 3 tuần và tích lũy điểm Mầm Xanh đổi quà.',
-    type: 'challenge',
-    targetAudience: 'beginners',
-    targetAudienceLabel: 'Hội viên mới bắt đầu ăn chay',
-    status: 'scheduled',
-    scheduledAt: '09:00 Ngày mai',
-    createdAt: 'Hôm qua',
-    openRate: 0,
-    clickCount: 0,
-    actionUrl: '/challenge-management',
-  },
-  {
-    id: 'bc-3',
-    title: 'Cảnh báo dị ứng: Đậu nành trong sản phẩm Tempeh & Tofu chế biến sẵn',
-    message: 'Hệ thống vừa cập nhật danh mục cảnh báo dị ứng. Hội viên có tiền sử dị ứng đậu nành vui lòng kiểm tra lại nhãn sản phẩm trước khi chế biến.',
-    type: 'urgent',
-    targetAudience: 'all',
-    targetAudienceLabel: 'Toàn bộ hội viên (3,840 người)',
-    status: 'sent',
-    createdAt: '05/11/2026',
-    openRate: 68.9,
-    clickCount: 1420,
-    actionUrl: '/ingredient-management',
-  },
-  {
-    id: 'bc-4',
-    title: 'Công thức mới: Cơm gạo lứt đậu gà sốt nấm đông cô giàu đạm',
-    message: 'Món ăn mới cung cấp 19g Protein và đầy đủ vi chất sắt, kẽm cho bữa trưa văn phòng tràn đầy năng lượng.',
-    type: 'recipe',
-    targetAudience: 'all',
-    targetAudienceLabel: 'Toàn bộ hội viên (3,840 người)',
-    status: 'draft',
-    createdAt: '03/11/2026',
-    openRate: 0,
-    clickCount: 0,
-    actionUrl: '/recipe-management',
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { broadcastsApi } from '../api';
 
 export const BroadcastNotificationScreen = () => {
-  const [broadcasts, setBroadcasts] = useState(INITIAL_BROADCASTS);
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [stats, setStats] = useState({
+    totalSent: 2,
+    scheduledCount: 1,
+    avgOpenRate: 46.8,
+    totalClicks: 1425,
+  });
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
@@ -76,36 +28,35 @@ export const BroadcastNotificationScreen = () => {
   const [formActionUrl, setFormActionUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Stats calculation
-  const stats = useMemo(() => {
-    const totalSent = broadcasts.filter((b) => b.status === 'sent').length;
-    const scheduledCount = broadcasts.filter((b) => b.status === 'scheduled').length;
-    const totalClicks = broadcasts.reduce((sum, b) => sum + (b.clickCount || 0), 0);
-    const sentList = broadcasts.filter((b) => b.status === 'sent');
-    const avgOpenRate = sentList.length > 0
-      ? (sentList.reduce((sum, b) => sum + (b.openRate || 0), 0) / sentList.length).toFixed(1)
-      : '0.0';
-    return {
-      totalSent,
-      scheduledCount,
-      avgOpenRate,
-      totalClicks,
-    };
-  }, [broadcasts]);
+  const fetchBroadcasts = async () => {
+    try {
+      setLoading(true);
+      const [listRes, statsRes] = await Promise.all([
+        broadcastsApi.getBroadcasts({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          type: typeFilter !== 'all' ? typeFilter : undefined,
+          search: searchQuery || undefined,
+        }),
+        broadcastsApi.getStats(),
+      ]);
 
-  const filteredBroadcasts = useMemo(() => {
-    return broadcasts.filter((item) => {
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
-      if (typeFilter !== 'all' && item.type !== typeFilter) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = item.title.toLowerCase().includes(q);
-        const matchesMsg = item.message.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesMsg) return false;
-      }
-      return true;
-    });
-  }, [broadcasts, statusFilter, typeFilter, searchQuery]);
+      setBroadcasts(listRes || []);
+      if (statsRes) setStats(statsRes);
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách thông báo phát sóng:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBroadcasts();
+  }, [statusFilter, typeFilter]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchBroadcasts();
+  };
 
   const handleOpenCompose = () => {
     setEditingItem(null);
@@ -131,69 +82,66 @@ export const BroadcastNotificationScreen = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveBroadcast = (e) => {
+  const handleSaveBroadcast = async (e) => {
     e.preventDefault();
     if (!formTitle.trim() || !formMessage.trim()) {
       alert('Vui lòng nhập tiêu đề và nội dung thông báo');
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      setIsSubmitting(true);
       const statusValue = formSendMode === 'schedule' ? 'scheduled' : formSendMode === 'draft' ? 'draft' : 'sent';
-      const audienceLabels = {
-        all: 'Toàn bộ hội viên (3,840 người)',
-        challenge_participants: 'Đang tham gia Thử thách (442 người)',
-        beginners: 'Hội viên mới bắt đầu ăn chay',
-        fitness: 'Nhóm Thể thao & Tăng cơ',
-      };
-
       const payload = {
         title: formTitle.trim(),
         message: formMessage.trim(),
         type: formType,
         targetAudience: formAudience,
-        targetAudienceLabel: audienceLabels[formAudience] || 'Hội viên',
         status: statusValue,
-        scheduledAt: formSendMode === 'schedule' ? formScheduleDate || '09:00 Ngày mai' : null,
+        scheduledAt: formSendMode === 'schedule' ? new Date(formScheduleDate || Date.now() + 86400000) : null,
         actionUrl: formActionUrl.trim() || null,
-        createdAt: 'Hôm nay',
-        openRate: statusValue === 'sent' ? 45.0 : 0,
-        clickCount: 0,
       };
 
       if (editingItem) {
-        setBroadcasts((prev) =>
-          prev.map((b) => (b.id === editingItem.id ? { ...b, ...payload } : b))
-        );
+        await broadcastsApi.updateBroadcast(editingItem.id, payload);
+        alert('Cập nhật thông báo thành công!');
       } else {
-        setBroadcasts((prev) => [
-          {
-            id: `bc-${Date.now()}`,
-            ...payload,
-          },
-          ...prev,
-        ]);
+        await broadcastsApi.createBroadcast(payload);
+        alert(statusValue === 'sent' ? 'Đã phát sóng thông báo thành công đến cộng đồng!' : 'Đã lưu thông báo thành công!');
       }
 
-      setIsSubmitting(false);
       setIsModalOpen(false);
-    }, 200);
-  };
-
-  const handleSendNow = (item) => {
-    if (window.confirm(`Bạn có chắc muốn phát sóng thông báo "${item.title}" đến toàn bộ ${item.targetAudienceLabel} ngay bây giờ?`)) {
-      setBroadcasts((prev) =>
-        prev.map((b) =>
-          b.id === item.id ? { ...b, status: 'sent', openRate: 48.5, createdAt: 'Vừa xong' } : b
-        )
-      );
+      await fetchBroadcasts();
+    } catch (err) {
+      alert(`Lỗi khi lưu thông báo: ${err.message || 'Lỗi server'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = (item) => {
-    if (window.confirm(`Xác nhận xoá thông báo "${item.title}"?`)) {
-      setBroadcasts((prev) => prev.filter((b) => b.id !== item.id));
+  const handleSendNow = async (item) => {
+    if (!window.confirm(`Bạn có chắc muốn phát sóng thông báo "${item.title}" đến toàn bộ ${item.targetAudienceLabel} ngay bây giờ?`)) {
+      return;
+    }
+
+    try {
+      await broadcastsApi.sendNow(item.id);
+      alert('Đã phát sóng thông báo đẩy tức thì!');
+      await fetchBroadcasts();
+    } catch (err) {
+      alert(`Lỗi khi phát sóng: ${err.message || 'Lỗi server'}`);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Xác nhận xoá thông báo "${item.title}"?`)) return;
+
+    try {
+      await broadcastsApi.deleteBroadcast(item.id);
+      alert('Đã xoá thông báo thành công');
+      await fetchBroadcasts();
+    } catch (err) {
+      alert(`Lỗi khi xoá: ${err.message || 'Lỗi server'}`);
     }
   };
 
@@ -268,10 +216,10 @@ export const BroadcastNotificationScreen = () => {
         <div>
           <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400 font-semibold text-sm mb-1">
             <span className="material-symbols-outlined text-[18px]">campaign</span>
-            Trung Tâm Thông Báo Đẩy &amp; Bản Tin Dinh Dưỡng (Broadcast Hub)
+            Trung Tâm Thông Báo Đẩy & Bản Tin Dinh Dưỡng (Broadcast Hub)
           </div>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">
-            Quản Lý Phát Sóng &amp; Mẹo Dinh Dưỡng Khoa Học
+            Quản Lý Phát Sóng & Mẹo Dinh Dưỡng Khoa Học
           </h1>
           <p className="text-sm text-on-surface-variant mt-1 max-w-3xl">
             Soạn và gửi thông báo tức thời hoặc hẹn giờ đến hàng nghìn người dùng mobile/web, phổ biến mẹo hấp thu vi chất, nhắc nhở điểm danh thử thách và công thức thuần chay mới.
@@ -346,7 +294,7 @@ export const BroadcastNotificationScreen = () => {
         <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/60 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">
-              Lượt Nhấp &amp; Đọc Chi Tiết
+              Lượt Nhấp & Đọc Chi Tiết
             </div>
             <div className="text-2xl font-bold text-on-surface mt-1">
               {stats.totalClicks.toLocaleString('vi-VN')}
@@ -364,7 +312,7 @@ export const BroadcastNotificationScreen = () => {
 
       {/* Filter and Search Bar */}
       <div className="bg-surface-container-lowest p-4 rounded-xl border border-surface-container-high/60 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex-1 min-w-[260px] relative">
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[260px] relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
             search
           </span>
@@ -375,13 +323,13 @@ export const BroadcastNotificationScreen = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-sm bg-surface rounded-lg border border-surface-container-high focus:outline-none focus:border-primary transition-all text-on-surface"
           />
-        </div>
+        </form>
 
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+            className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="sent">Đã phát sóng (Sent)</option>
@@ -392,19 +340,24 @@ export const BroadcastNotificationScreen = () => {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none cursor-pointer"
+            className="text-xs px-3 py-2 bg-surface rounded-lg border border-surface-container-high text-on-surface font-medium focus:outline-none"
           >
             <option value="all">Tất cả phân loại</option>
             <option value="tip">Mẹo Dinh Dưỡng Khoa Học</option>
             <option value="challenge">Nhắc Nhở Thử Thách</option>
-            <option value="urgent">Cảnh Báo &amp; Dị Ứng</option>
+            <option value="urgent">Cảnh Báo & Dị Ứng</option>
             <option value="recipe">Công Thức Mới</option>
           </select>
         </div>
       </div>
 
       {/* Broadcast List */}
-      {filteredBroadcasts.length === 0 ? (
+      {loading ? (
+        <div className="py-20 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium">Đang tải lịch sử thông báo phát sóng...</span>
+        </div>
+      ) : broadcasts.length === 0 ? (
         <div className="py-16 text-center bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 p-8">
           <span className="material-symbols-outlined text-[48px] text-outline mb-2">
             notifications_off
@@ -416,7 +369,7 @@ export const BroadcastNotificationScreen = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredBroadcasts.map((item) => (
+          {broadcasts.map((item) => (
             <div
               key={item.id}
               className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/60 shadow-xs p-5 hover:border-primary/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-5"
@@ -567,13 +520,13 @@ export const BroadcastNotificationScreen = () => {
                   <select
                     value={formType}
                     onChange={(e) => setFormType(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="tip">Mẹo Dinh Dưỡng Khoa Học</option>
                     <option value="challenge">Nhắc Nhở Thử Thách</option>
-                    <option value="urgent">Cảnh Báo &amp; Dị Ứng</option>
+                    <option value="urgent">Cảnh Báo & Dị Ứng</option>
                     <option value="recipe">Công Thức Thuần Chay Mới</option>
-                    <option value="event">Sự Kiện &amp; Workshop</option>
+                    <option value="event">Sự Kiện & Workshop</option>
                   </select>
                 </div>
 
@@ -584,12 +537,12 @@ export const BroadcastNotificationScreen = () => {
                   <select
                     value={formAudience}
                     onChange={(e) => setFormAudience(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium cursor-pointer"
+                    className="w-full px-3 py-2 text-sm bg-surface rounded-xl border border-surface-container-high text-on-surface focus:outline-none focus:border-primary font-medium"
                   >
                     <option value="all">Toàn bộ hội viên (3,840 người)</option>
                     <option value="challenge_participants">Đang tham gia Thử thách (442 người)</option>
                     <option value="beginners">Hội viên mới bắt đầu ăn chay</option>
-                    <option value="fitness">Nhóm Thể thao &amp; Tăng cơ</option>
+                    <option value="fitness">Nhóm Thể thao & Tăng cơ</option>
                   </select>
                 </div>
               </div>

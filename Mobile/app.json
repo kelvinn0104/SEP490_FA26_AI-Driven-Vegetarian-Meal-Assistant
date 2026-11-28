@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "VeggieAI",
+    "slug": "veggieai-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F6F4ED"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "backgroundColor": "#F6F4ED",
+      "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#D9ED94"
+      },
+      "package": "com.veggieai.mobile"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "VeggieAI cần quyền truy cập thư viện ảnh để bạn tải ảnh tủ lạnh hoặc món ăn.",
+          "cameraPermission": "VeggieAI cần quyền máy ảnh để bạn chụp ảnh nguyên liệu.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-asset",
+      "expo-secure-store",
+      "expo-font"
+    ]
+  }
+}

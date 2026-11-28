@@ -15,7 +15,11 @@ export function amount(value, factor = 1) {
 export function safeImage(value) {
   if (!value) return undefined;
   try {
-    const url = new URL(value, "https://veggieai-api.onrender.com");
+    const apiOrigin = new URL(
+      import.meta.env?.VITE_API_URL || "https://veggieai-api.onrender.com",
+      globalThis.location?.origin,
+    ).origin;
+    const url = new URL(value, apiOrigin);
     return ["https:", "http:"].includes(url.protocol) ? url.href : undefined;
   } catch {
     return undefined;
@@ -72,6 +76,14 @@ export function isTestContent(item) {
   return /\((?:dummy|demo|test)\)|\[(?:dummy|demo|test)\]|(?:^|[\/_-])dummy(?:[-_.\/]|$)/i.test(
     [item?.title, item?.mediaUrl].filter(Boolean).join(" "),
   );
+}
+/** Nhãn trạng thái bài viết: phân biệt "bị từ chối" / "cần chỉnh sửa" theo quyết định của người duyệt. */
+export function postStatusLabel(post) {
+  const decision = post?.moderation?.decision;
+  if (post?.status === "removed" && decision === "rejected") return "Bị từ chối";
+  if (post?.status === "pending" && decision === "revision")
+    return "Cần chỉnh sửa";
+  return statusLabel(post?.status);
 }
 export function isUnavailableChat(text) {
   return [

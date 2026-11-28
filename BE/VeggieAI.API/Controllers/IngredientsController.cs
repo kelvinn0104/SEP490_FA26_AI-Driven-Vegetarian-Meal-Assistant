@@ -59,16 +59,16 @@ public class IngredientsController : ApiControllerBase
     public async Task<ActionResult<ApiResponse<bool>>> DeleteIngredient(int id)
     {
         var modId = GetRequiredUserId();
-        var ok = await _ingredientService.DeleteIngredientAsync(id, modId);
+        var ok = await _ingredientService.DeleteIngredientAsync(id);
         if (!ok) return NotFound(ApiResponse<bool>.Fail("Không tìm thấy nguyên liệu"));
         return Ok(ApiResponse<bool>.Ok(true, "Đã xóa nguyên liệu"));
     }
 
     [HttpGet("allergies")]
-    public async Task<ActionResult<ApiResponse<List<AllergyDto>>>> GetAllergies()
+    public async Task<ActionResult<ApiResponse<List<AllergyAdminDto>>>> GetAllergies()
     {
         var items = await _ingredientService.GetAllergiesAsync();
-        return Ok(ApiResponse<List<AllergyDto>>.Ok(items));
+        return Ok(ApiResponse<List<AllergyAdminDto>>.Ok(items));
     }
 
     [HttpGet("standards")]
