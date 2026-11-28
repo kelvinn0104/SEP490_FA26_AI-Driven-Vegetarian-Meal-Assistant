@@ -132,6 +132,10 @@ public class ChatService : IChatService
     {
         if (hits.Count == 0) return [];
         var folded = ChatKnowledge.Fold(text);
+        // Câu gợi ý mở (kể cả tin nhắn kèm kết quả quét ảnh): nếu AI không chọn được hoặc lỗi,
+        // vẫn trả các công thức khớp nguyên liệu nhất thay vì báo "chưa tìm thấy".
+        var openSuggestion = ChatKnowledge.WantsIdeas(folded);
+        var fallback = hits.Where(hit => hit.Type == "recipe").Take(3).ToList();
         var exact = hits.Where(hit => folded.Contains(ChatKnowledge.Fold(hit.Title), StringComparison.Ordinal)).ToList();
         if (exact.Any(hit => hit.Type == "recipe"))
             return exact.Where(hit => hit.Type == "recipe").Take(3).ToList();
@@ -169,9 +173,12 @@ public class ChatService : IChatService
                 {
                     using var json = JsonDocument.Parse(raw[first..(last + 1)]);
                     if (json.RootElement.TryGetProperty("sources", out var sources) && sources.ValueKind == JsonValueKind.Array)
-                        return sources.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number && x.TryGetInt32(out _))
+                    {
+                        var picked = sources.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number && x.TryGetInt32(out _))
                             .Select(x => x.GetInt32()).Where(index => index >= 1 && index <= hits.Count).Distinct().Take(3)
                             .Select(index => hits[index - 1]).ToList();
+                        if (picked.Count > 0 || namedRecipe || !openSuggestion) return picked;
+                    }
                 }
             }
             catch (Exception ex) when (!ct.IsCancellationRequested &&
@@ -181,7 +188,9 @@ public class ChatService : IChatService
             }
         }
 
-        return (namedRecipe ? hits : exact).Take(3).ToList();
+        if (namedRecipe) return hits.Take(3).ToList();
+        if (exact.Count > 0) return exact.Take(3).ToList();
+        return openSuggestion ? fallback : new List<KnowledgeHit>();
     }
 
     private async Task<string> RenderVerifiedAnswerAsync(List<KnowledgeHit> selected, int userId, CancellationToken ct)
