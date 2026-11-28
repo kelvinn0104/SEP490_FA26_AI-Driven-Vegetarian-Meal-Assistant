@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VeggieAI.Model.Entities;
+using VeggieAI.Model.Constants;
 
 namespace VeggieAI.Repository.Data;
 
@@ -152,7 +153,7 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
                 Email = "admin@veggie.vn",
                 DisplayName = "Linh Nguyen (Admin)",
                 PasswordHash = defaultPasswordHash,
-                Role = "admin",
+                Role = RoleConstants.SuperAdmin,
                 Status = "active",
                 CreatedAt = DateTime.UtcNow.AddMonths(-6)
             };
@@ -162,7 +163,7 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
                 Email = "mod@veggie.vn",
                 DisplayName = "Dr. Thao Nutrition",
                 PasswordHash = defaultPasswordHash,
-                Role = "moderator",
+                Role = RoleConstants.Mod,
                 Status = "active",
                 CreatedAt = DateTime.UtcNow.AddMonths(-4)
             };
@@ -172,7 +173,7 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
                 Email = "chef.maianh@gmail.com",
                 DisplayName = "Chef Mai Anh",
                 PasswordHash = defaultPasswordHash,
-                Role = "user",
+                Role = RoleConstants.User,
                 Status = "active",
                 CreatedAt = DateTime.UtcNow.AddMonths(-2)
             };
@@ -182,7 +183,7 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
                 Email = "spammer@veggie.vn",
                 DisplayName = "Spam Account",
                 PasswordHash = defaultPasswordHash,
-                Role = "user",
+                Role = RoleConstants.User,
                 Status = "locked",
                 CreatedAt = DateTime.UtcNow.AddMonths(-1)
             };
@@ -222,16 +223,16 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
             var defaultPasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!");
             var additionalUsers = new List<User>
             {
-                new() { Email = "mod.thanh@veggie.vn", DisplayName = "Mod Thanh", PasswordHash = defaultPasswordHash, Role = "moderator", Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-3) },
-                new() { Email = "nam.hoang@veggie.vn", DisplayName = "Hoàng Nam", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-2) },
-                new() { Email = "thao.tran@veggie.vn", DisplayName = "Trần Bích Thảo", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-2) },
-                new() { Email = "triet.le@veggie.vn", DisplayName = "Lê Minh Triết", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-1) },
-                new() { Email = "phuonganh@veggie.vn", DisplayName = "Phạm Phương Anh", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-25) },
-                new() { Email = "huy.dang@veggie.vn", DisplayName = "Đặng Quốc Huy", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-20) },
-                new() { Email = "hong.vu@veggie.vn", DisplayName = "Vũ Thị Hồng", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-15) },
-                new() { Email = "kiet.nguyen@veggie.vn", DisplayName = "Nguyễn Tuấn Kiệt", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-10) },
-                new() { Email = "lanchi@veggie.vn", DisplayName = "Đỗ Lan Chi", PasswordHash = defaultPasswordHash, Role = "user", Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-5) },
-                new() { Email = "spammer2@veggie.vn", DisplayName = "Tài khoản Vi phạm", PasswordHash = defaultPasswordHash, Role = "user", Status = "locked", CreatedAt = DateTime.UtcNow.AddDays(-2) }
+                new() { Email = "mod.thanh@veggie.vn", DisplayName = "Mod Thanh", PasswordHash = defaultPasswordHash, Role = RoleConstants.Mod, Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-3) },
+                new() { Email = "nam.hoang@veggie.vn", DisplayName = "Hoàng Nam", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-2) },
+                new() { Email = "thao.tran@veggie.vn", DisplayName = "Trần Bích Thảo", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-2) },
+                new() { Email = "triet.le@veggie.vn", DisplayName = "Lê Minh Triết", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddMonths(-1) },
+                new() { Email = "phuonganh@veggie.vn", DisplayName = "Phạm Phương Anh", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-25) },
+                new() { Email = "huy.dang@veggie.vn", DisplayName = "Đặng Quốc Huy", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-20) },
+                new() { Email = "hong.vu@veggie.vn", DisplayName = "Vũ Thị Hồng", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-15) },
+                new() { Email = "kiet.nguyen@veggie.vn", DisplayName = "Nguyễn Tuấn Kiệt", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-10) },
+                new() { Email = "lanchi@veggie.vn", DisplayName = "Đỗ Lan Chi", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "active", CreatedAt = DateTime.UtcNow.AddDays(-5) },
+                new() { Email = "spammer2@veggie.vn", DisplayName = "Tài khoản Vi phạm", PasswordHash = defaultPasswordHash, Role = RoleConstants.User, Status = "locked", CreatedAt = DateTime.UtcNow.AddDays(-2) }
             };
 
             await context.Users.AddRangeAsync(additionalUsers);
@@ -311,9 +312,9 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
             var catSalad = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Salad") 
                            ?? await context.Categories.FirstOrDefaultAsync();
 
-            var authorUser = await context.Users.FirstOrDefaultAsync(u => u.Role == "user") 
+            var authorUser = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.User) 
                              ?? await context.Users.FirstOrDefaultAsync();
-            var verifierUser = await context.Users.FirstOrDefaultAsync(u => u.Role == "moderator" || u.Role == "admin");
+            var verifierUser = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.Mod || u.Role == RoleConstants.SuperAdmin);
 
             if (catSoup != null && authorUser != null)
             {
@@ -387,9 +388,9 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
 
         if (await context.Recipes.CountAsync() < 8)
         {
-            var authorUser = await context.Users.FirstOrDefaultAsync(u => u.Role == "user") 
+            var authorUser = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.User) 
                              ?? await context.Users.FirstOrDefaultAsync();
-            var verifierUser = await context.Users.FirstOrDefaultAsync(u => u.Role == "moderator" || u.Role == "admin");
+            var verifierUser = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.Mod || u.Role == RoleConstants.SuperAdmin);
             var anyCat = await context.Categories.FirstOrDefaultAsync();
 
             var moreRecipes = new List<Recipe>
@@ -523,7 +524,7 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
         // 7. Posts / Moderation Items
         if (!await context.Posts.AnyAsync())
         {
-            var authorUser = await context.Users.FirstOrDefaultAsync(u => u.Role == "user") 
+            var authorUser = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.User) 
                              ?? await context.Users.FirstOrDefaultAsync();
             var allRecipes = await context.Recipes.ToListAsync();
             var r0Id = allRecipes.Count > 0 ? allRecipes[0].Id : (int?)null;
@@ -676,8 +677,8 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
         // 11. Initial System Audit Logs
         if (!await context.SystemLogs.AnyAsync())
         {
-            var admin = await context.Users.FirstOrDefaultAsync(u => u.Role == "admin");
-            var mod = await context.Users.FirstOrDefaultAsync(u => u.Role == "moderator");
+            var admin = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.SuperAdmin);
+            var mod = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.Mod);
 
             var logs = new List<SystemLog>
             {
@@ -693,8 +694,8 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
         // 12. Ensure Rich Posts & Moderation Items
         if (await context.Posts.CountAsync() < 7)
         {
-            var author = await context.Users.FirstOrDefaultAsync(u => u.Role == "user") ?? await context.Users.FirstAsync();
-            var verifier = await context.Users.FirstOrDefaultAsync(u => u.Role == "moderator" || u.Role == "admin") ?? author;
+            var author = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.User) ?? await context.Users.FirstAsync();
+            var verifier = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.Mod || u.Role == RoleConstants.SuperAdmin) ?? author;
             var spammer = await context.Users.FirstOrDefaultAsync(u => u.Status == "locked") ?? author;
             var catMain = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Món chính" || c.Name.Contains("kho")) ?? await context.Categories.FirstAsync();
             var catSoup = await context.Categories.FirstOrDefaultAsync(c => c.Name == "Món nước" || c.Name.Contains("Canh")) ?? await context.Categories.FirstAsync();
@@ -735,8 +736,8 @@ CREATE TABLE IF NOT EXISTS ""veggieai"".""SystemLog"" (
         // 13. Ensure Rich Audit Logs
         if (await context.SystemLogs.CountAsync() < 10)
         {
-            var admin = await context.Users.FirstOrDefaultAsync(u => u.Role == "admin");
-            var mod = await context.Users.FirstOrDefaultAsync(u => u.Role == "moderator");
+            var admin = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.SuperAdmin);
+            var mod = await context.Users.FirstOrDefaultAsync(u => u.Role == RoleConstants.Mod);
             var moreLogs = new List<SystemLog>
             {
                 new() { UserId = admin?.Id, Action = "Đăng nhập hệ thống", Target = "admin@veggie.vn", Details = "Đăng nhập thành công với vai trò: admin", LogType = "auth", CreatedAt = DateTime.UtcNow.AddMinutes(-5) },
