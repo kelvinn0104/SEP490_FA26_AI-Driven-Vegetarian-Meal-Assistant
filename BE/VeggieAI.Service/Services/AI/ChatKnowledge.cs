@@ -84,12 +84,17 @@ public static class ChatKnowledge
         return all.Distinct().ToList();
     }
 
+    /// <summary>Câu hỏi gợi ý mở: "gợi ý", "ăn gì", "món gì" hoặc tin nhắn kèm kết quả quét ảnh từ FE.</summary>
+    public static bool WantsIdeas(string folded) =>
+        folded.Contains("goi y") || folded.Contains("an gi") || folded.Contains("mon gi") ||
+        folded.Contains("nguyen lieu trong anh") || folded.Contains("mon trong anh");
+
     public static async Task<List<KnowledgeHit>> RetrieveAsync(VeggieAIDbContext db, int userId, string question, int? planId, CancellationToken ct)
     {
         var q = Expand(question, Tokens(question));
         if (q.Count == 0 && planId is null) return new();
         var folded = Fold(question);
-        var wantsIdeas = folded.Contains("goi y") || folded.Contains("an gi") || folded.Contains("mon gi");
+        var wantsIdeas = WantsIdeas(folded);
         var wantsProtein = wantsIdeas && (folded.Contains("giau dam") || folded.Contains("nhieu dam") || folded.Contains("protein"));
 
         var allergenIds = await db.AllergenIngredientIdsAsync(userId, ct);
