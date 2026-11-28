@@ -70,6 +70,7 @@ function FeedCard({ post, mine, navigation, signedIn }) {
         </View>
         {!sameTitle && post.title ? <Text style={s.postTitle} numberOfLines={2}>{post.title}</Text> : null}
         {post.excerpt ? <Text style={s.excerpt} numberOfLines={4}>{post.excerpt}</Text> : null}
+        {post.excerpt?.endsWith('…') ? <Text style={[ui.label, { color: c.primary }]}>Xem thêm</Text> : null}
       </Pressable>
       {mine && post.moderation?.note ? <Notice warning>{post.moderation.note}</Notice> : null}
       {post.mediaUrl ? <PostMedia key={post.mediaUrl} value={post.mediaUrl} video={post.postType === 'video'} /> : null}
@@ -178,7 +179,7 @@ export function CommunityScreen({ navigation, route }) {
         <Pressable accessibilityRole="button" onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login')}
           style={({ pressed }) => [ui.row, pressed && s.pressed]}>
           <Avatar name={user?.displayName || user?.name || 'VeggieAI'} size={40} tone="paper" />
-          <Text style={s.prompt}>Bạn muốn chia sẻ gì?</Text>
+          <Text style={s.prompt}>{signedIn ? 'Bạn muốn chia sẻ gì?' : 'Đăng nhập để viết bài'}</Text>
         </Pressable>
         <View style={s.actions}>
           <FeedAction icon={ImagePlus} label="Ảnh / video" onPress={() => navigation.navigate(signedIn ? 'CreatePost' : 'Login', signedIn ? { tool: 'file' } : undefined)} />

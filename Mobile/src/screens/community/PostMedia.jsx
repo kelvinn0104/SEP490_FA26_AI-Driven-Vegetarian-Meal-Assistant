@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowUpRight, Film, Play } from 'lucide-react-native';
+import { ArrowUpRight, Film, Play, VideoOff } from 'lucide-react-native';
 import { Notice, ui } from '../../components/ui/Kit';
 import { imgUrl } from '../../api/client';
 import { c, r } from '../../styles/theme';
@@ -8,6 +8,8 @@ import { c, r } from '../../styles/theme';
 export function PostMedia({ value, video, height = 212 }) {
   const [failed, setFailed] = useState(false);
   const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const url = imgUrl(value);
   if (!url) return null;
 
@@ -23,6 +25,38 @@ export function PostMedia({ value, video, height = 212 }) {
     );
   }
 
+  async function openMedia() {
+    if (checking) return;
+    setChecking(true);
+    setError('');
+    try {
+      if (video && url.startsWith(imgUrl('/uploads/'))) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 7000);
+        try {
+          const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+          if (response.status === 404 || response.status === 410) {
+            setUnavailable(true);
+            return;
+          }
+          if (response.status >= 500) throw new Error('Media server unavailable');
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      await Linking.openURL(url);
+    } catch {
+      setError('Chưa mở được tệp đính kèm. Bạn có thể thử lại.');
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  if (video && unavailable) return <View style={s.mediaCard}>
+    <VideoOff size={20} color={c.muted} />
+    <Text style={[ui.small, ui.fill]}>Video đính kèm hiện không khả dụng.</Text>
+  </View>;
+
   let host = '';
   try {
     host = new URL(url).hostname.replace(/^www\./, '');
@@ -36,7 +70,9 @@ export function PostMedia({ value, video, height = 212 }) {
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={video ? 'Mở video đính kèm' : 'Mở liên kết đính kèm'}
-        onPress={() => Linking.openURL(url).catch(() => setError('Chưa mở được liên kết này trên thiết bị.'))}
+        accessibilityState={{ busy: checking, disabled: checking }}
+        disabled={checking}
+        onPress={openMedia}
         style={({ pressed }) => [s.mediaCard, video && s.videoCard, pressed && { opacity: 0.86 }]}
       >
         <View style={[s.mediaIcon, video && s.videoIcon]}>
@@ -48,7 +84,7 @@ export function PostMedia({ value, video, height = 212 }) {
         </View>
         <View style={ui.fill}>
           <Text style={[ui.label, video && { color: '#FFFEFA' }]}>
-            {video ? 'Xem video' : 'Mở tư liệu đính kèm'}
+            {checking ? 'Đang mở…' : video ? 'Xem video' : 'Mở tư liệu đính kèm'}
           </Text>
           <Text style={[ui.small, video && { color: c.primaryLight }]} numberOfLines={1}>
             {host}

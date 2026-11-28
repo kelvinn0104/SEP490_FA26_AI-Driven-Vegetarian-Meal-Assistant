@@ -11,6 +11,7 @@ function FeedPost({ post, user, mine, go, remove, flash }) {
   const [reaction, setReaction] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
   const lock = useRef(false);
   const liked = reaction?.liked ?? post.myVote === 1;
   const likes = reaction?.likeCount ?? post.likeCount;
@@ -40,16 +41,18 @@ function FeedPost({ post, user, mine, go, remove, flash }) {
   async function share() {
     const url = new URL(`/post-detail?id=${post.id}`, location.origin).href;
     try {
-      if (navigator.share) await navigator.share({ title: post.title, url });
-      else {
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ title: post.title, url }))) {
+        await navigator.share({ title: post.title, url });
+      } else {
         await navigator.clipboard.writeText(url);
         flash("Đã sao chép liên kết.");
       }
     } catch (cause) {
-      if (cause.name !== "AbortError") go("post-detail", post.id);
+      if (cause.name !== "AbortError") setShareUrl(url);
     }
   }
 
+  const postUrl = `/post-detail?id=${post.id}`;
   return <article className="vp-thread-post">
     <div className="vp-thread-post-head">
       <PostMeta post={post} />
@@ -58,10 +61,11 @@ function FeedPost({ post, user, mine, go, remove, flash }) {
       </span>}
     </div>
     {mine && post.moderation?.note && <Notice>{post.moderation.note}</Notice>}
-    <a href={`/post-detail?id=${post.id}`} aria-label={`Mở bài ${post.title}`}
+    <a href={postUrl} aria-label={`Mở bài ${post.title}`}
       className="vp-thread-copy" onClick={open}>
       {!titleIsExcerpt && <h2>{post.title}</h2>}
       {post.excerpt && <span>{post.excerpt}</span>}
+      {post.excerpt?.endsWith("…") && <small className="vp-social-readmore">Xem thêm</small>}
     </a>
     {post.mediaUrl && <PostMedia key={post.mediaUrl} post={post} />}
     {post.recipeId && post.recipeTitle && <a className="vp-thread-recipe" href={`/article-detail?id=r${post.recipeId}`}
@@ -86,12 +90,17 @@ function FeedPost({ post, user, mine, go, remove, flash }) {
       {mine && post.canDelete && <button type="button" onClick={() => remove(post)}><Trash2 size={17} />Xóa bài</button>}
     </div>}
     {error && <Notice error>{error}</Notice>}
+    {shareUrl && <CommunityDialog title="Chia sẻ bài viết" close={() => setShareUrl("")}>
+      <label>Liên kết bài viết
+        <input readOnly value={shareUrl} onFocus={(event) => event.target.select()} />
+      </label>
+    </CommunityDialog>}
   </article>;
 }
 
 export function Community({ mine, go, user, flash, videos = false }) {
   const initial = new URLSearchParams(window.location.search);
-  const [page, setPage] = useState(() => Math.max(1, Math.min(100000, Number(initial.get("page")) || 1)));
+  const [page, setPage] = useState(() => Math.max(1, Math.min(100000, Math.floor(Number(initial.get("page")) || 1))));
   const [search, setSearch] = useState(initial.get("q")?.slice(0, 200) || "");
   const [keyword, setKeyword] = useState(search);
   const [sort, setSort] = useState(initial.get("sort") === "top" ? "top" : "newest");
@@ -122,7 +131,7 @@ export function Community({ mine, go, user, flash, videos = false }) {
         throw new Error("Chưa xác nhận được bài đã xóa.");
       setDeleting(null);
       flash("Đã xóa bài viết.");
-      if (items.length === 1 && page > 1) setPage(page - 1);
+      if (listOf(resource.data).length === 1 && page > 1) setPage(page - 1);
       else resource.reload();
     } catch (cause) {
       setError(userError(cause));
@@ -151,7 +160,7 @@ export function Community({ mine, go, user, flash, videos = false }) {
       <div className="vp-social-composer-card">
         <button className="vp-thread-prompt" type="button" onClick={() => compose()}>
           <span className="vp-author-initial" aria-hidden="true">{(user?.displayName || user?.name || "V").trim().slice(0, 1).toUpperCase()}</span>
-          <span>Bạn muốn chia sẻ gì?</span>
+          <span>{user ? "Bạn muốn chia sẻ gì?" : "Đăng nhập để viết bài"}</span>
         </button>
         <div className="vp-thread-actions vp-social-actions">
           <button type="button" onClick={() => compose("file")}><Image size={19} aria-hidden="true" />Ảnh / video</button>
@@ -171,15 +180,23 @@ export function Community({ mine, go, user, flash, videos = false }) {
         </select>
       </div>
     </>}
-    <State resource={resource}>
-      {items.length ? <div className="vp-thread-list">{items.map((post) =>
+    <State resource={{ ...resource, data: items }}
+      empty={mine ? "Bạn chưa có bài viết" : keyword ? "Không tìm thấy bài viết" : videos ? "Chưa có video" : "Chưa có bài viết"}
+      emptyAction={keyword
+        ? <Button secondary onClick={() => { setSearch(""); setKeyword(""); setPage(1); }}>Xóa tìm kiếm</Button>
+        : mine && <Button onClick={() => compose()}>Viết bài đầu tiên</Button>}>
+      <div className="vp-thread-list">{items.map((post) =>
         <FeedPost key={post.id} post={post} user={user} mine={mine} go={go} flash={flash} remove={(value) => { setError(""); setDeleting(value); }} />
-      )}</div> : <div className="vp-empty"><MessageCircle size={25} /><h2>{mine ? "Bạn chưa có bài viết" : "Chưa có bài phù hợp"}</h2></div>}
+      )}</div>
     </State>
-    <PageControls data={resource.data} page={page} setPage={setPage} disabled={resource.loading} />
+    <PageControls data={resource.data} page={page} setPage={(next) => {
+      setPage(next);
+      document.querySelector(".vp-social-layout")?.scrollIntoView({ block: "start" });
+    }} disabled={resource.loading} />
     </section>
     {composing && user && <CreatePost go={go} user={user} tool={composing} close={(saved) => { setComposing(null); if (saved === true) resource.reload(); }} />}
     {deleting && <CommunityDialog title="Xóa bài viết?" busy={busy} close={() => setDeleting(null)}>
+      <p>Bài viết sẽ được gỡ khỏi cộng đồng.</p>
       {error && <Notice error>{error}</Notice>}
       <div className="vp-actions">
         <Button secondary disabled={busy} onClick={() => setDeleting(null)}>Giữ bài</Button>

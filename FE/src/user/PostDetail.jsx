@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   ArrowLeft,
   Heart,
+  MessageCircle,
   Link,
   Flag,
   Trash2,
@@ -237,7 +238,7 @@ export function PostDetail({ id, go, user, flash }) {
                   </div>
                 )}
                 {published && <a className="vp-text-button" href="#post-comments">
-                  Bình luận ({post.commentCount ?? post.comments?.length ?? 0})
+                  <MessageCircle size={17} aria-hidden="true" /> Bình luận ({post.commentCount ?? post.comments?.length ?? 0})
                 </a>}
                 {published && <button
                   className="vp-text-button"
@@ -252,6 +253,10 @@ export function PostDetail({ id, go, user, flash }) {
                 >
                   <Link size={17} />
                   Sao chép liên kết
+                </button>}
+                {post.canDelete && <button className="vp-text-button" disabled={!!busy}
+                  onClick={() => { setError(""); setDialog({ kind: "delete-post" }); }}>
+                  <Trash2 size={16} /> Xóa bài
                 </button>}
                 {post.canEdit && (
                   <button
@@ -397,7 +402,7 @@ export function PostDetail({ id, go, user, flash }) {
       {dialog && (
         <CommunityDialog
           title={
-            dialog.kind === "report" ? "Báo cáo nội dung" : "Xóa bình luận?"
+            dialog.kind === "report" ? "Báo cáo nội dung" : dialog.kind === "delete-post" ? "Xóa bài viết?" : "Xóa bình luận?"
           }
           busy={!!busy}
           close={() => {
@@ -424,28 +429,34 @@ export function PostDetail({ id, go, user, flash }) {
             />
           ) : (
             <>
-              <p>Bình luận sẽ được gỡ khỏi cuộc trò chuyện.</p>
+              <p>{dialog.kind === "delete-post" ? "Bài viết sẽ được gỡ khỏi cộng đồng." : "Bình luận sẽ được gỡ khỏi cuộc trò chuyện."}</p>
               <div className="vp-actions">
                 <Button
                   secondary
                   disabled={!!busy}
                   onClick={() => setDialog(null)}
                 >
-                  Giữ bình luận
+                  Hủy
                 </Button>
                 <Button
                   disabled={!!busy}
                   onClick={() =>
                     mutate("delete", async () => {
+                      const deletingPost = dialog.kind === "delete-post";
                       const removed = await request(
-                        `/community/comments/${dialog.entry.id}`,
+                        deletingPost ? `/community/posts/${post.id}` : `/community/comments/${dialog.entry.id}`,
                         undefined,
                         "DELETE",
                       );
                       if (removed !== true)
                         throw new Error(
-                          "Chưa xác nhận được bình luận đã xóa. Tải lại bài để kiểm tra.",
+                          "Chưa xác nhận được nội dung đã xóa. Tải lại trang để kiểm tra.",
                         );
+                      if (deletingPost) {
+                        flash("Đã xóa bài viết.");
+                        go("user-posts");
+                        return;
+                      }
                       const comments = post.comments.filter(
                         (entry) => entry.id !== dialog.entry.id,
                       );
@@ -459,7 +470,7 @@ export function PostDetail({ id, go, user, flash }) {
                     })
                   }
                 >
-                  {busy ? "Đang xóa…" : "Xóa bình luận"}
+                  {busy ? "Đang xóa…" : dialog.kind === "delete-post" ? "Xóa bài" : "Xóa bình luận"}
                 </Button>
               </div>
             </>

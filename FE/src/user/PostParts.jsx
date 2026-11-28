@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, ExternalLink } from "lucide-react";
+import { Play, ExternalLink, VideoOff } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { postDate, postMedia, mediaLink } from "./postData";
 import { Dialog } from "./ui";
@@ -84,6 +84,12 @@ export function PostMedia({ post }) {
         referrerPolicy="no-referrer"
       />
     );
+  if (failed && media.src.startsWith(imgUrl("/uploads/"))) {
+    return <div className="vp-media-unavailable">
+      <VideoOff size={22} aria-hidden="true" />
+      <span>Video đính kèm hiện không khả dụng.</span>
+    </div>;
+  }
   if (media.kind === "link" || failed)
     return (
       <div className="vp-video-fallback">

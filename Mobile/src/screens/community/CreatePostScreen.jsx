@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { usePreventRemove } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { BookOpen, Clock3, Film, ImagePlus, Link2, Send, X } from 'lucide-react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -55,6 +56,7 @@ function Composer({ post, tool, navigation, setSubmitting }) {
   const [fileError, setFileError] = useState('');
   const [saved, setSaved] = useState(null);
   const uploaded = useRef(null);
+  const [stage, setStage] = useState('');
 
   const recipes = useQuery({
     queryKey: ['recipes'],
@@ -81,6 +83,7 @@ function Composer({ post, tool, navigation, setSubmitting }) {
 
       if (attachment) {
         if (uploaded.current?.asset !== attachment) {
+          setStage('Đang tải tệp…');
           uploaded.current = { asset: attachment, result: await communityService.uploadPostMedia(attachment) };
         }
         mediaUrl = uploaded.current.result.url;
@@ -97,11 +100,12 @@ function Composer({ post, tool, navigation, setSubmitting }) {
         recipeId: recipe?.id ?? null,
         postType: type,
       };
+      setStage('Đang gửi duyệt…');
       const result = await (post ? communityService.updatePost(post.id, body) : communityService.createPost(body));
       if (!result?.id) throw new Error('Chưa xác nhận được bài viết đã gửi. Kiểm tra mục Bài của tôi.');
       return result;
     },
-    onMutate: () => setSubmitting(true),
+    onMutate: () => { setSubmitting(true); setStage('Đang chuẩn bị…'); },
     onSettled: () => setSubmitting(false),
     onSuccess: result => {
       client.setQueryData(['post', result.id], result);
@@ -110,6 +114,19 @@ function Composer({ post, tool, navigation, setSubmitting }) {
     },
   });
   const busy = mutation.isPending;
+  const dirty = !!attachment || content !== (post?.content || '') || media !== (post?.mediaUrl || '') ||
+    postType !== (post?.postType || 'blog') || (recipe?.id ?? null) !== (post?.recipeId ?? null);
+  usePreventRemove(!saved && (busy || dirty), ({ data }) => {
+    if (busy) return;
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm('Bỏ bản nháp này?')) navigation.dispatch(data.action);
+      return;
+    }
+    Alert.alert('Bỏ bản nháp này?', 'Nội dung đang soạn sẽ bị mất.', [
+      { text: 'Tiếp tục soạn', style: 'cancel' },
+      { text: 'Bỏ bản nháp', style: 'destructive', onPress: () => navigation.dispatch(data.action) },
+    ]);
+  });
 
   async function pickAttachment() {
     setFileError('');
@@ -141,6 +158,9 @@ function Composer({ post, tool, navigation, setSubmitting }) {
         <View style={s.statusIcon}><Clock3 size={26} color={c.primary} /></View>
         <Text accessibilityRole="header" style={ui.h2}>{published ? 'Đã đăng bài' : 'Đã gửi duyệt'}</Text>
         <Text style={[ui.body, s.center]}>{published ? 'Bài đã xuất hiện trên bảng tin.' : 'Bài sẽ xuất hiện trên bảng tin sau khi được duyệt.'}</Text>
+        {uploaded.current?.result.durable === false ? (
+          <Notice warning>Máy chủ hiện lưu tệp tạm thời; tệp có thể mất sau lần cập nhật máy chủ.</Notice>
+        ) : null}
         <Button title="Bài của tôi" onPress={() => navigation.popTo('MainTabs', {
           screen: 'CommunityTab', params: { showMyPostsAt: Date.now() },
         })} />
@@ -225,6 +245,7 @@ function Composer({ post, tool, navigation, setSubmitting }) {
           </View>
         ) : null}
       </View>
+      {busy ? <Text accessibilityLiveRegion="polite" style={ui.small}>{stage}</Text> : null}
       <Notice error>{fileError || mutation.error?.message}</Notice>
       <Button title={post ? 'Lưu và gửi duyệt lại' : 'Gửi duyệt'} icon={Send} loading={busy}
         disabled={busy || (!content.trim() && !media.trim() && !attachment)}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   ArrowUpRight,
@@ -36,6 +36,10 @@ export function PostDetailScreen({ route, navigation }) {
   const id = route.params?.postId;
   const signedIn = useAuthStore(state => !!state.token);
   const client = useQueryClient();
+  const scroll = useRef(null);
+  const commentsY = useRef(null);
+  const initialComments = useRef(!!route.params?.comments);
+  const commentList = useRef(null);
   const [page, setPage] = useState(1);
   const [comment, setComment] = useState('');
   const [report, setReport] = useState(null);
@@ -84,6 +88,10 @@ export function PostDetailScreen({ route, navigation }) {
       if (['comment', 'edit-comment', 'delete-comment'].includes(type)) {
         if (type === 'comment') {
           setComment('');
+          // The API returns oldest first. Open the last page so the new comment is visible.
+          const pageSize = comments.data?.pageSize || 20;
+          const count = Math.max(comments.data?.totalCount ?? 0, post.commentCount ?? 0) + 1;
+          setPage(Math.ceil(count / pageSize));
         } else if (type === 'edit-comment') {
           setEditing(null);
         } else if (commentItems.length === 1 && page > 1) {
@@ -129,6 +137,11 @@ export function PostDetailScreen({ route, navigation }) {
   const totalComments = Math.max(Number(post?.commentCount) || 0, commentItems.length);
   const validPost = post && (post.canEdit || !isDemo(post));
 
+  const showComments = () => {
+    const view = scroll.current?.getScrollResponder?.() || scroll.current;
+    if (commentsY.current != null) view?.scrollTo?.({ y: commentsY.current, animated: !initialComments.current });
+  };
+
   const reportForm = report && (
     <View style={[ui.card, { borderColor: c.errorBorder }]}>
       <SectionHeader
@@ -159,6 +172,7 @@ export function PostDetailScreen({ route, navigation }) {
         value={reason}
         onChangeText={setReason}
       />
+      {action.variables?.type === 'report' ? <Notice error>{action.error?.message}</Notice> : null}
       <Button
         title="Gửi báo cáo"
         variant="danger"
@@ -171,6 +185,7 @@ export function PostDetailScreen({ route, navigation }) {
 
   return (
     <Page
+      ref={scroll}
       title="Bài viết"
       back={back}
       keyboard
@@ -265,8 +280,8 @@ export function PostDetailScreen({ route, navigation }) {
                 </Pressable>
               ) : null}
 
-              <Notice error>{action.error?.message}</Notice>
-              <Notice success>{feedback}</Notice>
+              {['like', 'delete'].includes(action.variables?.type) ? <Notice error>{action.error?.message}</Notice> : null}
+              {action.variables?.type === 'report' && report == null ? <Notice success>{feedback}</Notice> : null}
 
               {published && (
                 <>
@@ -283,22 +298,32 @@ export function PostDetailScreen({ route, navigation }) {
                       <Text style={s.voteText}>{post.myVote === 1 ? 'Đã thích' : 'Thích'} · {post.likeCount ?? post.score ?? 0}</Text>
                     </Pressable>
 
-                    <View style={[ui.row, { marginLeft: 'auto' }]}>
-                      <MessageCircle size={15} color={c.muted} />
-                      <Text style={ui.small}>{totalComments} bình luận</Text>
-                    </View>
+                    <Pressable accessibilityRole="button" onPress={showComments} style={[ui.row, s.commentShortcut]}>
+                      <MessageCircle size={16} color={c.muted} />
+                      <Text style={ui.label}>{totalComments} bình luận</Text>
+                    </Pressable>
                   </View>
 
                   {report?.type === 'post' ? reportForm : null}
 
-                  <View style={s.comments}>
+                  <View ref={commentList} style={s.comments} onLayout={() => {
+                    const view = scroll.current?.getScrollResponder?.() || scroll.current;
+                    if (!view || !commentList.current?.measureLayout) return;
+                    const target = view.getInnerViewNode?.() || view;
+                    commentList.current.measureLayout(target, (_x, y) => {
+                      commentsY.current = y;
+                      if (initialComments.current) {
+                        showComments();
+                        initialComments.current = false;
+                      }
+                    }, () => {});
+                  }}>
                     <SectionHeader title="Bình luận" count={`${totalComments}`} />
 
                     {signedIn ? (
                       <View style={s.commentComposer}>
                         <TextInput
                           accessibilityLabel="Viết bình luận"
-                          autoFocus={!!route.params?.comments}
                           placeholder="Chia sẻ cảm nhận hoặc mẹo nấu của bạn…"
                           placeholderTextColor={c.subtle}
                           multiline
@@ -330,6 +355,12 @@ export function PostDetailScreen({ route, navigation }) {
                       />
                     )}
 
+                    {['comment', 'edit-comment', 'delete-comment'].includes(action.variables?.type) ? (
+                      <>
+                        <Notice error>{action.error?.message}</Notice>
+                        <Notice success>{feedback}</Notice>
+                      </>
+                    ) : null}
                     <QueryState query={comments}>
                       {!commentItems.length ? (
                         <Text style={[ui.small, { paddingVertical: 6 }]}>
@@ -474,6 +505,7 @@ const s = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
   },
+  commentShortcut: { marginLeft: 'auto', minHeight: 44, paddingHorizontal: 8 },
   comments: { gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.line },
   commentComposer: {
     flexDirection: 'row',

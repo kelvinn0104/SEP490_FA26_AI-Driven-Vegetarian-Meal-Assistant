@@ -43,6 +43,7 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [stage, setStage] = useState("");
   const fileInput = useRef(null);
   const mediaAction = useRef(null);
   const upload = useRef(null);
@@ -51,10 +52,11 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
     (signal) => showRecipes ? request("/Recipes", undefined, undefined, signal) : [],
     [showRecipes],
   );
-  const search = recipeSearch.trim().toLocaleLowerCase("vi-VN");
+  const fold = (value) => value.toLocaleLowerCase("vi-VN").normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d").trim();
+  const search = fold(recipeSearch);
   const choices = listOf(recipes.data).filter((recipe) =>
     recipe.status === "published" && recipeNumber(recipe.id) &&
-    (recipeNumber(recipe.id) === recipeNumber(draft.recipeId) || recipe.title.toLocaleLowerCase("vi-VN").includes(search)),
+    (recipeNumber(recipe.id) === recipeNumber(draft.recipeId) || fold(recipe.title).includes(search)),
   );
   useEffect(() => {
     if (editPost || result) return;
@@ -88,6 +90,7 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
     upload.current = null;
     setAttachment(file);
     update({ mediaUrl: "", postType: isVideo ? "video" : "blog" });
+    setShowLink(false);
   }
 
   async function submit(event) {
@@ -108,6 +111,7 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
       let postType = mediaUrl && (draft.postType === "video" || ["video", "youtube"].includes(linkedMedia?.kind)) ? "video" : "blog";
       if (attachment) {
         if (upload.current?.file !== attachment) {
+          setStage("Đang tải tệp…");
           const form = new FormData();
           form.append("File", attachment);
           form.append("Purpose", "post");
@@ -119,6 +123,7 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
         mediaUrl = upload.current.media.url;
         postType = upload.current.media.kind === "video" ? "video" : "blog";
       }
+      setStage("Đang gửi duyệt…");
       const response = await request(editPost ? `/community/posts/${editPost.id}` : "/community/posts", {
         postType, content: content || null, mediaUrl,
         title: editPost && editPost.content?.trim().split("\n")[0]?.slice(0, 200) !== editPost.title
@@ -145,6 +150,7 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
       <span><StatusIcon size={26} aria-hidden="true" /></span>
       <h2>{postStatusLabel(result)}</h2>
       <p>{published ? "Bài đã xuất hiện trên bảng tin." : "Bạn có thể theo dõi trạng thái trong Bài của tôi. Bài sẽ lên bảng tin sau khi được duyệt."}</p>
+      {upload.current?.media.durable === false && <Notice>Máy chủ hiện lưu tệp tạm thời; tệp có thể mất sau lần cập nhật máy chủ.</Notice>}
       <div className="vp-actions">
         <Button onClick={() => { close?.(true); go("user-posts"); }}>Bài của tôi</Button>
         <Button secondary onClick={() => { close?.(true); go("post-detail", result.id); }}>Xem bài</Button>
@@ -204,11 +210,11 @@ export function CreatePost({ go, user, video = false, editPost = null, close, to
           <button type="button" aria-label="Gắn công thức" title="Gắn công thức" className="vp-icon"
             disabled={busy} aria-expanded={showRecipes} onClick={() => setShowRecipes((open) => !open)}><CookingPot size={19} /><span>Công thức</span></button>
           <button type="button" aria-label="Thêm liên kết media" title="Thêm liên kết media" className="vp-icon"
-            disabled={busy} aria-expanded={showLink} onClick={() => setShowLink((open) => !open)}>{video ? <Video size={19} /> : <Link2 size={19} />}<span>Liên kết</span></button>
+            disabled={busy || !!attachment} aria-expanded={showLink} onClick={() => setShowLink((open) => !open)}>{video ? <Video size={19} /> : <Link2 size={19} />}<span>Liên kết</span></button>
         </div>
       </div>
       <Button disabled={busy || (!draft.content.trim() && !draft.mediaUrl.trim() && !attachment)}>
-        {busy ? "Đang gửi…" : editPost ? "Lưu và gửi duyệt" : "Gửi duyệt"}
+        {busy ? stage || "Đang gửi…" : editPost ? "Lưu và gửi duyệt" : "Gửi duyệt"}
       </Button>
     </form>;
   return close ? <Dialog className="vp-community-dialog vp-social-dialog" title={title} busy={busy} close={close}>{form}</Dialog>
