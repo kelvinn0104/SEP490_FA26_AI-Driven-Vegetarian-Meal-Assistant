@@ -8,6 +8,10 @@ const UserPortal = React.lazy(() => import("./user/UserPortal.jsx"));
 const adminScreens = [
   "dashboard",
   "user-management",
+  "mod-management",
+  "role-management",
+  "system-settings",
+  "system-logs",
   "category-management",
   "ingredient-management",
   "content-moderation",
@@ -15,7 +19,6 @@ const adminScreens = [
   "challenge-management",
   "product-scanner",
   "ai-model-monitoring",
-  "role-management",
   "feedback-management",
   "nutrition-analytics",
   "broadcast-notification",

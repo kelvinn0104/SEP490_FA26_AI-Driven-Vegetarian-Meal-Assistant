@@ -1,8 +1,106 @@
-import { apiRequest, unwrap } from './client';
-import { authService } from './services/authService';
+/**
+ * Admin & Mod APIs for VeggieAI Management Portal
+ * Synchronized from VeggieAIv3 with support for all Management Features & Endpoints
+ */
+import { apiRequest, setAuthToken, setStoredUser, clearAuthStorage, getAuthToken, API_BASE_URL } from './client';
 
-export const authApi = authService;
+export const normalizeRole = (rawRole) => {
+  if (!rawRole) return null;
+  const r = String(rawRole).trim().toLowerCase();
+  if (['superadmin', 'super_admin', 'super admin', 'admin', 'role-1'].includes(r)) {
+    return 'SuperAdmin';
+  }
+  if (['mod', 'moderator', 'role-2', 'chuyên gia dinh dưỡng', 'điều phối viên'].includes(r)) {
+    return 'Mod';
+  }
+  return 'User';
+};
 
+export const getRoleDisplayLabel = (role) => {
+  const normalized = normalizeRole(role);
+  if (normalized === 'SuperAdmin') return 'Super Admin';
+  if (normalized === 'Mod') return 'Điều phối viên (Mod)';
+  return 'Người dùng';
+};
+
+export const isJwtExpired = (token) => {
+  if (!token) return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+};
+
+// ================= AUTH API =================
+export const authApi = {
+  login: async (email, password, portalOnly = true) => {
+    const res = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, portalOnly }),
+    });
+    if (res?.data?.token && res?.data?.user) {
+      const normalizedUser = {
+        ...res.data.user,
+        role: normalizeRole(res.data.user.role),
+      };
+      setAuthToken(res.data.token);
+      setStoredUser(normalizedUser);
+      return { ...res.data, user: normalizedUser };
+    }
+    return res?.data;
+  },
+
+  register: async ({ name, email, password, role = 'Mod', inviteCode = '' }) => {
+    const res = await apiRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        displayName: name,
+        email,
+        password,
+        role,
+        inviteCode,
+      }),
+    });
+    if (res?.data?.token && res?.data?.user) {
+      const normalizedUser = {
+        ...res.data.user,
+        role: normalizeRole(res.data.user.role),
+      };
+      setAuthToken(res.data.token);
+      setStoredUser(normalizedUser);
+      return { ...res.data, user: normalizedUser };
+    }
+    return res?.data;
+  },
+
+  logout: async () => {
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' });
+    } finally {
+      clearAuthStorage();
+    }
+  },
+
+  getMe: async () => {
+    const res = await apiRequest('/auth/me');
+    if (res?.data) {
+      const normalizedUser = {
+        ...res.data,
+        role: normalizeRole(res.data.role),
+      };
+      setStoredUser(normalizedUser);
+      return normalizedUser;
+    }
+    return null;
+  },
+};
+
+// ================= USERS & MOD MANAGEMENT API =================
 export const usersApi = {
   getUsers: async (params = {}) => {
     const query = new URLSearchParams();
@@ -10,15 +108,14 @@ export const usersApi = {
     if (params.diet && params.diet !== 'all') query.append('diet', params.diet);
     if (params.role && params.role !== 'all') query.append('role', params.role);
     if (params.status && params.status !== 'all') query.append('status', params.status);
-
-    const queryString = query.toString() ? `?${query.toString()}` : '';
-    const res = await apiRequest(`/users${queryString}`);
-    return unwrap(res) || [];
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/users${qs}`);
+    return res?.data || [];
   },
 
   getUserById: async (id) => {
     const res = await apiRequest(`/users/${id}`);
-    return unwrap(res);
+    return res?.data;
   },
 
   createUser: async (userData) => {
@@ -26,17 +123,20 @@ export const usersApi = {
       method: 'POST',
       body: JSON.stringify(userData),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
-  lockUser: async (id) => {
-    const res = await apiRequest(`/users/${id}/lock`, { method: 'PUT' });
-    return unwrap(res);
+  lockUser: async (id, reason = '') => {
+    const res = await apiRequest(`/users/${id}/lock`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+    return res?.data;
   },
 
   unlockUser: async (id) => {
     const res = await apiRequest(`/users/${id}/unlock`, { method: 'PUT' });
-    return unwrap(res);
+    return res?.data;
   },
 
   updateUserRole: async (id, role) => {
@@ -44,71 +144,104 @@ export const usersApi = {
       method: 'PUT',
       body: JSON.stringify({ role }),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteUser: async (id) => {
     const res = await apiRequest(`/users/${id}`, { method: 'DELETE' });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= ROLES & PERMISSIONS API =================
 export const rolesApi = {
   getRoles: async () => {
     const res = await apiRequest('/roles');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getPermissions: async () => {
     const res = await apiRequest('/roles/permissions');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
-  saveRole: async (roleData, id = null) => {
-    const endpoint = id ? `/roles/${id}` : '/roles';
-    const method = id ? 'PUT' : 'POST';
-    const res = await apiRequest(endpoint, {
-      method,
-      body: JSON.stringify({
-        name: roleData.name,
-        description: roleData.description,
-        permissions: roleData.permissions,
-      }),
+  getMyPermissions: async () => {
+    const res = await apiRequest('/roles/my-permissions');
+    return res?.data || [];
+  },
+
+  saveRole: async (roleData, id) => {
+    if (!id) {
+      throw new Error('Chỉ cho phép cập nhật ma trận quyền của các vai trò hệ thống hiện có.');
+    }
+    const res = await apiRequest(`/roles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(roleData),
     });
-    return unwrap(res);
+    return res?.data;
+  },
+
+  deleteRole: async (id) => {
+    const res = await apiRequest(`/roles/${id}`, { method: 'DELETE' });
+    return res?.data;
   },
 };
 
+// ================= SYSTEM SETTINGS API =================
+export const settingsApi = {
+  getSettings: async (search = '') => {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+    const res = await apiRequest(`/system-settings${qs}`);
+    return res?.data || [];
+  },
+
+  saveSetting: async (data) => {
+    const res = await apiRequest('/system-settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res?.data;
+  },
+
+  deleteSetting: async (key) => {
+    const res = await apiRequest(`/system-settings/${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+    });
+    return res?.data;
+  },
+};
+
+// ================= SYSTEM LOGS API =================
 export const logsApi = {
   getSystemLogs: async (params = {}) => {
     const query = new URLSearchParams();
     if (params.type && params.type !== 'ALL') query.append('type', params.type);
     if (params.search) query.append('search', params.search);
     if (params.limit) query.append('limit', params.limit);
-
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/logs${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
-  createLog: async (logData) => {
+  createSystemLog: async (logData) => {
     const res = await apiRequest('/logs', {
       method: 'POST',
       body: JSON.stringify(logData),
     });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= AI MONITORING & ANALYSIS API =================
 export const aiApi = {
   getHealth: async () => {
     const res = await apiRequest('/ai/health');
-    return unwrap(res);
+    return res?.data;
   },
 
   getModels: async () => {
     const res = await apiRequest('/ai/models');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   updateModelStatus: async (id, status) => {
@@ -116,133 +249,151 @@ export const aiApi = {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
-  getTelemetry: async () => {
-    const res = await apiRequest('/ai/telemetry');
-    return unwrap(res) || [];
+  getTelemetry: async (limit = 30) => {
+    const res = await apiRequest(`/ai/telemetry?limit=${limit}`);
+    return res?.data || [];
   },
 
   parseNutrition: async (recipeText) => {
     const res = await apiRequest('/ai/recipe/parse-macros', {
       method: 'POST',
       body: JSON.stringify({ recipeText }),
+      timeoutMs: 20000,
     });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= DASHBOARD API =================
 export const dashboardApi = {
   getStats: async () => {
     const res = await apiRequest('/dashboard/stats');
-    return unwrap(res);
+    return res?.data;
   },
 
   getDietDistribution: async () => {
     const res = await apiRequest('/dashboard/diet-distribution');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
-  getCharts: async () => {
-    const res = await apiRequest('/dashboard/charts');
-    return unwrap(res) || [];
+  getCharts: async (days = 7) => {
+    const res = await apiRequest(`/dashboard/charts?days=${days}`);
+    return res?.data || [];
   },
 
   getActivities: async () => {
     const res = await apiRequest('/dashboard/activities');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 };
 
+// ================= CATEGORIES API =================
 export const categoriesApi = {
-  getCategories: async (type = null) => {
-    const qs = type ? `?type=${encodeURIComponent(type)}` : '';
+  getCategories: async (type) => {
+    const qs = type && type !== 'all' ? `?type=${encodeURIComponent(type)}` : '';
     const res = await apiRequest(`/categories${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
-  createCategory: async (categoryData) => {
+  createCategory: async (data) => {
     const res = await apiRequest('/categories', {
       method: 'POST',
-      body: JSON.stringify(categoryData),
+      body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
-  updateCategory: async (id, categoryData) => {
+  updateCategory: async (id, data) => {
     const res = await apiRequest(`/categories/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(categoryData),
+      body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteCategory: async (id) => {
     const res = await apiRequest(`/categories/${id}`, { method: 'DELETE' });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= MODERATION API =================
 export const moderationApi = {
-  getPending: async (type = null) => {
+  getPending: async (type) => {
     const qs = type && type !== 'all' ? `?type=${encodeURIComponent(type)}` : '';
     const res = await apiRequest(`/moderation/pending${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
+  },
+
+  getHistory: async (limit = 30) => {
+    const res = await apiRequest(`/moderation/history?limit=${limit}`);
+    return res?.data || [];
   },
 
   getPendingCount: async () => {
     const res = await apiRequest('/moderation/count');
-    return unwrap(res) ?? 0;
+    return res?.data ?? 0;
   },
 
-  approve: async (id, reason = 'Nội dung đạt chuẩn thuần chay và dinh dưỡng.') => {
+  approve: async (id, reason = '') => {
     const res = await apiRequest(`/moderation/${id}/approve`, {
       method: 'POST',
       body: JSON.stringify({ decision: 'approved', reason }),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
-  reject: async (id, reason = 'Nội dung vi phạm tiêu chuẩn cộng đồng.') => {
+  reject: async (id, reason = '') => {
     const res = await apiRequest(`/moderation/${id}/reject`, {
       method: 'POST',
       body: JSON.stringify({ decision: 'rejected', reason }),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
-  requestRevision: async (id, reason = 'Vui lòng bổ sung đầy đủ thông tin định lượng.') => {
+  requestRevision: async (id, reason = '') => {
     const res = await apiRequest(`/moderation/${id}/revision`, {
       method: 'POST',
       body: JSON.stringify({ decision: 'revision', reason }),
     });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= RECIPES API =================
 export const recipesApi = {
   getRecipes: async (params = {}) => {
     const query = new URLSearchParams();
     if (params.search) query.append('search', params.search);
-    if (params.status) query.append('status', params.status);
-    if (params.categoryId) query.append('categoryId', params.categoryId);
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.categoryId && params.categoryId !== 'all') query.append('categoryId', params.categoryId);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/recipes${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getRecipeById: async (id) => {
     const res = await apiRequest(`/recipes/${id}`);
-    return unwrap(res);
+    return res?.data;
   },
 
-  createRecipe: async (recipeData) => {
+  createRecipe: async (data) => {
     const res = await apiRequest('/recipes', {
       method: 'POST',
-      body: JSON.stringify(recipeData),
+      body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
+  },
+
+  updateRecipe: async (id, data) => {
+    const res = await apiRequest(`/recipes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res?.data;
   },
 
   updateStatus: async (id, status) => {
@@ -250,84 +401,30 @@ export const recipesApi = {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteRecipe: async (id) => {
-    const res = await apiRequest(`/recipes/${id}`, {
-      method: 'DELETE',
-    });
-    return unwrap(res);
+    const res = await apiRequest(`/recipes/${id}`, { method: 'DELETE' });
+    return res?.data;
   },
 };
 
-export const productScansApi = {
-  getProducts: async (params = {}) => {
-    const query = new URLSearchParams();
-    if (params.status && params.status !== 'all') query.append('status', params.status);
-    if (params.category && params.category !== 'all') query.append('category', params.category);
-    if (params.search) query.append('search', params.search);
-    const qs = query.toString() ? `?${query.toString()}` : '';
-    const res = await apiRequest(`/productscans${qs}`);
-    return unwrap(res) || [];
-  },
-
-  getStats: async () => {
-    const res = await apiRequest('/productscans/stats');
-    return unwrap(res);
-  },
-
-  getProductById: async (id) => {
-    const res = await apiRequest(`/productscans/${id}`);
-    return unwrap(res);
-  },
-
-  createProduct: async (data) => {
-    const res = await apiRequest('/productscans', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return unwrap(res);
-  },
-
-  updateProduct: async (id, data) => {
-    const res = await apiRequest(`/productscans/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return unwrap(res);
-  },
-
-  deleteProduct: async (id) => {
-    const res = await apiRequest(`/productscans/${id}`, {
-      method: 'DELETE',
-    });
-    return unwrap(res);
-  },
-
-  reviewProduct: async (id, data) => {
-    const res = await apiRequest(`/productscans/${id}/review`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return unwrap(res);
-  },
-};
-
+// ================= INGREDIENTS & NUTRITION API =================
 export const ingredientsApi = {
   getIngredients: async (params = {}) => {
     const query = new URLSearchParams();
     if (params.search) query.append('search', params.search);
     if (params.allergyId && params.allergyId !== 'all') query.append('allergyId', params.allergyId);
-    if (params.sortBy) query.append('sortBy', params.sortBy);
+    if (params.sortBy && params.sortBy !== 'default') query.append('sortBy', params.sortBy);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/ingredients${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getIngredientById: async (id) => {
     const res = await apiRequest(`/ingredients/${id}`);
-    return unwrap(res);
+    return res?.data;
   },
 
   createIngredient: async (data) => {
@@ -335,7 +432,7 @@ export const ingredientsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   updateIngredient: async (id, data) => {
@@ -343,27 +440,26 @@ export const ingredientsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteIngredient: async (id) => {
-    const res = await apiRequest(`/ingredients/${id}`, {
-      method: 'DELETE',
-    });
-    return unwrap(res);
+    const res = await apiRequest(`/ingredients/${id}`, { method: 'DELETE' });
+    return res?.data;
   },
 
   getAllergies: async () => {
     const res = await apiRequest('/ingredients/allergies');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getNutrientStandards: async () => {
     const res = await apiRequest('/ingredients/standards');
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 };
 
+// ================= FEEDBACKS & REPORTS API =================
 export const feedbacksApi = {
   getFeedbacks: async (params = {}) => {
     const query = new URLSearchParams();
@@ -373,20 +469,20 @@ export const feedbacksApi = {
     if (params.search) query.append('search', params.search);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/feedbacks${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getStats: async () => {
     const res = await apiRequest('/feedbacks/stats');
-    return unwrap(res);
+    return res?.data;
   },
 
   resolveFeedback: async (id, data, feedbackType = 'report') => {
-    const res = await apiRequest(`/feedbacks/${id}/resolve?feedbackType=${feedbackType}`, {
+    const res = await apiRequest(`/feedbacks/${id}/resolve?feedbackType=${encodeURIComponent(feedbackType)}`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   createReport: async (data) => {
@@ -394,7 +490,7 @@ export const feedbacksApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   submitAiFeedback: async (data) => {
@@ -402,10 +498,11 @@ export const feedbacksApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= VEGAN CHALLENGES API =================
 export const challengesApi = {
   getChallenges: async (params = {}) => {
     const query = new URLSearchParams();
@@ -415,17 +512,17 @@ export const challengesApi = {
     if (params.search) query.append('search', params.search);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/challenges${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getStats: async () => {
     const res = await apiRequest('/challenges/stats');
-    return unwrap(res);
+    return res?.data;
   },
 
   getChallengeById: async (id) => {
     const res = await apiRequest(`/challenges/${id}`);
-    return unwrap(res);
+    return res?.data;
   },
 
   createChallenge: async (data) => {
@@ -433,7 +530,7 @@ export const challengesApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   updateChallenge: async (id, data) => {
@@ -441,14 +538,12 @@ export const challengesApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteChallenge: async (id) => {
-    const res = await apiRequest(`/challenges/${id}`, {
-      method: 'DELETE',
-    });
-    return unwrap(res);
+    const res = await apiRequest(`/challenges/${id}`, { method: 'DELETE' });
+    return res?.data;
   },
 
   getCheckinsQueue: async (params = {}) => {
@@ -458,7 +553,7 @@ export const challengesApi = {
     if (params.search) query.append('search', params.search);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/challenges/checkins${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   reviewCheckin: async (id, data) => {
@@ -466,27 +561,40 @@ export const challengesApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 };
 
+// ================= NUTRITION ANALYTICS API =================
 export const analyticsApi = {
-  getOverview: async () => {
-    const res = await apiRequest('/nutritionanalytics/overview');
-    return unwrap(res);
+  getOverview: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.periodDays) query.append('periodDays', params.periodDays);
+    if (params.averagingMode) query.append('averagingMode', params.averagingMode);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/nutritionanalytics/overview${qs}`);
+    return res?.data;
   },
 
-  getDeficits: async () => {
-    const res = await apiRequest('/nutritionanalytics/deficits');
-    return unwrap(res) || [];
+  getDeficits: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.periodDays) query.append('periodDays', params.periodDays);
+    if (params.averagingMode) query.append('averagingMode', params.averagingMode);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/nutritionanalytics/deficits${qs}`);
+    return res?.data || [];
   },
 
-  getTrends: async () => {
-    const res = await apiRequest('/nutritionanalytics/trends');
-    return unwrap(res) || [];
+  getTrends: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.periodDays) query.append('periodDays', params.periodDays);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/nutritionanalytics/trends${qs}`);
+    return res?.data || [];
   },
 };
 
+// ================= BROADCAST NOTIFICATIONS API =================
 export const broadcastsApi = {
   getBroadcasts: async (params = {}) => {
     const query = new URLSearchParams();
@@ -495,12 +603,12 @@ export const broadcastsApi = {
     if (params.search) query.append('search', params.search);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/broadcasts${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getStats: async () => {
     const res = await apiRequest('/broadcasts/stats');
-    return unwrap(res);
+    return res?.data;
   },
 
   createBroadcast: async (data) => {
@@ -508,7 +616,7 @@ export const broadcastsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   updateBroadcast: async (id, data) => {
@@ -516,24 +624,21 @@ export const broadcastsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteBroadcast: async (id) => {
-    const res = await apiRequest(`/broadcasts/${id}`, {
-      method: 'DELETE',
-    });
-    return unwrap(res);
+    const res = await apiRequest(`/broadcasts/${id}`, { method: 'DELETE' });
+    return res?.data;
   },
 
   sendNow: async (id) => {
-    const res = await apiRequest(`/broadcasts/${id}/send-now`, {
-      method: 'POST',
-    });
-    return unwrap(res);
+    const res = await apiRequest(`/broadcasts/${id}/send-now`, { method: 'POST' });
+    return res?.data;
   },
 };
 
+// ================= ECO REWARDS API =================
 export const rewardsApi = {
   getRewards: async (params = {}) => {
     const query = new URLSearchParams();
@@ -542,12 +647,12 @@ export const rewardsApi = {
     if (params.search) query.append('search', params.search);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/rewards${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   getStats: async () => {
     const res = await apiRequest('/rewards/stats');
-    return unwrap(res);
+    return res?.data;
   },
 
   createReward: async (data) => {
@@ -555,7 +660,7 @@ export const rewardsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   updateReward: async (id, data) => {
@@ -563,14 +668,12 @@ export const rewardsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 
   deleteReward: async (id) => {
-    const res = await apiRequest(`/rewards/${id}`, {
-      method: 'DELETE',
-    });
-    return unwrap(res);
+    const res = await apiRequest(`/rewards/${id}`, { method: 'DELETE' });
+    return res?.data;
   },
 
   getClaims: async (params = {}) => {
@@ -579,7 +682,7 @@ export const rewardsApi = {
     if (params.search) query.append('search', params.search);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await apiRequest(`/rewards/claims${qs}`);
-    return unwrap(res) || [];
+    return res?.data || [];
   },
 
   processClaim: async (id, data) => {
@@ -587,6 +690,73 @@ export const rewardsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return unwrap(res);
+    return res?.data;
   },
 };
+
+// ================= VEGAN PRODUCT SCANNER API =================
+export const productScansApi = {
+  getProducts: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.search) query.append('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await apiRequest(`/productscans${qs}`);
+    return res?.data || [];
+  },
+
+  getStats: async () => {
+    const res = await apiRequest('/productscans/stats');
+    return res?.data;
+  },
+
+  getProductById: async (id) => {
+    const res = await apiRequest(`/productscans/${id}`);
+    return res?.data;
+  },
+
+  createProduct: async (data) => {
+    const res = await apiRequest('/productscans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res?.data;
+  },
+
+  updateProduct: async (id, data) => {
+    const res = await apiRequest(`/productscans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res?.data;
+  },
+
+  deleteProduct: async (id) => {
+    const res = await apiRequest(`/productscans/${id}`, { method: 'DELETE' });
+    return res?.data;
+  },
+
+  reviewProduct: async (id, data) => {
+    const res = await apiRequest(`/productscans/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res?.data;
+  },
+};
+
+// ================= FILE UPLOAD API =================
+export const uploadsApi = {
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiRequest('/uploads/image', {
+      method: 'POST',
+      body: formData,
+      timeoutMs: 30000,
+    });
+    return res?.data;
+  },
+};
+
